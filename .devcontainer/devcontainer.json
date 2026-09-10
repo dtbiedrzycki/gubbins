@@ -21,7 +21,11 @@
   "remoteUser": "node",
   "containerUser": "node",
 
-  "postCreateCommand": "npm ci",
+  // No postCreateCommand for `npm ci` — the image ENTRYPOINT
+  // (.devcontainer/dev-entrypoint.sh) syncs node_modules with the
+  // lockfile on every start, so plain `docker compose up` and this flow
+  // share one mechanism. overrideCommand:false above keeps that
+  // entrypoint in effect here.
 
   "customizations": {
     "vscode": {

@@ -36,7 +36,11 @@ services:
         required: false
     ports:
       - "3000:3000"
-    command: sleep infinity
+    # The image ENTRYPOINT (.devcontainer/dev-entrypoint.sh) runs `npm ci`
+    # when node_modules is out of sync with the lockfile, then exec's this
+    # command. devcontainer.json keeps it (overrideCommand: false), so the
+    # container still just idles and VS Code attaches as before.
+    command: ["sleep", "infinity"]
 
 volumes:
   node_modules:

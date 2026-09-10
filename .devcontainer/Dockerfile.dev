@@ -73,5 +73,20 @@ ENV LC_ALL=C.UTF-8
 # escape/cursor sequences rather than encoding. See file for detail.
 COPY --chown=node:node .devcontainer/.tmux.conf /home/node/.tmux.conf
 
+# The node_modules named volume (docker-compose.yml) is provisioned empty
+# by the Docker daemon as root:root. Docker seeds a fresh volume's root
+# — contents AND ownership — from the image's mount point, so creating it
+# here owned by node is what lets `npm ci` write to it as the non-root
+# user. Without this line every clean `up` gets a root-owned node_modules
+# and the first install fails with EACCES.
+RUN mkdir -p /workspace/node_modules && chown node:node /workspace/node_modules
+
+# Sync node_modules with the lockfile on every start, for both the plain
+# `docker compose up` path and the Dev Containers flow (see the script).
+# The source file is committed executable, so COPY carries 0755 across.
+COPY --chown=node:node .devcontainer/dev-entrypoint.sh /usr/local/bin/dev-entrypoint
+
 USER node
 WORKDIR /workspace
+
+ENTRYPOINT ["/usr/local/bin/dev-entrypoint"]

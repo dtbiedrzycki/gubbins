@@ -17,6 +17,10 @@ The supported environment is the dev container in `.devcontainer/`
   "Reopen in Container".
 - **Plain Docker:** `docker compose up -d && docker compose exec app bash`.
 
+The container entrypoint runs `npm ci` on start whenever `node_modules`
+is out of sync with `package-lock.json`, so dependencies are ready
+either way — no manual install step.
+
 Then, once per clone, configure commit signing (required — see below):
 
 ```sh
