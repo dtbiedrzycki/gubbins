@@ -60,6 +60,15 @@ RUN groupmod -g ${USER_GID} node \
     && find / -xdev -group 1000 -exec chgrp -h ${USER_GID} {} \; 2>/dev/null || true \
     && find / -xdev -user 1000 -exec chown -h ${USER_UID} {} \; 2>/dev/null || true
 
+# `npm install -g` above ran as root, so the Claude Code package tree and
+# its bin shim are root-owned. Claude Code's in-app auto-updater re-runs
+# `npm install -g` as the non-root `node` user, hits EACCES, and records
+# "no_permissions" in ~/.claude/.last-update-result.json — pinning the
+# container to the image's build-time version. Hand the npm global tree
+# to `node` so updates apply in place. Same idea as the node_modules
+# volume chown below; after the usermod re-point so `node` is the final UID.
+RUN chown -R node:node /usr/local/lib/node_modules /usr/local/bin
+
 # C.UTF-8 needs no locale-gen or the `locales` package — Debian's glibc
 # ships it built in. Without a UTF-8 locale, bookworm-slim defaults to
 # LANG unset/POSIX, and any TUI using UTF-8 box-drawing or spinner
