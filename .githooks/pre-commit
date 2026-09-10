@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#
+# Refuse to create a commit unless this clone is configured to sign it.
+# This is a convenience guard, not a security boundary — it is skipped
+# by `git commit --no-verify`. The binding checks are CI's
+# verify-signatures job and, on self-hosted mirrors, the pre-receive
+# hook. See docs/commit-signing.md.
+
+set -euo pipefail
+
+fail=0
+
+[ "$(git config --get commit.gpgsign 2>/dev/null || true)" = "true" ] \
+  || { echo "pre-commit: commit.gpgsign is not 'true'" >&2; fail=1; }
+
+[ "$(git config --get gpg.format 2>/dev/null || true)" = "ssh" ] \
+  || { echo "pre-commit: gpg.format is not 'ssh'" >&2; fail=1; }
+
+[ -n "$(git config --get user.signingkey 2>/dev/null || true)" ] \
+  || { echo "pre-commit: user.signingkey is unset" >&2; fail=1; }
+
+if [ "$fail" -ne 0 ]; then
+  echo "pre-commit: commit signing is not set up in this clone." >&2
+  echo "pre-commit: run  bash scripts/setup-signing.sh  first." >&2
+  exit 1
+fi

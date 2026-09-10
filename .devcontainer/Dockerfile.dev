@@ -1,0 +1,77 @@
+# Dev image only — deliberately separate from the minimal, non-root
+# production image (see /Dockerfile). This one carries dev tooling and
+# matches the host UID/GID instead of a fixed one.
+#
+# Pinned to a specific Node LTS minor (not a floating "22" or "lts" tag)
+# so `npm ci` resolves identically for every contributor.
+FROM node:24.17-bookworm-slim
+
+# git/ca-certificates/openssh-client cover npm installs from git refs and
+# committing from inside the container; sqlite3 gives a CLI for poking at
+# wishlist.db directly during development. python3/make/g++ are a
+# node-gyp fallback: better-sqlite3 ships prebuilt binaries for common
+# glibc/Node/arch combos, but falls back to compiling from source when no
+# exact prebuilt matches (e.g. a brand-new Node minor, or an arch like
+# Apple Silicon depending on how Podman is running it) — without a
+# toolchain that fallback fails `npm ci` outright instead of just being
+# slower.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    ca-certificates \
+    openssh-client \
+    sqlite3 \
+    python3 \
+    make \
+    g++ \
+    curl \
+    iproute2 \
+    tmux \
+    && rm -rf /var/lib/apt/lists/*
+
+# gh isn't in Debian's default repos — needs its own apt source. This is
+# a build-time fetch (github.com/cli.github.com), separate from the
+# runtime egress-proxy allowlist discussed elsewhere in this project;
+# build-time network isn't subject to that restriction.
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+        -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+        > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends gh \
+    && rm -rf /var/lib/apt/lists/*
+
+# Global npm install rather than npx-per-invocation, so `claude` is on
+# PATH immediately in every shell without a first-run download delay.
+# Unpinned ("latest") for now — inconsistent with the pinned-everything-
+# else philosophy in this file, but Claude Code ships new versions very
+# frequently; worth deciding deliberately whether to pin a version here
+# once the setup stabilizes, rather than defaulting to it silently.
+RUN npm install -g @anthropic-ai/claude-code
+
+# Re-point the existing "node" user's UID/GID at the invoking host user's,
+# so files created in the bind-mounted workspace aren't owned by a
+# mismatched id on the host (the classic Linux bind-mount permission trap).
+# Defaults match a typical single-user Linux desktop if not overridden.
+ARG USER_UID=1000
+ARG USER_GID=1000
+RUN groupmod -g ${USER_GID} node \
+    && usermod -u ${USER_UID} -g ${USER_GID} node \
+    && find / -xdev -group 1000 -exec chgrp -h ${USER_GID} {} \; 2>/dev/null || true \
+    && find / -xdev -user 1000 -exec chown -h ${USER_UID} {} \; 2>/dev/null || true
+
+# C.UTF-8 needs no locale-gen or the `locales` package — Debian's glibc
+# ships it built in. Without a UTF-8 locale, bookworm-slim defaults to
+# LANG unset/POSIX, and any TUI using UTF-8 box-drawing or spinner
+# glyphs (Claude Code's included) renders garbled rather than cleanly
+# falling back to ASCII.
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
+# Correct terminal capability reporting inside tmux — the other common
+# cause of the same garbled-character symptom, via mishandled
+# escape/cursor sequences rather than encoding. See file for detail.
+COPY --chown=node:node .devcontainer/.tmux.conf /home/node/.tmux.conf
+
+USER node
+WORKDIR /workspace

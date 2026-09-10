@@ -1,0 +1,91 @@
+# ADR-070 — network sandboxing for Claude Code `auto`-mode sessions.
+#
+# Layer this on top of the base file rather than merging it in, so plain
+# local dev (a human at VS Code) never pays for sandboxing it doesn't
+# need:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.sandbox.yml up
+#
+# Not a substitute for reviewing what an `auto`-mode session does —
+# Anthropic is explicit that the permission classifier isn't a complete
+# safety boundary on its own. This bounds the damage on the occasions
+# it's wrong; `bypassPermissions` remains out of scope everywhere in this
+# project's tooling.
+
+services:
+  app:
+    # Dropping Docker's entire default capability set here is safe
+    # specifically because egress-proxy now owns all network enforcement
+    # — app never needed NET_ADMIN/NET_RAW for that (that's the whole
+    # point of the proxy design over iptables/ipset), and running as the
+    # non-root `node` user means the rest of the default set (CHOWN,
+    # SETUID, SYS_CHROOT, etc.) isn't exercised by normal dev work either.
+    # no-new-privileges blocks escalation via any setuid/setgid binary
+    # that might exist on the image, e.g. from an apt package.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # No route out at all except through egress-proxy, regardless of what
+    # a classifier-approved command tries to do. No elevated capabilities
+    # needed here — that's the point: the network restriction lives on
+    # the proxy, not on the container running the agent.
+    networks:
+      - internal
+    environment:
+      HTTP_PROXY: http://egress-proxy:3128
+      HTTPS_PROXY: http://egress-proxy:3128
+      # Squid's own health/admin surface and localhost shouldn't be
+      # proxied even though this network has no other route out anyway —
+      # keeps the intent explicit rather than incidental.
+      NO_PROXY: localhost,127.0.0.1
+
+  egress-proxy:
+    # Small, static, purpose-built image — deliberately not the app's own
+    # Dockerfile. This container's only job is enforcing the allowlist,
+    # so it carries none of the dev toolchain and has its own minimal
+    # attack surface.
+    # Canonical retired the older "_beta" tag suffix in favor of "_edge";
+    # this is the build their own "latest"/"edge" aliases currently
+    # resolve to (Squid 6.6, Ubuntu 24.04 LTS base) — deliberately not
+    # the newest push (7.2-26.04_edge), which hadn't yet been promoted to
+    # that alias as of this pin. Re-check periodically; Canonical doesn't
+    # publish a stable long-lived tag beyond this convention.
+    image: ubuntu/squid:6.6-24.04_edge
+    # Squid daemonizes by default — forks to background and lets the
+    # foreground process exit once the child is running. Outside a
+    # container that's normal; inside one, that foreground exit *is*
+    # PID 1 exiting, so Docker tears the whole container down right
+    # after a clean startup (seen here: logs stop mid-setup and jump
+    # straight to Squid's own shutdown message, "Removing PID file",
+    # with no error in between). -N keeps it in the foreground so the
+    # container's lifecycle tracks the actual running proxy.
+    command: ["-N"]
+    # SETUID/SETGID: Squid starts as root and internally drops to the
+    # unprivileged `proxy` user via setgid/initgroups/setuid — a security
+    # mechanism built into Squid itself, not optional. Confirmed via
+    # `squid -N -X -d9` that this is genuinely all it needs beyond
+    # Docker's baseline; the earlier crash chasing this was actually a
+    # stale squid.conf on disk, not a missing capability (see session
+    # history) — this is now tested against a confirmed-working config.
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./.devcontainer/sandbox/squid.conf:/etc/squid/squid.conf:ro
+    networks:
+      - internal
+      - external
+
+networks:
+  # No route to the internet, by construction — this is what makes the
+  # sandbox a sandbox rather than a convention `app` could ignore.
+  internal:
+    internal: true
+  # egress-proxy's only path out. Ordinary bridge network; nothing about
+  # it is special beyond not being marked internal.
+  external:

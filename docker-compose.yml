@@ -1,0 +1,42 @@
+# Shared between the devcontainer and plain `docker compose up` app usage.
+#
+# Deliberately no database service — SQLite is embedded, so there's
+# nothing for the app to depend on here. Per-developer overrides belong
+# in docker-compose.override.yml (gitignored), not in this file.
+#
+# The Claude Code `auto`-mode egress-proxy sidecar (ADR-070) layers on
+# top of this file as docker-compose.sandbox.yml — it's not merged in
+# here so plain local dev never pays for sandboxing it doesn't need.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile.dev
+      args:
+        # Override at build time (e.g. `USER_UID=$(id -u) USER_GID=$(id -g)
+        # docker compose build`) so bind-mounted files match the host user.
+        USER_UID: ${USER_UID:-1000}
+        USER_GID: ${USER_GID:-1000}
+    volumes:
+      # Workspace: bind mount, so edits on the host are picked up live.
+      - .:/workspace
+      # node_modules: named volume, not a bind mount — bind-mounting it is
+      # the classic macOS (and often Linux) performance trap.
+      - node_modules:/workspace/node_modules
+      # SQLite data file: bind-mounted deliberately (not a named volume) so
+      # a developer can inspect or delete wishlist.db directly from the host.
+      - ./data:/workspace/data
+    env_file:
+      # .env.example is committed; .env is gitignored and layers
+      # per-developer values on top of it. GH_TOKEN (ADR-071) belongs in
+      # .env, never in .env.example.
+      - .env.example
+      - path: .env
+        required: false
+    ports:
+      - "3000:3000"
+    command: sleep infinity
+
+volumes:
+  node_modules:

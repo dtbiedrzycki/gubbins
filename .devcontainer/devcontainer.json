@@ -1,0 +1,55 @@
+{
+  "name": "gubbins",
+
+  // docker-compose.yml is shared between the devcontainer and the app
+  // container itself — no separate compose file just for VS Code.
+  "dockerComposeFile": [
+    "../docker-compose.yml"
+  ],
+  "service": "app",
+  "workspaceFolder": "/workspace",
+
+  // Keep the container alive after the compose command's default
+  // entrypoint would otherwise exit, so VS Code has something to attach to.
+  "overrideCommand": false,
+
+  // Match the invoking host's UID/GID (see docker-compose.yml build args)
+  // so bind-mounted files aren't owned by a mismatched in-container user.
+  // VS Code's own remote-user UID update is turned off because the
+  // Dockerfile already builds the image with the correct ids baked in.
+  "updateRemoteUserUID": false,
+  "remoteUser": "node",
+  "containerUser": "node",
+
+  "postCreateCommand": "npm ci",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "vitest.explorer"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[typescriptreact]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        }
+      }
+    }
+  },
+
+  // node_modules is a named volume (see docker-compose.yml) — bind-mounting
+  // it is the classic macOS (and often Linux) performance trap. Everything
+  // else in the workspace is a normal bind mount.
+  "remoteEnv": {
+    "NODE_ENV": "development"
+  }
+}

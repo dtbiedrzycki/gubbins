@@ -1,0 +1,18 @@
+{
+  "name": "gubbins",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A wishlist application (early scaffolding — stack undecided).",
+  "license": "AGPL-3.0-or-later",
+  "author": "dtbiedrzycki",
+  "engines": {
+    "node": ">=24.17"
+  },
+  "packageManager": "npm@11.13.0",
+  "scripts": {
+    "test": "bats scripts/test"
+  },
+  "devDependencies": {
+    "bats": "^1.13.0"
+  }
+}

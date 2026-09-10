@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+out/
+coverage/
+*.tsbuildinfo
+
+# Environment — .env.example is committed, .env and variants are not
+.env
+.env.*
+!.env.example
+
+# Local database files (the app uses embedded SQLite under data/)
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.sqlite
+data/*.sqlite3
+
+# Per-developer compose overrides
+docker-compose.override.yml
+
+# Commit-signing material — the private key and the real signing.env
+# never leave the machine. The README, the dir marker, and the example
+# template are the only tracked files under this directory.
+/.devcontainer/secrets/*
+!/.devcontainer/secrets/.gitkeep
+!/.devcontainer/secrets/README.md
+!/.devcontainer/secrets/signing.env.example
+
+# Editor / OS cruft
+.DS_Store
+Thumbs.db
+*.log
+*.swp
+.idea/

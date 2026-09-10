@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+#
+# Server-side gate: reject any push that introduces a branch commit not
+# signed by a key listed in the .allowed_signers of the incoming tip.
+#
+# This is the binding enforcement point for self-hosted mirrors
+# (Gitea, GitLab CE, Forgejo, a plain bare repo over SSH). It is NOT
+# active just by living in .githooks/ — a mirror operator copies it to
+# <bare-repo>/hooks/pre-receive and marks it executable. GitHub ignores
+# custom pre-receive hooks, which is why CI runs the same check.
+#
+# Self-contained: reads .allowed_signers straight from the pushed tree,
+# so it works in a bare repo with no worktree and no git config.
+#
+# stdin lines: <old oid> <new oid> <ref>
+
+set -euo pipefail
+
+rc=0
+
+# True for git's all-zero "no such object" id, or an empty field.
+is_null() { [ -z "${1:-}" ] || printf '%s' "$1" | grep -Eq '^0+$'; }
+
+while read -r old new ref; do
+  case "$ref" in
+    refs/heads/*) ;;
+    *) continue ;;
+  esac
+
+  # Branch deletion — nothing to verify.
+  is_null "$new" && continue
+
+  allowed="$(mktemp)"
+  trap 'rm -f "$allowed"' EXIT
+
+  if ! git show "$new:.allowed_signers" > "$allowed" 2>/dev/null; then
+    echo "pre-receive: rejecting $ref — no .allowed_signers at the pushed tip" >&2
+    rc=1
+    continue
+  fi
+
+  if is_null "$old"; then
+    range=("$new" --not --all)
+  else
+    range=("$old..$new")
+  fi
+
+  while IFS= read -r sha; do
+    [ -n "$sha" ] || continue
+    status="$(git -c gpg.ssh.allowedSignersFile="$allowed" \
+                log -1 --format='%G?' "$sha")"
+    if [ "$status" != "G" ]; then
+      echo "pre-receive: rejecting $ref — $(git log -1 --format='%h %s' "$sha") not signed by an allowed key [$status]" >&2
+      rc=1
+    fi
+  done < <(git rev-list "${range[@]}")
+done
+
+exit "$rc"
