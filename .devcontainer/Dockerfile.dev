@@ -77,6 +77,15 @@ RUN chown -R node:node /usr/local/lib/node_modules /usr/local/bin
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
+# Truecolor: many TUIs (Claude Code included) decide whether to emit
+# 24-bit colour from $COLORTERM rather than terminfo. tmux does not
+# forward COLORTERM from the outer environment, and the tmux-256color
+# terminfo entry carries no RGB capability, so without this the app
+# inside tmux falls back to a low-contrast 256-colour approximation of
+# its theme. Pairs with the terminal-features/-overrides lines in
+# .tmux.conf below.
+ENV COLORTERM=truecolor
+
 # Correct terminal capability reporting inside tmux — the other common
 # cause of the same garbled-character symptom, via mishandled
 # escape/cursor sequences rather than encoding. See file for detail.
