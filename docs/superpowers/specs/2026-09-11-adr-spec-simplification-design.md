@@ -32,10 +32,6 @@ dependencies) this pass doesn't.
   condensed, not reversed or reinterpreted.
 - No pre-built mapping from doc sections to future implementation
   slices — that's a `writing-plans`-time decision.
-- No renumbering of ADRs beyond what's needed to resolve the 052/052a
-  collision and any merges found during inventory (see below) — stable
-  numbers are cheap for humans and diffs; only touch what's actually
-  broken.
 
 ## Target structure
 
@@ -85,12 +81,14 @@ files.
 
 Rules, applied during the inventory pass:
 
-1. **Stale status** — where an ADR's own prose says it's superseded
-   (e.g. ADR-022's title: "transport superseded by 069") but `Status`
-   still reads `Accepted`, fix the status *and* fold the pair into one
-   file when they describe what's now really a single current
-   decision (see Merge, below). Fold rather than just relabel when the
-   superseded file would otherwise be near-empty of independent value.
+1. **Superseded ADRs are always folded, never left standing.** Whenever
+   an ADR's `Status` already reads `Superseded by NNNN`, or its own
+   prose says it's superseded even though `Status` hasn't caught up
+   (e.g. ADR-022's title: "transport superseded by 069"), it is folded
+   into the superseding ADR — its unique rationale, if any, merged into
+   that ADR's Context or Consequences — and its file is deleted.
+   **No ADR may end this work with a `Superseded by` status still on
+   disk.** This is a hard requirement, not a judgment call per file.
 2. **Merge near-duplicates** — when two ADRs together describe one
    decision (022 + 069: guest-key transport), rewrite the surviving
    number as a single Nygard ADR whose Context includes the earlier
@@ -98,9 +96,21 @@ Rules, applied during the inventory pass:
    stub — git history is the record, matching how the repo already
    treats ADRs as an append-only log at the git level, not the
    filesystem level.
-3. **Numbering collisions** — 052/052a is the one known case. Give
-   052a a clean unused number (072) rather than cascading a renumber
-   through 052-071, and update every cross-reference.
+3. **Numbering collisions and gaps** — 052/052a is the one currently
+   known collision; every fold in rules 1-2 also leaves a gap where the
+   deleted file used to be. Because this restructuring is the **first
+   pass** — the baseline every future ADR builds on, not an interim
+   edit that preserves historical numbers for their own sake — the
+   plan does not just patch the known collision and leave the rest of
+   the gaps standing. Once every fold across the full corpus is known
+   (i.e. after the rollout plan completes), a single terminal
+   renumbering task walks the survivors in order and renumbers them
+   0001..N with no gaps, rewriting every cross-reference
+   repository-wide. Interim renumbers performed before that point
+   (e.g. the pilot's 052a renumber) are real, permanent fixes to their
+   specific collision — not wasted work — but are not the final
+   numbers; the terminal pass may move them again when it closes the
+   remaining gaps.
 
 **Known findings so far** (from initial reading, not yet a full
 inventory):
@@ -110,7 +120,7 @@ inventory):
 | 022, 069 | Same decision (guest-key transport); 022 reads `Accepted` but is superseded in substance | Merge into 069, delete 022 |
 | 052, 052a | Numbering collision, flagged unresolved in README | Renumber 052a → 072 |
 | 034 | Says `Accepted`, is accurate (deferral upheld, not superseded) — partial cross-reference to 059/067 is fine as Context material | Reformat only |
-| 038 | Already minimal and correctly `Superseded by 040` | Reformat only (verify it already matches target shape) |
+| 038 | Formally `Superseded by 040`; carries no rationale beyond what 040's Detail already states | Fold into 040, delete 038 |
 
 The remaining ~65 ADRs have not yet been individually classified. The
 implementation plan's first step is a full inventory pass (read all 72,
@@ -125,19 +135,31 @@ mid-rewrite.
 2. **Pilot** (shown to the user before continuing):
    - `gubbins-spec.md` → `docs/spec/` split and trim, in full.
    - ADR-022 + ADR-069 merge (validates the merge mechanics).
+   - ADR-038 folded into ADR-040 (validates the "fold a superseded ADR,
+     leave no file behind" mechanics, distinct from a near-duplicate
+     merge — 038 has no independent content to preserve).
    - 052 → 072 renumber (validates the renumber + cross-reference
      update mechanics).
    - Nygard rewrite of one long ADR (e.g. 059 or 070) and one short one
      (validates the rewrite pattern at both ends of the size range).
+   - I'll show you diffs before rolling the same pattern out to the
+     remaining ~65 files.
 3. **Rollout** — apply the validated pattern to the remaining ADRs
    (likely dispatched across subagents given the volume — a detail for
-   the implementation plan), update `docs/adr/README.md`'s index and
-   status column, and remove the numbering-collision note once 072 is
-   assigned.
-4. **Verification** — grep every `ADR-NNN` / `docs/adr/NNNN-...` /
+   the implementation plan), fold every other ADR the inventory finds
+   superseded (rule 1 — none may remain), update `docs/adr/README.md`'s
+   index and status column accordingly.
+4. **Terminal renumbering** — once every fold across the whole corpus
+   is done, one final pass walks the survivors in order, renumbers them
+   0001..N with no gaps, and rewrites every cross-reference in
+   `docs/adr/`, `docs/spec/`, and `gubbins-spec.md` to match. This is
+   what makes the result of this work the stable, permanent numbering
+   baseline — not another interim state.
+5. **Verification** — grep every `ADR-NNN` / `docs/adr/NNNN-...` /
    `gubbins-spec.md#...` cross-reference across `docs/spec/`,
    `docs/adr/`, and root `gubbins-spec.md`; confirm each resolves to a
-   file and section that still exists after the merges/renumber/split.
+   file and section that still exists after the merges/renumber/split,
+   and confirm zero files remain with `Status: Superseded by NNNN`.
 
 ## Risks
 
@@ -155,6 +177,10 @@ mid-rewrite.
 
 ## Handoff
 
-Next step: `writing-plans`, to turn steps 1-4 above into a concrete
-implementation plan (batch sizes, subagent dispatch for the rollout,
-commit structure).
+Next step: `writing-plans`, to turn steps 1-5 above into a concrete
+implementation plan. Given the corpus size, this becomes two plans:
+a **pilot plan** (inventory + spec split + a small ADR pilot batch,
+including one fold-a-superseded-ADR example and one collision-renumber
+example) reviewed before continuing, and a **rollout plan** (written
+against the pilot's completed inventory) that folds every remaining
+superseded ADR and ends with the terminal renumbering pass.
