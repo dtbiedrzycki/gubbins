@@ -100,14 +100,18 @@ number on the PR that introduces an ADR.
 | [067](0067-erasure-across-backups-and-the-subject-access-routing-fix.md) | Erasure across backups, and the subject-access routing fix | Accepted |
 | [068](0068-client-ip-resolution-is-a-hop-count.md) | Client IP resolution is a hop count | Accepted |
 | [069](0069-the-guest-key-travels-in-a-fragment.md) | The guest key travels in a fragment | Accepted |
+| [070](0070-devcontainer-sandboxes-claude-code-auto-mode-via-an-egress.md) | Devcontainer sandboxes Claude Code auto mode via an egress-proxy sidecar | Accepted |
+| [071](0071-claude-code-and-gh-ship-in-the-app-image-with-no-baked-in.md) | Claude Code and gh ship in the app image with no baked-in credentials | Accepted |
 
 ## Imported ADRs (0001–0069)
 
 ADRs 0001–0069 (plus the 0052a numbering exception) are imported
 verbatim from `gubbins-spec.md`'s former §[4](../../gubbins-spec.md#4-adr-index) ADR Index — pre-repository
-product/architecture decisions for the application itself. 0070 onward is
-free for new repository-native ADRs (see `gubbins-spec.md`'s consistency
-pass changeset for the first of those).
+product/architecture decisions for the application itself. 0070 and 0071 are
+the first two such repository-native ADRs — devcontainer sandboxing for
+Claude Code `auto`-mode runs, and Claude Code/`gh` credentialing in the
+dev image (§[3.12](../../gubbins-spec.md#312-development-environment)) — both documenting infrastructure that already existed
+in the repo before being written up here. 0072 onward remains free.
 
 *(Not every ADR carries a separate detail block. Blocks are written
 where a decision needs rationale, rejected alternatives, or context

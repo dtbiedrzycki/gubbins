@@ -2,7 +2,7 @@
 
 **Status:** Draft v0.10 — Clusters A–F resolved (instance setup & onboarding; owner dashboard & editing rules; guest UX & empty states; accessibility & browser support; ops, observability & performance; governance, docs & CI). A subsequent audience-fit review resolved three further items: payment methods generalized beyond US-only rails (ADR-[046](docs/adr/0046-payment-methods-are-per-list-configuration-not-a-hardcoded.md)/[047](docs/adr/0047-contribution-snapshots-its-payment-method-at-pledge-time.md)), post-authentication guest write limits and double-submit protection (ADR-[048](docs/adr/0048-guest-sessions-capped-at-n-concurrent-active-holds-per-list.md)–[050](docs/adr/0050-hold-contribution-submits-carry-a-client-generated.md)), and an explicit timezone model with timezone-stating display rules (ADR-[051](docs/adr/0051-civil-dates-and-instants-modelled-distinctly-via-per-list.md)/[052a](docs/adr/0052a-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md)). Cluster G (guest & owner access continuity) is resolved (ADR-[052](docs/adr/0052-contribution-amount-recorded-only-at-i-ve-sent-it.md)–[055](docs/adr/0055-guest-invite-qr-available-on-demand-from-the-owner-dashboard.md), renumbered — see note below). Cluster H (lifecycle, teardown & operator obligations) is now also resolved (ADR-[056](docs/adr/0056-post-purgeat-lookups-return-the-same-generic-not-found.md)–[060](docs/adr/0060-guest-self-service-data-access-erasure-via-guestdataaccess.md)) — this round additionally reopened and superseded part of ADR-[034](docs/adr/0034-crypto-shredding-deferred-whole-list-purge-covers-the-need.md) (crypto-shredding deferral) once a real pre-purge erasure need materialized, and added a GDPR-aware erasure/self-service model that goes beyond documentation. Of the carried-forward product questions, anonymous contributions, AGPL self-hoster compliance, and offline non-monetary contributions (ADR-[061](docs/adr/0061-offline-non-monetary-gifts-recorded-via-manualgiftentry.md)) are resolved. No open clusters or product questions remain in §[5](#5-open-questions).
 
-A subsequent **consistency pass** over the whole document — a distinct workstream from the clusters, addressing latent contradictions rather than open questions — closed 29 findings and produced ADR-[062](docs/adr/0062-manual-contributions-are-voidable-not-editable.md)–[069](docs/adr/0069-the-guest-key-travels-in-a-fragment.md) (manual-contribution voidability; currency validation and the contribution-ceiling reframe; owner-token URL exclusion; the single periodic task and giver-email purge; `revealAfter` as a stored instant; erasure across backups and subject-access routing; client-IP resolution as a hop count; and the guest key moving to a URL fragment). The remaining findings amend existing ADRs or implement decisions already made. Each finding is listed with its resolving ADR or section in §[5](#5-open-questions), so no ADR in the 062–069 range is orphaned from the question trail. **The full ADR range is now 001–069, with 052a as the documented numbering quirk.**
+A subsequent **consistency pass** over the whole document — a distinct workstream from the clusters, addressing latent contradictions rather than open questions — closed 29 findings and produced ADR-[062](docs/adr/0062-manual-contributions-are-voidable-not-editable.md)–[069](docs/adr/0069-the-guest-key-travels-in-a-fragment.md) (manual-contribution voidability; currency validation and the contribution-ceiling reframe; owner-token URL exclusion; the single periodic task and giver-email purge; `revealAfter` as a stored instant; erasure across backups and subject-access routing; client-IP resolution as a hop count; and the guest key moving to a URL fragment). The remaining findings amend existing ADRs or implement decisions already made. Each finding is listed with its resolving ADR or section in §[5](#5-open-questions), so no ADR in the 062–069 range is orphaned from the question trail. **The full ADR range is now 001–071, with 052a as the documented numbering quirk.** Two further ADRs (070, 071) record devcontainer/CI-only decisions outside the app clusters above — Claude Code `auto`-mode sandboxing and Claude Code/`gh` credentialing in the dev image — with no bearing on the production app's runtime.
 
 Of the carried-forward flags, the hard block on payment-method-less group/fund creation is confirmed standing (a `custom` text-only method covers the offline-only owner without weakening it — §[3.14](#314-owner-dashboard--editing-rules)) and the hold-cap default now has a pre-v1 validation test attached (§[3.13](#313-testing)); both remain recorded in §[5](#5-open-questions) as decisions to revisit if the eventual test results warrant it, not as blockers. The contribution-ceiling half of that second flag is **closed** by ADR-[063](docs/adr/0063-currency-validation-minor-unit-storage-and-the-ceiling.md), which removed the money meaning from the absolute bound and so left no defensible-number question to validate.
 
@@ -896,10 +896,39 @@ Notes on `CREATE_SECRET`:
 
 - **Dev Containers spec** (`.devcontainer/devcontainer.json`) — consumed by VS Code, Cursor, Windsurf, JetBrains Gateway, Codespaces, and the `devcontainer` CLI
 - `docker-compose.yml` shared between devcontainer and app container
+  - One `app` service for normal development; no service the app functionally depends on — SQLite is embedded, so a database container is deliberately absent. The one exception is infrastructure rather than an app dependency: an `egress-proxy` sidecar, present only when running Claude Code in `auto` mode (see below)
+  - Base image pinned to a specific Node LTS minor version, not a floating tag, so `npm ci` resolves identically for every contributor
+  - Container runs as the invoking host UID/GID to avoid bind-mount permission drift on Linux hosts
+- **Local override mechanism**, so checked-in files stay canonical and personal changes never land in a commit by accident:
+  - `docker-compose.override.yml`, gitignored, for per-developer compose changes
+  - `.env.example` committed; `.env` gitignored, layering per-developer values on top of the §[3.11](#311-ops) defaults
 - `postCreateCommand` for `npm ci`
 - **Named volume for `node_modules`** — bind-mounting is the classic macOS performance trap
-- `customizations.vscode.extensions` for ESLint/Prettier/Vitest; namespaced so other IDEs ignore gracefully
+- SQLite data file bind-mounted (not a named volume) in dev, so a developer can inspect or delete `wishlist.db` directly
+- `customizations.vscode.extensions` for ESLint/Prettier/Vitest, and `customizations.vscode.settings` for format-on-save; namespaced so other IDEs ignore gracefully
 - Dev image separate from the minimal, non-root production image
+- **Claude Code sandboxing for `auto`-mode runs** *(ADR-[070](docs/adr/0070-devcontainer-sandboxes-claude-code-auto-mode-via-an-egress.md))*: `app` sits
+  on an `internal: true` Docker network with no direct route out; a
+  single-purpose `egress-proxy` sidecar — the only container with
+  external network reach — enforces a domain/SNI-based allowlist (npm
+  registry, GitHub, the Anthropic API; deliberately excluding this
+  project's own Codeberg remote). Neither container needs
+  `NET_ADMIN`/`NET_RAW`, and the allowlist needs no maintenance as DNS or
+  CDN IPs rotate, since enforcement never depends on a resolved IP. Not
+  used for `default`/`acceptEdits`/`plan` sessions, where a human
+  confirms every command already. `bypassPermissions` is out of scope
+  entirely and not enabled anywhere in this setup.
+- **Claude Code and `gh` in the `app` image** *(ADR-[071](docs/adr/0071-claude-code-and-gh-ship-in-the-app-image-with-no-baked-in.md))*: both installed
+  by default in `Dockerfile.dev`. Credentials for neither are ever baked
+  into the image. Claude Code auth is a one-time interactive `claude
+  login`, deliberately not persisted — its OAuth state lives in the
+  container's writable layer and is lost on rebuild, requiring
+  re-authentication afterward, by design rather than oversight. `gh`
+  auth is a fine-grained, repo-scoped personal access token supplied via
+  the existing gitignored `.env`, matching the per-developer-secret
+  convention already used elsewhere in this section. Both are set up
+  under the plain `docker-compose.yml`, before `docker-compose.sandbox.yml`'s
+  egress-proxy layer is ever in the picture.
 
 ### 3.13 Testing
 
@@ -1768,7 +1797,7 @@ resolved to instants only via the list's `timezone`.
 
 ## 4. ADR Index
 
-Individual decisions are written up one file per ADR in [`docs/adr/`](docs/adr/README.md), numbered 0001–0069 with 0052a as a documented numbering exception — see that directory's README for the index and the 052/052a numbering note. Citations elsewhere in this document (e.g. "ADR-[066](docs/adr/0066-revealafter-is-stored-not-derived.md)") link directly to the relevant file.
+Individual decisions are written up one file per ADR in [`docs/adr/`](docs/adr/README.md), numbered 0001–0071 with 0052a as a documented numbering exception — see that directory's README for the index and the 052/052a numbering note. Citations elsewhere in this document (e.g. "ADR-[066](docs/adr/0066-revealafter-is-stored-not-derived.md)") link directly to the relevant file.
 
 ---
 
