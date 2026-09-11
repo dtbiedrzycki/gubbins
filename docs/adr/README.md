@@ -51,7 +51,6 @@ number on the PR that introduces an ADR.
 | [019](0019-quantity-may-drop-below-committed-holds-purchases.md) | Quantity may drop below committed holds/purchases | Accepted |
 | [020](0020-owner-status-identity-visibility-auto-reveals-at-revealafter.md) | Owner status/identity visibility auto-reveals at revealAfter | Accepted |
 | [021](0021-thank-you-tracking-stored-outside-rebuildprojections-scope.md) | Thank-you tracking stored outside rebuildProjections scope | Accepted |
-| [022](0022-guest-key-travels-in-the-invitation-url-transport.md) | Guest key travels in the invitation URL (transport superseded by 069) | Accepted |
 | [023](0023-giver-message-visible-to-owner-immediately-not-spoiler-gated.md) | Giver message visible to owner immediately, not spoiler-gated | Accepted |
 | [024](0024-wcag-2-2-level-aa-is-the-accessibility-target.md) | WCAG 2.2 Level AA is the accessibility target | Accepted |
 | [025](0025-hold-sheet-and-contribute-flow-use-native-dialog.md) | Hold sheet and contribute flow use native <dialog> | Accepted |

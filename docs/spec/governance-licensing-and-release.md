@@ -59,7 +59,7 @@
   the operator. The nginx/Caddy/Traefik examples remain fully supported
   for operators who know what they want; the recommendation is a default,
   not a constraint.
-- Because the guest key now travels in a fragment (ADR-[069](../adr/0069-the-guest-key-travels-in-a-fragment.md)), the ADR-[022](../adr/0022-guest-key-travels-in-the-invitation-url-transport.md)
+- Because the guest key now travels in a fragment (ADR-[069](../adr/0069-the-guest-key-travels-in-a-fragment.md)), the
   caveat previously attached to this path — that `?key=` lands in a third
   party's logs the operator cannot configure — **no longer applies**.
   That caveat is why the transport changed.

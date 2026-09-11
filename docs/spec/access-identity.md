@@ -83,7 +83,7 @@
 - **All secret comparisons use constant-time comparison.** This applies uniformly to owner token verification, hold-secret verification, guest key verification, and `CREATE_SECRET` — stated once as a blanket rule rather than per-mechanism, so no comparison path is inadvertently implemented with `===`. *(ADR-[036](../adr/0036-constant-time-comparison-generalized-to-all-secret.md))*
 - **Session and owner-access cookies require the `Secure` attribute.** HTTPS (direct or via reverse proxy) is a stated deployment requirement, not an implied one, given the credentials-in-cookies access model. *(ADR-[037](../adr/0037-session-and-owner-access-cookies-require-secure-https.md))*
 
-**Guest entry via link (ADR-[022](../adr/0022-guest-key-travels-in-the-invitation-url-transport.md), transport superseded by ADR-[069](../adr/0069-the-guest-key-travels-in-a-fragment.md)):**
+**Guest entry via link (ADR-[069](../adr/0069-the-guest-key-travels-in-a-fragment.md)):**
 
 - Invitation links carry the guest key in the URL **fragment**:
   `/{slug}#key={key}`. The fragment is never transmitted to any server —
@@ -98,7 +98,7 @@
 - **Residual risk, unchanged and still disclosed:** the browser's history
   entry for the *originally tapped* link retains the fragment, since that
   is the URL the SMS or email opened. `replaceState` clears the address
-  bar, not that entry. ADR-[022](../adr/0022-guest-key-travels-in-the-invitation-url-transport.md) named this as unavoidable client-side and
+  bar, not that entry. ADR-[069](../adr/0069-the-guest-key-travels-in-a-fragment.md) named this as unavoidable client-side and
   it remains so — this decision closes every server-side and intermediary
   leak and leaves exactly that one.
 - **`pino` redact paths (§[3.19](observability.md)) must cover the POST body field**, not the

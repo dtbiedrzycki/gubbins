@@ -14,6 +14,6 @@ Guest-invite QR available on demand from the owner dashboard at any time, enable
 generation needs no decrypt step and no availability-window special-
 casing: the current key is simply read and passed through the same local
 QR generator already built for payment methods (§[3.5](../spec/payments.md)) to build the keyed
-link from ADR-[022](./0022-guest-key-travels-in-the-invitation-url-transport.md). Available at any time from the owner dashboard, not
+link from ADR-[069](./0069-the-guest-key-travels-in-a-fragment.md). Available at any time from the owner dashboard, not
 only at creation/rotation. Rotation still invalidates prior printed
 cards, since the underlying key changes.

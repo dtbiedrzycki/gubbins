@@ -6,18 +6,18 @@
 
 ## Decision
 
-The owner token is never carried in a URL: entry is a paste into the existing homepage input, setting the owner-access cookie, with no `?token=` link and no bookmarkable manage URL holding the credential. ADR-[022](./0022-guest-key-travels-in-the-invitation-url-transport.md)'s convenience reasoning is guest-specific and does not transfer. Owner-access cookie is 30 days rolling or `purgeAt`, whichever is sooner
+The owner token is never carried in a URL: entry is a paste into the existing homepage input, setting the owner-access cookie, with no `?token=` link and no bookmarkable manage URL holding the credential. ADR-[069](./0069-the-guest-key-travels-in-a-fragment.md)'s convenience reasoning is guest-specific and does not transfer. Owner-access cookie is 30 days rolling or `purgeAt`, whichever is sooner
 
 ## Detail
 
 **ADR-064 detail:** §[3.21](../spec/threat-model.md) listed "Key/token interception via the `?key=`
-URL" as mitigated by ADR-[022](./0022-guest-key-travels-in-the-invitation-url-transport.md), but ADR-[022](./0022-guest-key-travels-in-the-invitation-url-transport.md) and §[3.1](../spec/access-identity.md) only ever specified
+URL" as mitigated by ADR-[069](./0069-the-guest-key-travels-in-a-fragment.md), but ADR-[069](./0069-the-guest-key-travels-in-a-fragment.md) and §[3.1](../spec/access-identity.md) only ever specified
 the mechanism for the guest key — how the owner presents their token was
 never stated anywhere. The threat row therefore claimed coverage the spec
 did not provide.
 
-Mirroring ADR-[022](./0022-guest-key-travels-in-the-invitation-url-transport.md) (`/{slug}/manage?token=`, validate, redirect to strip)
-was the obvious option and was rejected. ADR-[022](./0022-guest-key-travels-in-the-invitation-url-transport.md)'s justification is
+Mirroring ADR-[069](./0069-the-guest-key-travels-in-a-fragment.md) (`/{slug}/manage?token=`, validate, redirect to strip)
+was the obvious option and was rejected. ADR-[069](./0069-the-guest-key-travels-in-a-fragment.md)'s justification is
 explicitly audience-specific — most guests arrive from a text message and
 cannot reliably type a speakable key on a phone keyboard — and none of it
 describes the owner, who is one person at a keyboard at creation time,
@@ -25,7 +25,7 @@ already being shown a screen whose entire purpose is saving a credential.
 The stakes are also asymmetric: a leaked guest key grants browse and
 claim, while a leaked owner token grants rotation, redaction, deletion,
 and the invite QR, which itself reveals the guest key. So an owner-link
-leak is total compromise, and ADR-[022](./0022-guest-key-travels-in-the-invitation-url-transport.md)'s residual risks are unmitigated by
+leak is total compromise, and ADR-[069](./0069-the-guest-key-travels-in-a-fragment.md)'s residual risks are unmitigated by
 design — browser history, reverse-proxy logs, and under the Cloudflare
 Tunnel setup documented in §[3.20](../spec/governance-licensing-and-release.md), a third party's logs the operator does
 not control at all.
