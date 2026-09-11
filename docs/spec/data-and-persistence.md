@@ -1,0 +1,56 @@
+# Data & persistence
+
+
+- **Event stream for the ledger only** — claims, purchases, contributions. Not for CRUD metadata.
+- Event types: `ItemHeld`, `HoldExtended`, `HoldReleased`, `ItemPurchased`, `PurchaseVoided`, `ContributionPledged`, `ContributionConfirmed`, `ContributionVoided`, `ManualContributionRecorded`
+- `ContributionVoided` applies to guest and manual contributions alike —
+  voiding carries identical semantics regardless of `source`, which the
+  projection reads from the original row, so no separate
+  `ManualContributionVoided` type exists. (The *creation* events differ
+  for real reasons — confirmed-at-creation, overfunding-policy bypass,
+  nullable method, no `contributorSessionHash` — none of which apply to
+  a void.) A voided contribution is subtracted from `pledgedMinor` /
+  `confirmedMinor` in `item_state` and rendered as voided rather than
+  hidden in the reconciliation view. *(ADR-[062](../adr/0062-manual-contributions-are-voidable-not-editable.md))*
+- `HoldExpired` is **derived, not emitted**
+- Event payloads carry a version field `v` from day one
+- **Streams are scoped per item**, matching the consistency boundary
+- `UNIQUE (itemId, seq)` provides optimistic concurrency; losing writer retries against fresh state and re-evaluates the policy. Retry cap 3 with jitter.
+- Global auto-increment `id` gives cross-stream ordering for list-level views
+- **Soft delete = a `Voided` event**, not a nullable column
+- **Projections are real tables**, written in the same transaction as the append — synchronous and strongly consistent, not eventually consistent
+  - `item_state` (lastSeq, activeHolds, purchasedCount, pledgedMinor, confirmedMinor)
+  - `holds` (per-hold rows, for expiry display, the reminder job, the
+    per-session concurrent-hold count, and the idempotency constraint)
+  - `contributions` (per-row ledger for reconciliation, and the
+    idempotency constraint)
+- `rebuildProjections` command: truncate and re-fold. Events are the source of truth. **`thank_you_status` is explicitly outside this scope** — it is owner bookkeeping, not derived from events, and must survive a rebuild untouched. **`guest_pii` is likewise outside this scope**, for the same reason — plain bookkeeping, not folded from events. **`manual_gift_entries` is likewise outside this scope** — same category again: owner-authored, no ledger event, nothing to fold.
+- **`ItemHeld`, `ContributionPledged`, and `ManualContributionRecorded`
+  payloads carry `piiRef` (a `GuestPii` row id) rather than embedding
+  `holderName`/`contributorName`/email/message directly.** This keeps
+  personal data out of the append-only event log entirely, rather than
+  relying on a compensating event to hide it later — a compensating event
+  nulls the *projection*, not the source-of-truth payload, which would
+  leave plaintext PII permanently recoverable from the event stream
+  regardless of redaction. Per ADR-[033](../adr/0033-migrations-are-forward-only-rollback-restore-from-backup.md), this is a payload shape change;
+  consistent with the precedent set in ADR-[046](../adr/0046-payment-methods-are-per-list-configuration-not-a-hardcoded.md)/[047](../adr/0047-contribution-snapshots-its-payment-method-at-pledge-time.md)/[050](../adr/0050-hold-contribution-submits-carry-a-client-generated.md), the project is
+  pre-1.0 with no deployed instances, so the shape is amended in place
+  rather than versioned/upcasted. *(ADR-[059](../adr/0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md), amends ADR-[034](../adr/0034-crypto-shredding-deferred-whole-list-purge-covers-the-need.md))*
+- **Idempotency is enforced via `UNIQUE (itemId, idempotencyKey)` on the
+  `holds` and `contributions` projections**, written in the same
+  transaction as the event append (per the synchronous-projection rule
+  above). No separate idempotency table and no new lazy-expiry mechanism
+  is introduced. The key is carried in the `ItemHeld`,
+  `ContributionPledged`, and `ManualContributionRecorded` payloads so a
+  `rebuildProjections` run reconstructs the constraint rather than
+  dropping it. *(ADR-[050](../adr/0050-hold-contribution-submits-carry-a-client-generated.md))*
+- **Audit table for CRUD metadata**: `(entityId, field, oldValue, newValue, changedAt)`. Purge is a `DELETE`.
+- SQLite in WAL mode, single file on a mounted volume
+- **Rate limiting is also stored in SQLite** — a `rate_limit_attempts` table, fixed-window, lazily expired the same way hold expiry is (never a cron sweep). No new service dependency introduced for this. See §[3.21](threat-model.md) for thresholds.
+- DB-level check constraints as a backstop to application invariants
+
+### 3.9 Backend architecture
+
+---
+
+[← Back to spec index](README.md)
