@@ -4,9 +4,11 @@
 
 **Goal:** Split `gubbins-spec.md` into `docs/spec/` (mirroring the existing `docs/adr/` split), rewrite it and the ADR cross-reference network to point at the new files, and validate the ADR Nygard-rewrite/merge/renumber approach on a small pilot batch — producing a complete 72-row ADR inventory that a **second, follow-up plan** uses to roll the validated pattern out to the remaining ADRs.
 
-**Scope note:** This plan does NOT rewrite all 72 ADRs to Nygard format. Only 3 are touched here (0001, 0070, and the 022+069 merge) — enough to validate the pattern per the approved design. The other ~65 get their own plan once this pilot is reviewed and Task 1's inventory exists to drive it (a plan written against unclassified files would be full of "apply the pattern" placeholders, which `writing-plans` disallows).
+**Scope note:** This plan does NOT rewrite all 72 ADRs to Nygard format, and does NOT perform the final sequential renumbering. Only 4 ADR operations are piloted here (0001 rewrite, 0070 rewrite, the 022+069 merge, the 038→040 fold, and the 052a→072 collision renumber) — enough to validate every pattern the rollout will repeat at scale. The other ~65 ADRs, every other superseded ADR the full inventory turns up, and the terminal renumbering pass all belong to a **follow-up rollout plan**, written once this pilot is reviewed and Task 1's inventory exists to drive it (a plan written against unclassified files, or a renumbering task run before all folds are known, would be full of "apply the pattern" placeholders and rework, which `writing-plans` disallows).
 
-**Architecture:** Two independent workstreams that happen to share one plan because the second depends on infrastructure (the link-mapping table) the first produces. Workstream A (Tasks 2-7) moves `gubbins-spec.md` content into topic files without changing a word of substance. Workstream B (Tasks 8-11) reformats/merges/renumbers a handful of ADRs to the repo's own Nygard template. Task 1 (inventory) and Task 12 (final verify) bracket both.
+**This work is the first pass:** the numbering and structure that comes out of the pilot + rollout together is the permanent baseline, not an interim edit. Concretely, that means: no ADR may end the *overall* effort with `Status: Superseded by NNNN` still on disk (every one gets folded into its superseder and deleted — this pilot folds the one currently-known case, 038 into 040), and no gap left by a fold is permanent (the rollout plan ends with one terminal renumbering pass across the whole surviving set). This pilot plan performs the fold/renumber *mechanics* on a small scale to validate them; it does not attempt the final close-the-gaps renumbering itself, since more gaps appear during the rollout and renumbering twice would be wasted churn.
+
+**Architecture:** Two independent workstreams that happen to share one plan because the second depends on infrastructure (the link-mapping table) the first produces. Workstream A (Tasks 2-7) moves `gubbins-spec.md` content into topic files without changing a word of substance. Workstream B (Tasks 8-12) reformats/merges/folds/renumbers a handful of ADRs to the repo's own Nygard template, validating every pattern (near-duplicate merge, superseded-with-nothing-to-preserve fold, collision renumber, short rewrite, long rewrite) the rollout plan repeats at scale. Task 1 (inventory) and Task 13 (final verify) bracket both.
 
 **Tech Stack:** Markdown, git, grep/sed for mechanical link rewrites. No code, no build step.
 
@@ -15,7 +17,8 @@
 ## Global Constraints
 
 - No product/architecture decision changes — content is reorganized and condensed, never reversed or reinterpreted (spec: Non-goals).
-- ADR numbers stay stable except the one known collision: 052a → 072 (spec: Redundancy cleanup, rule 3).
+- **No ADR may end this work with `Status: Superseded by NNNN` on disk.** Every superseded ADR is folded into its superseder and its file deleted (spec: Redundancy cleanup, rule 1). This pilot folds the one currently-known case (038 → 040); the rollout plan must fold every other one the Task 1 inventory finds.
+- **Final ADR numbering is sequential with no gaps**, because this work is the first pass and its output is the permanent baseline. This pilot performs renumbering mechanics on the one known collision (052a → 072) as a rehearsal; the actual gap-closing renumber happens once, in the rollout plan, after every fold across the whole corpus is known (spec: Redundancy cleanup, rule 3).
 - Merged/retired ADR files are deleted outright, no tombstone stub — git history is the record (spec: Redundancy cleanup, rule 2).
 - Every markdown link touched by a task must resolve after that task's commit — verify with grep before committing, not after the fact.
 - Follow the Nygard template at `docs/adr/0000-adr-template.md` exactly: `Context` / `Decision` / `Alternatives considered` / `Consequences`, in that order.
@@ -83,9 +86,11 @@ Expected: 72 filenames.
 - [ ] **Step 2: Read and classify each ADR**
 
 For each file, read it in full and classify using these rules, applied in order (first match wins):
-1. If its own prose states or implies it's superseded/obsolete but `Status` doesn't already say `Superseded by NNNN` → `merge-candidate` if the superseding ADR could absorb its remaining unique content into a Context section, else `status-fix` if it should just get a corrected Status line.
+1. If `Status` already reads `Superseded by NNNN`, OR its own prose states/implies it's superseded even though `Status` hasn't caught up → `merge-candidate`, always — fold into the superseding ADR and delete the file. There is no "leave it standing with a corrected status" option: **no ADR may end this work still marked superseded**. Note in the row whether the superseded ADR has independent rationale worth merging into the superseder's Context (like 022) or none (like 038, which adds nothing 040 doesn't already say).
 2. If its number collides or is flagged as a numbering quirk anywhere in `docs/adr/README.md` → `renumber`.
 3. Otherwise → `reformat-only`.
+
+`status-fix` remains a valid classification only for a non-supersession status error (e.g. an ADR still marked `Proposed` that's clearly been acted on) — expect few or none of these; every currently-known status problem in this corpus is a supersession case covered by rule 1.
 
 Record one row per ADR: `| NNNN | Title | Current Status | Classification | Notes (partner ADR / new number / why) |`.
 
@@ -97,7 +102,7 @@ Seed the table with these four already-confirmed rows so the pattern is unambigu
 | 0022 | Guest key travels in the invitation URL (transport) | Accepted | merge-candidate | Merge into 0069; superseded in substance, status was never corrected |
 | 0052a | revealedAt makes owner claim-status reveal one-way sticky | Accepted | renumber | → 0072; resolves the 052/052a collision `docs/adr/README.md` flags as unresolved |
 | 0034 | Crypto-shredding deferred; whole-list purge covers the need | Accepted | reformat-only | Deferral upheld (re-tested by 067), not superseded — cross-refs to 059/067 are legitimate Context material |
-| 0038 | Superseded by 040 | Superseded by 0040 | reformat-only | Already minimal and correctly `Superseded`; verify it still matches the target shape after the template's headings are applied |
+| 0038 | Superseded by 040 | Superseded by 0040 | merge-candidate | Fold into 0040 (piloted in Task 9); no independent rationale to preserve — 040's existing Detail already covers it |
 ```
 
 - [ ] **Step 3: Verify completeness**
@@ -505,7 +510,114 @@ git commit -m "docs: merge ADR-0022 into ADR-0069 (guest key transport), Nygard 
 
 ---
 
-### Task 9: Pilot renumber — 052a → 072
+### Task 9: Pilot fold — ADR-0038 into ADR-0040
+
+**Files:**
+- Modify: `docs/adr/0040-ci-hosted-on-forgejo-actions-via-codeberg-not-github-actions.md` (full rewrite)
+- Delete: `docs/adr/0038-superseded-by-040-dependency-sbom-image-scanning-scope.md`
+- Modify: `docs/adr/README.md` (remove the 0038 row)
+- Modify: any other file with a remaining `0038` reference (found via grep in Step 1)
+
+**Interfaces:**
+- Consumes: current content of ADR-0038 (already fully `Superseded by 040`, one Decision line, no independent rationale) and ADR-0040.
+- Produces: the reference "fold a superseded ADR with nothing left to preserve" example — distinct from Task 8's merge, where both files carried independent content worth keeping.
+
+- [ ] **Step 1: Find every reference to ADR-0038**
+
+Run: `grep -rln '0038-superseded-by-040\|ADR-\[\?038\]\?' docs/ gubbins-spec.md`
+
+- [ ] **Step 2: Rewrite `docs/adr/0040-ci-hosted-on-forgejo-actions-via-codeberg-not-github-actions.md`**
+
+Replace its full content with:
+
+```markdown
+# 0040. CI hosted on Forgejo Actions via Codeberg, not GitHub Actions
+
+- **Status:** Accepted
+- **Date:** Not recorded (pre-repository decision, imported from `gubbins-spec.md`)
+- **Deciders:** Not recorded
+
+## Context
+
+The project is hosted on Codeberg, not GitHub, so CI cannot assume GitHub
+Actions' free-tier minute allowance for open source projects — Codeberg's
+shared runners are quota-limited by comparison. A CI platform and
+workflow-engine choice was needed, along with a decision about where to
+run the more expensive verification steps (SBOM generation, container
+image scanning, multi-arch Docker builds) without blowing that quota on
+routine pushes.
+
+## Decision
+
+CI runs on Forgejo Actions via Codeberg, not GitHub Actions. Forgejo
+Actions was chosen over the older Woodpecker CI path because it uses
+GitHub Actions-compatible workflow syntax (easing any future migration
+either direction) and is the actively developed option. SBOM generation,
+container image scanning, and multi-arch builds are release-gated — run
+on release tags, not on every push — to keep the routine PR pipeline
+affordable under the shared-runner quota. A self-hosted runner is
+documented as an option for a maintainer who wants the full release-gate
+pipeline running on every push instead, since that removes the quota
+constraint.
+
+## Alternatives considered
+
+- **GitHub Actions** — not applicable; the project's repository host is
+  Codeberg, not GitHub, so GitHub Actions was never available as the
+  primary CI platform.
+- **Woodpecker CI** — rejected in favor of Forgejo Actions: Woodpecker
+  predates it as Codeberg's CI option, but Forgejo Actions' GitHub
+  Actions-compatible syntax and active development made it the better
+  long-term choice.
+- **Running SBOM/image-scan/multi-arch steps on every push** — rejected:
+  infeasible under Codeberg's shared-runner quota for routine PR
+  iteration. Deferred to the release-tag gate instead, with a
+  self-hosted runner documented as an opt-in for maintainers who want
+  tighter feedback and have removed the quota constraint themselves.
+
+## Consequences
+
+- The routine PR pipeline stays affordable under Codeberg's shared-runner
+  quota.
+- SBOM/image-scan/multi-arch results are only available at release tags,
+  not on every push, unless a maintainer opts into a self-hosted runner.
+- Formerly split out as its own ADR (0038, "dependency/SBOM/image
+  scanning scope") before this decision existed in full. ADR-0038 added
+  no rationale beyond what this entry already states and has been folded
+  in here; see git history for the original file.
+```
+
+- [ ] **Step 3: Delete ADR-0038**
+
+```bash
+git rm docs/adr/0038-superseded-by-040-dependency-sbom-image-scanning-scope.md
+```
+
+- [ ] **Step 4: Fix every remaining reference found in Step 1**
+
+For each hit outside the two files above, repoint the mention/link to ADR-0040 (or drop it if 040 is already cited alongside it in the same sentence).
+
+- [ ] **Step 5: Update `docs/adr/README.md`**
+
+Remove the `| [038](...) | ... |` row entirely (not just its status — the file no longer exists).
+
+- [ ] **Step 6: Verify**
+
+Run: `grep -rln '0038-superseded-by-040\|ADR-\[\?038\]\?' docs/ gubbins-spec.md`
+Expected: no output.
+Run: `ls docs/adr/0038* 2>&1` — expect "No such file or directory".
+Run: `grep -c 'Superseded by' docs/adr/*.md` — expect zero files matching (confirms no ADR anywhere in the corpus still carries a live `Superseded by` status after this fold; re-run this same check at the end of the rollout plan, where it must still hold across all 72).
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add -A
+git commit -m "docs: fold ADR-0038 into ADR-0040 (no superseded ADRs remain)"
+```
+
+---
+
+### Task 10: Pilot renumber — 052a → 072
 
 **Files:**
 - Rename: `docs/adr/0052a-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md` → `docs/adr/0072-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md`
@@ -550,7 +662,7 @@ git commit -m "docs: renumber ADR-052a to 072, resolving the numbering collision
 
 ---
 
-### Task 10: Pilot Nygard rewrite — ADR-0001 (short)
+### Task 11: Pilot Nygard rewrite — ADR-0001 (short)
 
 **Files:**
 - Modify: `docs/adr/0001-no-accounts-slug-key-for-guests-owner-token-for-owners.md` (full rewrite)
@@ -629,7 +741,7 @@ git commit -m "docs: rewrite ADR-0001 to Nygard format"
 
 ---
 
-### Task 11: Pilot Nygard rewrite — ADR-0070 (long)
+### Task 12: Pilot Nygard rewrite — ADR-0070 (long)
 
 **Files:**
 - Modify: `docs/adr/0070-devcontainer-sandboxes-claude-code-auto-mode-via-an-egress.md` (full rewrite)
@@ -749,7 +861,7 @@ git commit -m "docs: rewrite ADR-0070 to Nygard format"
 
 ---
 
-### Task 12: Final pilot verification and stop for review
+### Task 13: Final pilot verification and stop for review
 
 **Files:** none created; read-only verification task.
 
@@ -761,39 +873,53 @@ For every match, confirm the target file exists and any `#anchor` resolves.
 
 - [ ] **Step 2: Confirm no dangling references to retired/renumbered ADRs**
 
-Run: `grep -rln '0022-guest-key\|052a' . --include='*.md' | grep -v docs/superpowers/`
+Run: `grep -rln '0022-guest-key\|0038-superseded\|052a' . --include='*.md' | grep -v docs/superpowers/`
 Expected: no output.
 
-- [ ] **Step 3: Update `docs/adr/README.md` status column for touched ADRs**
+- [ ] **Step 3: Confirm no superseded ADR remains anywhere in the corpus**
 
-Confirm the 0001, 0069, and 0072 rows in the index table are accurate (title, status). Confirm the 0022 row is gone.
+Run: `grep -l 'Superseded by' docs/adr/*.md`
+Expected: no output. (This checks the whole corpus, not just the two pilot folds — if the inventory in Task 1 correctly found only 022 and 038 as currently-superseded, this passes; if it missed one, this step catches it before the rollout plan is written.)
 
-- [ ] **Step 4: Commit any fixes found in Steps 1-3**
+- [ ] **Step 4: Update `docs/adr/README.md` status column for touched ADRs**
+
+Confirm the 0001, 0040, 0069, and 0072 rows in the index table are accurate (title, status). Confirm the 0022 and 0038 rows are gone.
+
+- [ ] **Step 5: Commit any fixes found in Steps 1-4**
 
 ```bash
 git add -A
 git commit -m "docs: fix cross-references found in pilot verification"
 ```
-(Only if Steps 1-3 found something to fix — otherwise skip this commit.)
+(Only if Steps 1-4 found something to fix — otherwise skip this commit.)
 
-- [ ] **Step 5: STOP — do not proceed to a rollout plan**
+- [ ] **Step 6: STOP — do not proceed to a rollout plan**
 
-This plan's scope ends here. Summarize for the user: what `docs/spec/` now looks like, the three ADR pilots (0001 rewrite, 0070 rewrite, 0022+0069 merge, 052a→072 renumber), and point them at
-`docs/superpowers/specs/2026-09-11-adr-inventory.md` (Task 1's output). The
-rollout of the validated pattern to the remaining ~65 ADRs is a **separate
-plan**, written via `superpowers:writing-plans` against that inventory,
-once the user has reviewed this pilot's diffs.
+This plan's scope ends here. Summarize for the user: what `docs/spec/` now
+looks like, and the five ADR pilots (0001 rewrite, 0070 rewrite, 0022+0069
+merge, 0038 folded into 0040, 052a→072 renumber), and point them at
+`docs/superpowers/specs/2026-09-11-adr-inventory.md` (Task 1's output). Be
+explicit that two things remain outstanding and belong to a **separate
+rollout plan**, written via `superpowers:writing-plans` against that
+inventory once the user has reviewed this pilot's diffs:
+1. Nygard-rewriting the remaining ~65 ADRs, folding every other ADR the
+   inventory found superseded (there may be more than the two this pilot
+   handled).
+2. The terminal renumbering pass — sequential, no gaps, across the whole
+   surviving corpus — which can only run once every fold above is done.
 
 ---
 
 ## Self-Review Notes
 
 - **Spec coverage:** every section of the design spec maps to a task —
-  target structure (Tasks 2-7), Nygard rewrite pattern (Tasks 10-11),
-  redundancy cleanup rules 1-3 (Tasks 8-9), verification (Tasks 7, 12).
-  The design spec's "Rollout" step is explicitly out of scope here (see
-  Task 12, Step 5) and left to a follow-up plan, per the Scope Check in
-  `writing-plans`.
+  target structure (Tasks 2-7), Nygard rewrite pattern (Tasks 11-12),
+  redundancy cleanup rule 1 / fold-all-superseded (Tasks 8-9), rule 3 /
+  collision renumber (Task 10), verification (Tasks 7, 13). The design
+  spec's "Rollout" and "Terminal renumbering" steps are explicitly out of
+  scope here (see Task 13, Step 6) and left to a follow-up plan, per the
+  Scope Check in `writing-plans` — a partial renumber before every fold
+  is known would just be redone.
 - **Placeholder scan:** the only steps that don't contain literal final
   content are the mechanical extraction steps (Tasks 3, 4, 6, and Task 1's
   remaining 68 classifications) — each of those specifies an exact,
@@ -801,7 +927,7 @@ once the user has reviewed this pilot's diffs.
   for judgment-free content to be invented, which is the distinction the
   "No Placeholders" rule is drawing.
 - **Type/name consistency:** file paths introduced in Task 2 (`domain-model.md`)
-  and Tasks 3-4 (the 22 topic files) are the same paths Tasks 5, 6, 8, 10,
-  and 11 link against — cross-checked against the anchor mapping table,
-  which is the single source of truth for every filename used across all
-  12 tasks.
+  and Tasks 3-4 (the 22 topic files) are the same paths Tasks 5, 6, 8, 9,
+  11, and 12 link against — cross-checked against the anchor mapping
+  table, which is the single source of truth for every filename used
+  across all 13 tasks.
