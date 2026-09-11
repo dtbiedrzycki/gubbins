@@ -31,7 +31,6 @@
 - Policy check lives in the domain: `canAccept(amount, now, policy)`, which
   enforces the sanity ceiling alongside the overfunding policy
 
-### 3.5 Payments
 
 ---
 

@@ -35,7 +35,6 @@ three render strategies:
 - Payment method is **snapshotted onto the Contribution at pledge time**,
   a deliberate exception to the live-read rule in ADR-[018](../adr/0018-group-fund-targetminor-is-editable-and-read-live.md). *(ADR-[047](../adr/0047-contribution-snapshots-its-payment-method-at-pledge-time.md))*
 
-### 3.6 Manual contributions
 
 ---
 

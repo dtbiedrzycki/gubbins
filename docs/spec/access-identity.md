@@ -175,7 +175,6 @@ once a contribution is confirmed — a subject-access/erasure right, not a
 recovery convenience, and unrelated to how the contribution flow is
 shaped.
 
-### 3.2 Names
 
 ---
 

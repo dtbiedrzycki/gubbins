@@ -19,7 +19,6 @@
   means recorded for the owner, never means visible to the guest
   community. *(ADR-[044](../adr/0044-anonymous-contributions-resolved-name-required-owner-only.md))*
 
-### 3.3 Holds (single items)
 
 ---
 

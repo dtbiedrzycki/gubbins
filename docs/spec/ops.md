@@ -65,7 +65,6 @@ Notes on `CREATE_SECRET`:
 - Values should be high-entropy random strings generated the same way as guest keys and owner tokens (via `TokenGenerator`), not admin-chosen passphrases. A `generate-invite-secret` CLI helper is provided for this.
 - Incoming values are checked with constant-time comparison, not `===` (generalized in ADR-[036](../adr/0036-constant-time-comparison-generalized-to-all-secret.md) to apply to all secret comparisons, not just this one).
 
-### 3.12 Development environment
 
 ---
 

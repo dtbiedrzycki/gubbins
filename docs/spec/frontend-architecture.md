@@ -10,7 +10,6 @@
 - Dumb components; logic in hooks (`useHoldItem()`). Hooks are the testability seam.
 - Pure display helpers (currency, percentage) may be shared. Policy logic may not.
 
-### 3.11 Ops
 
 ---
 

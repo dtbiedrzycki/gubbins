@@ -59,7 +59,7 @@
   regardless of `revealedAt` or the spoiler toggles — an erasure right
   isn't gated behind the owner's reveal preference. One-way: `redactedAt`
   is set once and there is no un-redact action, matching the `revealedAt`
-  sticky pattern (§[3.14](owner-dashboard.md), ADR-[052a](docs/adr/0052a-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md)) for the same reason — a reversible
+  sticky pattern (§[3.14](owner-dashboard.md), ADR-[052a](../adr/0052a-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md)) for the same reason — a reversible
   "erasure" invites confusion about whether data was actually removed.
   The amount, item, status, and date on the ledger entry are untouched;
   only identity is stripped, since none of the rest is personal data and
@@ -97,7 +97,6 @@
   stored in plaintext (§[3.1](access-identity.md), ADR-[054](../adr/0054-guest-key-storage-changed-from-one-way-hash-to-plaintext.md)) — the same operator-trust boundary
   already applies uniformly to all of the system's bearer secrets.
 
-### 3.8 Data & persistence
 
 ---
 

@@ -51,7 +51,6 @@
   general cleanup for abandoned holds. Subject to the same spoiler gating
   as other claim-status-revealing controls (§[3.14](owner-dashboard.md)).
 
-### 3.4 Group gifts & funds
 
 ---
 

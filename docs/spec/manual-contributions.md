@@ -26,7 +26,6 @@
   being hidden.
 - Source displayed in the reconciliation view
 
-### 3.7 Privacy
 
 ---
 

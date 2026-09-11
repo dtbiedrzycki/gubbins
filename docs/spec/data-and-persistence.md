@@ -49,7 +49,6 @@
 - **Rate limiting is also stored in SQLite** — a `rate_limit_attempts` table, fixed-window, lazily expired the same way hold expiry is (never a cron sweep). No new service dependency introduced for this. See §[3.21](threat-model.md) for thresholds.
 - DB-level check constraints as a backstop to application invariants
 
-### 3.9 Backend architecture
 
 ---
 

@@ -40,7 +40,6 @@ Guardrails:
   incidental implementation detail. The same constraint applies to any
   future cross-item rule.
 
-### 3.10 Front-end architecture
 
 ---
 
