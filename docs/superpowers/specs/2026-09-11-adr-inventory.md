@@ -13,14 +13,24 @@ index). Classification rule, applied in order, first match wins:
 1. **`merge-candidate`** — `Status` already reads `Superseded by NNNN`, OR
    the ADR's own prose states or implies the *entire* decision is
    superseded even though `Status` hasn't caught up. No ADR may end this
-   work still marked superseded. A few ADRs (0020, 0044, 0049, 0052a) are
-   **amended** or **superseded in part** by a later ADR — a specific claim
-   or mechanism is revised while the decision's core holds — and that is
-   explicitly *not* rule 1: partial revision is legitimate Context material
-   for a `reformat-only` (or `renumber`) rewrite, not a merge. The seed row
-   for 0052a in the task brief confirms this reading: 0052a's own prose
-   says "superseded in part by ADR-066" yet the confirmed classification is
-   `renumber`, not `merge-candidate`.
+   work still marked superseded. Two ADRs are **amended** by a later one —
+   0020 by 0052a's sticky-reveal mechanism, 0049 by 0063's currency reframe
+   of the absolute ceiling — and two more are marked **superseded in
+   part** — 0044 by 0059/0060, 0052a by 0066. All four are *not* rule 1,
+   checked against each ADR's own text rather than assumed from the label:
+   0044's Decision is "name always required... only the owner sees
+   identity"; ADR-059/060 only narrow "always required" to "required at
+   creation, nullable by later erasure," leaving the owner-only-visibility
+   policy that is the actual core of the decision untouched. 0052a's own
+   Detail states explicitly that "`revealedAt` is retained and still
+   one-way, now guarding the narrower case" after ADR-066 — the sticky
+   one-way reveal survives; only the scope of what it guards narrows.
+   Because the decision itself stands in every case, partial revision is
+   legitimate Context material for a `reformat-only` (or `renumber`)
+   rewrite, not rule 1's full-fold trigger. (The task brief's 0052a seed
+   row is classified `renumber` because of the 052/052a numbering
+   collision, a given fact independent of this reasoning — it's
+   consistent with the conclusion above but isn't the basis for it.)
 2. **`renumber`** — the ADR's number collides or is flagged as a numbering
    quirk anywhere in `docs/adr/README.md`. Only the 052/052a collision is
    flagged there.
@@ -34,9 +44,12 @@ no `status-fix` rows exist in this corpus; every status problem found is a
 supersession case under rule 1.
 
 **Merge-candidates found: exactly 0022 and 0038 — none beyond the two
-already known.** A full-corpus grep for "superseded" turned up only four
-hits: 0022, 0038 (both full supersessions, rule 1), and 0044/0052a (both
-partial — see above, not rule 1).
+already known.** A full-corpus, case-insensitive grep for the exact word
+"superseded" (not the shorter stem "supersed", which also matches 0034's
+and 0062's unrelated uses of "supersedes"/"superseding" and would need the
+same manual triage repeated on those two) turned up only four files using
+that word: 0022, 0038 (both full supersessions, rule 1), and 0044/0052a
+(both partial — see above, not rule 1).
 
 ## Table
 
