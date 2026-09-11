@@ -1,4 +1,4 @@
-# 0052a. revealedAt makes owner claim-status reveal one-way sticky
+# 0072. revealedAt makes owner claim-status reveal one-way sticky
 
 - **Status:** Accepted
 - **Date:** Not recorded (pre-repository decision, imported from `gubbins-spec.md`)

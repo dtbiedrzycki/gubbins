@@ -19,7 +19,7 @@
   toggles. "Revealed" means `revealedAt IS NOT NULL OR now >= revealAfter`
   — a stored flag set once on first crossing, so the transition is one-way
   and a later timezone or event-date edit cannot re-hide what the owner has
-  already seen. *(ADR-[020](../adr/0020-owner-status-identity-visibility-auto-reveals-at-revealafter.md), ADR-[052a](../adr/0052a-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md))*
+  already seen. *(ADR-[020](../adr/0020-owner-status-identity-visibility-auto-reveals-at-revealafter.md), ADR-[072](../adr/0072-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md))*
 - **Payment methods**: managed from list settings — add, edit, reorder,
   remove. Editing a method's label or handle does **not** rewrite existing
   contributions, which retain their snapshot (ADR-[047](../adr/0047-contribution-snapshots-its-payment-method-at-pledge-time.md)); the reconciliation
@@ -56,7 +56,7 @@
   the moment is unchanged but its local reading is not. Editing
   `revealAfter` itself is a separate, explicit control on the same
   screen. If `revealedAt` is already set, the dialog states plainly that
-  claim status remains visible and will not be re-hidden. *(ADR-[052a](../adr/0052a-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md),
+  claim status remains visible and will not be re-hidden. *(ADR-[072](../adr/0072-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md),
   ADR-[066](../adr/0066-revealafter-is-stored-not-derived.md))*
 - **Approaching-purge notice**: once `purgeAt` is within 14 days, the
   dashboard shows a persistent banner stating the date in the list

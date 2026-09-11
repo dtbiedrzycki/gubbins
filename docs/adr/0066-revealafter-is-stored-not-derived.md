@@ -6,11 +6,11 @@
 
 ## Decision
 
-`revealAfter` is a stored instant set at creation from a prefilled, editable local date-time field, not derived from `eventDate` at read time; a later `eventDate` or `timezone` edit re-resolves only `purgeAt`. Reverses ADR-[052a](./0052a-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md)'s rejection of a stored instant, whose "silently ineffective" objection does not hold once the settings screen shows the resolved value. `purgeAt` stays derived and operator-governed, since retention is the operator's controller obligation, not the owner's choice
+`revealAfter` is a stored instant set at creation from a prefilled, editable local date-time field, not derived from `eventDate` at read time; a later `eventDate` or `timezone` edit re-resolves only `purgeAt`. Reverses ADR-[072](./0072-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md)'s rejection of a stored instant, whose "silently ineffective" objection does not hold once the settings screen shows the resolved value. `purgeAt` stays derived and operator-governed, since retention is the operator's controller obligation, not the owner's choice
 
 ## Detail
 
-**ADR-066 detail:** ADR-[052a](./0052a-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md) rejected storing `revealAfter` as a fixed
+**ADR-066 detail:** ADR-[072](./0072-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md) rejected storing `revealAfter` as a fixed
 instant on the grounds that it "would make the timezone field silently
 ineffective after the fact." The load-bearing word is *silently*, and it
 turns out not to hold: §[3.14](../spec/owner-dashboard.md) and §[3.22](../spec/time-and-timezones.md) both already require the settings

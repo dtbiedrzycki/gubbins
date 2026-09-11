@@ -79,7 +79,6 @@ number on the PR that introduces an ADR.
 | [049](0049-contribution-amounts-bounded-by-absolute-and-target.md) | Contribution amounts bounded by absolute and target-relative ceilings | Accepted |
 | [050](0050-hold-contribution-submits-carry-a-client-generated.md) | Hold/contribution submits carry a client-generated idempotency key | Accepted |
 | [051](0051-civil-dates-and-instants-modelled-distinctly-via-per-list.md) | Civil dates and instants modelled distinctly via per-list timezone | Accepted |
-| [052a](0052a-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md) | revealedAt makes owner claim-status reveal one-way sticky | Accepted |
 | [052](0052-contribution-amount-recorded-only-at-i-ve-sent-it.md) | Contribution amount recorded only at "I've sent it" | Accepted |
 | [053](0053-owner-token-recovery-deferred-direct-operator-access-is-the.md) | Owner-token recovery deferred; direct operator access is the path | Accepted |
 | [054](0054-guest-key-storage-changed-from-one-way-hash-to-plaintext.md) | Guest key storage changed from one-way hash to plaintext | Accepted |
@@ -100,21 +99,20 @@ number on the PR that introduces an ADR.
 | [069](0069-the-guest-key-travels-in-a-fragment.md) | The guest key travels in a fragment | Accepted |
 | [070](0070-devcontainer-sandboxes-claude-code-auto-mode-via-an-egress.md) | Devcontainer sandboxes Claude Code auto mode via an egress-proxy sidecar | Accepted |
 | [071](0071-claude-code-and-gh-ship-in-the-app-image-with-no-baked-in.md) | Claude Code and gh ship in the app image with no baked-in credentials | Accepted |
+| [072](0072-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md) | revealedAt makes owner claim-status reveal one-way sticky | Accepted |
 
-## Imported ADRs (0001–0069)
+## Imported ADRs (0001–0071)
 
-ADRs 0001–0069 (plus the 0052a numbering exception) are imported
-verbatim from `gubbins-spec.md`'s former §[4](../adr/README.md) ADR Index — pre-repository
+ADRs 0001–0071 are imported verbatim from `gubbins-spec.md`'s former §[4](../adr/README.md) ADR Index — pre-repository
 product/architecture decisions for the application itself. 0070 and 0071 are
 the first two such repository-native ADRs — devcontainer sandboxing for
 Claude Code `auto`-mode runs, and Claude Code/`gh` credentialing in the
 dev image (§[3.12](../spec/development-environment.md)) — both documenting infrastructure that already existed
-in the repo before being written up here. 0072 onward remains free.
+in the repo before being written up here. 0072 is the renumbered former 0052a.
+0073 onward remains free.
 
 *(Not every ADR carries a separate detail block. Blocks are written
 where a decision needs rationale, rejected alternatives, or context
 beyond what its body section already states — so ADR-[030](./0030-performance-resource-targets-set-for-pi-class-hardware.md) (§[3.17](../spec/performance-and-resource-budget.md)) and
 ADR-[035](./0035-threat-model-documented-in-docs-threat-model-md.md) (§[3.21](../spec/threat-model.md)), both fully covered by their sections, have none.
 Absence of a block is not an absence of reasoning.)*
-
-*(Numbering note: ADR-[052](./0052-contribution-amount-recorded-only-at-i-ve-sent-it.md) was first assigned to the timezone-reveal-stickiness decision. To avoid renumbering a decision already referenced elsewhere in this document, that entry is retained as "052a" and the Cluster G decisions continue the sequence as 052–055. Treat "052a" and "052" as distinct entries; a future documentation pass may renumber 052a into the 05x range to remove the collision entirely. The consistency pass (§5) extended the index to 069 without disturbing this; the collision remains confined to 052/052a, and 070+ is the next free number.)*

@@ -75,7 +75,7 @@ Link path rules:
 - Create: `docs/superpowers/specs/2026-09-11-adr-inventory.md`
 
 **Interfaces:**
-- Consumes: the 72 files in `docs/adr/` (0001-0071 plus 0052a) and `docs/adr/README.md`.
+- Consumes: the 72 files in `docs/adr/` (0001-0072) and `docs/adr/README.md`.
 - Produces: a classification every later task (and the follow-up rollout plan) reads by ADR number. Classification values are exactly one of `reformat-only`, `merge-candidate`, `status-fix`, `renumber`.
 
 - [ ] **Step 1: List every ADR**
@@ -100,7 +100,7 @@ Seed the table with these four already-confirmed rows so the pattern is unambigu
 | ADR | Title | Current Status | Classification | Notes |
 |---|---|---|---|---|
 | 0022 | Guest key travels in the invitation URL (transport) | Accepted | merge-candidate | Merge into 0069; superseded in substance, status was never corrected |
-| 0052a | revealedAt makes owner claim-status reveal one-way sticky | Accepted | renumber | → 0072; resolves the 052/052a collision `docs/adr/README.md` flags as unresolved |
+| 0072 | revealedAt makes owner claim-status reveal one-way sticky | Accepted | renumber | resolved from 0052a; eliminated the 052/052a collision |
 | 0034 | Crypto-shredding deferred; whole-list purge covers the need | Accepted | reformat-only | Deferral upheld (re-tested by 067), not superseded — cross-refs to 059/067 are legitimate Context material |
 | 0038 | Superseded by 040 | Superseded by 0040 | merge-candidate | Fold into 0040 (piloted in Task 9); no independent rationale to preserve — 040's existing Detail already covers it |
 ```

@@ -13,7 +13,8 @@ lines of now-resolved "open questions" narrative, and every ADR was
 imported as a dense `Decision` + prose `Detail` block rather than the
 Nygard template (`docs/adr/0000-adr-template.md`) the repo already
 commits to. Some ADRs are redundant (one supersedes another but still
-reads `Accepted`) or collide (052/052a).
+reads `Accepted`); the 052/052a collision has been resolved by renumbering
+052a to 072.
 
 Goal: make both documents short, structurally consistent, and easy for
 a human or an AI agent to consume selectively — without losing any
@@ -96,8 +97,8 @@ Rules, applied during the inventory pass:
    stub — git history is the record, matching how the repo already
    treats ADRs as an append-only log at the git level, not the
    filesystem level.
-3. **Numbering collisions and gaps** — 052/052a is the one currently
-   known collision; every fold in rules 1-2 also leaves a gap where the
+3. **Numbering collisions and gaps** — the 052/052a collision (052a
+   renumbered to 072) has been resolved; every fold in rules 1-2 also leaves a gap where the
    deleted file used to be. Because this restructuring is the **first
    pass** — the baseline every future ADR builds on, not an interim
    edit that preserves historical numbers for their own sake — the
@@ -118,7 +119,7 @@ inventory):
 | ADRs | Finding | Action |
 |------|---------|--------|
 | 022, 069 | Same decision (guest-key transport); 022 reads `Accepted` but is superseded in substance | Merge into 069, delete 022 |
-| 052, 052a | Numbering collision, flagged unresolved in README | Renumber 052a → 072 |
+| 052, 072 | Numbering collision resolved | 052a renumbered → 072 |
 | 034 | Says `Accepted`, is accurate (deferral upheld, not superseded) — partial cross-reference to 059/067 is fine as Context material | Reformat only |
 | 038 | Formally `Superseded by 040`; carries no rationale beyond what 040's Detail already states | Fold into 040, delete 038 |
 

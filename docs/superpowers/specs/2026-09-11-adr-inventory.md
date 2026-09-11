@@ -1,9 +1,8 @@
 # ADR inventory for Nygard-template rollout
 
-Classification pass over all 72 ADRs under `docs/adr/` (0001–0071, plus the
-0052a numbering-collision exception), produced for Task 1 of the
-`2026-09-11-adr-spec-simplification-pilot` plan. Read-only analysis: no ADR
-file was modified to produce this inventory.
+Classification pass over all 72 ADRs under `docs/adr/` (0001–0072), produced
+for Task 1 of the `2026-09-11-adr-spec-simplification-pilot` plan. Read-only
+analysis: no ADR file was modified to produce this inventory.
 
 ## Method
 
@@ -14,26 +13,26 @@ index). Classification rule, applied in order, first match wins:
    the ADR's own prose states or implies the *entire* decision is
    superseded even though `Status` hasn't caught up. No ADR may end this
    work still marked superseded. Two ADRs are **amended** by a later one —
-   0020 by 0052a's sticky-reveal mechanism, 0049 by 0063's currency reframe
+   0020 by 0072's sticky-reveal mechanism, 0049 by 0063's currency reframe
    of the absolute ceiling — and two more are marked **superseded in
-   part** — 0044 by 0059/0060, 0052a by 0066. All four are *not* rule 1,
+   part** — 0044 by 0059/0060, 0072 by 0066. All four are *not* rule 1,
    checked against each ADR's own text rather than assumed from the label:
    0044's Decision is "name always required... only the owner sees
    identity"; ADR-059/060 only narrow "always required" to "required at
    creation, nullable by later erasure," leaving the owner-only-visibility
-   policy that is the actual core of the decision untouched. 0052a's own
+   policy that is the actual core of the decision untouched. 0072's own
    Detail states explicitly that "`revealedAt` is retained and still
    one-way, now guarding the narrower case" after ADR-066 — the sticky
    one-way reveal survives; only the scope of what it guards narrows.
    Because the decision itself stands in every case, partial revision is
    legitimate Context material for a `reformat-only` (or `renumber`)
-   rewrite, not rule 1's full-fold trigger. (The task brief's 0052a seed
-   row is classified `renumber` because of the 052/052a numbering
-   collision, a given fact independent of this reasoning — it's
-   consistent with the conclusion above but isn't the basis for it.)
+   rewrite, not rule 1's full-fold trigger. (The former 0052a has been
+   renumbered to 0072 to resolve the numbering collision with 0052,
+   a given fact independent of this reasoning — it's consistent with
+   the conclusion above but isn't the basis for it.)
 2. **`renumber`** — the ADR's number collides or is flagged as a numbering
-   quirk anywhere in `docs/adr/README.md`. Only the 052/052a collision is
-   flagged there.
+   quirk anywhere in `docs/adr/README.md`. (The 052/052a collision has been
+   resolved by renumbering 0052a to 0072.)
 3. **`reformat-only`** (default).
 
 `status-fix` was reserved for a non-supersession status error (e.g. an ADR
@@ -48,7 +47,7 @@ already known.** A full-corpus, case-insensitive grep for the exact word
 "superseded" (not the shorter stem "supersed", which also matches 0034's
 and 0062's unrelated uses of "supersedes"/"superseding" and would need the
 same manual triage repeated on those two) turned up only four files using
-that word: 0022, 0038 (both full supersessions, rule 1), and 0044/0052a
+that word: 0022, 0038 (both full supersessions, rule 1), and 0044/0072
 (both partial — see above, not rule 1).
 
 ## Table
@@ -74,7 +73,7 @@ that word: 0022, 0038 (both full supersessions, rule 1), and 0044/0052a
 | 0017 | Items with ledger history are archived, not deleted | Accepted | reformat-only | Has Detail; precedent cited by 0062 for rejecting hard delete |
 | 0018 | Group/fund targetMinor is editable and read live | Accepted | reformat-only | Has Detail; 0047 carves out a deliberate, distinct exception (payment-method snapshot) |
 | 0019 | Quantity may drop below committed holds/purchases | Accepted | reformat-only | Has Detail |
-| 0020 | Owner status/identity visibility auto-reveals at revealAfter | Accepted | reformat-only | Amended by 0052a (sticky `revealedAt`); decision itself unchanged — legitimate Context, not supersession |
+| 0020 | Owner status/identity visibility auto-reveals at revealAfter | Accepted | reformat-only | Amended by 0072 (sticky `revealedAt`); decision itself unchanged — legitimate Context, not supersession |
 | 0021 | Thank-you tracking stored outside rebuildProjections scope | Accepted | reformat-only | Has Detail; precedent for 0059's/0061's side-table pattern |
 | 0022 | Guest key travels in the invitation URL (transport) | Accepted | merge-candidate | Merge into 0069; superseded in substance, status was never corrected |
 | 0023 | Giver message visible to owner immediately, not spoiler-gated | Accepted | reformat-only | Has Detail |
@@ -105,8 +104,8 @@ that word: 0022, 0038 (both full supersessions, rule 1), and 0044/0052a
 | 0048 | Guest sessions capped at N concurrent active holds per list | Accepted | reformat-only | Has Detail |
 | 0049 | Contribution amounts bounded by absolute and target-relative ceilings | Accepted | reformat-only | Amended by 0063 on the absolute bound only; target-relative bound and independence from `allowOverfunding` stand — legitimate Context, not supersession |
 | 0050 | Hold/contribution submits carry a client-generated idempotency key | Accepted | reformat-only | Has Detail |
-| 0051 | Civil dates and instants modelled distinctly via per-list timezone | Accepted | reformat-only | Has Detail; foundational for 0052a/0066's reveal-timing reasoning |
-| 0052a | revealedAt makes owner claim-status reveal one-way sticky | Accepted | renumber | → 0072; resolves the 052/052a collision `docs/adr/README.md` flags as unresolved |
+| 0051 | Civil dates and instants modelled distinctly via per-list timezone | Accepted | reformat-only | Has Detail; foundational for 0072/0066's reveal-timing reasoning |
+| 0072 | revealedAt makes owner claim-status reveal one-way sticky | Accepted | renumber | resolved from 0052a; eliminated the 052/052a collision |
 | 0052 | Contribution amount recorded only at "I've sent it" | Accepted | reformat-only | Has Detail; distinct in purpose from 0060's later guest-data-access secret (recovery convenience vs. subject-access right) |
 | 0053 | Owner-token recovery deferred; direct operator access is the path | Accepted | reformat-only | Has Detail; owner-email field collected against this deferred flow was later removed as purposeless |
 | 0054 | Guest key storage changed from one-way hash to plaintext | Accepted | reformat-only | Has Detail; enables 0055's on-demand QR regeneration |
@@ -121,7 +120,7 @@ that word: 0022, 0038 (both full supersessions, rule 1), and 0044/0052a
 | 0063 | Currency validation, minor-unit storage, and the ceiling reframe | Accepted | reformat-only | Has Detail; amends 0049's absolute bound only |
 | 0064 | The owner token never travels in a URL | Accepted | reformat-only | Has Detail; explicitly distinguishes itself from 0022's guest-specific convenience reasoning rather than mirroring it |
 | 0065 | One periodic task, with giver-email purge attached | Accepted | reformat-only | Has Detail |
-| 0066 | revealAfter is stored, not derived | Accepted | reformat-only | Has Detail; reverses 0052a's rejection of a stored instant (0052a's own row already reflects this as partial supersession) |
+| 0066 | revealAfter is stored, not derived | Accepted | reformat-only | Has Detail; reverses 0072's rejection of a stored instant (0072's own row already reflects this as partial supersession) |
 | 0067 | Erasure across backups, and the subject-access routing fix | Accepted | reformat-only | Has Detail; re-examines and reaffirms 0034's crypto-shredding deferral rather than reopening it |
 | 0068 | Client IP resolution is a hop count | Accepted | reformat-only | Has Detail; fixes a mechanism defect that is a sibling of, not a re-tune of, 0042's rate-limit thresholds |
 | 0069 | The guest key travels in a fragment | Accepted | reformat-only | Has Detail; is the target ADR 0022 merges into |
@@ -135,6 +134,6 @@ that word: 0022, 0038 (both full supersessions, rule 1), and 0044/0052a
   `0000-adr-template.md`).
 - Every row has a non-empty Classification.
 - Both `merge-candidate` rows (0022, 0038) and the one `renumber` row
-  (0052a) name their partner ADR / target number in Notes.
+  (0072) name their partner ADR / target number in Notes.
 - Classification breakdown: 69 `reformat-only`, 2 `merge-candidate` (0022,
-  0038), 1 `renumber` (0052a), 0 `status-fix`.
+  0038), 1 `renumber` (0072), 0 `status-fix`.
