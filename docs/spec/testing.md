@@ -6,13 +6,13 @@
 - Projection rebuild test: fold events, compare to incrementally
   maintained state; verify all three non-derived tables survive a
   rebuild untouched — `thank_you_status`, `guest_pii`, and
-  `manual_gift_entries` (§[3.8](data-and-persistence.md)) — including that a redacted `GuestPii`
+  `manual_gift_entries` ([data & persistence](data-and-persistence.md)) — including that a redacted `GuestPii`
   row remains redacted and every `piiRef` still resolves afterwards. The
   two added here are where a mistake costs most: a rebuild that clears
   `guest_pii` orphans every `piiRef` in the event log, and one that
   clears `manual_gift_entries` loses owner-authored records with no
   ledger events to reconstruct them from.
-- Playwright e2e for the guest flow, with `@axe-core/playwright` wired in (see §[3.16](accessibility-and-browser-support.md))
+- Playwright e2e for the guest flow, with `@axe-core/playwright` wired in (see [accessibility & browser support](accessibility-and-browser-support.md))
 - Security tests as first-class cases:
   - SSRF on the metadata fetcher
   - Token and secret guessing across every bearer credential
@@ -25,7 +25,7 @@
   - **Output escaping across every free-text field**: list `title` and
     `description`, guest name and message, manual-gift giver name and
     description, payment-method `label`/`handle`/`instructions`, and
-    `privacyNotice`. §[3.21](threat-model.md) claims escaping as the stored-XSS mitigation;
+    `privacyNotice`. [Threat model](threat-model.md) claims escaping as the stored-XSS mitigation;
     this is what verifies it. The list is enumerated rather than
     described so a field added later without a test is visible as an
     omission.
@@ -40,14 +40,14 @@
   - **Guest-key transport** (ADR-[069](../adr/0069-the-guest-key-travels-in-a-fragment.md)): no request to `/{slug}` carries
     the key in a query string or path; the key-entry POST body is
     redacted in logs; key entry rejects a cross-origin POST.
-  - Rate-limit threshold enforcement (§[3.21](threat-model.md))
+  - Rate-limit threshold enforcement ([threat model](threat-model.md))
 - Backup/restore round-trip test: `VACUUM INTO` backup and JSON export, wipe, restore each, verify equivalence
   — and: a redacted `GuestPii` row round-trips as redacted through both
   backup methods; importing a pre-redaction export over a database
   holding a redacted row leaves the row redacted.
 - Migration test: run every migration against a seeded copy of the prior schema version, in CI, to catch failures pre-release
-- Load test against real Pi-class hardware to verify the §[3.17](performance-and-resource-budget.md) performance/resource budgets — targets are budgets to be measured, not assumptions
-- **Rate-limit false-positive test**: simulate many honest guests sharing a single IP (realistic at a physical event on venue wifi) against the per-IP thresholds in §[3.21](threat-model.md); adjust the per-IP threshold if the false-positive rate proves too aggressive, before v1. Numbers were set as reasonable defaults, not derived empirically — this test is how they get validated. *(ADR-[042](../adr/0042-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md))*
+- Load test against real Pi-class hardware to verify the [performance & resource budget](performance-and-resource-budget.md) performance/resource budgets — targets are budgets to be measured, not assumptions
+- **Rate-limit false-positive test**: simulate many honest guests sharing a single IP (realistic at a physical event on venue wifi) against the per-IP thresholds in [threat model](threat-model.md); adjust the per-IP threshold if the false-positive rate proves too aggressive, before v1. Numbers were set as reasonable defaults, not derived empirically — this test is how they get validated. *(ADR-[042](../adr/0042-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md))*
   Run the same simulation twice more. Once with the app behind a reverse
   proxy and `TRUSTED_PROXY_HOPS` left at 0, asserting the
   misconfiguration warning fires and the per-IP limiter is observably
@@ -66,7 +66,7 @@
   gift logistics for a large family) before v1, and adjust if honest use
   trips it. The contribution ceiling no longer needs this treatment: the
   target-relative multiple is currency-neutral, and the absolute bound is
-  an arithmetic guard rather than a money threshold (§[3.4](group-gifts-and-funds.md), ADR-[063](../adr/0063-currency-validation-minor-unit-storage-and-the-ceiling.md)).
+  an arithmetic guard rather than a money threshold ([group gifts & funds](group-gifts-and-funds.md), ADR-[063](../adr/0063-currency-validation-minor-unit-storage-and-the-ceiling.md)).
 - **Currency handling tests** (ADR-[063](../adr/0063-currency-validation-minor-unit-storage-and-the-ceiling.md)): amounts round-trip exactly through
   storage, JSON export, and `rebuildProjections` for a zero-decimal (JPY),
   two-decimal (USD), and three-decimal (KWD) currency; major→minor parsing
@@ -88,7 +88,7 @@
   dashboard view cannot re-hide claim status.
 - Concurrency test for the cross-item hold cap: N parallel hold requests
   from one session against distinct items, verifying the cap holds under
-  the in-transaction read (§[3.9](backend-architecture.md)) and that no TOCTOU window exists
+  the in-transaction read ([backend architecture](backend-architecture.md)) and that no TOCTOU window exists
 - Idempotency test: replaying an identical submit key against the same
   item returns the original hold/contribution rather than creating a
   second, and the constraint survives `rebuildProjections`
@@ -108,14 +108,14 @@
   `redactedAt` is set and no code path clears it; and the row renders as
   "[Redacted]" in the reconciliation view, the thank-you view, and the
   CSV export. Redaction succeeds regardless of `revealedAt` or the
-  spoiler toggles (§[3.7](privacy.md)). For guest-initiated erasure via
+  spoiler toggles ([privacy](privacy.md)). For guest-initiated erasure via
   `/{slug}/my-data/{secret}`: the bulk action redacts every hold and
   contribution belonging to that session on that list and nothing
   belonging to any other session or list; a secret issued for one list
   does not resolve on another; and the `GuestDataAccess` row is created
   on a session's first hold or contribution rather than at session
   start, so a browsing-only session accumulates no secret. After a key
-  rotation (§[3.1](access-identity.md), `keyGen`): a link issued before the rotation still
+  rotation ([access & identity](access-identity.md), `keyGen`): a link issued before the rotation still
   resolves and returns exactly its own pre-rotation records; a link
   issued afterwards covers only post-rotation records; neither returns
   the other's; and no rotation revokes an already-issued link.
@@ -125,7 +125,7 @@
   claim against silent regression as new event types are added — a
   behavioural test cannot catch a payload that simply starts carrying
   PII again. Runs in the same CI stage as the layer-boundary lint
-  (§[3.9](backend-architecture.md)), both being architecture constraints rather than behaviour.
+  ([backend architecture](backend-architecture.md)), both being architecture constraints rather than behaviour.
 - **Email retention test** (ADR-[065](../adr/0065-one-periodic-task-with-giver-email-purge-attached.md)): a `GuestPii` row past
   `expiresAt + 7 days` has `email` nulled while `name` and `message`
   survive; a row inside the window is untouched; a purchased or released

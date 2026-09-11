@@ -25,7 +25,7 @@
     below. A custom focus-trap implementation is the documented fallback
     only if `<dialog>` proves too constraining for the intended design.
     *(ADR-[025](../adr/0025-hold-sheet-and-contribute-flow-use-native-dialog.md))*
-  - Drag-and-drop reorder (§[3.14](owner-dashboard.md)) gets a keyboard-operable alternative —
+  - Drag-and-drop reorder ([owner dashboard & editing rules](owner-dashboard.md)) gets a keyboard-operable alternative —
     move-up/move-down buttons alongside the drag handle — since drag
     gestures have no keyboard equivalent by default. Presentation-layer
     addition only; the underlying `sortOrder` mechanism is unchanged.
@@ -40,7 +40,7 @@
   - Status badges (Available / Held / Purchased / Funded) always pair an
     icon and text label — never color alone.
 - **`axe` in the Playwright run**: `@axe-core/playwright` is wired into the
-  existing guest-flow e2e suite (§[3.13](testing.md)), scanning the key gate, browse view,
+  existing guest-flow e2e suite ([testing](testing.md)), scanning the key gate, browse view,
   item detail, hold sheet, contribute flow, and — on the owner side — the
   dashboard, reconciliation view, and thank-you view. CI fails the build on
   **serious/critical** violations; moderate/minor violations are logged as

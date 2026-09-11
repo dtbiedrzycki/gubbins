@@ -5,13 +5,13 @@
 - Owner supplies the name
 - **Manual entries are voidable, not editable, at the ledger level**, and
   are never hard-deleted — `ContributionVoided` is the deletion path, per
-  §[3.8](data-and-persistence.md)'s blanket soft-delete rule and the same reasoning ADR-[017](../adr/0017-items-with-ledger-history-are-archived-not-deleted.md) applied
+  [data & persistence](data-and-persistence.md)'s blanket soft-delete rule and the same reasoning ADR-[017](../adr/0017-items-with-ledger-history-are-archived-not-deleted.md) applied
   to items. Amount and the method snapshot live in the event payload and
   cannot be changed in place; correcting either is a void plus a fresh
   `ManualContributionRecorded`, surfaced to the owner as a single action
-  (§[3.14](owner-dashboard.md)). `source`, `pledgedAt`, and `confirmedAt` are immutable.
+  ([owner dashboard & editing rules](owner-dashboard.md)). `source`, `pledgedAt`, and `confirmedAt` are immutable.
 - **Name and message correct in place**, as a plain `UPDATE` on the
-  entry's `GuestPii` row (§[2](domain-model.md), ADR-[059](../adr/0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md)) with no ledger event — those
+  entry's `GuestPii` row ([domain model](domain-model.md), ADR-[059](../adr/0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md)) with no ledger event — those
   fields were moved out of the event stream precisely so they could be
   mutated. Permitted only where the referencing contribution has
   `source = manual` (the owner is correcting their own record, not

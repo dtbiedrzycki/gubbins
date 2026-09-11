@@ -3,7 +3,7 @@
 - Single container, SQLite on a mounted volume — no separate DB service in the default path
 - Migrations run on boot; refuse to start on failure rather than serving a half-migrated schema
 - **Migrations are forward-only.** No down-migrations are shipped or maintained.
-  Rollback story is "restore from the pre-upgrade backup" (§[3.18](backup-restore-and-upgrade.md)), not "run
+  Rollback story is "restore from the pre-upgrade backup" ([backup, restore & upgrade safety](backup-restore-and-upgrade.md)), not "run
   a down migration." The app additionally refuses to start if the DB's
   recorded schema version is *newer* than the running app expects, to guard
   against a botched downgrade attempt. *(ADR-[033](../adr/0033-migrations-are-forward-only-rollback-restore-from-backup.md))*
@@ -32,9 +32,9 @@
   *(ADR-[068](../adr/0068-client-ip-resolution-is-a-hop-count.md))*
 - SMTP optional and off by default. **SMTP is a capability flag** — when unconfigured, the UI must not offer or imply reminders. Creation-gating does **not** depend on SMTP (see ADR-[014](../adr/0014-list-creation-self-locks-gated-by-createsecret-thereafter.md)); email delivery reliability is not on the critical path for onboarding.
 - JSON export/import for full data portability (logical backup); physical
-  backup via `VACUUM INTO` (see §[3.18](backup-restore-and-upgrade.md))
+  backup via `VACUUM INTO` (see [backup, restore & upgrade safety](backup-restore-and-upgrade.md))
 - Structured logs to stdout via `pino`; `/health`; optional `/metrics` and
-  tracing (see §[3.19](observability.md)). No outbound anything by default.
+  tracing (see [observability](observability.md)). No outbound anything by default.
 
 **Env var reference:**
 
@@ -46,7 +46,7 @@
 | `CREATE_SECRET` | One or more comma-separated invite secrets; presenting any valid value authorizes list creation once the instance has self-locked | unset |
 | `ALLOW_OPEN_CREATION` | Bypass the self-lock; creation always open, no secret required | `false` |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Hold-expiry reminder email | unset → reminders disabled, warning logged |
-| `TRUSTED_PROXY_HOPS` | Number of reverse proxies in front of the app. `0` = none, read the socket address. `1` or more = read the address the outermost trusted proxy appended to `X-Forwarded-For`, counting from the right, so a client-supplied header value cannot be mistaken for the real one. The quickstart's Tunnel-plus-local-proxy path is `2`. Must be set correctly or per-IP rate limiting (§[3.21](threat-model.md)) is either evadable (too high) or collapses into a single global bucket (too low) | `0` |
+| `TRUSTED_PROXY_HOPS` | Number of reverse proxies in front of the app. `0` = none, read the socket address. `1` or more = read the address the outermost trusted proxy appended to `X-Forwarded-For`, counting from the right, so a client-supplied header value cannot be mistaken for the real one. The quickstart's Tunnel-plus-local-proxy path is `2`. Must be set correctly or per-IP rate limiting ([threat model](threat-model.md)) is either evadable (too high) or collapses into a single global bucket (too low) | `0` |
 | `DEFAULT_TIMEZONE` | IANA fallback when browser detection is unavailable at list creation | `UTC` |
 | `MAX_ACTIVE_HOLDS_PER_SESSION` | Concurrent active holds one guest session may have across a list | `10` |
 | `MAX_CONTRIBUTION_TARGET_MULTIPLE` | Ceiling as a multiple of `targetMinor`, where a target exists | `5` |

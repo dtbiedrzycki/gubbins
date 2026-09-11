@@ -12,7 +12,7 @@ presentation/    HTTP routes, zod schemas, DTO mappers, DI wiring.
 Key ports:
 
 - **`Clock`** — injected `now`; never call `Date.now()` below presentation. Makes the hold lifecycle deterministically testable.
-- **`TokenGenerator`** — slugs, owner tokens, hold secrets, creation invite secrets, **and guest-data-access secrets** (§[3.1](access-identity.md), ADR-[060](../adr/0060-guest-self-service-data-access-erasure-via-guestdataaccess.md)). Faked in tests.
+- **`TokenGenerator`** — slugs, owner tokens, hold secrets, creation invite secrets, **and guest-data-access secrets** ([access & identity](access-identity.md), ADR-[060](../adr/0060-guest-self-service-data-access-erasure-via-guestdataaccess.md)). Faked in tests.
 - **`UnitOfWork`** — `execute(fn)` wrapping a SQLite transaction.
 - **`EventStore`** — `append(itemId, expectedSeq, events)`, throws `ConcurrencyError`.
 - **`UrlMetadataFetcher`** — SSRF-guarded, entirely in infrastructure.

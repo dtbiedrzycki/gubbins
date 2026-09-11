@@ -17,7 +17,7 @@
   full-decode, upload size capped; ~60-80MB reserved for OS/container
   overhead.
 - Targets are budgets verified by a load test against real Pi hardware
-  (see §[3.13](testing.md)), not guarantees enforced at runtime. *(ADR-[030](../adr/0030-performance-resource-targets-set-for-pi-class-hardware.md))*
+  (see [testing](testing.md)), not guarantees enforced at runtime. *(ADR-[030](../adr/0030-performance-resource-targets-set-for-pi-class-hardware.md))*
 - A write flood against the single SQLite writer (WAL mode, single-writer)
   degrades latency but cannot corrupt state — this is an accepted instance
   of the "graceful degradation, not failure" stance above, not a

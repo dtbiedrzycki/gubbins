@@ -19,7 +19,7 @@
   `privacyNotice`, a small "Privacy" link appears in the guest page
   footer opening the notice as plain text. When unset, no link renders —
   no dead affordance pointing at nothing. The key gate instead carries
-  the static app-authored statement (§[3.1](access-identity.md)), which renders unconditionally
+  the static app-authored statement ([access & identity](access-identity.md)), which renders unconditionally
   whether or not the slug exists. *(ADR-[058](../adr/0058-owner-configurable-privacynotice-field-shown-only-when-set.md))*
 
 **Empty / near-empty / fully-claimed states**
@@ -38,11 +38,11 @@
 **Hold flow**
 - Tap "Hold it" → sheet with: name (required), optional email ("so we can
   remind you before the hold expires" — only shown if `SMTP` is configured,
-  per the capability-flag rule in §[3.11](ops.md)), optional message to the owner
+  per the capability-flag rule in [ops](ops.md)), optional message to the owner
   (≤300 chars), duration stated plainly ("Held for you for 3 days").
   Primary CTA: "Confirm hold."
 - Confirmation screen: **"Mark as purchased"** is the primary action (per
-  §[3.3](holds.md)). The private hold link (`/{slug}/hold/{holdSecret}`) is shown
+  [holds](holds.md)). The private hold link (`/{slug}/hold/{holdSecret}`) is shown
   prominently with a "Copy link" button and a line explaining it's the way
   back in if they lose their session — non-technical guests without the
   optional email have no other recovery path, so this can't be buried in a
@@ -57,7 +57,7 @@
   the payment app's own amount field.
 - For open-ended `fund` items (no target): no remainder-based suggestions —
   flat preset amounts derived from the list's currency exponent
-  (§[3.5](payments.md), ADR-[063](../adr/0063-currency-validation-minor-unit-storage-and-the-ceiling.md)) at three round magnitudes, plus custom,
+  ([payments](payments.md), ADR-[063](../adr/0063-currency-validation-minor-unit-storage-and-the-ceiling.md)) at three round magnitudes, plus custom,
   same informational-only treatment.
 - "Cover the rest" is hidden once remainder ≤ 0 under `allowOverfunding:
   block`; kept visible with a confirming dialog under `warn`/`allow`.
@@ -76,13 +76,13 @@
   silently overfunding. This records the pledge with the method snapshot
   attached.
 - The contribution confirmation screen ("I've sent it" succeeded)
-  surfaces the same guest self-service data link (§[3.1](access-identity.md), ADR-[060](../adr/0060-guest-self-service-data-access-erasure-via-guestdataaccess.md)) the hold
+  surfaces the same guest self-service data link ([access & identity](access-identity.md), ADR-[060](../adr/0060-guest-self-service-data-access-erasure-via-guestdataaccess.md)) the hold
   confirmation screen shows — the guest's one durable way back into "what
   do you have on me," regardless of which flow created it.
 - No pre-payment draft state exists server-side — closing the tab before
   this step leaves nothing to recover; the guest simply redoes the
   (client-only) selection. This is why no dedicated contribution recovery
-  secret is issued (ADR-[052](../adr/0052-contribution-amount-recorded-only-at-i-ve-sent-it.md)) — only the same-session hint (§[3.1](access-identity.md)) helps
+  secret is issued (ADR-[052](../adr/0052-contribution-amount-recorded-only-at-i-ve-sent-it.md)) — only the same-session hint ([access & identity](access-identity.md)) helps
   with accidental resubmission, and only on the same device/session.
 - Combined progress bar (solid = confirmed, hatched = pledged) shown both
   on the item card and inside this flow before/after submission.

@@ -7,7 +7,7 @@
   - Container runs as the invoking host UID/GID to avoid bind-mount permission drift on Linux hosts
 - **Local override mechanism**, so checked-in files stay canonical and personal changes never land in a commit by accident:
   - `docker-compose.override.yml`, gitignored, for per-developer compose changes
-  - `.env.example` committed; `.env` gitignored, layering per-developer values on top of the §[3.11](ops.md) defaults
+  - `.env.example` committed; `.env` gitignored, layering per-developer values on top of the [ops](ops.md) defaults
 - `postCreateCommand` for `npm ci`
 - **Named volume for `node_modules`** — bind-mounting is the classic macOS performance trap
 - SQLite data file bind-mounted (not a named volume) in dev, so a developer can inspect or delete `wishlist.db` directly

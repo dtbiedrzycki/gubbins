@@ -32,7 +32,7 @@ resolved to instants only via the list's `timezone`.
   implied by omission.
 - The list timezone defaults at creation from
   `Intl.DateTimeFormat().resolvedOptions().timeZone`, falling back to
-  `DEFAULT_TIMEZONE` (§[3.11](ops.md)) when unavailable. Presented on the creation
+  `DEFAULT_TIMEZONE` ([ops](ops.md)) when unavailable. Presented on the creation
   screen as a prefilled, editable field — visible enough to correct, not
   a question the owner must research.
 
@@ -62,7 +62,7 @@ resolved to instants only via the list's `timezone`.
 - **Screen-reader output uses the long zone name, not the abbreviation** —
   "Central European Summer Time", not "CEST", which reads as a nonsense
   word. Where the visible label is abbreviated, the accessible name
-  carries the long form. Extends §[3.16](accessibility-and-browser-support.md). *(ADR-[051](../adr/0051-civil-dates-and-instants-modelled-distinctly-via-per-list.md))*
+  carries the long form. Extends [accessibility & browser support](accessibility-and-browser-support.md). *(ADR-[051](../adr/0051-civil-dates-and-instants-modelled-distinctly-via-per-list.md))*
 - The owner's settings screen states the current list timezone plainly
   alongside the resolved `revealAfter` and `purgeAt` instants, so the
   consequence of the field is visible at the point of editing rather than

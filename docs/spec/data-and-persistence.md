@@ -45,7 +45,7 @@
   dropping it. *(ADR-[050](../adr/0050-hold-contribution-submits-carry-a-client-generated.md))*
 - **Audit table for CRUD metadata**: `(entityId, field, oldValue, newValue, changedAt)`. Purge is a `DELETE`.
 - SQLite in WAL mode, single file on a mounted volume
-- **Rate limiting is also stored in SQLite** — a `rate_limit_attempts` table, fixed-window, lazily expired the same way hold expiry is (never a cron sweep). No new service dependency introduced for this. See §[3.21](threat-model.md) for thresholds.
+- **Rate limiting is also stored in SQLite** — a `rate_limit_attempts` table, fixed-window, lazily expired the same way hold expiry is (never a cron sweep). No new service dependency introduced for this. See [threat model](threat-model.md) for thresholds.
 - DB-level check constraints as a backstop to application invariants
 
 ---

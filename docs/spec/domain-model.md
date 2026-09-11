@@ -7,25 +7,25 @@ Wishlist
                           Identifies the list to guests after key entry,
                           on the owner dashboard, and in reminder email
                           subjects. Never rendered pre-authentication
-                          (§[3.1](access-identity.md)).
+                          ([access & identity](access-identity.md)).
   description             optional free text, ≤2000 chars, escaped on
                           output. Owner-authored; the sanctioned place
-                          for shipping details (§[3.7](privacy.md)). Guest-visible
+                          for shipping details ([privacy](privacy.md)). Guest-visible
                           after key entry only.
   ownerToken               unguessable, grants full control, rotatable
   key                      guest key, stored in plaintext — consistent
                            with `ownerToken` and hold `secret`, neither
                            of which is hashed either. Human-readable and
-                           speakable. See §[3.1](access-identity.md), ADR-[054](../adr/0054-guest-key-storage-changed-from-one-way-hash-to-plaintext.md).
+                           speakable. See [access & identity](access-identity.md), ADR-[054](../adr/0054-guest-key-storage-changed-from-one-way-hash-to-plaintext.md).
   keyGen                  integer, starts at 1, incremented on every key
                           rotation. Carried in the guest session cookie
                           payload; a cookie bearing a stale keyGen is
                           rejected. This is the mechanism behind "key
-                          rotation invalidates guest sessions" (§[3.1](access-identity.md)).
+                          rotation invalidates guest sessions" ([access & identity](access-identity.md)).
   currency                ISO 4217 alpha-3 code, single per list; all
                           amounts inherit. Validated at write time;
                           immutable once any priced item exists. See
-                          §[3.5](payments.md), ADR-[063](../adr/0063-currency-validation-minor-unit-storage-and-the-ceiling.md).
+                          [payments](payments.md), ADR-[063](../adr/0063-currency-validation-minor-unit-storage-and-the-ceiling.md).
   timezone                IANA identifier (e.g. Europe/London); governs
                           resolution of eventDate → revealAfter/purgeAt
                           instants. Defaults to the creating browser's
@@ -40,7 +40,7 @@ Wishlist
                           it — the instant is stored, not derived, and
                           the settings screen shows it resolved in the
                           current zone so a change in rendering is
-                          visible rather than silent. See §[3.22](time-and-timezones.md),
+                          visible rather than silent. See [time, timezones & display](time-and-timezones.md),
                           ADR-[066](../adr/0066-revealafter-is-stored-not-derived.md).
   revealedAt              nullable instant; set lazily in owner-request
                           middleware on the first authenticated owner
@@ -60,7 +60,7 @@ Wishlist
   privacyNotice            optional owner-authored free text, ≤1000 chars,
                           escaped on output. Rendered to guests when set;
                           entirely omitted (no empty link, no placeholder)
-                          when null. See §[3.7](privacy.md), ADR-[058](../adr/0058-owner-configurable-privacynotice-field-shown-only-when-set.md).
+                          when null. See [privacy](privacy.md), ADR-[058](../adr/0058-owner-configurable-privacynotice-field-shown-only-when-set.md).
 
 Item
   type                    single | group | fund   (immutable after first claim)
@@ -76,7 +76,7 @@ Item
   Hold           single only — expiresAt, secret, piiRef → GuestPii.id,
                  sessionHash, idempotencyKey
                  (holderName, email, message live in GuestPii, not here
-                 — see §[3.8](data-and-persistence.md), ADR-[059](../adr/0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md))
+                 — see [data & persistence](data-and-persistence.md), ADR-[059](../adr/0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md))
   Purchase       single only — terminal
   Contribution   group | fund — amount, piiRef → GuestPii.id,
                  method: { kind, label, handle } | null  ← snapshotted
@@ -84,11 +84,11 @@ Item
                    source = manual
                  contributorSessionHash (guest source only, null for
                    manual) — powers the same-session "you already sent
-                   this" hint; not a recovery credential (§[3.1](access-identity.md), ADR-[052](../adr/0052-contribution-amount-recorded-only-at-i-ve-sent-it.md))
+                   this" hint; not a recovery credential ([access & identity](access-identity.md), ADR-[052](../adr/0052-contribution-amount-recorded-only-at-i-ve-sent-it.md))
                  pledgedAt, confirmedAt?, source: guest | manual,
                  idempotencyKey
                  (contributorName, message live in GuestPii, not here
-                 — see §[3.8](data-and-persistence.md), ADR-[059](../adr/0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md))
+                 — see [data & persistence](data-and-persistence.md), ADR-[059](../adr/0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md))
 
 PaymentMethod (value object, held per-Wishlist)
   kind                    known provider key (e.g. venmo, zelle) | custom
@@ -116,12 +116,12 @@ ManualGiftEntry
                            linked item is later hard-deleted.
   giverName                required, non-empty, trimmed, escaped on
                            output — same treatment as holderName/
-                           contributorName (§[3.2](names.md))
+                           contributorName ([names](names.md))
   description              required, ≤300 chars, escaped on output —
                            same cap as the giver→owner message field
-                           (§[3.15](guest-ux.md))
+                           ([guest UX](guest-ux.md))
   recordedAt                timestamp, set at creation
-  See §[3.14](owner-dashboard.md), ADR-[061](../adr/0061-offline-non-monetary-gifts-recorded-via-manualgiftentry.md).
+  See [owner dashboard & editing rules](owner-dashboard.md), ADR-[061](../adr/0061-offline-non-monetary-gifts-recorded-via-manualgiftentry.md).
 
 GuestPii (plain mutable table, outside event stream — same category as
           ThankYouStatus and the audit table: not derived from events,
@@ -130,15 +130,15 @@ GuestPii (plain mutable table, outside event stream — same category as
   name                    nullable — null once redacted
   email                   nullable — hold-only, and never shown to the
                           owner; its sole consumer is the expiry reminder
-                          (§[3.3](holds.md)). Nulled by the periodic task once
+                          ([holds](holds.md)). Nulled by the periodic task once
                           now > the hold's expiresAt + 7 days, whether
                           the hold expired, was released, or was
-                          purchased. See §[3.7](privacy.md), ADR-[065](../adr/0065-one-periodic-task-with-giver-email-purge-attached.md).
+                          purchased. See [privacy](privacy.md), ADR-[065](../adr/0065-one-periodic-task-with-giver-email-purge-attached.md).
   message                 nullable — optional giver→owner note
   redactedAt              nullable timestamp; set once, one-way — no
                            un-redact action exists
   createdAt
-  See §[3.7](privacy.md), §[3.8](data-and-persistence.md), ADR-[059](../adr/0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md).
+  See [privacy](privacy.md), [data & persistence](data-and-persistence.md), ADR-[059](../adr/0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md).
 
 GuestDataAccess (plain table, not event-sourced — same category as
                   GuestPii, ThankYouStatus, audit table)
@@ -152,7 +152,7 @@ GuestDataAccess (plain table, not event-sourced — same category as
   createdAt
   UNIQUE (wishlistId, sessionHash)
   Created lazily on a session's first hold or contribution on a list.
-  See §[3.1](access-identity.md), ADR-[060](../adr/0060-guest-self-service-data-access-erasure-via-guestdataaccess.md).
+  See [access & identity](access-identity.md), ADR-[060](../adr/0060-guest-self-service-data-access-erasure-via-guestdataaccess.md).
 ```
 
 ### Invariants
@@ -162,17 +162,17 @@ GuestDataAccess (plain table, not event-sourced — same category as
 - Item type immutable once any hold or contribution exists
 - Group items are quantity 1; their invariant is monetary, not count-based
 - Every hold and contribution's `GuestPii` row carries a non-empty `name`
-  **at creation**. A subsequent redaction (§[3.7](privacy.md), ADR-[059](../adr/0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md)) is the one
+  **at creation**. A subsequent redaction ([privacy](privacy.md), ADR-[059](../adr/0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md)) is the one
   sanctioned way this can become null later — a deliberate state
   transition, not a violation of the creation-time requirement
 - A `GuestDataAccess` row is created lazily on a session's **first** hold
   or contribution on a list, not at session start; every later hold or
   contribution from the same session reuses the existing row, so the
   secret is constant across everything one guest session does on one
-  list (§[3.1](access-identity.md), ADR-[060](../adr/0060-guest-self-service-data-access-erasure-via-guestdataaccess.md))
+  list ([access & identity](access-identity.md), ADR-[060](../adr/0060-guest-self-service-data-access-erasure-via-guestdataaccess.md))
 - A `GuestPii` row is referenced by exactly one hold or contribution,
   with one exception: a manual contribution corrected via void-and-
-  re-record (§[3.6](manual-contributions.md), ADR-[062](../adr/0062-manual-contributions-are-voidable-not-editable.md)) reuses its predecessor's `piiRef`, so a
+  re-record ([manual contributions](manual-contributions.md), ADR-[062](../adr/0062-manual-contributions-are-voidable-not-editable.md)) reuses its predecessor's `piiRef`, so a
   supersession chain shares one row. Sharing is legal **only** along
   such a chain — `GuestPii` rows are never deduplicated by name,
   session, or any other value, since redaction is scoped to the row and
@@ -191,7 +191,7 @@ GuestDataAccess (plain table, not event-sourced — same category as
 - A guest session may hold at most `MAX_ACTIVE_HOLDS_PER_SESSION` items
   concurrently across the list. Purchased and released/expired holds do
   not count toward the cap
-- Guest contribution amount must be > 0 and ≤ the sanity ceiling (§[3.4](group-gifts-and-funds.md));
+- Guest contribution amount must be > 0 and ≤ the sanity ceiling ([group gifts & funds](group-gifts-and-funds.md));
   this is independent of `allowOverfunding` and is not bypassed by `allow`
 - `UNIQUE (itemId, idempotencyKey)` on holds and contributions; a
   duplicate submit returns the original result rather than creating a
@@ -209,7 +209,7 @@ GuestDataAccess (plain table, not event-sourced — same category as
   item-type immutability (ADR-[013](../adr/0013-item-type-immutable-after-first-claim.md)). *(ADR-[063](../adr/0063-currency-validation-minor-unit-storage-and-the-ceiling.md))*
 - All amounts crossing into the domain are integer minor units. Major-unit
   parsing and formatting happen in presentation only, using the currency's
-  exponent — the same boundary rule §[3.22](time-and-timezones.md) applies to civil dates, and for
+  exponent — the same boundary rule [time, timezones & display](time-and-timezones.md) applies to civil dates, and for
   the same reason: a representation that can be implied by omission gets
   implied wrongly. *(ADR-[063](../adr/0063-currency-validation-minor-unit-storage-and-the-ceiling.md))*
 - `revealAfter < purgeAt`, compared as resolved instants, not civil dates
@@ -220,10 +220,10 @@ GuestDataAccess (plain table, not event-sourced — same category as
   above.
 - `title` and `description` are never rendered on any pre-authentication
   surface — the key gate, the generic not-found response (ADR-[016](../adr/0016-no-public-list-directory-lookups-fail-generically.md),
-  ADR-[056](../adr/0056-post-purgeat-lookups-return-the-same-generic-not-found.md)), or the instance homepage (§[3.1](access-identity.md)). There is no separate owner
+  ADR-[056](../adr/0056-post-purgeat-lookups-return-the-same-generic-not-found.md)), or the instance homepage ([access & identity](access-identity.md)). There is no separate owner
   or event name field; `title` is the only list-identifying string, so
   this single rule is what keeps the key gate silent.
-  The same applies to `privacyNotice` (§[3.7](privacy.md), ADR-[058](../adr/0058-owner-configurable-privacynotice-field-shown-only-when-set.md)), which by
+  The same applies to `privacyNotice` ([privacy](privacy.md), ADR-[058](../adr/0058-owner-configurable-privacynotice-field-shown-only-when-set.md)), which by
   construction identifies the operator. A static, app-authored privacy
   statement — identical across all instances and slugs, carrying no
   owner-supplied content — is rendered pre-auth instead,
@@ -235,12 +235,12 @@ GuestDataAccess (plain table, not event-sourced — same category as
 - A `ManualGiftEntry`'s `itemId` link is advisory only — it never affects
   `item_state` (activeHolds, purchasedCount, pledgedMinor, confirmedMinor)
   or guest-facing availability. An item received off-ledger is marked
-  taken via the existing "mark as purchased directly" (single, §[3.3](holds.md)) or
-  a manual `Contribution` (group/fund, §[3.6](manual-contributions.md)) — both of which are ledger
+  taken via the existing "mark as purchased directly" (single, [holds](holds.md)) or
+  a manual `Contribution` (group/fund, [manual contributions](manual-contributions.md)) — both of which are ledger
   events. Linking a `ManualGiftEntry` to an already-available item does
   not hide it from guests; the owner must also use one of those paths if
   that's the intent (the dashboard offers this as a single combined
-  action for the single-item case — see §[3.14](owner-dashboard.md))
+  action for the single-item case — see [owner dashboard & editing rules](owner-dashboard.md))
 
 ---
 
