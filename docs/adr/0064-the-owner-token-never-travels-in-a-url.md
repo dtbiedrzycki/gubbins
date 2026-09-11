@@ -16,8 +16,10 @@ the mechanism for the guest key — how the owner presents their token was
 never stated anywhere. The threat row therefore claimed coverage the spec
 did not provide.
 
-Mirroring ADR-[069](./0069-the-guest-key-travels-in-a-fragment.md) (`/{slug}/manage?token=`, validate, redirect to strip)
-was the obvious option and was rejected. ADR-[069](./0069-the-guest-key-travels-in-a-fragment.md)'s justification is
+Mirroring the original query-string design ADR-[069](./0069-the-guest-key-travels-in-a-fragment.md)'s
+Alternatives considered section now documents (`/{slug}/manage?token=`,
+validate, redirect to strip) was the obvious option and was rejected.
+ADR-[069](./0069-the-guest-key-travels-in-a-fragment.md)'s justification is
 explicitly audience-specific — most guests arrive from a text message and
 cannot reliably type a speakable key on a phone keyboard — and none of it
 describes the owner, who is one person at a keyboard at creation time,
@@ -25,10 +27,13 @@ already being shown a screen whose entire purpose is saving a credential.
 The stakes are also asymmetric: a leaked guest key grants browse and
 claim, while a leaked owner token grants rotation, redaction, deletion,
 and the invite QR, which itself reveals the guest key. So an owner-link
-leak is total compromise, and ADR-[069](./0069-the-guest-key-travels-in-a-fragment.md)'s residual risks are unmitigated by
-design — browser history, reverse-proxy logs, and under the Cloudflare
-Tunnel setup documented in §[3.20](../spec/governance-licensing-and-release.md), a third party's logs the operator does
-not control at all.
+leak is total compromise, and that original design's residual risks were
+unmitigated by design — browser history, reverse-proxy logs, and under
+the Cloudflare Tunnel setup documented in
+§[3.20](../spec/governance-licensing-and-release.md), a third party's
+logs the operator does not control at all (all but browser history are
+now closed for the guest key by ADR-069's fragment-based transport, but
+the owner token was never routed through either design).
 
 The chosen path required almost no new machinery: §[3.1](../spec/access-identity.md) already specifies
 a homepage input accepting "a list link, an owner token, or a slug+key
