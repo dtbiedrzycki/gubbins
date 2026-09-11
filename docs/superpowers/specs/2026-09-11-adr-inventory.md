@@ -105,7 +105,6 @@ that word: 0022, 0038 (both full supersessions, rule 1), and 0044/0072
 | 0049 | Contribution amounts bounded by absolute and target-relative ceilings | Accepted | reformat-only | Amended by 0063 on the absolute bound only; target-relative bound and independence from `allowOverfunding` stand — legitimate Context, not supersession |
 | 0050 | Hold/contribution submits carry a client-generated idempotency key | Accepted | reformat-only | Has Detail |
 | 0051 | Civil dates and instants modelled distinctly via per-list timezone | Accepted | reformat-only | Has Detail; foundational for 0072/0066's reveal-timing reasoning |
-| 0072 | revealedAt makes owner claim-status reveal one-way sticky | Accepted | renumber | resolved from 0052a; eliminated the 052/052a collision |
 | 0052 | Contribution amount recorded only at "I've sent it" | Accepted | reformat-only | Has Detail; distinct in purpose from 0060's later guest-data-access secret (recovery convenience vs. subject-access right) |
 | 0053 | Owner-token recovery deferred; direct operator access is the path | Accepted | reformat-only | Has Detail; owner-email field collected against this deferred flow was later removed as purposeless |
 | 0054 | Guest key storage changed from one-way hash to plaintext | Accepted | reformat-only | Has Detail; enables 0055's on-demand QR regeneration |
@@ -126,6 +125,7 @@ that word: 0022, 0038 (both full supersessions, rule 1), and 0044/0072
 | 0069 | The guest key travels in a fragment | Accepted | reformat-only | Has Detail; is the target ADR 0022 merges into |
 | 0070 | Devcontainer sandboxes Claude Code auto mode via an egress-proxy sidecar | Accepted | reformat-only | Has Detail; repo-native ADR (not imported from gubbins-spec.md) |
 | 0071 | Claude Code and gh ship in the app image with no baked-in credentials | Accepted | reformat-only | Has Detail; repo-native ADR; depends on 0070's sandbox boundary |
+| 0072 | revealedAt makes owner claim-status reveal one-way sticky | Accepted | renumber | resolved from 0052a; eliminated the 052/052a collision |
 
 ## Verification
 
