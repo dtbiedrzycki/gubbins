@@ -62,7 +62,7 @@
   full-control link exists to save (ADR-[064](../adr/0064-the-owner-token-never-travels-in-a-url.md)).
 - The "save your owner token" screen also states plainly that the owner is
   responsible for any guest names, emails, or messages collected through
-  the list, with a link to the privacy-notice guide (§[3.20](governance-licensing-release.md)) —
+  the list, with a link to the privacy-notice guide (§[3.20](governance-licensing-and-release.md)) —
   controller-awareness at the one moment every owner is guaranteed to
   pass through, rather than left to an optional field they may never
   fill in. *(ADR-[058](../adr/0058-owner-configurable-privacynotice-field-shown-only-when-set.md))*

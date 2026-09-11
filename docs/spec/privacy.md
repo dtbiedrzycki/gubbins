@@ -44,7 +44,7 @@
   set. The app does not auto-generate or infer this text — it doesn't
   know the operator's identity, jurisdiction, or preferred contact
   method, and a confident-looking but incomplete auto-generated notice
-  would be worse than an honest gap. A docs template (§[3.20](governance-licensing-release.md)) gives
+  would be worse than an honest gap. A docs template (§[3.20](governance-licensing-and-release.md)) gives
   operators a starting point to paste in and edit. The creation
   acknowledgement screen (§[3.1](access-identity.md)) also states the controller obligation
   plainly at the one moment every owner passes through, so awareness
@@ -73,7 +73,7 @@
   every other guest's name, email, and message — a breach committed in
   the belief it was compliance. Export remains the right tool for
   *owner-side* portability (moving a list between instances) and for
-  logical backup. Docs (§[3.20](governance-licensing-release.md)) must state this split plainly, since the
+  logical backup. Docs (§[3.20](governance-licensing-and-release.md)) must state this split plainly, since the
   distinction is easy to miss under pressure from a real request.
   *(ADR-[067](../adr/0067-erasure-across-backups-and-the-subject-access-routing-fix.md))*
 - **Erasure is immediate in the live database and time-bounded in
@@ -83,8 +83,8 @@
   the live database at once; hold any pre-redaction backup *beyond use*
   — not restored or accessed for any purpose — until it rotates out;
   re-apply the redaction if a restore does happen; and let the backup
-  retention window (§[3.18](backup-restore-upgrade.md)) bound how long that lasts. The
-  privacy-notice template (§[3.20](governance-licensing-release.md)) states the window, since a guest
+  retention window (§[3.18](backup-restore-and-upgrade.md)) bound how long that lasts. The
+  privacy-notice template (§[3.20](governance-licensing-and-release.md)) states the window, since a guest
   exercising erasure has to be told when backup copies of their data
   will be gone. *(ADR-[067](../adr/0067-erasure-across-backups-and-the-subject-access-routing-fix.md))*
 - **Data-at-rest theft (stolen SQLite file or stolen backup) is a distinct

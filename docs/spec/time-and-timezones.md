@@ -70,6 +70,4 @@ resolved to instants only via the list's `timezone`.
 
 ---
 
----
-
 [← Back to spec index](README.md)

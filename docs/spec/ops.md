@@ -4,7 +4,7 @@
 - Single container, SQLite on a mounted volume — no separate DB service in the default path
 - Migrations run on boot; refuse to start on failure rather than serving a half-migrated schema
 - **Migrations are forward-only.** No down-migrations are shipped or maintained.
-  Rollback story is "restore from the pre-upgrade backup" (§[3.18](backup-restore-upgrade.md)), not "run
+  Rollback story is "restore from the pre-upgrade backup" (§[3.18](backup-restore-and-upgrade.md)), not "run
   a down migration." The app additionally refuses to start if the DB's
   recorded schema version is *newer* than the running app expects, to guard
   against a botched downgrade attempt. *(ADR-[033](../adr/0033-migrations-are-forward-only-rollback-restore-from-backup.md))*
@@ -33,7 +33,7 @@
   *(ADR-[068](../adr/0068-client-ip-resolution-is-a-hop-count.md))*
 - SMTP optional and off by default. **SMTP is a capability flag** — when unconfigured, the UI must not offer or imply reminders. Creation-gating does **not** depend on SMTP (see ADR-[014](../adr/0014-list-creation-self-locks-gated-by-createsecret-thereafter.md)); email delivery reliability is not on the critical path for onboarding.
 - JSON export/import for full data portability (logical backup); physical
-  backup via `VACUUM INTO` (see §[3.18](backup-restore-upgrade.md))
+  backup via `VACUUM INTO` (see §[3.18](backup-restore-and-upgrade.md))
 - Structured logs to stdout via `pino`; `/health`; optional `/metrics` and
   tracing (see §[3.19](observability.md)). No outbound anything by default.
 
