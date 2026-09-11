@@ -21,7 +21,7 @@ data model, no owner input required) was also rejected: the app can state
 *what* it stores and *when* it's deleted, but not *who* is responsible for
 it or how to reach them, which are the two things a GDPR-facing notice
 most needs and the two things this system deliberately never collects
-about the owner (no accounts, no verified identity — §[1](../../gubbins-spec.md#1-overview), ADR-[001](./0001-no-accounts-slug-key-for-guests-owner-token-for-owners.md)). An
+about the owner (no accounts, no verified identity — §[1](../../gubbins-spec.md#design-principles), ADR-[001](./0001-no-accounts-slug-key-for-guests-owner-token-for-owners.md)). An
 auto-generated notice with those parts silently missing would look more
 complete than it is. The chosen middle ground — a real field, rendered
 when set, paired with a template — gets the "actually shown to guests"

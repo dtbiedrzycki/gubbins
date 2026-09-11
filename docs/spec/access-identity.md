@@ -51,7 +51,7 @@
   system genuinely cannot tell the two sessions belong to one person —
   `sessionHash` is the only identity available and it has changed — and
   merging them would require a durable guest identity the no-accounts
-  principle rules out (§[1](#1-overview), ADR-[001](../adr/0001-no-accounts-slug-key-for-guests-owner-token-for-owners.md)). Bounded by rotation being
+  principle rules out (§[1](../../gubbins-spec.md#design-principles), ADR-[001](../adr/0001-no-accounts-slug-key-for-guests-owner-token-for-owners.md)). Bounded by rotation being
   infrequent, and by each link remaining independently valid for the
   records it covers. *(ADR-[060](../adr/0060-guest-self-service-data-access-erasure-via-guestdataaccess.md))*
 - Owner token rotatable; rotation preserves all claim history
