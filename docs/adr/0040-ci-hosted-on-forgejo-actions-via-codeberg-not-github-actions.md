@@ -49,6 +49,6 @@ constraint.
 - SBOM/image-scan/multi-arch results are only available at release tags,
   not on every push, unless a maintainer opts into a self-hosted runner.
 - Formerly split out as its own ADR (0038, "dependency/SBOM/image
-  scanning scope") before this decision existed in full. ADR-0038 added
+  scanning scope") before this decision existed in full. ADR-038 added
   no rationale beyond what this entry already states and has been folded
   in here; see git history for the original file.

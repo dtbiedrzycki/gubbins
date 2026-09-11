@@ -101,10 +101,11 @@ number on the PR that introduces an ADR.
 | [071](0071-claude-code-and-gh-ship-in-the-app-image-with-no-baked-in.md) | Claude Code and gh ship in the app image with no baked-in credentials | Accepted |
 | [072](0072-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md) | revealedAt makes owner claim-status reveal one-way sticky | Accepted |
 
-## Imported ADRs (0001–0069, plus 072)
+## Imported ADRs (0001–0069, plus 0072)
 
-ADRs 0001–0069, plus 0072 (renumbered from 0052a), are imported verbatim from `gubbins-spec.md`'s former §[4](../adr/README.md) ADR Index — pre-repository
-product/architecture decisions for the application itself. 0070 and 0071 are
+ADRs 0001–0069, plus 0072 (renumbered from 0052a), are imported verbatim from `gubbins-spec.md`'s former §4 ADR Index — pre-repository
+product/architecture decisions for the application itself. The 0001–0069 range is no longer contiguous: ADR-0022 and ADR-0038 were folded/deleted during
+this restructuring (into 0069 and 0040 respectively), so their files no longer exist. 0070 and 0071 are
 the first two such repository-native ADRs — devcontainer sandboxing for
 Claude Code `auto`-mode runs, and Claude Code/`gh` credentialing in the
 dev image (§[3.12](../spec/development-environment.md)) — both documenting infrastructure that already existed

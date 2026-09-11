@@ -1,6 +1,5 @@
 # Data & persistence
 
-
 - **Event stream for the ledger only** — claims, purchases, contributions. Not for CRUD metadata.
 - Event types: `ItemHeld`, `HoldExtended`, `HoldReleased`, `ItemPurchased`, `PurchaseVoided`, `ContributionPledged`, `ContributionConfirmed`, `ContributionVoided`, `ManualContributionRecorded`
 - `ContributionVoided` applies to guest and manual contributions alike —
@@ -48,7 +47,6 @@
 - SQLite in WAL mode, single file on a mounted volume
 - **Rate limiting is also stored in SQLite** — a `rate_limit_attempts` table, fixed-window, lazily expired the same way hold expiry is (never a cron sweep). No new service dependency introduced for this. See §[3.21](threat-model.md) for thresholds.
 - DB-level check constraints as a backstop to application invariants
-
 
 ---
 

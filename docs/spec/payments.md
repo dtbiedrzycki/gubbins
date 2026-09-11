@@ -1,6 +1,5 @@
 # Payments
 
-
 - Payment rails are **unverifiable programmatically** — the app never calls
   a payment API, never holds funds, and never confirms receipt. The owner
   reconciles manually. UI must be honest about this. *(ADR-[004](../adr/0004-pledged-vs-confirmed-states-payments-unverifiable-by-design.md))*
@@ -34,7 +33,6 @@ three render strategies:
   known app schemes those templates declare. *(ADR-[046](../adr/0046-payment-methods-are-per-list-configuration-not-a-hardcoded.md), §[3.21](threat-model.md))*
 - Payment method is **snapshotted onto the Contribution at pledge time**,
   a deliberate exception to the live-read rule in ADR-[018](../adr/0018-group-fund-targetminor-is-editable-and-read-live.md). *(ADR-[047](../adr/0047-contribution-snapshots-its-payment-method-at-pledge-time.md))*
-
 
 ---
 

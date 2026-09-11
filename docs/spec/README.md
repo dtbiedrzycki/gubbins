@@ -10,11 +10,9 @@ for the decision log.
 
 ## Index
 
-<!-- Task 5 fills in one row per topic file. -->
-
 | Topic | File |
 |---|---|
-| Domain model | [domain-model.md](domain-model.md) |
+| Domain Model | [domain-model.md](domain-model.md) |
 | Access & identity | [access-identity.md](access-identity.md) |
 | Names | [names.md](names.md) |
 | Holds (single items) | [holds.md](holds.md) |

@@ -1,6 +1,5 @@
 # Access & identity
 
-
 - **Guest access** = slug (in URL) + key (entered once). Slug alone renders nothing.
 - Key is human-readable and speakable (`warm-otter-42`), suitable for a printed invitation
 - Key stored in plaintext, matching the existing treatment of `ownerToken`
@@ -174,7 +173,6 @@ it"); this secret grants access to `GuestPii` data that already exists
 once a contribution is confirmed — a subject-access/erasure right, not a
 recovery convenience, and unrelated to how the contribution flow is
 shaped.
-
 
 ---
 

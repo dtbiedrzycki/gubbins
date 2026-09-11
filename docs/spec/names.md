@@ -1,6 +1,5 @@
 # Names
 
-
 - `holderName` / `contributorName` required, trimmed, non-empty,
   length-capped — stored as `GuestPii.name` (§[2](domain-model.md), ADR-[059](../adr/0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md)), not directly
   on the Hold/Contribution row
@@ -18,7 +17,6 @@
   thank-you tracking and reconciliation, §[3.14](owner-dashboard.md), §[3.6](manual-contributions.md)), but "required"
   means recorded for the owner, never means visible to the guest
   community. *(ADR-[044](../adr/0044-anonymous-contributions-resolved-name-required-owner-only.md))*
-
 
 ---
 

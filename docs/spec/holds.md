@@ -1,6 +1,5 @@
 # Holds (single items)
 
-
 - **Duration `HOLD_DURATION_DAYS`, default 3** (§[3.11](ops.md)).
 - Language is "hold" / "I'm buying this now" — never "reserve"
 - Hold confirmation screen leads with **Mark as purchased** as primary action
@@ -50,7 +49,6 @@
   path when the cap is set generously and a guest still hoards, and as
   general cleanup for abandoned holds. Subject to the same spoiler gating
   as other claim-status-revealing controls (§[3.14](owner-dashboard.md)).
-
 
 ---
 

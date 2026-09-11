@@ -1,6 +1,5 @@
 # Privacy
 
-
 - Zero outbound requests at runtime by default; self-hosted fonts
 - Strict CSP, no inline scripts
 - URL metadata scraping **opt-in and SSRF-guarded**: block private IP ranges, block redirects into them, timeouts. Note that fetching reveals the server IP to the retailer.
@@ -96,7 +95,6 @@
   covers the guest key, owner token, and hold secrets, all of which are
   stored in plaintext (§[3.1](access-identity.md), ADR-[054](../adr/0054-guest-key-storage-changed-from-one-way-hash-to-plaintext.md)) — the same operator-trust boundary
   already applies uniformly to all of the system's bearer secrets.
-
 
 ---
 

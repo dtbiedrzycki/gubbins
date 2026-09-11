@@ -1,6 +1,5 @@
 # Group gifts & funds
 
-
 - Contributions go **to the owner**, who buys the item. No peer-to-peer money movement, no designated buyer.
 - Group gift = a fund with a target and item metadata attached
 - No holds on group or fund items
@@ -30,7 +29,6 @@
   an unusually large offline gift.
 - Policy check lives in the domain: `canAccept(amount, now, policy)`, which
   enforces the sanity ceiling alongside the overfunding policy
-
 
 ---
 

@@ -1,6 +1,5 @@
 # Backend architecture
 
-
 **Clean Architecture**, four layers:
 
 ```
@@ -39,7 +38,6 @@ Guardrails:
   lets a session exceed the cap; treat it as load-bearing rather than an
   incidental implementation detail. The same constraint applies to any
   future cross-item rule.
-
 
 ---
 

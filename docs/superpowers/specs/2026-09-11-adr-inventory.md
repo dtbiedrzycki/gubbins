@@ -54,7 +54,7 @@ that word: 0022, 0038 (both full supersessions, rule 1), and 0044/0072
 
 | ADR | Title | Current Status | Classification | Notes |
 |---|---|---|---|---|
-| 0001 | No accounts; slug + key for guests, owner token for owners | Accepted | reformat-only | No Detail block; single-line Decision only |
+| 0001 | No accounts; slug + key for guests, owner token for owners | Accepted | reformat-only | No Detail block; single-line Decision only. ✅ done in pilot (rewritten) |
 | 0002 | Holds are 3-day, extendable once, operator-configurable duration | Accepted | reformat-only | No Detail block |
 | 0003 | Group gift contributions go to the owner; no designated buyer | Accepted | reformat-only | No Detail block |
 | 0004 | Pledged vs. confirmed states; payments unverifiable by design | Accepted | reformat-only | No Detail block; cited by 0063 |
@@ -75,7 +75,7 @@ that word: 0022, 0038 (both full supersessions, rule 1), and 0044/0072
 | 0019 | Quantity may drop below committed holds/purchases | Accepted | reformat-only | Has Detail |
 | 0020 | Owner status/identity visibility auto-reveals at revealAfter | Accepted | reformat-only | Amended by 0072 (sticky `revealedAt`); decision itself unchanged — legitimate Context, not supersession |
 | 0021 | Thank-you tracking stored outside rebuildProjections scope | Accepted | reformat-only | Has Detail; precedent for 0059's/0061's side-table pattern |
-| 0022 | Guest key travels in the invitation URL (transport) | Accepted | merge-candidate | Merge into 0069; superseded in substance, status was never corrected |
+| 0022 | Guest key travels in the invitation URL (transport) | Accepted | merge-candidate | Merge into 0069; superseded in substance, status was never corrected. ✅ done in pilot (merged into 0069, file deleted) |
 | 0023 | Giver message visible to owner immediately, not spoiler-gated | Accepted | reformat-only | Has Detail |
 | 0024 | WCAG 2.2 Level AA is the accessibility target | Accepted | reformat-only | Has Detail; target revised up from an initial 2.1 AA |
 | 0025 | Hold sheet and contribute flow use native <dialog> | Accepted | reformat-only | Has Detail |
@@ -91,9 +91,9 @@ that word: 0022, 0038 (both full supersessions, rule 1), and 0044/0072
 | 0035 | Threat model documented in docs/threat-model.md | Accepted | reformat-only | No Detail block (README notes it's fully covered by spec §3.21) |
 | 0036 | Constant-time comparison generalized to all secret comparisons | Accepted | reformat-only | Has Detail |
 | 0037 | Session and owner-access cookies require Secure; HTTPS required | Accepted | reformat-only | Has Detail |
-| 0038 | Superseded by 040 | Superseded by 0040 | merge-candidate | Fold into 0040 (piloted in Task 9); no independent rationale to preserve — 040's existing Detail already covers it |
+| 0038 | Superseded by 040 | Superseded by 0040 | merge-candidate | Fold into 0040 (piloted in Task 9); no independent rationale to preserve — 040's existing Detail already covers it. ✅ done in pilot (folded into 0040, file deleted) |
 | 0039 | AGPL-3.0 selected as project licence | Accepted | reformat-only | Has Detail; rejects GPL-3.0/EUPL-1.2/OSL-3.0/SSPL |
-| 0040 | CI hosted on Forgejo Actions via Codeberg, not GitHub Actions | Accepted | reformat-only | Has Detail; is the target ADR 0038 merges into |
+| 0040 | CI hosted on Forgejo Actions via Codeberg, not GitHub Actions | Accepted | reformat-only | Has Detail; is the target ADR 0038 merges into. ✅ done in pilot (received the 0038 fold) |
 | 0041 | Security disclosure via a dedicated email address | Accepted | reformat-only | Has Detail |
 | 0042 | Rate-limit thresholds set as concrete hardcoded defaults | Accepted | reformat-only | Has Detail; its venue-wifi false-positive concern is later revisited (not superseded) by 0068's mechanism fix |
 | 0043 | Demo instance formally deferred, not rejected | Accepted | reformat-only | Has Detail |
@@ -122,10 +122,10 @@ that word: 0022, 0038 (both full supersessions, rule 1), and 0044/0072
 | 0066 | revealAfter is stored, not derived | Accepted | reformat-only | Has Detail; reverses 0072's rejection of a stored instant (0072's own row already reflects this as partial supersession) |
 | 0067 | Erasure across backups, and the subject-access routing fix | Accepted | reformat-only | Has Detail; re-examines and reaffirms 0034's crypto-shredding deferral rather than reopening it |
 | 0068 | Client IP resolution is a hop count | Accepted | reformat-only | Has Detail; fixes a mechanism defect that is a sibling of, not a re-tune of, 0042's rate-limit thresholds |
-| 0069 | The guest key travels in a fragment | Accepted | reformat-only | Has Detail; is the target ADR 0022 merges into |
-| 0070 | Devcontainer sandboxes Claude Code auto mode via an egress-proxy sidecar | Accepted | reformat-only | Has Detail; repo-native ADR (not imported from gubbins-spec.md) |
+| 0069 | The guest key travels in a fragment | Accepted | reformat-only | Has Detail; is the target ADR 0022 merges into. ✅ done in pilot (received the 0022 merge) |
+| 0070 | Devcontainer sandboxes Claude Code auto mode via an egress-proxy sidecar | Accepted | reformat-only | Has Detail; repo-native ADR (not imported from gubbins-spec.md). ✅ done in pilot (rewritten) |
 | 0071 | Claude Code and gh ship in the app image with no baked-in credentials | Accepted | reformat-only | Has Detail; repo-native ADR; depends on 0070's sandbox boundary |
-| 0072 | revealedAt makes owner claim-status reveal one-way sticky | Accepted | renumber | resolved from 0052a; eliminated the 052/052a collision |
+| 0072 | revealedAt makes owner claim-status reveal one-way sticky | Accepted | renumber | resolved from 0052a; eliminated the 052/052a collision. ✅ done in pilot (renumbered 0052a→0072) |
 
 ## Verification
 

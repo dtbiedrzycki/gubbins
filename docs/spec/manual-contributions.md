@@ -1,6 +1,5 @@
 # Manual contributions
 
-
 - `source: 'guest' | 'manual'` on Contribution
 - Manual entries are `confirmed` at creation and bypass the overfunding policy
 - Owner supplies the name
@@ -25,7 +24,6 @@
   advertised). Null renders as "—" in the reconciliation view rather than
   being hidden.
 - Source displayed in the reconciliation view
-
 
 ---
 

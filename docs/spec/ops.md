@@ -1,6 +1,5 @@
 # Ops
 
-
 - Single container, SQLite on a mounted volume — no separate DB service in the default path
 - Migrations run on boot; refuse to start on failure rather than serving a half-migrated schema
 - **Migrations are forward-only.** No down-migrations are shipped or maintained.
@@ -64,7 +63,6 @@ Notes on `CREATE_SECRET`:
 - Revoke one invitee by removing their value and restarting the container; other values are unaffected.
 - Values should be high-entropy random strings generated the same way as guest keys and owner tokens (via `TokenGenerator`), not admin-chosen passphrases. A `generate-invite-secret` CLI helper is provided for this.
 - Incoming values are checked with constant-time comparison, not `===` (generalized in ADR-[036](../adr/0036-constant-time-comparison-generalized-to-all-secret.md) to apply to all secret comparisons, not just this one).
-
 
 ---
 
