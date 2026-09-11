@@ -66,7 +66,6 @@ number on the PR that introduces an ADR.
 | [035](0035-threat-model-documented-in-docs-threat-model-md.md) | Threat model documented in docs/threat-model.md | Accepted |
 | [036](0036-constant-time-comparison-generalized-to-all-secret.md) | Constant-time comparison generalized to all secret comparisons | Accepted |
 | [037](0037-session-and-owner-access-cookies-require-secure-https.md) | Session and owner-access cookies require Secure; HTTPS required | Accepted |
-| [038](0038-superseded-by-040-dependency-sbom-image-scanning-scope.md) | Superseded by 040 (dependency/SBOM/image scanning scope) | Superseded by [0040](0040-ci-hosted-on-forgejo-actions-via-codeberg-not-github-actions.md) |
 | [039](0039-agpl-3-0-selected-as-project-licence.md) | AGPL-3.0 selected as project licence | Accepted |
 | [040](0040-ci-hosted-on-forgejo-actions-via-codeberg-not-github-actions.md) | CI hosted on Forgejo Actions via Codeberg, not GitHub Actions | Accepted |
 | [041](0041-security-disclosure-via-a-dedicated-email-address.md) | Security disclosure via a dedicated email address | Accepted |
@@ -115,8 +114,7 @@ in the repo before being written up here. 0072 onward remains free.
 *(Not every ADR carries a separate detail block. Blocks are written
 where a decision needs rationale, rejected alternatives, or context
 beyond what its body section already states — so ADR-[030](./0030-performance-resource-targets-set-for-pi-class-hardware.md) (§[3.17](../spec/performance-and-resource-budget.md)) and
-ADR-[035](./0035-threat-model-documented-in-docs-threat-model-md.md) (§[3.21](../spec/threat-model.md)), both fully covered by their sections, have none, and
-ADR-[038](./0038-superseded-by-040-dependency-sbom-image-scanning-scope.md) has none because it is superseded. Absence of a block is not an
-absence of reasoning.)*
+ADR-[035](./0035-threat-model-documented-in-docs-threat-model-md.md) (§[3.21](../spec/threat-model.md)), both fully covered by their sections, have none.
+Absence of a block is not an absence of reasoning.)*
 
 *(Numbering note: ADR-[052](./0052-contribution-amount-recorded-only-at-i-ve-sent-it.md) was first assigned to the timezone-reveal-stickiness decision. To avoid renumbering a decision already referenced elsewhere in this document, that entry is retained as "052a" and the Cluster G decisions continue the sequence as 052–055. Treat "052a" and "052" as distinct entries; a future documentation pass may renumber 052a into the 05x range to remove the collision entirely. The consistency pass (§5) extended the index to 069 without disturbing this; the collision remains confined to 052/052a, and 070+ is the next free number.)*
