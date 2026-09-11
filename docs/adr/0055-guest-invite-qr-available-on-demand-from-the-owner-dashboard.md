@@ -1,8 +1,8 @@
 # 0055. Guest-invite QR available on demand from the owner dashboard
 
 - **Status:** Accepted
-- **Date:** Not recorded (pre-repository decision, imported from `gubbins-spec.md`)
-- **Deciders:** Not recorded
+- **Date:** 2026-09-09
+- **Deciders:** dtbiedrzycki
 
 ## Decision
 

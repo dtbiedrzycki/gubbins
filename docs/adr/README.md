@@ -12,6 +12,10 @@ the choice made, and the consequences accepted.
   and mark the old one `Superseded by NNNN` (and vice-versa).
 - Keep them short. Link to code, issues, or other ADRs rather than
   restating them.
+- **Date** is the date the decision was actually made — set it to the
+  current date when a new ADR is authored, not left as the template's
+  placeholder. **Deciders** is `dtbiedrzycki` unless a specific ADR
+  names someone else.
 
 ## Status values
 

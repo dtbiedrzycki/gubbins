@@ -1,8 +1,8 @@
 # 0071. Claude Code and `gh` ship in the `app` image with no baked-in credentials
 
 - **Status:** Accepted
-- **Date:** Not recorded (imported from `gubbins-pending-changeset.md`)
-- **Deciders:** Not recorded
+- **Date:** 2026-09-10
+- **Deciders:** dtbiedrzycki
 
 ## Decision
 

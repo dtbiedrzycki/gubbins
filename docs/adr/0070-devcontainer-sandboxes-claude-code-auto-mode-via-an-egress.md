@@ -1,8 +1,8 @@
 # 0070. Devcontainer sandboxes Claude Code `auto` mode via an egress-proxy sidecar
 
 - **Status:** Accepted
-- **Date:** Not recorded (imported from `gubbins-pending-changeset.md`)
-- **Deciders:** Not recorded
+- **Date:** 2026-09-10
+- **Deciders:** dtbiedrzycki
 
 ## Context
 

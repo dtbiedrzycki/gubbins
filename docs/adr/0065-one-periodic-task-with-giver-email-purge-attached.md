@@ -1,8 +1,8 @@
 # 0065. One periodic task, with giver-email purge attached
 
 - **Status:** Accepted
-- **Date:** Not recorded (pre-repository decision, imported from `gubbins-spec.md`)
-- **Deciders:** Not recorded
+- **Date:** 2026-09-09
+- **Deciders:** dtbiedrzycki
 
 ## Decision
 

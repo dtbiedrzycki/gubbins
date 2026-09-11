@@ -1,8 +1,8 @@
 # 0069. The guest key travels in a fragment
 
 - **Status:** Accepted (supersedes 0022, merged into this entry)
-- **Date:** Not recorded (pre-repository decision, imported from `gubbins-spec.md`)
-- **Deciders:** Not recorded
+- **Date:** 2026-09-09
+- **Deciders:** dtbiedrzycki
 
 ## Context
 

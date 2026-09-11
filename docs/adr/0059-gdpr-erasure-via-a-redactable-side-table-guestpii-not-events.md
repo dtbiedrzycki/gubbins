@@ -1,8 +1,8 @@
 # 0059. GDPR erasure via a redactable side-table (GuestPii), not events
 
 - **Status:** Accepted
-- **Date:** Not recorded (pre-repository decision, imported from `gubbins-spec.md`)
-- **Deciders:** Not recorded
+- **Date:** 2026-09-09
+- **Deciders:** dtbiedrzycki
 
 ## Decision
 

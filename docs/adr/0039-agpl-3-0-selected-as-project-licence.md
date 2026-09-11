@@ -1,8 +1,8 @@
 # 0039. AGPL-3.0 selected as project licence
 
 - **Status:** Accepted
-- **Date:** Not recorded (pre-repository decision, imported from `gubbins-spec.md`)
-- **Deciders:** Not recorded
+- **Date:** 2026-09-09
+- **Deciders:** dtbiedrzycki
 
 ## Decision
 
