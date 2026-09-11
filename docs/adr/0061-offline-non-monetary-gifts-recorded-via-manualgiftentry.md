@@ -33,8 +33,8 @@ projection (`item_state`) drives guest-visible availability, shouldn't
 linking a `ManualGiftEntry` to an item affect it? Resolved as no — the
 link is explicitly advisory. The two mechanisms that *do* correctly
 affect availability already existed before this ADR: "mark as purchased
-directly" (§[3.3](../../gubbins-spec.md#33-holds-single-items), a ledger event) for a single item bought in person, and
-a manual `Contribution` (§[3.6](../../gubbins-spec.md#36-manual-contributions), also ledger-tracked) for group/fund cash
+directly" (§[3.3](../spec/holds.md), a ledger event) for a single item bought in person, and
+a manual `Contribution` (§[3.6](../spec/manual-contributions.md), also ledger-tracked) for group/fund cash
 handed over offline. `ManualGiftEntry` only covers what's left over —
 gifts with no bearing on any item's claimed/funded state at all, or a
 note the owner wants attached to an item without asserting it's now

@@ -21,7 +21,7 @@ considered as a middle path (decrypt-on-demand under a server-side
 secret) but rejected: it would introduce a new single point of failure
 (losing the encryption secret locks out every guest instance-wide) and a
 new env var, in exchange for protection against a threat — DB-file or
-backup theft — that §[3.7](../../gubbins-spec.md#37-privacy) already places out of the application's scope
+backup theft — that §[3.7](../spec/privacy.md) already places out of the application's scope
 by design. Plaintext storage was chosen instead: it fixes the actual
 inconsistency (all three bearer secrets now treated identically), adds
 no new failure mode, and is no weaker against the threats this spec

@@ -10,7 +10,7 @@ Erasure is immediate in the live database and time-bounded in backups: JSON expo
 
 ## Detail
 
-**ADR-067 detail:** §[3.7](../../gubbins-spec.md#37-privacy) asserted erasure was one-way while §[3.11](../../gubbins-spec.md#311-ops)
+**ADR-067 detail:** §[3.7](../spec/privacy.md) asserted erasure was one-way while §[3.11](../spec/ops.md)
 offered JSON export/import as full logical backup, and the two were
 never reconciled. A guest erases, the operator restores a snapshot from
 the day before, the name returns. This is not unique to Gubbins — every
@@ -25,7 +25,7 @@ from live systems immediately; hold pre-redaction backups *beyond use*,
 neither restored nor accessed for any purpose, until they rotate out;
 re-apply the redaction if a restore happens; and bound the whole thing
 with a stated retention window that the data subject is told about.
-§[3.18](../../gubbins-spec.md#318-backup-restore--upgrade-safety) had no retention guidance whatsoever — no window, no rotation, no
+§[3.18](../spec/backup-restore-and-upgrade.md) had no retention guidance whatsoever — no window, no rotation, no
 count — which is precisely why the operator had nothing to put in a
 privacy notice and no way to discharge the obligation. A 30-day rotating
 window, never exceeding `PURGE_AFTER_DAYS`, closes that.
@@ -45,7 +45,7 @@ on `purgeAt` keeping retention short, and collapses if that ever stops
 being true.
 
 The same review found a more immediate problem in the adjacent bullet.
-§[3.7](../../gubbins-spec.md#37-privacy) recommended JSON export as satisfying "most subject-access/
+§[3.7](../spec/privacy.md) recommended JSON export as satisfying "most subject-access/
 portability requests" — but the export is a whole-list dump, so an
 operator handing it to a requesting guest discloses every other guest's
 name, email, and message. The sentence was written to prepare operators

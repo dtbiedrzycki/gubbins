@@ -66,7 +66,7 @@ no network-topology isolation (leaves a bypass open if something in
 policy-enforced).
 
 Devcontainer/CI concern only. Has no bearing on the production app's
-`no outbound anything by default` runtime behavior (§[3.11](../../gubbins-spec.md#311-ops)).
+`no outbound anything by default` runtime behavior (§[3.11](../spec/ops.md)).
 
 **Implementation note, added after initial build-out.** The proxy is
 Squid (`ubuntu/squid`, pinned to Canonical's current `latest`/`edge`-

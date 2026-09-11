@@ -17,5 +17,5 @@ creation, but redaction may null it afterwards, by either the owner's or
 the guest's action. The thank-you view accordingly tolerates a missing
 attribution target where this ADR assumed one was guaranteed — an
 erasure right outranks a bookkeeping convenience. "Always required"
-should be read as "required at creation," matching the §[2](../../gubbins-spec.md#2-domain-model) invariant's
+should be read as "required at creation," matching the §[2](../spec/domain-model.md) invariant's
 wording.

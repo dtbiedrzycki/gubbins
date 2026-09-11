@@ -14,7 +14,7 @@ The guest key travels in the URL fragment (`/{slug}#key=`), not the query string
 disclosed the residual exposure — browser history and reverse-proxy logs
 — as "not fully solvable," mitigating what it could by documenting
 query-string redaction in the operator's proxy config. Making Cloudflare
-Tunnel the recommended path (§[3.20](../../gubbins-spec.md#320-governance-licensing--release-process)) broke that mitigation: the key
+Tunnel the recommended path (§[3.20](../spec/governance-licensing-and-release.md)) broke that mitigation: the key
 reaches Cloudflare's edge logs before the redirect strips it, and the
 operator cannot configure redaction there. The recommended path became
 the one where the recommended mitigation was unavailable.
@@ -43,7 +43,7 @@ unavoidable, is identical under the query string, and was already
 disclosed by ADR-[022](./0022-guest-key-travels-in-the-invitation-url-transport.md); referrer headers do not, since fragments are never
 included in `Referer` — it is the query string that leaks that way, which
 argues for this change rather than against it; and page JavaScript is the
-substantive one, already neutralised here by §[3.7](../../gubbins-spec.md#37-privacy)'s strict CSP, absence
+substantive one, already neutralised here by §[3.7](../spec/privacy.md)'s strict CSP, absence
 of inline scripts, and zero third-party origins. The remaining
 deprecation reasons — token injection, absent sender-constraining —
 presuppose a redirect from a third-party authorization server, of which
@@ -53,7 +53,7 @@ revisited.**
 
 The cost is a JavaScript dependency on an entry path that previously had
 none — a small piece of client-side credential handling in a flow that
-was pleasingly dumb. §[3.16](../../gubbins-spec.md#316-accessibility--browser-support)'s graceful-degradation requirement is not
+was pleasingly dumb. §[3.16](../spec/accessibility-and-browser-support.md)'s graceful-degradation requirement is not
 breached: it governs the hold and contribute flows, and the failure mode
 here is falling back to the manual key-entry page that already exists for
 printed invitations. Two consequences are stated rather than assumed: the

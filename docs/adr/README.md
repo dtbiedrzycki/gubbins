@@ -106,18 +106,18 @@ number on the PR that introduces an ADR.
 ## Imported ADRs (0001–0069)
 
 ADRs 0001–0069 (plus the 0052a numbering exception) are imported
-verbatim from `gubbins-spec.md`'s former §[4](../../gubbins-spec.md#4-adr-index) ADR Index — pre-repository
+verbatim from `gubbins-spec.md`'s former §[4](../adr/README.md) ADR Index — pre-repository
 product/architecture decisions for the application itself. 0070 and 0071 are
 the first two such repository-native ADRs — devcontainer sandboxing for
 Claude Code `auto`-mode runs, and Claude Code/`gh` credentialing in the
-dev image (§[3.12](../../gubbins-spec.md#312-development-environment)) — both documenting infrastructure that already existed
+dev image (§[3.12](../spec/development-environment.md)) — both documenting infrastructure that already existed
 in the repo before being written up here. 0072 onward remains free.
 
 *(Not every ADR carries a separate detail block. Blocks are written
 where a decision needs rationale, rejected alternatives, or context
-beyond what its body section already states — so ADR-[030](./0030-performance-resource-targets-set-for-pi-class-hardware.md) (§[3.17](../../gubbins-spec.md#317-performance--resource-budget)) and
-ADR-[035](./0035-threat-model-documented-in-docs-threat-model-md.md) (§[3.21](../../gubbins-spec.md#321-threat-model)), both fully covered by their sections, have none, and
+beyond what its body section already states — so ADR-[030](./0030-performance-resource-targets-set-for-pi-class-hardware.md) (§[3.17](../spec/performance-and-resource-budget.md)) and
+ADR-[035](./0035-threat-model-documented-in-docs-threat-model-md.md) (§[3.21](../spec/threat-model.md)), both fully covered by their sections, have none, and
 ADR-[038](./0038-superseded-by-040-dependency-sbom-image-scanning-scope.md) has none because it is superseded. Absence of a block is not an
 absence of reasoning.)*
 
-*(Numbering note: ADR-[052](./0052-contribution-amount-recorded-only-at-i-ve-sent-it.md) was first assigned to the timezone-reveal-stickiness decision. To avoid renumbering a decision already referenced elsewhere in this document, that entry is retained as "052a" and the Cluster G decisions continue the sequence as 052–055. Treat "052a" and "052" as distinct entries; a future documentation pass may renumber 052a into the 05x range to remove the collision entirely. The consistency pass (§[5](../../gubbins-spec.md#5-open-questions)) extended the index to 069 without disturbing this; the collision remains confined to 052/052a, and 070+ is the next free number.)*
+*(Numbering note: ADR-[052](./0052-contribution-amount-recorded-only-at-i-ve-sent-it.md) was first assigned to the timezone-reveal-stickiness decision. To avoid renumbering a decision already referenced elsewhere in this document, that entry is retained as "052a" and the Cluster G decisions continue the sequence as 052–055. Treat "052a" and "052" as distinct entries; a future documentation pass may renumber 052a into the 05x range to remove the collision entirely. The consistency pass (§[5](../adr/README.md)) extended the index to 069 without disturbing this; the collision remains confined to 052/052a, and 070+ is the next free number.)*
