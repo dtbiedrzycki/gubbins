@@ -90,6 +90,11 @@ Rules, applied during the inventory pass:
    that ADR's Context or Consequences — and its file is deleted.
    **No ADR may end this work with a `Superseded by` status still on
    disk.** This is a hard requirement, not a judgment call per file.
+   This is a one-time cleanup rule for supersessions that predate or
+   occur during this restructuring pass; it does not change the repo's
+   normal, ongoing convention (`docs/adr/README.md`) that a future
+   decision superseding an existing ADR marks it `Superseded by NNNN`
+   in the usual way.
 2. **Merge near-duplicates** — when two ADRs together describe one
    decision (022 + 069: guest-key transport), rewrite the surviving
    number as a single Nygard ADR whose Context includes the earlier
