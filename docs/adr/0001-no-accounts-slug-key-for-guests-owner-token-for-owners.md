@@ -6,7 +6,7 @@
 
 ## Context
 
-The project's first design principle ([overview](../../gubbins-spec.md#1-overview))
+The project's first design principle ([overview](../../gubbins-spec.md#design-principles))
 is that nobody registers to give or receive: guests claim items or
 contribute without creating an account, and an owner runs their list
 without one either. The service is aimed at a single event's worth of
