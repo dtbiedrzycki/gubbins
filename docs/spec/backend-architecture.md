@@ -12,7 +12,7 @@ presentation/    HTTP routes, zod schemas, DTO mappers, DI wiring.
 Key ports:
 
 - **`Clock`** — injected `now`; never call `Date.now()` below presentation. Makes the hold lifecycle deterministically testable.
-- **`TokenGenerator`** — slugs, owner tokens, hold secrets, creation invite secrets, **and guest-data-access secrets** ([access & identity](access-identity.md), ADR-[060](../adr/0060-guest-self-service-data-access-erasure-via-guestdataaccess.md)). Faked in tests.
+- **`TokenGenerator`** — slugs, owner tokens, hold secrets, creation invite secrets, **and guest-data-access secrets** ([access & identity](access-identity.md), ADR-[058](../adr/0058-guest-self-service-data-access-erasure-via-guestdataaccess.md)). Faked in tests.
 - **`UnitOfWork`** — `execute(fn)` wrapping a SQLite transaction.
 - **`EventStore`** — `append(itemId, expectedSeq, events)`, throws `ConcurrencyError`.
 - **`UrlMetadataFetcher`** — SSRF-guarded, entirely in infrastructure.
@@ -25,7 +25,7 @@ Guardrails:
 - Kysely or Drizzle over a full ORM — repositories own the SQL
 - Separate use cases per claim family (`HoldItem`, `ContributeToItem`), not one polymorphic `ClaimItem`
 - **Cross-item invariants read projections inside the transaction.** The
-  concurrent-hold cap (ADR-[048](../adr/0048-guest-sessions-capped-at-n-concurrent-active-holds-per-list.md)) is the first invariant in the system that
+  concurrent-hold cap (ADR-[046](../adr/0046-guest-sessions-capped-at-n-concurrent-active-holds-per-list.md)) is the first invariant in the system that
   spans items rather than living within one item's stream. Per-item event
   streams (ADR-[008](../adr/0008-event-streams-scoped-per-item-not-per-list.md)) are the consistency boundary, so this rule sits
   deliberately outside it: `HoldItem` counts the session's active holds

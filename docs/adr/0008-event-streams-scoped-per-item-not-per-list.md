@@ -37,11 +37,11 @@ list-level views ([data & persistence](../spec/data-and-persistence.md)).
   multiple per-item streams using the global auto-increment `id` for
   ordering, rather than reading one ordered stream.
 - Later cross-item invariants — e.g., the per-session concurrent-hold cap
-  (ADR-[048](./0048-guest-sessions-capped-at-n-concurrent-active-holds-per-list.md))
+  (ADR-[046](./0046-guest-sessions-capped-at-n-concurrent-active-holds-per-list.md))
   — must explicitly read list-wide projections inside a transaction
   rather than relying on stream ordering, since no single stream spans
   items ([backend architecture](../spec/backend-architecture.md)).
 - This scoping is a precedent other decisions build on directly — e.g.
-  ADR-[059](./0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md)'s
+  ADR-[057](./0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md)'s
   GDPR erasure design reasons about per-item event payloads carrying
   `piiRef` rather than embedding PII.

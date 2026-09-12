@@ -35,7 +35,7 @@ conversion.
 
 - Every amount in a list can be summed, compared, and rendered without
   conversion logic.
-- ADR-[063](./0063-currency-validation-minor-unit-storage-and-the-ceiling.md)'s
+- ADR-[061](./0061-currency-validation-minor-unit-storage-and-the-ceiling.md)'s
   rounding and minor-unit-storage policy can assume a single currency per
   list rather than handling mixed-currency arithmetic.
 - An owner running an event with contributors in multiple currencies must

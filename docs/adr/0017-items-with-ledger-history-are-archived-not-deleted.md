@@ -36,7 +36,7 @@ held or contributed to) may still be hard-deleted.
 - Reconciliation and thank-you workflows can rely on every
   historically-claimed item still being present after the event, even if
   the owner archived it.
-- This is the precedent ADR-[062](./0062-manual-contributions-are-voidable-not-editable.md)
+- This is the precedent ADR-[060](./0060-manual-contributions-are-voidable-not-editable.md)
   cites for rejecting hard delete of manual contributions: once
   something has ledger history, the system's answer is to preserve it
   and mark it (archived, voided) rather than remove it.

@@ -33,4 +33,4 @@ table outside `rebuildProjections` scope, not as a ledger event.
 - This is the precedent later reused for `guest_pii` and
   `manual_gift_entries` ([data & persistence](../spec/data-and-persistence.md)): plain, owner/system bookkeeping tables
   outside the projection-rebuild scope, the same side-table pattern
-  ADR-[059](./0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md) and ADR-[061](./0061-offline-non-monetary-gifts-recorded-via-manualgiftentry.md) each apply for their own data.
+  ADR-[057](./0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md) and ADR-[059](./0059-offline-non-monetary-gifts-recorded-via-manualgiftentry.md) each apply for their own data.

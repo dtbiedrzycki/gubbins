@@ -31,7 +31,7 @@ live at contribution time, never snapshotted onto the Contribution itself.
 - If historical target tracking becomes a real requirement later, it can
   be added without touching existing events — the live-read design doesn't
   foreclose it.
-- This is a distinct, narrower question than ADR-[047](./0047-contribution-snapshots-its-payment-method-at-pledge-time.md), which snapshots
+- This is a distinct, narrower question than ADR-[045](./0045-contribution-snapshots-its-payment-method-at-pledge-time.md), which snapshots
   a *payment method* onto a Contribution for an unrelated reason (so a
   later edit to the method's label/handle doesn't rewrite reconciliation
   history). That snapshot doesn't reopen this one: `targetMinor` stays

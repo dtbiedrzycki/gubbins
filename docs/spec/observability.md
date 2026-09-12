@@ -15,14 +15,14 @@
   an operator can see the task silently failing rather than inferring it
   from a retention promise quietly going unmet. Using the OTel SDK rather than hand-rolled
   counters keeps the door open for richer instrumentation later without a
-  rewrite. *(ADR-[031](../adr/0031-logging-metrics-tracing-standardized-on-pino-opentelemetry.md))*
+  rewrite. *(ADR-[030](../adr/0030-logging-metrics-tracing-standardized-on-pino-opentelemetry.md))*
 - **Tracing**: OpenTelemetry Tracing SDK. Span exporter defaults to
   **none** (spans created in-process only, optionally dumped to stdout at
   debug level for local troubleshooting) — nothing leaves the container
   by default. An operator may set `OTEL_EXPORTER_OTLP_ENDPOINT` to point
   at their own collector; this is an explicit, informed opt-in by whoever
   runs the box, not the application reaching out unprompted, so it does
-  not conflict with the no-outbound-requests principle. *(ADR-[031](../adr/0031-logging-metrics-tracing-standardized-on-pino-opentelemetry.md))*
+  not conflict with the no-outbound-requests principle. *(ADR-[030](../adr/0030-logging-metrics-tracing-standardized-on-pino-opentelemetry.md))*
 - Every request carries a generated request id, attached to its log
   lines, its active span, and returned as `X-Request-Id` — sufficient
   correlation for single-instance self-hosted debugging without requiring

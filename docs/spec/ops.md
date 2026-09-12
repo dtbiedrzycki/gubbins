@@ -6,7 +6,7 @@
   Rollback story is "restore from the pre-upgrade backup" ([backup, restore & upgrade safety](backup-restore-and-upgrade.md)), not "run
   a down migration." The app additionally refuses to start if the DB's
   recorded schema version is *newer* than the running app expects, to guard
-  against a botched downgrade attempt. *(ADR-[033](../adr/0033-migrations-are-forward-only-rollback-restore-from-backup.md))*
+  against a botched downgrade attempt. *(ADR-[032](../adr/0032-migrations-are-forward-only-rollback-restore-from-backup.md))*
 - All config via env vars; secrets via `_FILE` convention
 - Non-root user, multi-arch (amd64 + arm64), healthcheck endpoint
 - Reverse-proxy friendly: subpath deployment, trusted proxy headers
@@ -29,7 +29,7 @@
   (nginx's `$remote_addr` rather than `$proxy_add_x_forwarded_for`) can
   silently invalidate. A log line rather than a header-echoing endpoint,
   which would be both an information leak and something to abuse.
-  *(ADR-[068](../adr/0068-client-ip-resolution-is-a-hop-count.md))*
+  *(ADR-[066](../adr/0066-client-ip-resolution-is-a-hop-count.md))*
 - SMTP optional and off by default. **SMTP is a capability flag** — when unconfigured, the UI must not offer or imply reminders. Creation-gating does **not** depend on SMTP (see ADR-[014](../adr/0014-list-creation-self-locks-gated-by-createsecret-thereafter.md)); email delivery reliability is not on the critical path for onboarding.
 - JSON export/import for full data portability (logical backup); physical
   backup via `VACUUM INTO` (see [backup, restore & upgrade safety](backup-restore-and-upgrade.md))
@@ -62,7 +62,7 @@ Notes on `CREATE_SECRET`:
 - Each comma-separated value is an independent, symmetric capability token — not a per-identity credential. There is no email, verification flow, or identity storage involved (rejected as inconsistent with the no-accounts principle; see ADR-[014](../adr/0014-list-creation-self-locks-gated-by-createsecret-thereafter.md) rationale).
 - Revoke one invitee by removing their value and restarting the container; other values are unaffected.
 - Values should be high-entropy random strings generated the same way as guest keys and owner tokens (via `TokenGenerator`), not admin-chosen passphrases. A `generate-invite-secret` CLI helper is provided for this.
-- Incoming values are checked with constant-time comparison, not `===` (generalized in ADR-[036](../adr/0036-constant-time-comparison-generalized-to-all-secret.md) to apply to all secret comparisons, not just this one).
+- Incoming values are checked with constant-time comparison, not `===` (generalized in ADR-[035](../adr/0035-constant-time-comparison-generalized-to-all-secret.md) to apply to all secret comparisons, not just this one).
 
 ---
 

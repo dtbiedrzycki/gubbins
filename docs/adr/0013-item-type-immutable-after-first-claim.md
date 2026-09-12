@@ -42,7 +42,7 @@ claimed in any way ([domain model](../spec/domain-model.md)).
   converting it in place — consistent with items with ledger history
   being archived rather than deleted
   (ADR-[017](./0017-items-with-ledger-history-are-archived-not-deleted.md)).
-- This sets the precedent ADR-[063](./0063-currency-validation-minor-unit-storage-and-the-ceiling.md)
+- This sets the precedent ADR-[061](./0061-currency-validation-minor-unit-storage-and-the-ceiling.md)
   cites directly for making a list's `currency` immutable once a priced
   item exists: reinterpreting already-stored state in place under new
   rules is treated as silent corruption in both cases.

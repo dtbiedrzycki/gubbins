@@ -14,7 +14,7 @@ would be permanently undeletable with a clear reason, and reconciliation
 would stay permanently ambiguous even after the event has passed and the
 owner needs to write thank-you notes. `revealAfter` already exists on
 every list as a stored instant, defaulting at creation to the end of
-`eventDate` in the list's timezone ([time, timezones & display](../spec/time-and-timezones.md), ADR-[066](./0066-revealafter-is-stored-not-derived.md)) —
+`eventDate` in the list's timezone ([time, timezones & display](../spec/time-and-timezones.md), ADR-[064](./0064-revealafter-is-stored-not-derived.md)) —
 a natural point past which spoiler secrecy no longer serves a purpose.
 
 ## Decision
@@ -38,12 +38,12 @@ configured.
 ## Consequences
 
 - The reveal condition is `revealedAt IS NOT NULL OR now >= revealAfter`
-  ([owner dashboard & editing rules](../spec/owner-dashboard.md)). ADR-[072](./0072-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md) later added `revealedAt` as a
+  ([owner dashboard & editing rules](../spec/owner-dashboard.md)). ADR-[070](./0070-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md) later added `revealedAt` as a
   one-way sticky flag set on first crossing, so a subsequent edit can't
   walk the reveal backwards once the owner has already seen it — the
   decision here is unchanged by that amendment, `Status` stays `Accepted`.
 - `revealAfter` itself is a stored instant, not derived from `eventDate`
-  at read time (ADR-[066](./0066-revealafter-is-stored-not-derived.md)): it is set once at creation and does not move
+  at read time (ADR-[064](./0064-revealafter-is-stored-not-derived.md)): it is set once at creation and does not move
   when `eventDate` or `timezone` are edited afterward.
 - This auto-reveal behavior was confirmed with the spec owner as an
   explicit assumption before being locked in.

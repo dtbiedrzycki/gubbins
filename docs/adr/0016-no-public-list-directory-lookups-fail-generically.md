@@ -39,15 +39,15 @@ wrong or whether the list exists at all
 ## Consequences
 
 - This is a **load-bearing precedent** other decisions build on directly
-  rather than re-deriving: ADR-[056](./0056-post-purgeat-lookups-return-the-same-generic-not-found.md)'s
+  rather than re-deriving: ADR-[054](./0054-post-purgeat-lookups-return-the-same-generic-not-found.md)'s
   post-purge lookups return this same generic response rather than a
   distinguishable "this list existed and was purged" message, and
-  ADR-[058](./0058-owner-configurable-privacynotice-field-shown-only-when-set.md)'s
+  ADR-[056](./0056-owner-configurable-privacynotice-field-shown-only-when-set.md)'s
   owner-configurable privacy notice renders identically on every failed
   and successful gate attempt so its presence or absence adds no
   per-slug signal of its own.
 - Combined with unguessable `TokenGenerator` output and rate limiting
-  (ADR-[042](./0042-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md)),
+  (ADR-[040](./0040-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md)),
   this closes the enumeration/guessing vector for slugs, keys, tokens,
   and hold secrets alike — none of the three mechanisms is sufficient
   alone.

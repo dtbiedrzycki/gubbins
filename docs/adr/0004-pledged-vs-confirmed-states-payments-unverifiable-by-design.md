@@ -42,7 +42,7 @@ implying verification that doesn't exist.
 - Every downstream feature involving money — group gifts
   (ADR-[003](./0003-group-gift-contributions-go-to-the-owner-no-designated-buyer.md)),
   manual contributions, currency handling
-  (ADR-[063](./0063-currency-validation-minor-unit-storage-and-the-ceiling.md)) —
+  (ADR-[061](./0061-currency-validation-minor-unit-storage-and-the-ceiling.md)) —
   inherits this pledged/confirmed split rather than a single settled state.
 - UI must consistently distinguish the two states rather than collapsing
   them, or it would misrepresent what the app actually knows.

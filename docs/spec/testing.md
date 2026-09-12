@@ -19,8 +19,8 @@
   - IDOR between wishlists
   - **Timing side-channel on every secret comparison path** — owner
     token, hold secret, guest key, guest-data-access secret, and
-    `CREATE_SECRET` — per ADR-[036](../adr/0036-constant-time-comparison-generalized-to-all-secret.md)'s generalization, not `CREATE_SECRET`
-    alone. ADR-[054](../adr/0054-guest-key-storage-changed-from-one-way-hash-to-plaintext.md) made the guest key a plaintext compare, so its path
+    `CREATE_SECRET` — per ADR-[035](../adr/0035-constant-time-comparison-generalized-to-all-secret.md)'s generalization, not `CREATE_SECRET`
+    alone. ADR-[052](../adr/0052-guest-key-storage-changed-from-one-way-hash-to-plaintext.md) made the guest key a plaintext compare, so its path
     is newly load-bearing.
   - **Output escaping across every free-text field**: list `title` and
     `description`, guest name and message, manual-gift giver name and
@@ -29,15 +29,15 @@
     this is what verifies it. The list is enumerated rather than
     described so a field added later without a test is visible as an
     omission.
-  - **URI-scheme restriction** (ADR-[046](../adr/0046-payment-methods-are-per-list-configuration-not-a-hardcoded.md)): a `custom` payment method is
+  - **URI-scheme restriction** (ADR-[044](../adr/0044-payment-methods-are-per-list-configuration-not-a-hardcoded.md)): a `custom` payment method is
     never rendered into an `href`, and a `javascript:` or `data:` handle
-    cannot escape the text/QR path. ADR-[046](../adr/0046-payment-methods-are-per-list-configuration-not-a-hardcoded.md)'s detail block states this
+    cannot escape the text/QR path. ADR-[044](../adr/0044-payment-methods-are-per-list-configuration-not-a-hardcoded.md)'s detail block states this
     closes a `javascript:`-URI XSS path against the app's own origin — a
     claim with no test behind it until now.
-  - **Owner-token transport** (ADR-[064](../adr/0064-the-owner-token-never-travels-in-a-url.md)): no route accepts the owner
+  - **Owner-token transport** (ADR-[062](../adr/0062-the-owner-token-never-travels-in-a-url.md)): no route accepts the owner
     token as a query or path parameter, and no owner-facing response
     embeds it in a link.
-  - **Guest-key transport** (ADR-[069](../adr/0069-the-guest-key-travels-in-a-fragment.md)): no request to `/{slug}` carries
+  - **Guest-key transport** (ADR-[067](../adr/0067-the-guest-key-travels-in-a-fragment.md)): no request to `/{slug}` carries
     the key in a query string or path; the key-entry POST body is
     redacted in logs; key entry rejects a cross-origin POST.
   - Rate-limit threshold enforcement ([threat model](threat-model-summary.md))
@@ -47,7 +47,7 @@
   holding a redacted row leaves the row redacted.
 - Migration test: run every migration against a seeded copy of the prior schema version, in CI, to catch failures pre-release
 - Load test against real Pi-class hardware to verify the [performance & resource budget](performance-and-resource-budget.md) performance/resource budgets — targets are budgets to be measured, not assumptions
-- **Rate-limit false-positive test**: simulate many honest guests sharing a single IP (realistic at a physical event on venue wifi) against the per-IP thresholds in [threat model](threat-model-summary.md); adjust the per-IP threshold if the false-positive rate proves too aggressive, before v1. Numbers were set as reasonable defaults, not derived empirically — this test is how they get validated. *(ADR-[042](../adr/0042-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md))*
+- **Rate-limit false-positive test**: simulate many honest guests sharing a single IP (realistic at a physical event on venue wifi) against the per-IP thresholds in [threat model](threat-model-summary.md); adjust the per-IP threshold if the false-positive rate proves too aggressive, before v1. Numbers were set as reasonable defaults, not derived empirically — this test is how they get validated. *(ADR-[040](../adr/0040-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md))*
   Run the same simulation twice more. Once with the app behind a reverse
   proxy and `TRUSTED_PROXY_HOPS` left at 0, asserting the
   misconfiguration warning fires and the per-IP limiter is observably
@@ -57,8 +57,8 @@
   the guests are unrelated and dispersed, so a lockout penalises someone
   for strangers' behaviour. If either produces an unacceptable
   false-positive rate, the candidate remedy is converting guest-key-entry
-  per-IP from a lockout to an added delay, matching the reasoning ADR-[042](../adr/0042-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md)
-  already applied to the per-slug aggregate. *(ADR-[042](../adr/0042-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md), ADR-[068](../adr/0068-client-ip-resolution-is-a-hop-count.md))*
+  per-IP from a lockout to an added delay, matching the reasoning ADR-[040](../adr/0040-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md)
+  already applied to the per-slug aggregate. *(ADR-[040](../adr/0040-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md), ADR-[066](../adr/0066-client-ip-resolution-is-a-hop-count.md))*
 - **Hold-cap validation test**: same evidentiary status as the rate-limit
   numbers above — `MAX_ACTIVE_HOLDS_PER_SESSION` (default 10) is a
   reasonable estimate, not empirically derived. Simulate a single
@@ -66,8 +66,8 @@
   gift logistics for a large family) before v1, and adjust if honest use
   trips it. The contribution ceiling no longer needs this treatment: the
   target-relative multiple is currency-neutral, and the absolute bound is
-  an arithmetic guard rather than a money threshold ([group gifts & funds](group-gifts-and-funds.md), ADR-[063](../adr/0063-currency-validation-minor-unit-storage-and-the-ceiling.md)).
-- **Currency handling tests** (ADR-[063](../adr/0063-currency-validation-minor-unit-storage-and-the-ceiling.md)): amounts round-trip exactly through
+  an arithmetic guard rather than a money threshold ([group gifts & funds](group-gifts-and-funds.md), ADR-[061](../adr/0061-currency-validation-minor-unit-storage-and-the-ceiling.md)).
+- **Currency handling tests** (ADR-[061](../adr/0061-currency-validation-minor-unit-storage-and-the-ceiling.md)): amounts round-trip exactly through
   storage, JSON export, and `rebuildProjections` for a zero-decimal (JPY),
   two-decimal (USD), and three-decimal (KWD) currency; major→minor parsing
   is correct at the input boundary for each; an invalid currency code is
@@ -92,7 +92,7 @@
 - Idempotency test: replaying an identical submit key against the same
   item returns the original hold/contribution rather than creating a
   second, and the constraint survives `rebuildProjections`
-- **Manual-contribution correction test** (ADR-[062](../adr/0062-manual-contributions-are-voidable-not-editable.md)): correcting a manual
+- **Manual-contribution correction test** (ADR-[060](../adr/0060-manual-contributions-are-voidable-not-editable.md)): correcting a manual
   entry's amount voids the original and records a replacement carrying
   the *original* `piiRef`; `item_state.confirmedMinor` reflects only the
   replacement; an existing `thank_you_status` row follows to the new
@@ -101,7 +101,7 @@
   `rebuildProjections` as voided. Separately: a name/message edit on a
   manual entry emits no event, is rejected against a `source = guest`
   entry, and is rejected once `redactedAt` is set.
-- **Redaction and erasure tests** (ADR-[059](../adr/0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md), ADR-[060](../adr/0060-guest-self-service-data-access-erasure-via-guestdataaccess.md)): after redacting a
+- **Redaction and erasure tests** (ADR-[057](../adr/0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md), ADR-[058](../adr/0058-guest-self-service-data-access-erasure-via-guestdataaccess.md)): after redacting a
   `GuestPii` row, verify every `piiRef` referencing it still resolves to
   a real row; `name`/`email`/`message` are null while the referencing
   hold or contribution's amount, item, status, and date are unchanged;
@@ -119,14 +119,14 @@
   resolves and returns exactly its own pre-rotation records; a link
   issued afterwards covers only post-rotation records; neither returns
   the other's; and no rotation revokes an already-issued link.
-- **`piiRef` integrity assertion** (ADR-[059](../adr/0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md)): a structural test over the
+- **`piiRef` integrity assertion** (ADR-[057](../adr/0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md)): a structural test over the
   event-payload schemas asserting that no event type carries a `name`,
-  `email`, or `message` field directly. This guards ADR-[059](../adr/0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md)'s central
+  `email`, or `message` field directly. This guards ADR-[057](../adr/0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md)'s central
   claim against silent regression as new event types are added — a
   behavioural test cannot catch a payload that simply starts carrying
   PII again. Runs in the same CI stage as the layer-boundary lint
   ([backend architecture](backend-architecture.md)), both being architecture constraints rather than behaviour.
-- **Email retention test** (ADR-[065](../adr/0065-one-periodic-task-with-giver-email-purge-attached.md)): a `GuestPii` row past
+- **Email retention test** (ADR-[063](../adr/0063-one-periodic-task-with-giver-email-purge-attached.md)): a `GuestPii` row past
   `expiresAt + 7 days` has `email` nulled while `name` and `message`
   survive; a row inside the window is untouched; a purchased or released
   hold ages out on the same clock as an expired one; the task is

@@ -46,9 +46,9 @@ stored and audited conventionally and purged with a plain `DELETE`.
   event-log immutability concerns.
 - **This is a load-bearing, foundational precedent.** Later decisions
   build directly on the ledger being event-sourced: the GDPR erasure
-  design (ADR-[059](./0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md))
+  design (ADR-[057](./0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md))
   relies on ledger events referencing PII indirectly via `piiRef` rather
   than embedding it, and manual contributions being voidable-not-editable
-  (ADR-[062](./0062-manual-contributions-are-voidable-not-editable.md))
+  (ADR-[060](./0060-manual-contributions-are-voidable-not-editable.md))
   relies on the ledger's append-only, corrections-via-new-event model
   rather than mutating history.

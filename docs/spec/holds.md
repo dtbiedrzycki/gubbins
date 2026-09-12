@@ -5,7 +5,7 @@
 - Hold confirmation screen leads with **Mark as purchased** as primary action
 - Private hold link `/{slug}/hold/{holdSecret}` to confirm, extend, or release; cookie as secondary
 - The hold confirmation screen additionally surfaces the guest
-  self-service data link (`/{slug}/my-data/{secret}`, [access & identity](access-identity.md), ADR-[060](../adr/0060-guest-self-service-data-access-erasure-via-guestdataaccess.md))
+  self-service data link (`/{slug}/my-data/{secret}`, [access & identity](access-identity.md), ADR-[058](../adr/0058-guest-self-service-data-access-erasure-via-guestdataaccess.md))
   alongside the hold-secret link — shown once, same "Copy link" treatment
 - **One self-service extension**, adding a further `HOLD_DURATION_DAYS`.
   The extension is not separately configurable — a second knob adds
@@ -20,7 +20,7 @@
   interval (default 15 min) — not an external cron, consistent with the
   single-container posture ([ops](ops.md)). The task has exactly two duties:
   sending due reminders, and nulling `GuestPii.email` where
-  `now > expiresAt + 7 days` ([privacy](privacy.md), ADR-[065](../adr/0065-one-periodic-task-with-giver-email-purge-attached.md)). Both are idempotent and
+  `now > expiresAt + 7 days` ([privacy](privacy.md), ADR-[063](../adr/0063-one-periodic-task-with-giver-email-purge-attached.md)). Both are idempotent and
   neither affects correctness of any read: a failed or skipped run costs
   a missed reminder and delayed email purge, never a stuck item. Any
   further periodic work requires an ADR — the count of scheduled jobs is
@@ -37,7 +37,7 @@
   holding the maximum of 10 items — mark one as purchased or release one
   to hold another"); ADR-[016](../adr/0016-no-public-list-directory-lookups-fail-generically.md)'s generic-failure rule governs *pre-auth*
   lookups and does not apply here, where the guest is already keyed in.
-  *(ADR-[048](../adr/0048-guest-sessions-capped-at-n-concurrent-active-holds-per-list.md))*
+  *(ADR-[046](../adr/0046-guest-sessions-capped-at-n-concurrent-active-holds-per-list.md))*
 - `sessionHash` stores a **hash** of the session cookie value, never the
   value itself — a raw session identifier at rest is session-hijack
   material, and [privacy](privacy.md) places stolen-DB-file mitigation outside the

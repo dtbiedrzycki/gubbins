@@ -8,7 +8,7 @@
   it's what ADA expectations, Section 508, and EN 301 549 reference as the
   practical baseline, and AAA's contrast/timing requirements conflict with
   normal visual design work without being expected anywhere this project
-  would ship. *(ADR-[024](../adr/0024-wcag-2-2-level-aa-is-the-accessibility-target.md))*
+  would ship. *(ADR-[023](../adr/0023-wcag-2-2-level-aa-is-the-accessibility-target.md))*
 - **Keyboard navigation**: every interactive control reachable and operable
   via keyboard, built from native semantic elements (`button`, `a`, form
   controls) rather than `div`/`span` with click handlers. Visible focus
@@ -24,7 +24,7 @@
     reimplementing them, and is well-supported across the browser matrix
     below. A custom focus-trap implementation is the documented fallback
     only if `<dialog>` proves too constraining for the intended design.
-    *(ADR-[025](../adr/0025-hold-sheet-and-contribute-flow-use-native-dialog.md))*
+    *(ADR-[024](../adr/0024-hold-sheet-and-contribute-flow-use-native-dialog.md))*
   - Drag-and-drop reorder ([owner dashboard & editing rules](owner-dashboard.md)) gets a keyboard-operable alternative —
     move-up/move-down buttons alongside the drag handle — since drag
     gestures have no keyboard equivalent by default. Presentation-layer
@@ -55,7 +55,7 @@
   moderate/minor ratchet also gets a concrete checkpoint — **zero moderate
   violations required before the v1.0 release** — tracked as a Forgejo
   issue, rather than an open-ended "tighten over time" intention that could
-  silently become permanent debt. *(ADR-[027](../adr/0027-axe-core-wired-into-e2e-ci-blocks-on-serious-critical-only.md))*
+  silently become permanent debt. *(ADR-[026](../adr/0026-axe-core-wired-into-e2e-ci-blocks-on-serious-critical-only.md))*
 - **Browser support matrix**: last 4 major versions of Chrome, Firefox,
   Safari, and Edge, and the last 4 major versions of iOS Safari and Chrome
   for Android — widened from an initial "last 2 / current" target once it
@@ -72,7 +72,7 @@
   dashboard keeps the tighter "last 2 versions" target, since owners are a
   small, self-selected group unlikely to be on legacy devices — this
   distinction reflects the different audiences of the two surfaces rather
-  than a single uniform matrix. *(ADR-[028](../adr/0028-browser-support-matrix-widened-for-the-guest-facing-surface.md))*
+  than a single uniform matrix. *(ADR-[027](../adr/0027-browser-support-matrix-widened-for-the-guest-facing-surface.md))*
 - **i18n groundwork (formatting, not translation)**: all currency and
   date/time display goes through `Intl.NumberFormat`, `Intl.DateTimeFormat`,
   and `Intl.RelativeTimeFormat` (e.g., "expires in 2 days") rather than
@@ -91,7 +91,7 @@
   but the groundwork is deliberately built so a future translation pass
   (community-contributed locale files are the expected path for an OSS
   project) requires no rewrite. Presentation-layer only, no domain impact.
-  *(ADR-[029](../adr/0029-i18n-groundwork-is-intl-formatting-plus-icu-messageformat.md))*
+  *(ADR-[028](../adr/0028-i18n-groundwork-is-intl-formatting-plus-icu-messageformat.md))*
 
 ---
 

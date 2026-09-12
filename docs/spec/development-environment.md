@@ -13,7 +13,7 @@
 - SQLite data file bind-mounted (not a named volume) in dev, so a developer can inspect or delete `wishlist.db` directly
 - `customizations.vscode.extensions` for ESLint/Prettier/Vitest, and `customizations.vscode.settings` for format-on-save; namespaced so other IDEs ignore gracefully
 - Dev image separate from the minimal, non-root production image
-- **Claude Code sandboxing for `auto`-mode runs** *(ADR-[070](../adr/0070-devcontainer-sandboxes-claude-code-auto-mode-via-an-egress.md))*: `app` sits
+- **Claude Code sandboxing for `auto`-mode runs** *(ADR-[068](../adr/0068-devcontainer-sandboxes-claude-code-auto-mode-via-an-egress.md))*: `app` sits
   on an `internal: true` Docker network with no direct route out; a
   single-purpose `egress-proxy` sidecar — the only container with
   external network reach — enforces a domain/SNI-based allowlist (npm
@@ -24,7 +24,7 @@
   used for `default`/`acceptEdits`/`plan` sessions, where a human
   confirms every command already. `bypassPermissions` is out of scope
   entirely and not enabled anywhere in this setup.
-- **Claude Code and `gh` in the `app` image** *(ADR-[071](../adr/0071-claude-code-and-gh-ship-in-the-app-image-with-no-baked-in.md))*: both installed
+- **Claude Code and `gh` in the `app` image** *(ADR-[069](../adr/0069-claude-code-and-gh-ship-in-the-app-image-with-no-baked-in.md))*: both installed
   by default in `Dockerfile.dev`. Credentials for neither are ever baked
   into the image. Claude Code auth is a one-time interactive `claude
   login`, deliberately not persisted — its OAuth state lives in the

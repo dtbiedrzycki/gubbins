@@ -44,7 +44,7 @@ rather than emitted by a background job.
 - Operators can tune hold duration per deployment without a code change.
 - Because expiry isn't emitted, no periodic job is required for
   hold-state correctness itself — the one periodic task the app does run
-  ([holds](../spec/holds.md), ADR-[065](./0065-one-periodic-task-with-giver-email-purge-attached.md))
+  ([holds](../spec/holds.md), ADR-[063](./0063-one-periodic-task-with-giver-email-purge-attached.md))
   exists for reminders and PII purge, not for expiring holds.
 - Downstream reminder timing derives from `expiresAt`, so the same
   configurable duration flows through the reminder email without extra

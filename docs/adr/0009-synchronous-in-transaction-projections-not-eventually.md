@@ -42,7 +42,7 @@ being recorded and its projection reflecting it
   in the same `UnitOfWork` and rely on SQLite's single-writer transaction
   serialization to prevent a stale-read race
   ([backend architecture](../spec/backend-architecture.md),
-  ADR-[048](./0048-guest-sessions-capped-at-n-concurrent-active-holds-per-list.md)).
+  ADR-[046](./0046-guest-sessions-capped-at-n-concurrent-active-holds-per-list.md)).
 - `rebuildProjections` (truncate and re-fold from events) remains
   available as a recovery path, since events remain the source of truth
   even though projections are also written synchronously.

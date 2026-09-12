@@ -2,7 +2,7 @@
 
 The spec distinguishes two kinds of time, which are stored and rendered
 differently. Conflating them is the source of the failure this section
-exists to prevent. *(ADR-[051](../adr/0051-civil-dates-and-instants-modelled-distinctly-via-per-list.md))*
+exists to prevent. *(ADR-[049](../adr/0049-civil-dates-and-instants-modelled-distinctly-via-per-list.md))*
 
 **Instants** — `expiresAt`, `pledgedAt`, `confirmedAt`, `archivedAt`,
 `thankedAt`, `revealedAt`, and all event timestamps. Stored as UTC.
@@ -21,7 +21,7 @@ resolved to instants only via the list's `timezone`.
   through `timezone` at write and stored. Editing `eventDate` or
   `timezone` afterwards does not move it — the settings screen shows the
   stored instant resolved in the current zone, so any change in how it
-  reads is visible at the point of editing. *(ADR-[066](../adr/0066-revealafter-is-stored-not-derived.md))*
+  reads is visible at the point of editing. *(ADR-[064](../adr/0064-revealafter-is-stored-not-derived.md))*
 - `purgeAt` is the end of `eventDate + PURGE_AFTER_DAYS` days in the list
   timezone.
 - Hold `expiresAt` is a pure instant — `now + holdDuration` — with no
@@ -46,7 +46,7 @@ resolved to instants only via the list's `timezone`.
   date).
 - Formatting via `Intl.DateTimeFormat` with `timeZoneName: 'short'` for
   compact contexts (cards, badges) and `'longGeneric'` where space allows
-  (item detail, hold confirmation, owner dashboard) — per ADR-[029](../adr/0029-i18n-groundwork-is-intl-formatting-plus-icu-messageformat.md), never
+  (item detail, hold confirmation, owner dashboard) — per ADR-[028](../adr/0028-i18n-groundwork-is-intl-formatting-plus-icu-messageformat.md), never
   hand-built strings, and never a hardcoded abbreviation.
 - **Where the viewer's zone differs from the list timezone**, times are
   rendered in the viewer's zone with the list zone shown alongside — e.g.
@@ -62,7 +62,7 @@ resolved to instants only via the list's `timezone`.
 - **Screen-reader output uses the long zone name, not the abbreviation** —
   "Central European Summer Time", not "CEST", which reads as a nonsense
   word. Where the visible label is abbreviated, the accessible name
-  carries the long form. Extends [accessibility & browser support](accessibility-and-browser-support.md). *(ADR-[051](../adr/0051-civil-dates-and-instants-modelled-distinctly-via-per-list.md))*
+  carries the long form. Extends [accessibility & browser support](accessibility-and-browser-support.md). *(ADR-[049](../adr/0049-civil-dates-and-instants-modelled-distinctly-via-per-list.md))*
 - The owner's settings screen states the current list timezone plainly
   alongside the resolved `revealAfter` and `purgeAt` instants, so the
   consequence of the field is visible at the point of editing rather than
