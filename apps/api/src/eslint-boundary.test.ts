@@ -21,4 +21,24 @@ describe('Clean Architecture layer boundary', () => {
     const messages = results[0].messages;
     expect(messages.some((m) => m.ruleId === 'no-restricted-imports')).toBe(false);
   });
+
+  it('flags an application import from domain', async () => {
+    const eslint = new ESLint({ cwd: process.cwd() });
+    const results = await eslint.lintText(
+      "import { Clock } from '../application/ports/Clock';\nexport const x = Clock;\n",
+      { filePath: 'src/domain/entities/Bad.ts' },
+    );
+    const messages = results[0].messages;
+    expect(messages.some((m) => m.ruleId === 'no-restricted-imports')).toBe(true);
+  });
+
+  it('allows the same import from application itself', async () => {
+    const eslint = new ESLint({ cwd: process.cwd() });
+    const results = await eslint.lintText(
+      "import { Clock } from './ports/Clock';\nexport const x = Clock;\n",
+      { filePath: 'src/application/use-cases/Ok.ts' },
+    );
+    const messages = results[0].messages;
+    expect(messages.some((m) => m.ruleId === 'no-restricted-imports')).toBe(false);
+  });
 });

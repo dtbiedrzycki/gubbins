@@ -14,11 +14,28 @@ export default [
     },
   },
   {
-    files: ['src/domain/**/*.ts', 'src/application/**/*.ts'],
+    files: ['src/application/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
-        { patterns: [{ group: ['**/infrastructure/*', '**/infrastructure'], message: 'domain/ and application/ may not import infrastructure/ (Clean Architecture boundary, ADR-012).' }] },
+        { patterns: [{ group: ['**/infrastructure/*', '**/infrastructure'], message: 'application/ may not import infrastructure/ (Clean Architecture boundary, ADR-012).' }] },
+      ],
+    },
+  },
+  {
+    // A single config block per no-restricted-imports rule instance — ESLint
+    // flat config replaces, rather than merges, a repeated rule key across
+    // overlapping `files` blocks, so both bans for domain/ live in one array.
+    files: ['src/domain/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { group: ['**/infrastructure/*', '**/infrastructure'], message: 'domain/ may not import infrastructure/ (Clean Architecture boundary, ADR-012).' },
+            { group: ['**/application/*', '**/application'], message: 'domain/ may not import application/ — domain is the innermost layer and must not depend on it (Clean Architecture boundary, ADR-012).' },
+          ],
+        },
       ],
     },
   },
