@@ -130,6 +130,21 @@ ENV COLORTERM=truecolor
 # escape/cursor sequences rather than encoding. See file for detail.
 COPY --chown=node:node .devcontainer/.tmux.conf /home/node/.tmux.conf
 
+# node-gyp's own fallback (see the python3/make/g++ comment above) is to
+# download matching Node headers from nodejs.org — fine in a normal
+# session, but unreachable for an `auto`-mode session behind the
+# egress-proxy allowlist (ADR-068: npm registry, GitHub, Anthropic API
+# only). This image's `node:24.17-bookworm-slim` base already unpacks
+# Node's own headers under /usr/local/include/node, matching the exact
+# running Node build byte-for-byte, so pointing node-gyp there directly
+# skips the network fetch entirely — for every session, sandboxed or
+# not, since the headers are always right for this pinned image.
+# npm reads any npm_config_<key> env var, so no .npmrc is needed; this
+# must NOT live in a repo-root .npmrc, which would also apply on CI
+# runners (a different Node install path, with full internet access and
+# no need for the override in the first place).
+ENV npm_config_nodedir=/usr/local
+
 # The node_modules named volume (docker-compose.yml) is provisioned empty
 # by the Docker daemon as root:root. Docker seeds a fresh volume's root
 # — contents AND ownership — from the image's mount point, so creating it
