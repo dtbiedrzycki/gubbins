@@ -12,7 +12,7 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'npm run build --workspace=apps/web && npm run start --workspace=apps/api',
+    command: 'npm run build --workspace=packages/shared-types && npm run build --workspace=apps/web && npm run start --workspace=apps/api',
     url: 'http://localhost:3100',
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
