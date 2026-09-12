@@ -239,11 +239,14 @@ re-derive per file:**
    0001..N with no gaps, rewrite every cross-reference repo-wide (see
    Redundancy cleanup rule 3, above). This is a single pass at the very
    end of the rollout, not per-ADR.
-3. **Decision-voice convention, undecided** — the template says "We
-   will…" (active voice); only ADR-0001 among the 4 pilot rewrites
-   actually opens that way (0040/0069/0070 use other declarative
-   phrasing). Pick one house style explicitly before scaling to 65 more
-   rewrites, rather than let it vary by whoever's doing the rewrite.
+3. **Decision-voice convention — resolved: "We will…"** The template's
+   literal instruction ("The choice, in the active voice: 'We will …'")
+   is the house style. ADR-0040/0069/0070 initially opened with other
+   declarative phrasing ("CI runs on…", "The guest key travels in…",
+   "`auto`-mode Claude Code runs in…") and were retrofitted to "We
+   will…" once this was decided, so all 4 pilot rewrites are now
+   consistent. Every rollout rewrite should open its Decision section
+   with "We will …".
 4. **Link-checker script, recommended but not built** — the pilot's
    final review had to verify ~700 links by grep-and-manually-confirm;
    a small script under `scripts/` resolving relative paths and

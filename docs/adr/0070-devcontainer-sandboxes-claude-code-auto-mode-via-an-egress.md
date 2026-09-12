@@ -20,8 +20,9 @@ wrong, rather than trying to make the classifier itself more reliable.
 
 ## Decision
 
-`auto`-mode Claude Code runs in the devcontainer behind an `egress-proxy`
-sidecar on a Docker network marked `internal: true`, which removes any
+We will run `auto`-mode Claude Code in the devcontainer behind an
+`egress-proxy` sidecar on a Docker network marked `internal: true`,
+which removes any
 route out of the `app` container regardless of what a classifier-approved
 command attempts. The single-purpose `egress-proxy` container is the only
 bridge to the internet; `app` reaches it via `HTTP_PROXY`/`HTTPS_PROXY`.

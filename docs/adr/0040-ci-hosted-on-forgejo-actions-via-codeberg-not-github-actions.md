@@ -16,8 +16,8 @@ routine pushes.
 
 ## Decision
 
-CI runs on Forgejo Actions via Codeberg, not GitHub Actions. Forgejo
-Actions was chosen over the older Woodpecker CI path because it uses
+We will run CI on Forgejo Actions via Codeberg, not GitHub Actions.
+Forgejo Actions was chosen over the older Woodpecker CI path because it uses
 GitHub Actions-compatible workflow syntax (easing any future migration
 either direction) and is the actively developed option. SBOM generation,
 container image scanning, and multi-arch builds are release-gated — run
