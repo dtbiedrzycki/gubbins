@@ -4,18 +4,44 @@
 - **Date:** 2026-09-09
 - **Deciders:** dtbiedrzycki
 
+## Context
+
+Two load-bearing views depend on knowing who made a contribution: the
+reconciliation view matches incoming Zelle/Venmo payments against
+pledges by name, and the thank-you view has no attribution target
+without one. At the same time, some givers don't want to be identified
+*to other guests* — a shy relative, or someone making a small top-up
+amount.
+
 ## Decision
 
-Anonymous contributions resolved: name always required (thank-you/reconciliation depend on it), but names are never shown to other guests — only the owner sees identity, gated by existing spoiler toggles. No per-list toggle for guest-visible names
+We will require a name for every contribution, but show it only to the
+owner — never to other guests — gated by the existing spoiler toggles.
+There is no per-list toggle for guest-visible names.
 
-## Detail
+## Alternatives considered
 
-**ADR-044 detail:** Full guest-visible anonymity was rejected because it breaks two load-bearing views: the reconciliation view exists specifically to match incoming Zelle/Venmo payments against pledges by name, and the thank-you view has no attribution target without one. Full owner-side anonymity (owner also doesn't see the name) was also rejected for the same reason. The middle ground — required name, visible only to the owner — preserves both dependent views while addressing the actual concern (givers not wanting to be identified *to other guests*, e.g. a shy relative or a small top-up amount).
+- **Full guest-visible anonymity** — rejected: breaks the reconciliation
+  view, which matches incoming payments against pledges by name, and
+  leaves the thank-you view with no attribution target.
+- **Full owner-side anonymity (owner also doesn't see the name)** —
+  rejected: breaks the same two views for the same reason — reconciliation
+  and thank-you need a name to attribute to *someone*, even if not to
+  other guests.
 
-Superseded in part by ADR-[059](./0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md) and ADR-[060](./0060-guest-self-service-data-access-erasure-via-guestdataaccess.md): a name is required at
-creation, but redaction may null it afterwards, by either the owner's or
-the guest's action. The thank-you view accordingly tolerates a missing
-attribution target where this ADR assumed one was guaranteed — an
-erasure right outranks a bookkeeping convenience. "Always required"
-should be read as "required at creation," matching the §[2](../spec/domain-model.md) invariant's
-wording.
+## Consequences
+
+- The reconciliation and thank-you views both have a guaranteed
+  attribution target at the time this decision was made.
+- A later decision, ADR-[059](./0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md)
+  and ADR-[060](./0060-guest-self-service-data-access-erasure-via-guestdataaccess.md),
+  permits redaction after creation: a name is still required at creation,
+  but it may later be nulled by either the owner's or the guest's own
+  erasure action. Visibility scope — owner-only, never shown to other
+  guests — is unchanged by that later decision. The thank-you view must
+  accordingly tolerate a missing attribution target where this ADR
+  originally assumed one was guaranteed, since an erasure right outranks
+  a bookkeeping convenience.
+- "Name always required" should be read as "name required at creation,"
+  matching the invariant in the [domain model](../spec/domain-model.md)
+  topic.

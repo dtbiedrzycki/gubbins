@@ -4,19 +4,49 @@
 - **Date:** 2026-09-09
 - **Deciders:** dtbiedrzycki
 
+## Context
+
+Rate-limit thresholds were previously stated only qualitatively ("rate
+limit... with global lockout") with no concrete numbers, which isn't
+implementable or testable as written. The project generally prefers
+stated defaults over ambiguity left to be figured out during
+implementation.
+
 ## Decision
 
-Rate-limit thresholds set as concrete hardcoded defaults from the start (see §[3.21](../spec/threat-model-summary.md) table), stored in SQLite with no new service dependency; flagged for empirical re-tuning pre-v1 given realistic false positives from guests sharing venue wifi
+We will set concrete, hardcoded rate-limit default thresholds from the
+start (see the [rate-limit thresholds](../spec/threat-model-summary.md)
+table), stored in SQLite with no new service dependency, flagged for
+empirical re-tuning before v1.
 
-## Detail
+## Alternatives considered
 
-**ADR-042 detail:** Rate-limit thresholds were previously stated qualitatively ("rate limit... with global lockout") with no concrete numbers, which isn't implementable or testable as written. Concrete defaults were set (§[3.21](../spec/threat-model-summary.md) table) rather than left to be figured out during implementation, consistent with the project's general preference for stated defaults over ambiguity. The numbers are acknowledged as reasonable starting estimates rather than empirically derived: the specific risk flagged is guests at a physical event sharing a single venue-wifi IP address, which could cause legitimate guests to trip a per-IP threshold intended for a single attacker. A dedicated pre-v1 load/behavior test (§[3.13](../spec/testing.md)) is required to validate or adjust the per-IP numbers before they ship as final; the per-slug aggregate threshold is a separate, deliberately softer control (delay, not lockout) precisely to avoid one hostile actor locking out an entire guest list.
+- **Leave thresholds qualitative, tune during implementation** —
+  rejected: not implementable or testable as written, and inconsistent
+  with the project's preference for stated defaults over ambiguity.
+- **Introduce a dedicated rate-limiting service/dependency** — rejected:
+  thresholds are tracked in SQLite instead, avoiding a new service
+  dependency for a need the existing store can meet.
 
-ADR-[068](./0068-client-ip-resolution-is-a-hop-count.md) later found the false-positive concern recorded here had a
-strictly worse sibling this test would not have caught. Venue wifi puts
-many guests behind one NAT address; a misconfigured proxy puts *every*
-guest behind one address on every deployment, permanently; and shared VPN
-egress puts unrelated, dispersed guests in one bucket. The first and third
-are tuning questions this ADR's pre-v1 test still owns; the second was a
-mechanism defect in address resolution, fixed by replacing the
-`TRUST_PROXY` boolean with a hop count.
+## Consequences
+
+- The numbers are reasonable starting estimates, not empirically derived
+  — a dedicated pre-v1 [load/behavior test](../spec/testing.md) is
+  required to validate or adjust the per-IP thresholds before they ship
+  as final.
+- The specific risk flagged and not yet resolved by this decision: guests
+  at a physical event sharing a single venue-wifi IP address could trip a
+  per-IP threshold intended for a single attacker. This remains an open
+  concern for the pre-v1 test to tune, not something this ADR resolves.
+- ADR-[068](./0068-client-ip-resolution-is-a-hop-count.md) later
+  identifies related scenarios that put multiple, unrelated guests behind
+  one apparent address: a misconfigured proxy puts *every* guest behind
+  one address on every deployment, permanently, and shared VPN egress
+  puts unrelated, dispersed guests in one bucket. The venue-wifi and
+  VPN-egress cases are tuning questions this ADR's pre-v1 test still
+  owns; the misconfigured-proxy case is a distinct mechanism defect in
+  address resolution, which ADR-068 fixes by replacing the `TRUST_PROXY`
+  boolean with a hop count.
+- The per-slug aggregate threshold is a separate, deliberately softer
+  control (delay, not lockout), chosen specifically to avoid one hostile
+  actor locking out an entire guest list.
