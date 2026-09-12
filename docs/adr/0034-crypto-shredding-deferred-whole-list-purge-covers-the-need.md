@@ -4,22 +4,59 @@
 - **Date:** 2026-09-09
 - **Deciders:** dtbiedrzycki
 
+## Context
+
+Full crypto-shredding — per-subject encryption keys, encrypted PII
+columns, a key-destruction ceremony — was weighed against the system's
+actual stated privacy requirement. The whole-list purge at `purgeAt`
+already deletes PII on a schedule ([privacy](../spec/privacy.md)), so at
+the time, a pre-purge single-guest erasure requirement (deleting one
+guest's data before the whole list is purged) was only a hypothetical
+possibility rather than a stated need.
+
 ## Decision
 
-Crypto-shredding deferred (confirmed); whole-list purge at `purgeAt` covers the stated need *(the pre-purge single-guest erasure need this entry flagged as hypothetical later materialized — see ADR-[059](./0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md), which supersedes this entry's proposed compensating-event fix, not its deferral of full crypto-shredding)*; the deferral was re-tested against the backup/erasure conflict in ADR-[067](./0067-erasure-across-backups-and-the-subject-access-routing-fix.md) and upheld, with its dependence on a short `PURGE_AFTER_DAYS` stated as the explicit revisit trigger
+We will defer full crypto-shredding; the existing whole-list purge at
+`purgeAt` covers the stated privacy need, with a documented fallback
+path (a redaction event) held in reserve in case a pre-purge
+single-guest erasure requirement is intended later.
 
-## Detail
+## Alternatives considered
 
-**ADR-034 detail:** Full crypto-shredding (per-subject keys, encrypted PII columns, key-destruction ceremony) was evaluated against the actual stated requirement and found to solve a problem the spec doesn't currently have — the whole-list purge already deletes PII on schedule. Building the encryption layer now would be complexity ahead of demonstrated need, contrary to the YAGNI principle applied elsewhere (see ADR-[021](./0021-thank-you-tracking-stored-outside-rebuildprojections-scope.md)). Confirmed deferred by the spec owner; left open only as a documented fallback path (a redaction event) in case a pre-purge single-guest erasure requirement is intended later.
+- **Building full crypto-shredding now** (per-subject keys, encrypted
+  PII columns, a key-destruction ceremony) — rejected under YAGNI (see
+  ADR-[021](./0021-thank-you-tracking-stored-outside-rebuildprojections-scope.md)):
+  it solves a problem the spec doesn't currently have, since the
+  whole-list purge already deletes PII on schedule.
+- **Storing the shredding key alongside the data in the same database
+  file** — rejected when this deferral was later re-tested: a same-file
+  key store is defeated by `VACUUM INTO`
+  (ADR-[032](./0032-physical-backup-via-vacuum-into-not-raw-file-copy.md)),
+  which would copy the key into the same backup snapshot as the
+  ciphertext it's meant to protect.
+- **Storing the shredding key in a separate container** — rejected when
+  this deferral was later re-tested: forbidden by the project's
+  single-container deployment posture ([ops](../spec/ops.md)), and
+  costly well beyond standing up the container itself.
 
-Re-tested in ADR-[067](./0067-erasure-across-backups-and-the-subject-access-routing-fix.md) against a concrete case the original decision did
-not consider: erasure across backups, where crypto-shredding is the only
-technique that genuinely works, since ciphertext can remain in every
-snapshot once the key is gone. Two key-store placements were worked
-through and both rejected — same-file (defeated by `VACUUM INTO`) and
-separate-container (forbidden by §[3.11](../spec/ops.md)'s single-container rule, and
-costly well beyond the container itself). The deferral holds because
-`purgeAt` bounds retention to months, making the exposure a few weeks of
-beyond-use ciphertext rather than indefinite plaintext. That dependency
-is now explicit: if `PURGE_AFTER_DAYS` becomes unbounded or indefinite
-retention is ever wanted, this deferral should be reopened.
+## Consequences
+
+- The pre-purge single-guest erasure need this decision originally
+  treated as hypothetical did later materialize — a GDPR-facing
+  self-hosted app realistically receives erasure requests before an
+  event's `purgeAt`. ADR-[059](./0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md)
+  later addressed that need with a redactable side table for guest PII,
+  which replaces this decision's originally sketched compensating-event
+  fallback without reopening the deferral of full crypto-shredding
+  itself.
+- This deferral was also later re-tested against a concrete case the
+  original decision didn't consider: erasure across backups, where
+  crypto-shredding is the only technique that genuinely works, since
+  ciphertext can remain in every snapshot once the key is gone.
+  ADR-[067](./0067-erasure-across-backups-and-the-subject-access-routing-fix.md)
+  worked through that case and upheld the deferral.
+- The deferral holds specifically because `purgeAt` bounds retention to
+  months, making the exposure a few weeks of beyond-use ciphertext
+  rather than indefinite plaintext. That dependency is now an explicit
+  revisit trigger: if `PURGE_AFTER_DAYS` ever becomes unbounded or
+  indefinite retention is wanted, this deferral should be reopened.
