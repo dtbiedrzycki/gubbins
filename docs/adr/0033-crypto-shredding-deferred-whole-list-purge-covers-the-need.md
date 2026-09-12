@@ -12,7 +12,8 @@ actual stated privacy requirement. The whole-list purge at `purgeAt`
 already deletes PII on a schedule ([privacy](../spec/privacy.md)), so at
 the time, a pre-purge single-guest erasure requirement (deleting one
 guest's data before the whole list is purged) was only a hypothetical
-possibility rather than a stated need.
+possibility rather than a stated need. This deferral was confirmed
+with the spec owner as an explicit assumption before being locked in.
 
 ## Decision
 

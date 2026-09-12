@@ -1,6 +1,6 @@
 # 0067. The guest key travels in a fragment
 
-- **Status:** Accepted (supersedes 0022, merged into this entry)
+- **Status:** Accepted (supersedes the prior query-string design, merged into this entry)
 - **Date:** 2026-09-09
 - **Deciders:** dtbiedrzycki
 

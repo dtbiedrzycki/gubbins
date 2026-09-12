@@ -10,7 +10,7 @@ ADR-[033](./0033-crypto-shredding-deferred-whole-list-purge-covers-the-need.md)
 anticipated a pre-purge single-guest erasure requirement might
 materialize and sketched a `ContributionRedacted`/`HoldRedacted`
 compensating event as the lighter-weight fix if it did. This ADR is a
-later refinement of the approach 0034 deferred to, not an overturning of
+later refinement of the approach ADR-033 deferred to, not an overturning of
 it: on closer inspection that compensating-event sketch doesn't actually
 satisfy GDPR erasure. A compensating event nulls the read-side
 *projection*, but the original `ContributionPledged`/`ItemHeld` event —
