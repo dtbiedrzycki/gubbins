@@ -44,13 +44,27 @@ sooner.
   unmitigated by design for the owner token specifically — ADR-067's
   fragment-based transport later closed all but browser history for the
   guest key, but the owner token was never routed through either design.
-- **A bookmarkable manage URL, for convenience** — rejected: the honest
-  counter-argument is that non-technical owners save links more
-  reliably than they save tokens, and an owner who bookmarked a manage
-  URL would never think about re-entry. Weighed against a bookmarked
-  full-control URL sitting in browser history and proxy logs, and
-  against the fact the owner must save *something* regardless, the
-  trade favours excluding the token from URLs.
+- **A bookmarkable manage URL, for convenience** — rejected, in both a
+  query-string and a fragment form. A fragment variant, mirroring
+  ADR-[067](./0067-the-guest-key-travels-in-a-fragment.md)'s guest-key
+  transport, would close the proxy/edge-log exposure the query-string
+  variant carries — but that is not the objection that matters here.
+  ADR-067 discloses browser-history retention as identical and
+  unmitigated under either transport, and a *bookmarked* link is
+  persistence by design — the opposite of what a credential granting
+  rotation, redaction, deletion, and the invite QR should have sitting at
+  rest indefinitely, in history or in a bookmarks bar. Nor does a fragment
+  buy what it buys the guest key: that transport's value is carrying a
+  secret across a channel the sender doesn't control (a text message,
+  typed on a phone); the project collects no owner email address, so
+  there is no send-a-link case to enable, only an owner bookmarking their
+  own link at creation time, which needs no email either. The honest
+  counter-argument stands regardless of transport: non-technical owners
+  save links more reliably than they save tokens, and an owner who
+  bookmarked a manage URL would never think about re-entry. Weighed
+  against a full-control credential sitting at rest, and against the
+  fact the owner must save *something* regardless, the trade favours
+  excluding the token from URLs altogether.
 
 ## Consequences
 

@@ -25,9 +25,13 @@ We will make manual contributions voidable, not editable: amount and
 method snapshot live in the event payload and are corrected by
 void-plus-re-record (reusing `ContributionVoided`, no new event type),
 while name and message correct in place via a plain `GuestPii` UPDATE
-with no ledger event. Hard delete becomes void. The dashboard surfaces
-correction as one owner action reusing `piiRef` and carrying
-`thank_you_status` across. `ManualGiftEntry`
+with no ledger event. The previously-granted but never-designed "delete"
+affordance is retired outright, not relabeled: the dashboard exposes only
+void (and, for a correction, the single-click void-plus-re-record
+described above) — no "delete" action or label exists anywhere in the UI
+for a manual contribution, so the word the owner sees always matches the
+event the domain records. The dashboard surfaces correction as one owner
+action reusing `piiRef` and carrying `thank_you_status` across. `ManualGiftEntry`
 (ADR-[059](./0059-offline-non-monetary-gifts-recorded-via-manualgiftentry.md))
 keeps genuine edit/delete, since it sits outside the ledger.
 

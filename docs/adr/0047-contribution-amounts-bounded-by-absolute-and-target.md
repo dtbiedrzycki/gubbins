@@ -51,3 +51,10 @@ is the authoritative party recording a real-world fact.
   target-relative bound, its independence from `allowOverfunding`, and the
   reasoning above that a permissive overfunding stance must not disable a
   sanity check are unaffected and still govern this decision.
+- After that revision, the two bounds guard two genuinely different
+  failure modes rather than the same one twice: the target-relative bound
+  is the realistic-entry/typo guard (an amount wildly disproportionate to
+  what is actually being funded), while the absolute bound is the
+  malicious/overflow guard, sized purely to keep sums inside safe integer
+  range and otherwise silent on what counts as a reasonable gift (see
+  [group gifts & funds](../spec/group-gifts-and-funds.md)).
