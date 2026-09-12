@@ -29,6 +29,15 @@ export class ItemRepositoryKysely implements ItemRepository {
     return Item.reconstitute({ id: row.id, wishlistId: row.wishlist_id, title: row.title });
   }
 
+  async findInWishlist(wishlistId: string, itemId: string): Promise<Item | null> {
+    const row = await this.db.selectFrom('items').selectAll()
+      .where('id', '=', itemId)
+      .where('wishlist_id', '=', wishlistId)
+      .executeTakeFirst();
+    if (!row) return null;
+    return Item.reconstitute({ id: row.id, wishlistId: row.wishlist_id, title: row.title });
+  }
+
   async getState(itemId: string): Promise<ItemState> {
     const row = await this.db.selectFrom('item_state').selectAll().where('item_id', '=', itemId).executeTakeFirst();
     if (!row) throw new Error(`No state for item ${itemId}`);

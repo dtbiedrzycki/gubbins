@@ -67,6 +67,33 @@ describe('ItemRepositoryKysely', () => {
 
     expect(found?.id).toBe('i1');
   });
+
+  it('findInWishlist finds an item that belongs to the given wishlist', async () => {
+    const repo = new ItemRepositoryKysely(db);
+    await new WishlistRepositoryKysely(db).insert(Wishlist.create({ id: 'w1', slug: 'wishlist-w1', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' }));
+    await repo.insert(Item.createSingle({ id: 'i1', wishlistId: 'w1', title: 'Stroller' }));
+
+    const found = await repo.findInWishlist('w1', 'i1');
+
+    expect(found?.id).toBe('i1');
+  });
+
+  it('findInWishlist returns null for an item that belongs to a different wishlist', async () => {
+    const repo = new ItemRepositoryKysely(db);
+    const wishlists = new WishlistRepositoryKysely(db);
+    await wishlists.insert(Wishlist.create({ id: 'w1', slug: 'wishlist-w1', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' }));
+    await wishlists.insert(Wishlist.create({ id: 'w2', slug: 'wishlist-w2', title: 'Wedding', ownerToken: 'owner-tok-2', key: 'guest-key-2' }));
+    await repo.insert(Item.createSingle({ id: 'i1', wishlistId: 'w1', title: 'Stroller' }));
+
+    expect(await repo.findInWishlist('w2', 'i1')).toBeNull();
+  });
+
+  it('findInWishlist returns null for an unknown item id', async () => {
+    const repo = new ItemRepositoryKysely(db);
+    await new WishlistRepositoryKysely(db).insert(Wishlist.create({ id: 'w1', slug: 'wishlist-w1', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' }));
+
+    expect(await repo.findInWishlist('w1', 'no-such-item')).toBeNull();
+  });
 });
 
 describe('HoldRepositoryKysely', () => {
