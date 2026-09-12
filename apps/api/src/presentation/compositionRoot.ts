@@ -12,6 +12,7 @@ import { LoggingEventStore } from '../infrastructure/LoggingEventStore.js';
 import { CreateList } from '../application/use-cases/CreateList.js';
 import { EnterGuestKey } from '../application/use-cases/EnterGuestKey.js';
 import { HoldItem } from '../application/use-cases/HoldItem.js';
+import type { Logger } from '../application/ports/Logger.js';
 
 export interface AppDependencies {
   createList: CreateList;
@@ -19,6 +20,7 @@ export interface AppDependencies {
   holdItem: HoldItem;
   wishlists: WishlistRepositoryKysely;
   items: ItemRepositoryKysely;
+  logger: Logger;
 }
 
 export function buildDependencies(db: Kysely<Database>): AppDependencies {
@@ -37,5 +39,6 @@ export function buildDependencies(db: Kysely<Database>): AppDependencies {
     holdItem: new HoldItem(unitOfWork, tokenGenerator, clock, hasher),
     wishlists,
     items,
+    logger,
   };
 }

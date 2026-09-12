@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { createDb } from '../infrastructure/db/createDb.js';
 import { migrateToLatest } from '../infrastructure/db/migrate.js';
 import { buildDependencies } from './compositionRoot.js';
@@ -16,7 +17,7 @@ async function main(): Promise<void> {
   const deps = buildDependencies(db);
   const app = buildApp(deps, {
     cookieSecret: cookieSecret ?? 'dev-only-insecure-secret-change-me',
-    webDist: process.env.WEB_DIST ?? new URL('../../../web/dist', import.meta.url).pathname,
+    webDist: process.env.WEB_DIST ?? fileURLToPath(new URL('../../../web/dist', import.meta.url)),
   });
 
   await app.listen({ port, host: '0.0.0.0' });

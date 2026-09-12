@@ -64,10 +64,11 @@ describe('POST /api/lists/:slug/session', () => {
 });
 
 describe('GET /api/lists/:slug', () => {
-  it('returns 401 without a session cookie', async () => {
+  it('returns the same generic 404 without a session cookie as for an unknown slug (ADR-016/054 anti-enumeration)', async () => {
     const list = await createList();
     const response = await app.inject({ method: 'GET', url: `/api/lists/${list.slug}` });
-    expect(response.statusCode).toBe(401);
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ message: 'Not found' });
   });
 
   it('returns the list view for a valid session, with the item available', async () => {
@@ -110,12 +111,13 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
     expect(second.statusCode).toBe(409);
   });
 
-  it('returns 401 without a session cookie', async () => {
+  it('returns the same generic 404 without a session cookie as for an unknown slug (ADR-016/054 anti-enumeration)', async () => {
     const list = await createList();
     const response = await app.inject({
       method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, payload: { idempotencyKey: 'idem-1' },
     });
-    expect(response.statusCode).toBe(401);
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ message: 'Not found' });
   });
 
   it('returns a generic 404 when the item belongs to a different wishlist than the URL slug', async () => {

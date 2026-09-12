@@ -3,6 +3,7 @@ import cookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
 import path from 'node:path';
 import { ZodError } from 'zod';
+import { errorResponseSchema } from '@gubbins/shared-types';
 import type { AppDependencies } from './compositionRoot.js';
 import { registerRoutes } from './routes.js';
 
@@ -30,12 +31,17 @@ export function buildApp(deps: AppDependencies, options: BuildAppOptions): Fasti
     });
   }
 
-  app.setErrorHandler((error, request, reply) => {
+  app.setErrorHandler<Error>((error, request, reply) => {
     if (error instanceof ZodError) {
-      reply.code(400).send({ message: 'Invalid request', issues: error.issues });
+      reply.code(400).send(errorResponseSchema.parse({ message: 'Invalid request', issues: error.issues }));
       return;
     }
-    reply.code(500).send({ message: 'Internal server error' });
+    // Fastify's own `logger: false` above means nothing else in this process
+    // logs unhandled errors — without this, a real failure (e.g. a
+    // constraint violation, a bad migration) would produce a 500 with no
+    // trace anywhere, stdout included.
+    deps.logger.logInfo('unhandled_error', { message: error.message, stack: error.stack, url: request.url });
+    reply.code(500).send(errorResponseSchema.parse({ message: 'Internal server error' }));
   });
 
   return app;

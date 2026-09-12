@@ -3,6 +3,7 @@ import {
   createListRequestSchema, createListResponseSchema,
   enterGuestKeyRequestSchema, enterGuestKeyResponseSchema,
   holdItemRequestSchema, holdItemResponseSchema, listViewResponseSchema,
+  errorResponseSchema,
 } from '@gubbins/shared-types';
 import type { AppDependencies } from './compositionRoot.js';
 import {
@@ -51,7 +52,7 @@ export function registerRoutes(app: FastifyInstance, deps: AppDependencies): voi
       // Same generic response for "no such list" and "wrong key" —
       // access-identity.md / ADR-016 / ADR-054 forbid distinguishing them.
       if (err instanceof WishlistNotFoundError || err instanceof InvalidGuestKeyError) {
-        reply.code(404).send({ message: 'Not found' });
+        reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' }));
         return;
       }
       throw err;
@@ -61,12 +62,16 @@ export function registerRoutes(app: FastifyInstance, deps: AppDependencies): voi
   app.get('/api/lists/:slug', async (request, reply) => {
     const { slug } = request.params as { slug: string };
     const wishlist = await deps.wishlists.findBySlug(slug);
-    if (!wishlist) { reply.code(404).send({ message: 'Not found' }); return; }
+    if (!wishlist) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
     const session = readSession(request, wishlist);
-    if (!session) { reply.code(401).send({ message: 'Not found' }); return; }
+    // Same generic 404 as an unknown slug — ADR-016/054: a caller must not be
+    // able to tell "no such list" apart from "list exists, you're just not in
+    // it" by status code alone (that would let an unauthenticated prober
+    // enumerate valid slugs).
+    if (!session) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
 
     const item = await deps.items.findByWishlistId(wishlist.id);
-    if (!item) { reply.code(404).send({ message: 'Not found' }); return; }
+    if (!item) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
     const state = await deps.items.getState(item.id);
 
     reply.send(listViewResponseSchema.parse({
@@ -79,24 +84,26 @@ export function registerRoutes(app: FastifyInstance, deps: AppDependencies): voi
     const { slug, itemId } = request.params as { slug: string; itemId: string };
     const input = holdItemRequestSchema.parse(request.body);
     const wishlist = await deps.wishlists.findBySlug(slug);
-    if (!wishlist) { reply.code(404).send({ message: 'Not found' }); return; }
+    if (!wishlist) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
     const session = readSession(request, wishlist);
-    if (!session) { reply.code(401).send({ message: 'Not found' }); return; }
+    // Same generic 404 as an unknown slug — see the GET route above.
+    if (!session) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
 
-    // Verify the item actually belongs to this wishlist — a valid session for
-    // one list must not let its holder act on another list's item just by
-    // supplying that item's id in the URL. Same generic 404 body as the other
-    // "doesn't exist / doesn't apply to you" cases (anti-enumeration).
-    const item = await deps.items.findById(itemId);
-    if (!item || item.wishlistId !== wishlist.id) { reply.code(404).send({ message: 'Not found' }); return; }
+    // Scoped lookup: findInWishlist returns null both when the item doesn't
+    // exist AND when it belongs to a different wishlist, so a valid session
+    // for one list can never act on another list's item just by supplying
+    // that item's id in the URL — enforced by the repository, not a
+    // post-hoc comparison here.
+    const item = await deps.items.findInWishlist(wishlist.id, itemId);
+    if (!item) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
 
     try {
       const result = await deps.holdItem.execute({ itemId, sessionId: session.sessionId, idempotencyKey: input.idempotencyKey });
       reply.code(201).send(holdItemResponseSchema.parse(result));
     } catch (err) {
-      if (err instanceof ItemNotFoundError) { reply.code(404).send({ message: 'Not found' }); return; }
-      if (err instanceof ItemAlreadyHeldError) { reply.code(409).send({ message: 'Item already held' }); return; }
-      if (err instanceof ConcurrencyError) { reply.code(409).send({ message: 'Item already held' }); return; }
+      if (err instanceof ItemNotFoundError) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
+      if (err instanceof ItemAlreadyHeldError) { reply.code(409).send(errorResponseSchema.parse({ message: 'Item already held' })); return; }
+      if (err instanceof ConcurrencyError) { reply.code(409).send(errorResponseSchema.parse({ message: 'Item already held' })); return; }
       throw err;
     }
   });
