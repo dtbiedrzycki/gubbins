@@ -4,34 +4,50 @@
 - **Date:** 2026-09-09
 - **Deciders:** dtbiedrzycki
 
+## Context
+
+The spec bounded contribution amounts only by the overfunding policy,
+which under `allow` is no bound at all. A single mistyped or hostile
+amount would not overflow a SQLite integer but would destroy the progress
+bar's usefulness and the reconciliation totals. The ceiling needs to sit
+outside the overfunding policy rather than inside it: overfunding is a
+product decision about whether guests may exceed a target, and the
+project's stated stance there is permissive; a sanity ceiling is input
+validation against a nonsense value, and the two should not be conflated
+such that a permissive product choice disables a sanity check.
+
+*Note: the absolute figure below was later revised by a subsequent
+decision; the target-relative bound and independence from overfunding
+policy were not.*
+
 ## Decision
 
-Contribution amounts bounded by an absolute and a target-relative sanity ceiling, enforced in `canAccept` independently of `allowOverfunding` *(the absolute bound was reframed by ADR-[063](./0063-currency-validation-minor-unit-storage-and-the-ceiling.md) as an arithmetic guard rather than a money threshold, and the fat-finger case moved to a client-side confirmation; the target-relative bound and the independence from `allowOverfunding` stand)*
+We will bound contribution amounts by both an absolute and a
+target-relative sanity ceiling, enforced in `canAccept` independently of
+`allowOverfunding`. Manual entries warn rather than block, since the owner
+is the authoritative party recording a real-world fact.
 
-## Detail
+## Alternatives considered
 
-**ADR-049 detail:** The spec bounded contribution amounts only by the
-overfunding policy, which under `allow` is no bound at all. A single mistyped or
-hostile amount would not overflow a SQLite integer but would destroy the
-progress bar's usefulness and the reconciliation totals. The ceiling is
-deliberately placed outside the overfunding policy rather than inside it:
-overfunding is a product decision about whether guests may exceed a target, and
-the project's stated stance there is permissive; this is input validation
-against a nonsense value, and the two should not be conflated such that a
-permissive product choice disables a sanity check. Manual entries warn rather
-than block, since the owner is the authoritative party recording a real-world
-fact.
+- **Fold the sanity ceiling into the overfunding policy** — rejected: a
+  permissive overfunding stance is a product decision about whether guests
+  may exceed a target, not a decision to disable input validation against
+  a nonsense value; conflating the two would let a permissive policy
+  choice silently remove the sanity check.
+- **Block manual entries that exceed the ceiling** — rejected: the owner
+  is the authoritative party recording a real-world fact, so manual
+  entries warn rather than block.
 
-Amended by ADR-[063](./0063-currency-validation-minor-unit-storage-and-the-ceiling.md) on the absolute bound only. `MAX_CONTRIBUTION_MINOR`
-was set at 1,000,000 minor units and glossed as "e.g. $10,000," but a
-minor-unit threshold denominates differently on every list — the same
-constant is ¥1,000,000 on a JPY list and 1,000 KWD on a Kuwaiti one, a
-roughly threefold real-terms spread. Attempts to correct this were worse:
-restating the default in major units produces a ~490× spread and would
-block ordinary gifts on a JPY list, because a currency's decimal places
-track its unit value and a flat minor-unit figure crudely self-corrects
-for that. Rather than build a per-currency default table to launder an
-accidental property into a designed one, ADR-[063](./0063-currency-validation-minor-unit-storage-and-the-ceiling.md) removes the money
-meaning from the constant entirely. The reasoning in the paragraph above
-— that a permissive overfunding stance must not disable a sanity check —
-is unaffected and still governs the target-relative bound.
+## Consequences
+
+- Contribution amounts are protected from mistyped or hostile nonsense
+  values regardless of the list's overfunding policy.
+- The absolute figure (`MAX_CONTRIBUTION_MINOR`) was later found to
+  denominate differently across currencies — the same minor-unit constant
+  is a small amount on a JPY list and a much larger one on a
+  low-decimal-precision currency like KWD — and a subsequent decision
+  revised how the absolute bound is derived, without a per-currency
+  default table. That revision only touches the absolute figure: the
+  target-relative bound, its independence from `allowOverfunding`, and the
+  reasoning above that a permissive overfunding stance must not disable a
+  sanity check are unaffected and still govern this decision.
