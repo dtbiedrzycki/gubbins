@@ -6,9 +6,9 @@ import { ItemView } from '../features/holds/ItemView';
 export default function ListPage() {
   const { slug } = useParams<{ slug: string }>();
   // useListView must be called unconditionally (react-hooks/rules-of-hooks);
-  // the '' fallback is never actually queried since we return null below
-  // before anything depending on `query` renders.
-  const query = useListView(slug ?? '');
+  // it internally disables the query via `enabled: Boolean(slug)` when slug
+  // is undefined, so no request fires before the guard below returns.
+  const query = useListView(slug);
   if (!slug) return null;
 
   if (query.status === 'pending') {
