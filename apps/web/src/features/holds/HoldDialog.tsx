@@ -17,19 +17,17 @@ export function HoldDialog({ itemTitle, isOpen, isPending, error, onConfirm, onC
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (isOpen && !dialog.open) {
-      try {
+      if (typeof dialog.showModal === 'function') {
         dialog.showModal();
-      } catch {
-        // jsdom doesn't implement showModal — manually set open attribute for testing
-        dialog.open = true;
+      } else {
+        dialog.open = true; // jsdom test environment only — showModal isn't implemented there
       }
     }
     if (!isOpen && dialog.open) {
-      try {
+      if (typeof dialog.close === 'function') {
         dialog.close();
-      } catch {
-        // jsdom doesn't implement close — manually unset open attribute for testing
-        dialog.open = false;
+      } else {
+        dialog.open = false; // jsdom test environment only
       }
     }
   }, [isOpen]);
