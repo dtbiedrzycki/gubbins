@@ -190,3 +190,77 @@ including one fold-a-superseded-ADR example and one collision-renumber
 example) reviewed before continuing, and a **rollout plan** (written
 against the pilot's completed inventory) that folds every remaining
 superseded ADR and ends with the terminal renumbering pass.
+
+## Rollout readiness (post-pilot addendum)
+
+The pilot (`docs/adr-spec-simplify`, PR #2) is merged/mergeable and
+established real conventions and open items the rollout plan should
+read before drafting. This section is that handoff — everything here
+either isn't captured elsewhere or is scattered across PR review
+comments that won't survive to a fresh session.
+
+**Reference inputs for the rollout plan:**
+- `docs/superpowers/specs/2026-09-11-adr-inventory.md` — the full
+  72-row classification. 6 rows are marked `✅ done in pilot` (0001,
+  0022, 0038, 0040, 0069, 0070, plus 0072/052a) — everything else still
+  needs its Nygard rewrite.
+- The 4 already-rewritten ADRs (0001, 0040, 0069, 0070) are the
+  reference examples for format and link style — pattern-match against
+  them, not against the un-rewritten majority.
+
+**Conventions the pilot established — apply consistently, don't
+re-derive per file:**
+- ADR-to-ADR citation: `ADR-[NNN](./NNNN-slug.md)` — 3-digit bracket
+  label, `./`-prefixed relative path (confirmed as the corpus norm;
+  ADR-0001 was fixed to match it after initially drifting from it).
+- ADR-to-spec-topic citation: `[label](../spec/topic.md)` — lowercase,
+  descriptive label, e.g. `[privacy](../spec/privacy.md)` — never
+  `§[3.N](...)`. `docs/spec/*.md` itself now uses this same style
+  internally (141 labels fixed in a pilot follow-up commit).
+- Nygard section order: `Context` / `Decision` / `Alternatives
+  considered` / `Consequences`, exactly matching
+  `docs/adr/0000-adr-template.md` — no other headings.
+- `docs/spec/*.md` footer format: exactly one blank line after the H1,
+  exactly one blank line before the closing `---` + back-link.
+- `Deciders: dtbiedrzycki`, `Date:` set to the actual decision date —
+  already applied to all 70 current ADRs; new/rewritten ADRs should
+  follow the same convention (see `docs/adr/README.md`'s Convention
+  section).
+
+**Open items the rollout plan must resolve or explicitly schedule:**
+1. **`§[3.N]`-style label residue in the ~65 un-rewritten ADRs**
+   (~72 occurrences) — the same stale-numbering-label problem already
+   fixed in `docs/spec/*.md`. Deliberately deferred from the pilot
+   (fixing it there would have meant touching these files twice, once
+   now and once during their Nygard rewrite) — fold it into each ADR's
+   rewrite rather than doing it as a separate pass.
+2. **Terminal renumbering pass** — once every fold/merge across the
+   full 72-ADR set is known, walk survivors in numeric order, renumber
+   0001..N with no gaps, rewrite every cross-reference repo-wide (see
+   Redundancy cleanup rule 3, above). This is a single pass at the very
+   end of the rollout, not per-ADR.
+3. **Decision-voice convention, undecided** — the template says "We
+   will…" (active voice); only ADR-0001 among the 4 pilot rewrites
+   actually opens that way (0040/0069/0070 use other declarative
+   phrasing). Pick one house style explicitly before scaling to 65 more
+   rewrites, rather than let it vary by whoever's doing the rewrite.
+4. **Link-checker script, recommended but not built** — the pilot's
+   final review had to verify ~700 links by grep-and-manually-confirm;
+   a small script under `scripts/` resolving relative paths and
+   `#anchor`s against actual headings would make this mechanical and
+   catch what manual review might miss (it's how the pilot's own
+   `#1-overview` orphan bug was found — by careful reading, not
+   tooling). Worth a rollout-plan task if the corpus stays this
+   cross-linked.
+5. **Pre-existing issues surfaced during the pilot, not pilot-caused,
+   worth catching when the rollout touches these specific files:**
+   - `docs/adr/0020-...md`'s Detail block still describes `revealAfter`
+     as derived rather than stored — reversed by ADR-0066. Catch this
+     when 0020 gets its Nygard rewrite.
+   - `docs/adr/README.md`'s "Numbering" section says decisions
+     "predate this repository and will be imported later" — they
+     already were; stale wording, low priority.
+   - `docs/spec/threat-model.md` (a summary) and the not-yet-written
+     `docs/threat-model.md` (referenced by ADR-0035 as the authoritative
+     document) sit one path apart — rename one before the latter gets
+     created, to avoid a confusing near-collision.
