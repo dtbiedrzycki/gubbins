@@ -39,6 +39,11 @@ export class InMemoryItemRepository implements ItemRepository {
     return null;
   }
 
+  async findInWishlist(wishlistId: string, itemId: string): Promise<Item | null> {
+    const item = this.byId.get(itemId);
+    return item && item.wishlistId === wishlistId ? item : null;
+  }
+
   async getState(itemId: string): Promise<ItemState> {
     const state = this.states.get(itemId);
     if (!state) throw new Error(`No state for item ${itemId}`);
