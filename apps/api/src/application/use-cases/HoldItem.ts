@@ -1,5 +1,6 @@
 import { Hold } from '../../domain/entities/Hold.js';
 import type { ItemHeldEvent } from '../../domain/events/ItemHeldEvent.js';
+import type { DomainEvent } from '../ports/EventStore.js';
 import type { UnitOfWork } from '../ports/UnitOfWork.js';
 import type { TokenGenerator } from '../ports/TokenGenerator.js';
 import type { Clock } from '../ports/Clock.js';
@@ -65,7 +66,11 @@ export class HoldItem {
         expiresAt: hold.expiresAt.toISOString(),
         occurredAt: now.toISOString(),
       };
-      await ctx.eventStore.append(input.itemId, state.seq, [event]);
+      // Cast at the EventStore port boundary only: DomainEvent's index signature
+      // exists so the store can hold heterogeneous events, but ItemHeldEvent
+      // itself stays free of one, so this literal's assignment above is still
+      // excess-property-checked against the concrete event shape.
+      await ctx.eventStore.append(input.itemId, state.seq, [event as unknown as DomainEvent]);
 
       await ctx.holds.recordHold({
         id: hold.id, itemId: hold.itemId, secret: hold.secret,

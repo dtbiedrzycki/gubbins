@@ -14,8 +14,4 @@ export interface ItemHeldEvent {
   idempotencyKey: string;
   expiresAt: string; // ISO 8601
   occurredAt: string; // ISO 8601
-  // Index signature so ItemHeldEvent structurally satisfies EventStore's
-  // DomainEvent (which needs one for heterogeneous event storage) even when
-  // passed as a typed variable rather than an inline object literal.
-  [key: string]: unknown;
 }
