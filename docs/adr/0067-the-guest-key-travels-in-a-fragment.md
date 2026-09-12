@@ -55,11 +55,11 @@ third-party authorization server, which this flow has none of.
 ## Alternatives considered
 
 - **Query string (`?key=`) with a server-side redirect to strip it** — the
-  original decision (ADR-022). Rejected once Cloudflare Tunnel became the
-  recommended path: the key reaches Cloudflare's edge logs before the
-  redirect runs, and the operator cannot configure redaction there. Its
-  browser-history residue was already disclosed as unmitigable and carries
-  forward unchanged.
+  original decision, since retired (see git history). Rejected once
+  Cloudflare Tunnel became the recommended path: the key reaches
+  Cloudflare's edge logs before the redirect runs, and the operator
+  cannot configure redaction there. Its browser-history residue was
+  already disclosed as unmitigable and carries forward unchanged.
 - **"Short session lifetime" as a mitigation** — considered and withdrawn:
   if the key leaks from history or a log, whoever reads it enters it
   themselves and gets a fresh session, so the original guest's session
@@ -87,6 +87,6 @@ third-party authorization server, which this flow has none of.
   ([privacy](../spec/privacy.md)) to neutralize page-JavaScript exposure. If
   a future change ever admits a third-party script, this decision degrades
   and should be revisited.
-- Supersedes ADR-022 in full; that decision's file is retired (content
-  preserved in git history) since this Context section already carries its
-  reasoning and its one open exposure.
+- Supersedes the prior query-string design in full; that decision's file
+  is retired (content preserved in git history) since this Context
+  section already carries its reasoning and its one open exposure.

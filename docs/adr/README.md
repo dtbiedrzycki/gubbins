@@ -119,12 +119,12 @@ restructuring; earlier interim states (including a mid-restructuring
 renumber and two folded duplicates) are recorded in git history, not in
 the current numbering.
 
-*(Not every ADR carries a long Consequences section. Some decisions are
-fully covered by their linked spec topic and stay short — so
+*(Not every ADR carries a long Consequences section — some decisions are
+fully covered by their linked spec topic and stay short.
 ADR-[029](./0029-performance-resource-targets-set-for-pi-class-hardware.md)
 ([performance & resource budget](../spec/performance-and-resource-budget.md))
 and
 ADR-[034](./0034-threat-model-documented-in-docs-threat-model-md.md)
 ([threat model](../spec/threat-model-summary.md)), both fully covered by
-their linked sections, have none. Absence of detail is not absence of
-reasoning.)*
+their linked spec sections, are among the shortest entries in the
+corpus. Absence of length is not absence of reasoning.)*
