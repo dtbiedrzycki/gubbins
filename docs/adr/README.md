@@ -120,11 +120,11 @@ renumber and two folded duplicates) are recorded in git history, not in
 the current numbering.
 
 *(Not every ADR carries a long Consequences section. Some decisions are
-fully covered by their linked spec topic and stay short — absence of
-detail is not absence of reasoning.)*
-
-*(Not every ADR carries a separate detail block. Blocks are written
-where a decision needs rationale, rejected alternatives, or context
-beyond what its body section already states — so ADR-[029](./0029-performance-resource-targets-set-for-pi-class-hardware.md) (§[3.17](../spec/performance-and-resource-budget.md)) and
-ADR-[034](./0034-threat-model-documented-in-docs-threat-model-md.md) (§[3.21](../spec/threat-model-summary.md)), both fully covered by their sections, have none.
-Absence of a block is not an absence of reasoning.)*
+fully covered by their linked spec topic and stay short — so
+ADR-[029](./0029-performance-resource-targets-set-for-pi-class-hardware.md)
+([performance & resource budget](../spec/performance-and-resource-budget.md))
+and
+ADR-[034](./0034-threat-model-documented-in-docs-threat-model-md.md)
+([threat model](../spec/threat-model-summary.md)), both fully covered by
+their linked sections, have none. Absence of detail is not absence of
+reasoning.)*
