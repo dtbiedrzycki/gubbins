@@ -1,4 +1,4 @@
-# 0072. `revealedAt` makes owner claim-status reveal one-way sticky
+# 0072. revealedAt makes owner claim-status reveal one-way sticky
 
 - **Status:** Accepted
 - **Date:** 2026-09-09
@@ -30,9 +30,8 @@ regardless of what happens to `revealAfter` afterward.
   exists to solve.
 - **Store `revealAfter` itself as a fixed instant at creation, instead
   of adding `revealedAt`** — rejected at the time: this would make the
-  owner's timezone field silently ineffective after the fact (editing
-  timezone would no longer move anything the owner could see change),
-  which was judged worse than the problem it solves.
+  owner's timezone field silently ineffective after the fact, which was
+  judged worse than the problem it solves.
 
 ## Consequences
 
@@ -46,9 +45,10 @@ regardless of what happens to `revealAfter` afterward.
   regardless: it now guards the narrower remaining case of a *direct*
   edit to the now-stored `revealAfter` after the crossing, still
   ensuring such an edit cannot re-hide claim status the owner has
-  already seen. This ADR is not superseded by ADR-066 — the stickiness
-  mechanism decided here still stands, just guarding a narrower case
-  than originally.
+  already seen. Superseded only in part by ADR-066 — the
+  derived-`revealAfter` premise this ADR was built on is superseded, but
+  the stickiness mechanism decided here is not, and still stands,
+  guarding that narrower case.
 - Nothing in the original decision specified what sets `revealedAt`:
   "set once when `revealAfter` is first crossed" implies a
   time-triggered write, but the spec has no scheduler for it, and
