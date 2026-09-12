@@ -1,0 +1,11 @@
+{
+  "name": "@gubbins/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'apps/web not yet scaffolded — see Task 12' && exit 0",
+    "lint": "echo 'apps/web not yet scaffolded — see Task 12' && exit 0",
+    "test": "echo 'apps/web not yet scaffolded — see Task 12' && exit 0"
+  }
+}
