@@ -1,10 +1,13 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import {
   createListRequestSchema, createListResponseSchema,
-  enterGuestKeyRequestSchema, holdItemRequestSchema, listViewResponseSchema,
+  enterGuestKeyRequestSchema, enterGuestKeyResponseSchema,
+  holdItemRequestSchema, holdItemResponseSchema, listViewResponseSchema,
 } from '@gubbins/shared-types';
 import type { AppDependencies } from './compositionRoot.js';
-import { WishlistNotFoundError, InvalidGuestKeyError, ItemNotFoundError, ItemAlreadyHeldError } from '../domain/errors.js';
+import {
+  WishlistNotFoundError, InvalidGuestKeyError, ItemNotFoundError, ItemAlreadyHeldError, ConcurrencyError,
+} from '../domain/errors.js';
 import type { Wishlist } from '../domain/entities/Wishlist.js';
 
 const SESSION_COOKIE = 'gubbins_session';
@@ -43,7 +46,7 @@ export function registerRoutes(app: FastifyInstance, deps: AppDependencies): voi
       const result = await deps.enterGuestKey.execute({ slug, key: input.key });
       const payload: SessionPayload = { wishlistId: result.wishlistId, keyGen: result.keyGen, sessionId: result.sessionId };
       reply.setCookie(SESSION_COOKIE, JSON.stringify(payload), { path: '/', httpOnly: true, signed: true, sameSite: 'strict' });
-      reply.code(200).send({ ok: true });
+      reply.code(200).send(enterGuestKeyResponseSchema.parse({ ok: true }));
     } catch (err) {
       // Same generic response for "no such list" and "wrong key" —
       // access-identity.md / ADR-016 / ADR-054 forbid distinguishing them.
@@ -80,12 +83,20 @@ export function registerRoutes(app: FastifyInstance, deps: AppDependencies): voi
     const session = readSession(request, wishlist);
     if (!session) { reply.code(401).send({ message: 'Not found' }); return; }
 
+    // Verify the item actually belongs to this wishlist — a valid session for
+    // one list must not let its holder act on another list's item just by
+    // supplying that item's id in the URL. Same generic 404 body as the other
+    // "doesn't exist / doesn't apply to you" cases (anti-enumeration).
+    const item = await deps.items.findById(itemId);
+    if (!item || item.wishlistId !== wishlist.id) { reply.code(404).send({ message: 'Not found' }); return; }
+
     try {
       const result = await deps.holdItem.execute({ itemId, sessionId: session.sessionId, idempotencyKey: input.idempotencyKey });
-      reply.code(201).send(result);
+      reply.code(201).send(holdItemResponseSchema.parse(result));
     } catch (err) {
       if (err instanceof ItemNotFoundError) { reply.code(404).send({ message: 'Not found' }); return; }
       if (err instanceof ItemAlreadyHeldError) { reply.code(409).send({ message: 'Item already held' }); return; }
+      if (err instanceof ConcurrencyError) { reply.code(409).send({ message: 'Item already held' }); return; }
       throw err;
     }
   });

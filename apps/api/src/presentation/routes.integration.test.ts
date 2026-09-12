@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { createDb } from '../infrastructure/db/createDb.js';
 import { migrateToLatest } from '../infrastructure/db/migrate.js';
+import { ConcurrencyError } from '../domain/errors.js';
 import { buildDependencies } from './compositionRoot.js';
 import { buildApp } from './app.js';
 
@@ -115,5 +116,47 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
       method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, payload: { idempotencyKey: 'idem-1' },
     });
     expect(response.statusCode).toBe(401);
+  });
+
+  it('returns a generic 404 when the item belongs to a different wishlist than the URL slug', async () => {
+    const listA = await createList();
+    const listB = await createList();
+    const sessionResponse = await app.inject({ method: 'POST', url: `/api/lists/${listA.slug}/session`, payload: { key: listA.key } });
+    const cookie = extractCookieHeader(sessionResponse);
+
+    // A valid session for list A, but the item id in the URL belongs to list B.
+    const response = await app.inject({
+      method: 'POST', url: `/api/lists/${listA.slug}/items/${listB.itemId}/hold`,
+      headers: { cookie }, payload: { idempotencyKey: 'idem-1' },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ message: 'Not found' });
+  });
+
+  it('maps a ConcurrencyError from the use case to 409', async () => {
+    const db = createDb(':memory:');
+    await migrateToLatest(db);
+    const deps = buildDependencies(db);
+    const seedApp = buildApp(deps, { cookieSecret: 'test-secret' });
+    const createResponse = await seedApp.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller' } });
+    const list = createResponse.json() as { slug: string; key: string; itemId: string };
+
+    // Swap in a holdItem stub that reproduces the race EventStoreKysely.append
+    // detects (two concurrent HoldItem calls disagreeing on the stream's seq),
+    // to prove the route maps ConcurrencyError to 409 rather than falling
+    // through to the generic 500 handler.
+    const throwingHoldItem = { execute: async () => { throw new ConcurrencyError(list.itemId, 0, 1); } };
+    const raceApp = buildApp({ ...deps, holdItem: throwingHoldItem as unknown as typeof deps.holdItem }, { cookieSecret: 'test-secret' });
+
+    const sessionResponse = await raceApp.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } });
+    const cookie = extractCookieHeader(sessionResponse);
+
+    const response = await raceApp.inject({
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`,
+      headers: { cookie }, payload: { idempotencyKey: 'idem-1' },
+    });
+
+    expect(response.statusCode).toBe(409);
   });
 });
