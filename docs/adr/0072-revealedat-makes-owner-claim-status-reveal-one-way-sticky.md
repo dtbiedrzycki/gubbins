@@ -1,36 +1,61 @@
-# 0072. revealedAt makes owner claim-status reveal one-way sticky
+# 0072. `revealedAt` makes owner claim-status reveal one-way sticky
 
 - **Status:** Accepted
 - **Date:** 2026-09-09
 - **Deciders:** dtbiedrzycki
 
+## Context
+
+`revealAfter` was, at the time of this decision, derived from
+`eventDate` rather than stored. Under that scheme, an owner editing the
+list's timezone after the event would move `revealAfter` — and a
+forward move past `now` would re-hide claim status the owner had
+already seen, which is both useless (they already know) and confusing
+(the dashboard appears to lose data it previously showed).
+
 ## Decision
 
-`revealedAt` makes owner claim-status reveal one-way sticky once crossed; later timezone or event-date edits never re-hide what the owner has already seen
+We will make `revealedAt` sticky once `revealAfter` is first crossed,
+so later timezone or event-date edits never re-hide claim status the
+owner has already seen. A `revealedAt` field is set once, on first
+crossing, and never cleared, making the reveal transition one-way
+regardless of what happens to `revealAfter` afterward.
 
-## Detail
+## Alternatives considered
 
-**ADR-072 detail:** Because `revealAfter` is derived rather than stored, an owner
-editing the list timezone after the event would move it — and a forward move
-past `now` would re-hide claim status the owner has already seen, which is both
-useless (they already know) and confusing (the dashboard appears to lose data).
-A stored `revealedAt`, set once on first crossing and never cleared, makes the
-transition one-way. Recomputing visibility purely from `now >= revealAfter` was
-rejected for that reason; storing `revealAfter` as a fixed instant at creation
-instead was also rejected, since it would make the timezone field silently
-ineffective after the fact, which is worse than the problem it solves.
+- **Recompute visibility purely from `now >= revealAfter`, with no
+  stored flag** — rejected: with `revealAfter` derived, this
+  recomputation is exactly what re-hides claim status on a later
+  timezone or event-date edit, reproducing the problem this decision
+  exists to solve.
+- **Store `revealAfter` itself as a fixed instant at creation, instead
+  of adding `revealedAt`** — rejected at the time: this would make the
+  owner's timezone field silently ineffective after the fact (editing
+  timezone would no longer move anything the owner could see change),
+  which was judged worse than the problem it solves.
 
-Superseded in part by ADR-[066](./0066-revealafter-is-stored-not-derived.md), which stores `revealAfter` as an instant
-set at creation rather than deriving it. The concern recorded above — a
-timezone edit moving a derived `revealAfter` forward and re-hiding what
-the owner has seen — no longer arises, since the instant does not move.
-`revealedAt` is retained and still one-way, now guarding the narrower
-case of a *direct* edit to `revealAfter` after the crossing.
+## Consequences
 
-Nothing set `revealedAt` in the original decision: "set once when
-`revealAfter` is first crossed" implies a time-triggered write, but the
-spec has no scheduler for it and ADR-[065](./0065-one-periodic-task-with-giver-email-purge-attached.md) subsequently fixed the count of
-periodic tasks at one, with two unrelated duties. The write is therefore
-lazy, placed in owner-request middleware ahead of routing rather than on
-dashboard render, so an owner who returns after the crossing and edits
-settings before viewing the dashboard cannot outrun the flag.
+- ADR-[066](./0066-revealafter-is-stored-not-derived.md) later revisited
+  the rejected alternative above and reversed it: `revealAfter` is now
+  stored as a fixed instant set at creation rather than derived, which
+  removes the original timezone-re-hiding concern this ADR was built to
+  solve — a stored instant does not move on a later timezone or
+  event-date edit, so there is nothing left for such an edit to re-hide
+  through `revealAfter` alone. `revealedAt`'s stickiness is retained
+  regardless: it now guards the narrower remaining case of a *direct*
+  edit to the now-stored `revealAfter` after the crossing, still
+  ensuring such an edit cannot re-hide claim status the owner has
+  already seen. This ADR is not superseded by ADR-066 — the stickiness
+  mechanism decided here still stands, just guarding a narrower case
+  than originally.
+- Nothing in the original decision specified what sets `revealedAt`:
+  "set once when `revealAfter` is first crossed" implies a
+  time-triggered write, but the spec has no scheduler for it, and
+  ADR-[065](./0065-one-periodic-task-with-giver-email-purge-attached.md)
+  subsequently fixed the count of periodic tasks at one, with two
+  unrelated duties, ruling out adding a scheduler for this. The write is
+  therefore lazy, placed in owner-request middleware ahead of routing
+  rather than on dashboard render, so an owner who returns after the
+  crossing and edits settings before viewing the dashboard cannot
+  outrun the flag.
