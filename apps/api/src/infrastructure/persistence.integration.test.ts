@@ -39,6 +39,7 @@ describe('WishlistRepositoryKysely', () => {
 describe('ItemRepositoryKysely', () => {
   it('inserting an item also creates an available item_state row', async () => {
     const repo = new ItemRepositoryKysely(db);
+    await new WishlistRepositoryKysely(db).insert(Wishlist.create({ id: 'w1', slug: 'wishlist-w1', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' }));
     const item = Item.createSingle({ id: 'i1', wishlistId: 'w1', title: 'Stroller' });
 
     await repo.insert(item);
@@ -49,6 +50,7 @@ describe('ItemRepositoryKysely', () => {
 
   it('markHeld increments activeHolds and sets status/seq', async () => {
     const repo = new ItemRepositoryKysely(db);
+    await new WishlistRepositoryKysely(db).insert(Wishlist.create({ id: 'w1', slug: 'wishlist-w1', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' }));
     await repo.insert(Item.createSingle({ id: 'i1', wishlistId: 'w1', title: 'Stroller' }));
 
     await repo.markHeld('i1', 1);
@@ -58,6 +60,7 @@ describe('ItemRepositoryKysely', () => {
 
   it('findByWishlistId finds the item belonging to a wishlist', async () => {
     const repo = new ItemRepositoryKysely(db);
+    await new WishlistRepositoryKysely(db).insert(Wishlist.create({ id: 'w1', slug: 'wishlist-w1', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' }));
     await repo.insert(Item.createSingle({ id: 'i1', wishlistId: 'w1', title: 'Stroller' }));
 
     const found = await repo.findByWishlistId('w1');
@@ -68,6 +71,7 @@ describe('ItemRepositoryKysely', () => {
 
 describe('HoldRepositoryKysely', () => {
   it('round-trips a hold through recordHold and findByIdempotencyKey', async () => {
+    await new WishlistRepositoryKysely(db).insert(Wishlist.create({ id: 'w1', slug: 'wishlist-w1', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' }));
     await new ItemRepositoryKysely(db).insert(Item.createSingle({ id: 'i1', wishlistId: 'w1', title: 'Stroller' }));
     const repo = new HoldRepositoryKysely(db);
     const expiresAt = new Date('2026-01-04T00:00:00.000Z');

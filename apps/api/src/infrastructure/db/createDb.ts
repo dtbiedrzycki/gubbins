@@ -5,11 +5,10 @@ import type { Database } from './schema.js';
 export function createDb(path: string): Kysely<Database> {
   const sqlite = new SqliteDatabase(path);
   sqlite.pragma('journal_mode = WAL');
-  // This environment's better-sqlite3 build is compiled with
-  // SQLITE_DEFAULT_FOREIGN_KEYS=1, unlike the SQLite default (OFF).
-  // The integration tests (and this skeleton generally) exercise
-  // repositories independently without always inserting every parent
-  // row first, so normalize to the standard SQLite default here.
-  sqlite.pragma('foreign_keys = OFF');
+  // Enforce referential integrity explicitly rather than relying on
+  // whatever a given better-sqlite3 build's compiled-in default happens
+  // to be (it varies by build) — the schema's foreign keys must be
+  // real constraints the database checks, not just documentation.
+  sqlite.pragma('foreign_keys = ON');
   return new Kysely<Database>({ dialect: new SqliteDialect({ database: sqlite }) });
 }

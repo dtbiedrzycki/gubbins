@@ -1,6 +1,7 @@
 import type { Kysely } from 'kysely';
 
 export async function up(db: Kysely<unknown>): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Kysely migration schema-builder typing is intentionally loose; see ADR-0072.
   const schema = db.schema as Kysely<any>['schema'];
 
   await schema.createTable('wishlists').ifNotExists()
