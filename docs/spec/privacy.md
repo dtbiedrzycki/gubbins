@@ -90,7 +90,7 @@
   actor from the operator themselves**, and is explicitly out of the
   application's scope to mitigate — encryption-at-rest is a deployment/OS-
   level concern (e.g. an encrypted volume, LUKS), not an app-level one.
-  Named explicitly in the threat model ([threat model](threat-model.md)) so operators understand this
+  Named explicitly in the threat model ([threat model](threat-model-summary.md)) so operators understand this
   is their responsibility rather than silently assumed away. This also
   covers the guest key, owner token, and hold secrets, all of which are
   stored in plaintext ([access & identity](access-identity.md), ADR-[054](../adr/0054-guest-key-storage-changed-from-one-way-hash-to-plaintext.md)) — the same operator-trust boundary

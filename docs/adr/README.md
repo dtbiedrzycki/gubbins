@@ -23,10 +23,10 @@ the choice made, and the consequences accepted.
 
 ## Numbering
 
-The numbering scheme (including the starting number and whether earlier
-decisions get backfilled) is **not settled yet** — some decisions
-predate this repository and will be imported later. Until then, agree a
-number on the PR that introduces an ADR.
+ADRs are numbered `0001..N` with no gaps. New ADRs take the next free
+number; folding or superseding an ADR does not free its number for
+reuse (see "An accepted ADR is immutable" above) except during the
+one-time renumbering documented in the restructuring history.
 
 ## Index
 
@@ -119,5 +119,5 @@ in the repo before being written up here.
 *(Not every ADR carries a separate detail block. Blocks are written
 where a decision needs rationale, rejected alternatives, or context
 beyond what its body section already states — so ADR-[030](./0030-performance-resource-targets-set-for-pi-class-hardware.md) (§[3.17](../spec/performance-and-resource-budget.md)) and
-ADR-[035](./0035-threat-model-documented-in-docs-threat-model-md.md) (§[3.21](../spec/threat-model.md)), both fully covered by their sections, have none.
+ADR-[035](./0035-threat-model-documented-in-docs-threat-model-md.md) (§[3.21](../spec/threat-model-summary.md)), both fully covered by their sections, have none.
 Absence of a block is not an absence of reasoning.)*

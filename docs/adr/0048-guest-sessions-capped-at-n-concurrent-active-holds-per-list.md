@@ -10,7 +10,7 @@ Guest sessions capped at N concurrent active holds across a list, with an owner-
 
 ## Detail
 
-**ADR-048 detail:** §[3.21](../spec/threat-model.md) names a malicious or curious co-guest with a valid key
+**ADR-048 detail:** §[3.21](../spec/threat-model-summary.md) names a malicious or curious co-guest with a valid key
 as an actor, but every rate limit in the spec sat on a credential-proving route,
 leaving post-authentication writes unbounded. The concrete denial path is
 hold-hoarding: holding every quantity-1 item makes the list read as fully

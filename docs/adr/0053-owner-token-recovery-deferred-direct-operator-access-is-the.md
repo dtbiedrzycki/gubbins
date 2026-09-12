@@ -14,7 +14,7 @@ Owner-token recovery (operator CLI, self-service email) deferred; current recove
 designed for owner-token recovery, but on review the dominant deployment shape
 (solo self-hoster, operator = owner) needs neither, and the "hosting for a
 friend" case they'd serve is already addressable today via direct operator
-access — the same trust boundary the threat model (§[3.21](../spec/threat-model.md)) already assumes for
+access — the same trust boundary the threat model (§[3.21](../spec/threat-model-summary.md)) already assumes for
 the operator. Building dedicated tooling now is complexity ahead of
 demonstrated need (YAGNI, consistent with ADR-[021](./0021-thank-you-tracking-stored-outside-rebuildprojections-scope.md), ADR-[034](./0034-crypto-shredding-deferred-whole-list-purge-covers-the-need.md)).
 

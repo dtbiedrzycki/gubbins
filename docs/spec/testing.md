@@ -25,7 +25,7 @@
   - **Output escaping across every free-text field**: list `title` and
     `description`, guest name and message, manual-gift giver name and
     description, payment-method `label`/`handle`/`instructions`, and
-    `privacyNotice`. [Threat model](threat-model.md) claims escaping as the stored-XSS mitigation;
+    `privacyNotice`. [Threat model](threat-model-summary.md) claims escaping as the stored-XSS mitigation;
     this is what verifies it. The list is enumerated rather than
     described so a field added later without a test is visible as an
     omission.
@@ -40,14 +40,14 @@
   - **Guest-key transport** (ADR-[069](../adr/0069-the-guest-key-travels-in-a-fragment.md)): no request to `/{slug}` carries
     the key in a query string or path; the key-entry POST body is
     redacted in logs; key entry rejects a cross-origin POST.
-  - Rate-limit threshold enforcement ([threat model](threat-model.md))
+  - Rate-limit threshold enforcement ([threat model](threat-model-summary.md))
 - Backup/restore round-trip test: `VACUUM INTO` backup and JSON export, wipe, restore each, verify equivalence
   — and: a redacted `GuestPii` row round-trips as redacted through both
   backup methods; importing a pre-redaction export over a database
   holding a redacted row leaves the row redacted.
 - Migration test: run every migration against a seeded copy of the prior schema version, in CI, to catch failures pre-release
 - Load test against real Pi-class hardware to verify the [performance & resource budget](performance-and-resource-budget.md) performance/resource budgets — targets are budgets to be measured, not assumptions
-- **Rate-limit false-positive test**: simulate many honest guests sharing a single IP (realistic at a physical event on venue wifi) against the per-IP thresholds in [threat model](threat-model.md); adjust the per-IP threshold if the false-positive rate proves too aggressive, before v1. Numbers were set as reasonable defaults, not derived empirically — this test is how they get validated. *(ADR-[042](../adr/0042-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md))*
+- **Rate-limit false-positive test**: simulate many honest guests sharing a single IP (realistic at a physical event on venue wifi) against the per-IP thresholds in [threat model](threat-model-summary.md); adjust the per-IP threshold if the false-positive rate proves too aggressive, before v1. Numbers were set as reasonable defaults, not derived empirically — this test is how they get validated. *(ADR-[042](../adr/0042-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md))*
   Run the same simulation twice more. Once with the app behind a reverse
   proxy and `TRUSTED_PROXY_HOPS` left at 0, asserting the
   misconfiguration warning fires and the per-IP limiter is observably

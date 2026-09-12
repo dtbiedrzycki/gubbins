@@ -57,5 +57,5 @@ no longer about currency. The fat-finger case ADR-[049](./0049-contribution-amou
 a client-side confirmation, which catches the error where it happens and
 needs no configured number. The cost is accepted honestly: a hostile
 guest with a valid key can pledge a large representable amount and the
-owner must void it — consistent with §[3.21](../spec/threat-model.md)'s existing stance that
+owner must void it — consistent with §[3.21](../spec/threat-model-summary.md)'s existing stance that
 detection-and-reversal, not prevention, is the answer to a keyed guest.

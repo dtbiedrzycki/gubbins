@@ -10,7 +10,7 @@ The owner token is never carried in a URL: entry is a paste into the existing ho
 
 ## Detail
 
-**ADR-064 detail:** §[3.21](../spec/threat-model.md) listed "Key/token interception via the `?key=`
+**ADR-064 detail:** §[3.21](../spec/threat-model-summary.md) listed "Key/token interception via the `?key=`
 URL" as mitigated by ADR-[069](./0069-the-guest-key-travels-in-a-fragment.md), but ADR-[069](./0069-the-guest-key-travels-in-a-fragment.md) and §[3.1](../spec/access-identity.md) only ever specified
 the mechanism for the guest key — how the owner presents their token was
 never stated anywhere. The threat row therefore claimed coverage the spec
@@ -37,7 +37,7 @@ the owner token was never routed through either design).
 
 The chosen path required almost no new machinery: §[3.1](../spec/access-identity.md) already specifies
 a homepage input accepting "a list link, an owner token, or a slug+key
-pair" and smart-routing, and §[3.21](../spec/threat-model.md) already rate-limits "owner token
+pair" and smart-routing, and §[3.21](../spec/threat-model-summary.md) already rate-limits "owner token
 entry" as a credential-proving route — both of which read as a POST
 rather than a link. This ADR decides that the token *only* travels that
 way, and renames the acknowledgement screen accordingly.

@@ -15,7 +15,7 @@ HTTPS a deployment requirement and identified the target population as
 self-hosters behind hobbyist reverse proxies — so the documented
 deployment and the default configuration were in direct conflict. Behind
 a proxy with the flag unset, every request presents the proxy's address
-and all five per-IP thresholds in §[3.21](../spec/threat-model.md) become one global bucket: five
+and all five per-IP thresholds in §[3.21](../spec/threat-model-summary.md) become one global bucket: five
 mistyped keys lock out an entire guest list for fifteen minutes, which at
 a physical event with a printed key is not an edge case.
 

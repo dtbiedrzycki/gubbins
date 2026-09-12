@@ -13,7 +13,7 @@
   stopped by rate limiting and unguessable `TokenGenerator` output
   (ADR-[016](../adr/0016-no-public-list-directory-lookups-fail-generically.md), ADR-[042](../adr/0042-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md)), not by hashing.
 - Successful entry sets a signed, httpOnly, list-scoped session cookie
-- Rate limit key attempts per IP **and** per slug, with global lockout — see [threat model](threat-model.md) for concrete thresholds
+- Rate limit key attempts per IP **and** per slug, with global lockout — see [threat model](threat-model-summary.md) for concrete thresholds
 - Key gate page reveals nothing — not the list `title`, not the
   description, no claim counts, nothing identifying the owner. `title` is
   the only list-identifying string in the model, so withholding it is the
@@ -72,7 +72,7 @@
   Today, recovery for a list whose owner is not the operator requires the
   operator to act directly (rotating the token via container/DB access) —
   the same trust boundary the threat model already assumes for the
-  operator ([threat model](threat-model.md)). If the deferred flow is later built, the field is
+  operator ([threat model](threat-model-summary.md)). If the deferred flow is later built, the field is
   added then, in settings.
 - `X-Robots-Tag: noindex` and `robots.txt` on both guest and manage routes
 - **Owner tokens are shared per list, not per-owner.** Co-owners (e.g., a couple) use the same token; there is no per-owner identity anywhere in the system, so N-tokens-per-list would add a token-management surface without any accountability benefit to attach it to. Compromise or a change in who should have access is handled by **rotation** (see above), not by issuing additional tokens. *(ADR-[015](../adr/0015-owner-tokens-are-shared-per-list-not-per-owner.md))*

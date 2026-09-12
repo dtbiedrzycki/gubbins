@@ -30,7 +30,7 @@ three render strategies:
   deep link. Owner-supplied strings are never rendered into an `href`;
   deep links exist solely for known `kind` values whose templates ship
   with the app, and rendered URLs are restricted to `https:` plus the
-  known app schemes those templates declare. *(ADR-[046](../adr/0046-payment-methods-are-per-list-configuration-not-a-hardcoded.md), [threat model](threat-model.md))*
+  known app schemes those templates declare. *(ADR-[046](../adr/0046-payment-methods-are-per-list-configuration-not-a-hardcoded.md), [threat model](threat-model-summary.md))*
 - Payment method is **snapshotted onto the Contribution at pledge time**,
   a deliberate exception to the live-read rule in ADR-[018](../adr/0018-group-fund-targetminor-is-editable-and-read-live.md). *(ADR-[047](../adr/0047-contribution-snapshots-its-payment-method-at-pledge-time.md))*
 
