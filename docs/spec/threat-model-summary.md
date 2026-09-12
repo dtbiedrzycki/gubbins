@@ -16,7 +16,7 @@ during the event window.
 learn nothing, per [access & identity](access-identity.md)); owner; unauthenticated internet (default
 assumption for an internet-facing app); a malicious/curious co-guest with
 a valid key; a network attacker with proxy/log access; the hosting
-operator (explicitly out of scope as an adversary, per §[1](../../gubbins-spec.md#non-goals)).
+operator (explicitly out of scope as an adversary, per [non-goals](../../gubbins-spec.md#non-goals)).
 
 **Threats identified, each mapped to an existing or newly-added
 mitigation:**
@@ -45,7 +45,7 @@ mitigation:**
 | Guest-data-access secret guessing | Unguessable `TokenGenerator` output; rate limiting below; same generic-failure response pattern as other lookups ([access & identity](access-identity.md), ADR-[058](../adr/0058-guest-self-service-data-access-erasure-via-guestdataaccess.md)) |
 | Guest-data-access secret exposed via URL (link sharing, referrer, shoulder-surfing) | Grants access to that guest's own data only — no cross-guest or owner-level access — and the sole action beyond viewing is deleting that same guest's own data, so the worst case of a leaked secret is self-limited to one guest's own records |
 
-**Explicit non-goals** (restated from §[1](../../gubbins-spec.md#non-goals) for the threat model's own
+**Explicit non-goals** (restated from [non-goals](../../gubbins-spec.md#non-goals) for the threat model's own
 completeness): protection against a hostile server operator; protection
 against a legitimately-keyed guest who shares their access outside the
 invite list (a social/physical trust boundary, not a software one);
