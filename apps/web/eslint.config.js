@@ -19,13 +19,19 @@ export default [
   {
     files: ['src/features/create-list/**/*.{ts,tsx}'],
     rules: {
-      'no-restricted-imports': ['error', { patterns: [{ group: ['**/holds/*'], message: "create-list may not import holds' internals — go through src/api/ or a shared UI primitive." }] }],
+      'no-restricted-imports': ['error', { patterns: [{ group: ['**/holds/*', '**/guest-key/*'], message: "create-list may not import another feature's internals — go through src/api/ or a shared UI primitive." }] }],
     },
   },
   {
     files: ['src/features/holds/**/*.{ts,tsx}'],
     rules: {
-      'no-restricted-imports': ['error', { patterns: [{ group: ['**/create-list/*'], message: "holds may not import create-list's internals — go through src/api/ or a shared UI primitive." }] }],
+      'no-restricted-imports': ['error', { patterns: [{ group: ['**/create-list/*', '**/guest-key/*'], message: "holds may not import another feature's internals — go through src/api/ or a shared UI primitive." }] }],
+    },
+  },
+  {
+    files: ['src/features/guest-key/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [{ group: ['**/create-list/*', '**/holds/*'], message: "guest-key may not import another feature's internals — go through src/api/ or a shared UI primitive." }] }],
     },
   },
 ];
