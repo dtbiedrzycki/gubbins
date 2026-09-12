@@ -5,7 +5,7 @@ import type { ItemRepository, ItemState } from '../ports/ItemRepository.js';
 import type { HoldRepository, HoldRecord } from '../ports/HoldRepository.js';
 import type { EventStore, DomainEvent } from '../ports/EventStore.js';
 import type { UnitOfWork, TransactionContext } from '../ports/UnitOfWork.js';
-import { ConcurrencyError } from '../../domain/errors/index.js';
+import { ConcurrencyError } from '../../domain/errors.js';
 
 export class InMemoryWishlistRepository implements WishlistRepository {
   private bySlug = new Map<string, Wishlist>();
