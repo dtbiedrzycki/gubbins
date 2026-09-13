@@ -26,7 +26,7 @@ function readSession(request: FastifyRequest, wishlist: Wishlist): SessionPayloa
   if (!unsigned.valid || !unsigned.value) return null;
   try {
     const payload = JSON.parse(unsigned.value) as SessionPayload;
-    if (payload.wishlistId !== wishlist.id || payload.keyGen !== wishlist.keyGen) return null;
+    if (payload.wishlistId !== wishlist.id.value || payload.keyGen !== wishlist.keyGen) return null;
     return payload;
   } catch {
     return null;
@@ -73,7 +73,7 @@ export function registerRoutes(app: FastifyInstance, deps: AppDependencies): voi
     // Read through the aggregate: findBySlug already loaded the item and its
     // availability status, so there is no second repository round-trip and no
     // way to render an item that isn't this wishlist's.
-    const itemView = wishlist.itemView;
+    const itemView = wishlist.toItemView();
     if (!itemView) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
 
     reply.send(listViewResponseSchema.parse({
@@ -96,11 +96,11 @@ export function registerRoutes(app: FastifyInstance, deps: AppDependencies): voi
     // that could make it yield another list's item, which is what makes the
     // cross-wishlist bug class structurally unreachable here rather than
     // merely patched.
-    if (wishlist.item?.id !== itemId) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
+    if (wishlist.item?.id.value !== itemId) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
 
     try {
       const result = await deps.holdItem.execute({
-        wishlistId: wishlist.id, itemId, sessionId: session.sessionId, idempotencyKey: input.idempotencyKey,
+        wishlistId: wishlist.id.value, itemId, sessionId: session.sessionId, idempotencyKey: input.idempotencyKey,
       });
       reply.code(201).send(holdItemResponseSchema.parse(result));
     } catch (err) {
