@@ -98,7 +98,7 @@ describe('ItemRepositoryKysely', () => {
 
     await repo.insert(item);
 
-    expect(await repo.findById('i1')).toEqual(item);
+    expect(await repo.findByWishlistId('w1')).toEqual(item);
     expect(await repo.getState('i1')).toEqual({ seq: 0, activeHolds: 0, status: 'available' });
   });
 

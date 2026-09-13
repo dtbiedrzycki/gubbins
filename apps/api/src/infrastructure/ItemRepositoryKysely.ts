@@ -17,12 +17,6 @@ export class ItemRepositoryKysely implements ItemRepository {
     }).execute();
   }
 
-  async findById(id: string): Promise<Item | null> {
-    const row = await this.db.selectFrom('items').selectAll().where('id', '=', id).executeTakeFirst();
-    if (!row) return null;
-    return Item.reconstitute({ id: row.id, wishlistId: row.wishlist_id, title: row.title });
-  }
-
   async findByWishlistId(wishlistId: string): Promise<Item | null> {
     const row = await this.db.selectFrom('items').selectAll().where('wishlist_id', '=', wishlistId).executeTakeFirst();
     if (!row) return null;
