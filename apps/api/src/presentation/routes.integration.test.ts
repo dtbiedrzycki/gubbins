@@ -111,6 +111,25 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
     expect(second.statusCode).toBe(409);
   });
 
+  it('replays the original hold for a repeated idempotency key instead of creating a second hold', async () => {
+    const list = await createList();
+    const sessionResponse = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } });
+    const cookie = extractCookieHeader(sessionResponse);
+
+    const first = await app.inject({
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`,
+      headers: { cookie }, payload: { idempotencyKey: 'idem-1' },
+    });
+    const second = await app.inject({
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`,
+      headers: { cookie }, payload: { idempotencyKey: 'idem-1' },
+    });
+
+    expect(first.statusCode).toBe(201);
+    expect(second.statusCode).toBe(201);
+    expect(second.json()).toEqual(first.json());
+  });
+
   it('returns the same generic 404 without a session cookie as for an unknown slug (ADR-016/054 anti-enumeration)', async () => {
     const list = await createList();
     const response = await app.inject({
