@@ -65,6 +65,14 @@ describe('Wishlist.reconstitute', () => {
     expect(wishlist.item).toBe(item);
     expect(wishlist.authorizeHold('i1')).toEqual({ expectedSeq: 7 });
   });
+
+  it('rejects an item state whose item belongs to a different wishlist', () => {
+    const item = Item.reconstitute({ id: 'i1', wishlistId: 'w-other', title: 'Cot' });
+    expect(() => Wishlist.reconstitute({
+      ...persisted,
+      itemState: { item, seq: 7, activeHolds: 0, status: 'available' },
+    })).toThrow(DomainValidationError);
+  });
 });
 
 describe('Wishlist.addItem', () => {
@@ -80,6 +88,13 @@ describe('Wishlist.addItem', () => {
     wishlist.addItem(Item.createSingle({ id: 'i1', wishlistId: 'w1', title: 'Cot' }));
     expect(() => wishlist.addItem(Item.createSingle({ id: 'i2', wishlistId: 'w1', title: 'Pram' })))
       .toThrow(DomainValidationError);
+  });
+
+  it('throws when the item belongs to a different wishlist', () => {
+    const wishlist = Wishlist.create(validProps);
+    const foreign = Item.createSingle({ id: 'i1', wishlistId: 'w-other', title: 'Cot' });
+    expect(() => wishlist.addItem(foreign)).toThrow(DomainValidationError);
+    expect(wishlist.item).toBeNull();
   });
 });
 

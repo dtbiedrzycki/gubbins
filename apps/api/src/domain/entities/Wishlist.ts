@@ -53,6 +53,9 @@ export class Wishlist {
     id: string; slug: string; title: string; ownerToken: string; key: string; keyGen: number;
     itemState?: WishlistItemState;
   }): Wishlist {
+    if (props.itemState && props.itemState.item.wishlistId !== props.id) {
+      throw new DomainValidationError('Item belongs to a different wishlist');
+    }
     const wishlist = new Wishlist(
       props.id,
       props.slug,
@@ -67,6 +70,9 @@ export class Wishlist {
 
   /** Attaches the wishlist's item. This slice allows exactly one item per wishlist. */
   addItem(item: Item): void {
+    if (item.wishlistId !== this.id) {
+      throw new DomainValidationError('Item belongs to a different wishlist');
+    }
     if (this.itemState !== null) {
       throw new DomainValidationError('Wishlist already has an item; this slice supports a single item per wishlist');
     }
