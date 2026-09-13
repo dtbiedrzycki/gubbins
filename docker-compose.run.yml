@@ -1,0 +1,24 @@
+# Layer this on top of the base file to actually build and serve the app,
+# rather than idling for a devcontainer to attach:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.run.yml up -d --build
+#
+# Deliberately a separate file, mirroring docker-compose.sandbox.yml's own
+# pattern, rather than changing docker-compose.yml's default `command`.
+# That default (`sleep infinity`) is relied on by two other consumers this
+# file must not disturb: the VS Code devcontainer flow (devcontainer.json
+# keeps overrideCommand: false specifically so the container stays
+# attachable) and the Claude Code auto-mode sandbox, whose documented
+# invocation (see docker-compose.sandbox.yml) is this same base file layered
+# with a different overlay — it needs the container to stay alive for the
+# agent's own commands, not have its main process replaced by the app.
+#
+# apps/api's `start` script needs devDependencies (tsx) present, so this
+# still uses the dev image (Dockerfile.dev) rather than a separate
+# production image — consistent with this sub-project's "ten-minute
+# self-hosted setup," not yet the leaner production image that's later
+# ops/hardening work.
+
+services:
+  app:
+    command: ["sh", "-c", "npm run build && npm run migrate --workspace=apps/api && npm run start --workspace=apps/api"]
