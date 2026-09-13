@@ -5,6 +5,16 @@ import { DomainValidationError } from '../errors.js';
  * normalised, since any transformation would change the credential.
  */
 export class GuestKey {
+  /**
+   * Nominal-typing brand. The three bearer-secret VOs are otherwise
+   * structurally identical, which would let TypeScript accept an
+   * `OwnerToken` or `HoldSecret` wherever a `GuestKey` is expected — a
+   * parameter swap would compile silently and surface only as a
+   * wrong-permission bug. A private, literal-typed field makes the classes
+   * mutually unassignable at zero runtime cost.
+   */
+  private readonly _brand = 'GuestKey' as const;
+
   private constructor(readonly value: string) {}
 
   static from(value: string): GuestKey {
