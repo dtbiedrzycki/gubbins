@@ -70,13 +70,15 @@ export function registerRoutes(app: FastifyInstance, deps: AppDependencies): voi
     // enumerate valid slugs).
     if (!session) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
 
-    const item = await deps.items.findByWishlistId(wishlist.id);
-    if (!item) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
-    const state = await deps.items.getState(item.id);
+    // Read through the aggregate: findBySlug already loaded the item and its
+    // availability status, so there is no second repository round-trip and no
+    // way to render an item that isn't this wishlist's.
+    const itemView = wishlist.itemView;
+    if (!itemView) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
 
     reply.send(listViewResponseSchema.parse({
       title: wishlist.title,
-      item: { id: item.id, title: item.title, status: state.status },
+      item: itemView,
     }));
   });
 
@@ -89,16 +91,17 @@ export function registerRoutes(app: FastifyInstance, deps: AppDependencies): voi
     // Same generic 404 as an unknown slug — see the GET route above.
     if (!session) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
 
-    // Scoped lookup: findInWishlist returns null both when the item doesn't
-    // exist AND when it belongs to a different wishlist, so a valid session
-    // for one list can never act on another list's item just by supplying
-    // that item's id in the URL — enforced by the repository, not a
-    // post-hoc comparison here.
-    const item = await deps.items.findInWishlist(wishlist.id, itemId);
-    if (!item) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
+    // `wishlist` was loaded scoped to this URL's slug, so `wishlist.item` can
+    // only ever be *this* wishlist's item or null. There is no query parameter
+    // that could make it yield another list's item, which is what makes the
+    // cross-wishlist bug class structurally unreachable here rather than
+    // merely patched.
+    if (wishlist.item?.id !== itemId) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
 
     try {
-      const result = await deps.holdItem.execute({ itemId, sessionId: session.sessionId, idempotencyKey: input.idempotencyKey });
+      const result = await deps.holdItem.execute({
+        wishlistId: wishlist.id, itemId, sessionId: session.sessionId, idempotencyKey: input.idempotencyKey,
+      });
       reply.code(201).send(holdItemResponseSchema.parse(result));
     } catch (err) {
       if (err instanceof ItemNotFoundError) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
