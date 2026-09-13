@@ -18,20 +18,20 @@ class InMemoryItemRepository implements ItemRepository {
   private states = new Map<string, ItemState>();
 
   async insert(item: Item): Promise<void> {
-    this.byId.set(item.id, item);
-    this.states.set(item.id, { seq: 0, activeHolds: 0, status: 'available' });
+    this.byId.set(item.id.value, item);
+    this.states.set(item.id.value, { seq: 0, activeHolds: 0, status: 'available' });
   }
 
   async findByWishlistId(wishlistId: string): Promise<Item | null> {
     for (const item of this.byId.values()) {
-      if (item.wishlistId === wishlistId) return item;
+      if (item.wishlistId.value === wishlistId) return item;
     }
     return null;
   }
 
   async findInWishlist(wishlistId: string, itemId: string): Promise<Item | null> {
     const item = this.byId.get(itemId);
-    return item && item.wishlistId === wishlistId ? item : null;
+    return item && item.wishlistId.value === wishlistId ? item : null;
   }
 
   async getState(itemId: string): Promise<ItemState> {
@@ -58,8 +58,8 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   private items = new InMemoryItemRepository();
 
   async insert(wishlist: Wishlist): Promise<void> {
-    this.bySlug.set(wishlist.slug, wishlist);
-    this.byId.set(wishlist.id, wishlist);
+    this.bySlug.set(wishlist.slug.value, wishlist);
+    this.byId.set(wishlist.id.value, wishlist);
     const item = wishlist.item;
     if (item !== null) await this.items.insert(item);
   }
@@ -85,11 +85,11 @@ export class InMemoryWishlistRepository implements WishlistRepository {
    */
   private async hydrate(wishlist: Wishlist | undefined): Promise<Wishlist | null> {
     if (wishlist === undefined) return null;
-    const item = await this.items.findByWishlistId(wishlist.id);
-    const itemState = item === null ? undefined : { item, ...(await this.items.getState(item.id)) };
+    const item = await this.items.findByWishlistId(wishlist.id.value);
+    const itemState = item === null ? undefined : { item, ...(await this.items.getState(item.id.value)) };
     return Wishlist.reconstitute({
-      id: wishlist.id,
-      slug: wishlist.slug,
+      id: wishlist.id.value,
+      slug: wishlist.slug.value,
       title: wishlist.title,
       ownerToken: wishlist.ownerToken.value,
       key: wishlist.key.value,

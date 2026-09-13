@@ -1,21 +1,28 @@
 import { Wishlist } from '../../domain/entities/Wishlist.js';
 import { Item } from '../../domain/entities/Item.js';
 
+const DEFAULT_WISHLIST_ID = '11111111-1111-4111-8111-111111111111';
+const DEFAULT_ITEM_ID = '33333333-3333-4333-8333-333333333333';
+
 export class WishlistBuilder {
-  private props = { id: 'w1', slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' };
-  private item: Item | null = null;
+  private props = { id: DEFAULT_WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' };
+  private itemProps: { id: string; title: string } | null = null;
 
   withId(id: string): this { this.props.id = id; return this; }
   withSlug(slug: string): this { this.props.slug = slug; return this; }
   withTitle(title: string): this { this.props.title = title; return this; }
   withOwnerToken(ownerToken: string): this { this.props.ownerToken = ownerToken; return this; }
   withKey(key: string): this { this.props.key = key; return this; }
-  /** Attaches the item to the built aggregate; omit it to build an itemless wishlist. */
-  withItem(item: Item): this { this.item = item; return this; }
+  /**
+   * Attaches an item to the built aggregate — the wishlist assigns its own
+   * id, so only `id`/`title` are needed here. Omit to build an itemless
+   * wishlist.
+   */
+  withItem(props: { id: string; title: string }): this { this.itemProps = props; return this; }
 
   build(): Wishlist {
     const wishlist = Wishlist.create({ ...this.props });
-    if (this.item !== null) wishlist.addItem(this.item);
+    if (this.itemProps !== null) wishlist.addItem(this.itemProps);
     return wishlist;
   }
 }
@@ -25,7 +32,7 @@ export function aWishlist(): WishlistBuilder {
 }
 
 export class ItemBuilder {
-  private props = { id: 'item-1', wishlistId: 'w1', title: 'Stroller' };
+  private props = { id: DEFAULT_ITEM_ID, wishlistId: DEFAULT_WISHLIST_ID, title: 'Stroller' };
 
   withId(id: string): this { this.props.id = id; return this; }
   withWishlistId(wishlistId: string): this { this.props.wishlistId = wishlistId; return this; }

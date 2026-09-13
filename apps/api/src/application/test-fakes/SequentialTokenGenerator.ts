@@ -8,7 +8,12 @@ export class SequentialTokenGenerator implements TokenGenerator {
     return `${prefix}-${this.counter}`;
   }
 
-  generateId(): string { return this.next('id'); }
+  /** Deterministic but UUID-v4-shaped, so it satisfies the domain's Id value objects. */
+  generateId(): string {
+    this.counter += 1;
+    return `00000000-0000-4000-8000-${String(this.counter).padStart(12, '0')}`;
+  }
+
   generateSlug(): string { return this.next('slug'); }
   generateOwnerToken(): string { return this.next('owner-token'); }
   generateGuestKey(): string { return this.next('guest-key'); }

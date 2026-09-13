@@ -1,15 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { InMemoryWishlistRepository } from './InMemoryRepositories.js';
-import { aWishlist, anItem } from './builders.js';
+import { aWishlist } from './builders.js';
 import { ItemAlreadyHeldError, ItemNotFoundError } from '../../domain/errors.js';
+
+const WISHLIST_ID = '11111111-1111-4111-8111-111111111111';
+const OTHER_WISHLIST_ID = '22222222-2222-4222-8222-222222222222';
+const ITEM_ID = '33333333-3333-4333-8333-333333333333';
 
 describe('InMemoryWishlistRepository', () => {
   it('returns the inserted wishlist with its item attached, by slug and by id', async () => {
     const repo = new InMemoryWishlistRepository();
-    await repo.insert(aWishlist().withItem(anItem().build()).build());
+    await repo.insert(aWishlist().withItem({ id: ITEM_ID, title: 'Stroller' }).build());
 
-    for (const loaded of [await repo.findBySlug('abc123'), await repo.findById('w1')]) {
-      expect(loaded?.itemView).toEqual({ id: 'item-1', title: 'Stroller', status: 'available' });
+    for (const loaded of [await repo.findBySlug('abc123'), await repo.findById(WISHLIST_ID)]) {
+      expect(loaded?.toItemView()).toEqual({ id: ITEM_ID, title: 'Stroller', status: 'available' });
     }
   });
 
@@ -34,32 +38,32 @@ describe('InMemoryWishlistRepository', () => {
 
     const loaded = await repo.findBySlug('abc123');
     expect(loaded).not.toBe(inserted);
-    expect(loaded?.id).toBe(inserted.id);
-    expect(loaded?.slug).toBe(inserted.slug);
+    expect(loaded?.id.value).toBe(inserted.id.value);
+    expect(loaded?.slug.value).toBe(inserted.slug.value);
     expect(loaded?.title).toBe(inserted.title);
     expect(loaded?.keyGen).toBe(inserted.keyGen);
   });
 
   it('marks the item held, so the reloaded aggregate refuses a second hold', async () => {
     const repo = new InMemoryWishlistRepository();
-    await repo.insert(aWishlist().withItem(anItem().build()).build());
-    const beforeHold = await repo.findById('w1');
-    expect(beforeHold?.authorizeHold('item-1')).toEqual({ expectedSeq: 0 });
+    await repo.insert(aWishlist().withItem({ id: ITEM_ID, title: 'Stroller' }).build());
+    const beforeHold = await repo.findById(WISHLIST_ID);
+    expect(beforeHold?.authorizeHold(ITEM_ID)).toEqual({ expectedSeq: 0 });
 
-    await repo.markItemHeld('w1', 'item-1', 1);
+    await repo.markItemHeld(WISHLIST_ID, ITEM_ID, 1);
 
-    const afterHold = await repo.findById('w1');
-    expect(afterHold?.itemView?.status).toBe('held');
-    expect(() => afterHold?.authorizeHold('item-1')).toThrow(ItemAlreadyHeldError);
+    const afterHold = await repo.findById(WISHLIST_ID);
+    expect(afterHold?.toItemView()?.status).toBe('held');
+    expect(() => afterHold?.authorizeHold(ITEM_ID)).toThrow(ItemAlreadyHeldError);
   });
 
   it('preserves the wishlist fields when it rebuilds the aggregate after a hold', async () => {
     const repo = new InMemoryWishlistRepository();
     await repo.insert(
-      aWishlist().withOwnerToken('tok-abc').withKey('key-xyz').withItem(anItem().build()).build(),
+      aWishlist().withOwnerToken('tok-abc').withKey('key-xyz').withItem({ id: ITEM_ID, title: 'Stroller' }).build(),
     );
 
-    await repo.markItemHeld('w1', 'item-1', 1);
+    await repo.markItemHeld(WISHLIST_ID, ITEM_ID, 1);
 
     const loaded = await repo.findBySlug('abc123');
     expect(loaded?.ownerToken.value).toBe('tok-abc');
@@ -70,10 +74,10 @@ describe('InMemoryWishlistRepository', () => {
 
   it('refuses to mark an item held through a wishlist that does not own it', async () => {
     const repo = new InMemoryWishlistRepository();
-    await repo.insert(aWishlist().withItem(anItem().build()).build());
-    await repo.insert(aWishlist().withId('w2').withSlug('def456').build());
+    await repo.insert(aWishlist().withItem({ id: ITEM_ID, title: 'Stroller' }).build());
+    await repo.insert(aWishlist().withId(OTHER_WISHLIST_ID).withSlug('def456').build());
 
-    await expect(repo.markItemHeld('w2', 'item-1', 1)).rejects.toThrow(ItemNotFoundError);
-    expect((await repo.findById('w1'))?.itemView?.status).toBe('available');
+    await expect(repo.markItemHeld(OTHER_WISHLIST_ID, ITEM_ID, 1)).rejects.toThrow(ItemNotFoundError);
+    expect((await repo.findById(WISHLIST_ID))?.toItemView()?.status).toBe('available');
   });
 });
