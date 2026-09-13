@@ -1,25 +1,19 @@
-import type { Wishlist } from '../../domain/entities/Wishlist.js';
+import { Wishlist } from '../../domain/entities/Wishlist.js';
 import type { Item } from '../../domain/entities/Item.js';
 import type { WishlistRepository } from '../ports/WishlistRepository.js';
 import type { ItemRepository, ItemState } from '../ports/ItemRepository.js';
 import type { HoldRepository, HoldRecord } from '../ports/HoldRepository.js';
 import type { EventStore, DomainEvent } from '../ports/EventStore.js';
 import type { UnitOfWork, TransactionContext } from '../ports/UnitOfWork.js';
-import { ConcurrencyError } from '../../domain/errors.js';
+import { ConcurrencyError, ItemNotFoundError } from '../../domain/errors.js';
 
-export class InMemoryWishlistRepository implements WishlistRepository {
-  private bySlug = new Map<string, Wishlist>();
-
-  async insert(wishlist: Wishlist): Promise<void> {
-    this.bySlug.set(wishlist.slug, wishlist);
-  }
-
-  async findBySlug(slug: string): Promise<Wishlist | null> {
-    return this.bySlug.get(slug) ?? null;
-  }
-}
-
-export class InMemoryItemRepository implements ItemRepository {
+/**
+ * Not exported: `ItemRepository` is no longer use-case-facing, so this fake
+ * exists only as the collaborator `InMemoryWishlistRepository` assembles the
+ * aggregate from — the same role the item/item_state tables will play for the
+ * Kysely implementation.
+ */
+class InMemoryItemRepository implements ItemRepository {
   private byId = new Map<string, Item>();
   private states = new Map<string, ItemState>();
 
@@ -54,6 +48,55 @@ export class InMemoryItemRepository implements ItemRepository {
     const state = this.states.get(itemId);
     if (!state) throw new Error(`No state for item ${itemId}`);
     this.states.set(itemId, { seq: newSeq, activeHolds: state.activeHolds + 1, status: 'held' });
+  }
+}
+
+/**
+ * Stores whole aggregates: an inserted wishlist brings its item with it, and
+ * every read hands back a `Wishlist` with that item (and its current state)
+ * already attached, so callers never need a second lookup.
+ */
+export class InMemoryWishlistRepository implements WishlistRepository {
+  private bySlug = new Map<string, Wishlist>();
+  private byId = new Map<string, Wishlist>();
+  private items = new InMemoryItemRepository();
+
+  async insert(wishlist: Wishlist): Promise<void> {
+    this.bySlug.set(wishlist.slug, wishlist);
+    this.byId.set(wishlist.id, wishlist);
+    const item = wishlist.item;
+    if (item !== null) await this.items.insert(item);
+  }
+
+  async findBySlug(slug: string): Promise<Wishlist | null> {
+    return this.hydrate(this.bySlug.get(slug));
+  }
+
+  async findById(id: string): Promise<Wishlist | null> {
+    return this.hydrate(this.byId.get(id));
+  }
+
+  async markItemHeld(wishlistId: string, itemId: string, newSeq: number): Promise<void> {
+    const item = await this.items.findInWishlist(wishlistId, itemId);
+    if (item === null) throw new ItemNotFoundError(itemId);
+    await this.items.markHeld(itemId, newSeq);
+  }
+
+  /** Rebuilds the aggregate from the stored wishlist plus its item's current state. */
+  private async hydrate(wishlist: Wishlist | undefined): Promise<Wishlist | null> {
+    if (wishlist === undefined) return null;
+    const item = await this.items.findByWishlistId(wishlist.id);
+    if (item === null) return wishlist;
+    const state = await this.items.getState(item.id);
+    return Wishlist.reconstitute({
+      id: wishlist.id,
+      slug: wishlist.slug,
+      title: wishlist.title,
+      ownerToken: wishlist.ownerToken.value,
+      key: wishlist.key.value,
+      keyGen: wishlist.keyGen,
+      itemState: { item, ...state },
+    });
   }
 }
 

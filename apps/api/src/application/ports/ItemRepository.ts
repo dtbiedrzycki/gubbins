@@ -6,6 +6,12 @@ export interface ItemState {
   status: 'available' | 'held';
 }
 
+/**
+ * Not a use-case-facing port: use cases reach an item only through the
+ * `Wishlist` aggregate that owns it. This is the internal collaborator a
+ * `WishlistRepository` implementation assembles that aggregate from, which is
+ * why it is absent from `TransactionContext`.
+ */
 export interface ItemRepository {
   insert(item: Item): Promise<void>;
   findById(id: string): Promise<Item | null>;

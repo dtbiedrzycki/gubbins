@@ -7,6 +7,19 @@ describe('aWishlist', () => {
     expect(wishlist.title).toBe('Custom Title');
     expect(wishlist.slug).toBe('abc123'); // default, not overridden
   });
+
+  it('builds an itemless Wishlist when no item is attached', () => {
+    const wishlist = aWishlist().build();
+    expect(wishlist.item).toBeNull();
+    expect(wishlist.itemView).toBeNull();
+  });
+
+  it('attaches the item given to withItem', () => {
+    const item = anItem().withId('item-9').withTitle('Cot').build();
+    const wishlist = aWishlist().withItem(item).build();
+    expect(wishlist.item).toBe(item);
+    expect(wishlist.itemView).toEqual({ id: 'item-9', title: 'Cot', status: 'available' });
+  });
 });
 
 describe('anItem', () => {

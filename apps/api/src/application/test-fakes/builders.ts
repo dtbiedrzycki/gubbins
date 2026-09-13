@@ -3,15 +3,20 @@ import { Item } from '../../domain/entities/Item.js';
 
 export class WishlistBuilder {
   private props = { id: 'w1', slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' };
+  private item: Item | null = null;
 
   withId(id: string): this { this.props.id = id; return this; }
   withSlug(slug: string): this { this.props.slug = slug; return this; }
   withTitle(title: string): this { this.props.title = title; return this; }
   withOwnerToken(ownerToken: string): this { this.props.ownerToken = ownerToken; return this; }
   withKey(key: string): this { this.props.key = key; return this; }
+  /** Attaches the item to the built aggregate; omit it to build an itemless wishlist. */
+  withItem(item: Item): this { this.item = item; return this; }
 
   build(): Wishlist {
-    return Wishlist.create({ ...this.props });
+    const wishlist = Wishlist.create({ ...this.props });
+    if (this.item !== null) wishlist.addItem(this.item);
+    return wishlist;
   }
 }
 
