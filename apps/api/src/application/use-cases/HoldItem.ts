@@ -35,7 +35,7 @@ export class HoldItem {
       // An unknown wishlist and an item that isn't in it are the same failure
       // from this use case's contract: there is no such item to hold.
       const wishlist = await ctx.wishlists.findById(input.wishlistId);
-      if (!wishlist || wishlist.item?.id !== input.itemId) throw new ItemNotFoundError(input.itemId);
+      if (!wishlist || wishlist.item?.id.value !== input.itemId) throw new ItemNotFoundError(input.itemId);
 
       // Deliberately before the availability check: a replayed idempotency key
       // must return the original hold, not trip ItemAlreadyHeldError on the
@@ -61,8 +61,8 @@ export class HoldItem {
 
       const event: ItemHeldEvent = {
         type: 'ItemHeld',
-        itemId: hold.itemId,
-        holdId: hold.id,
+        itemId: hold.itemId.value,
+        holdId: hold.id.value,
         secret: hold.secret.value,
         sessionHash: hold.sessionHash,
         idempotencyKey: hold.idempotencyKey,
@@ -76,12 +76,12 @@ export class HoldItem {
       await ctx.eventStore.append(input.itemId, expectedSeq, [event as unknown as DomainEvent]);
 
       await ctx.holds.recordHold({
-        id: hold.id, itemId: hold.itemId, secret: hold.secret.value,
+        id: hold.id.value, itemId: hold.itemId.value, secret: hold.secret.value,
         sessionHash: hold.sessionHash, idempotencyKey: hold.idempotencyKey, expiresAt: hold.expiresAt,
       });
       await ctx.wishlists.markItemHeld(input.wishlistId, input.itemId, expectedSeq + 1);
 
-      return { holdId: hold.id, itemId: hold.itemId, expiresAt: hold.expiresAt.toISOString() };
+      return { holdId: hold.id.value, itemId: hold.itemId.value, expiresAt: hold.expiresAt.toISOString() };
     });
   }
 }

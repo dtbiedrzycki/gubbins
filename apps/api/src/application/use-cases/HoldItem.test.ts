@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { HoldItem } from './HoldItem.js';
-import { anItem, aWishlist } from '../test-fakes/builders.js';
+import { aWishlist } from '../test-fakes/builders.js';
 import {
   InMemoryWishlistRepository, InMemoryHoldRepository,
   InMemoryEventStore, InMemoryUnitOfWork,
@@ -9,6 +9,9 @@ import { SequentialTokenGenerator } from '../test-fakes/SequentialTokenGenerator
 import { FixedClock } from '../test-fakes/FixedClock.js';
 import { FakeHasher } from '../test-fakes/FakeHasher.js';
 import { ItemNotFoundError, ItemAlreadyHeldError } from '../../domain/errors.js';
+
+const WISHLIST_ID = '11111111-1111-4111-8111-111111111111';
+const ITEM_ID = '33333333-3333-4333-8333-333333333333';
 
 function makeUseCase() {
   const wishlists = new InMemoryWishlistRepository();
@@ -25,8 +28,8 @@ function makeUseCase() {
 /** Seeds the whole aggregate: the item is only reachable through its wishlist. */
 async function seedWishlistWithItem(wishlists: InMemoryWishlistRepository) {
   const wishlist = aWishlist()
-    .withId('w1')
-    .withItem(anItem().withId('item-1').withWishlistId('w1').withTitle('Stroller').build())
+    .withId(WISHLIST_ID)
+    .withItem({ id: ITEM_ID, title: 'Stroller' })
     .build();
   await wishlists.insert(wishlist);
   return wishlist;
@@ -37,13 +40,13 @@ describe('HoldItem', () => {
     const { useCase, wishlists, holds } = makeUseCase();
     await seedWishlistWithItem(wishlists);
     const result = await useCase.execute({
-      wishlistId: 'w1', itemId: 'item-1', sessionId: 'session-abc', idempotencyKey: 'idem-1',
+      wishlistId: WISHLIST_ID, itemId: ITEM_ID, sessionId: 'session-abc', idempotencyKey: 'idem-1',
     });
-    expect(result.itemId).toBe('item-1');
+    expect(result.itemId).toBe(ITEM_ID);
     expect(result.expiresAt).toBe('2026-01-04T00:00:00.000Z');
-    const reloaded = await wishlists.findById('w1');
-    expect(reloaded?.itemView?.status).toBe('held');
-    const recorded = await holds.findByIdempotencyKey('item-1', 'idem-1');
+    const reloaded = await wishlists.findById(WISHLIST_ID);
+    expect(reloaded?.toItemView()?.status).toBe('held');
+    const recorded = await holds.findByIdempotencyKey(ITEM_ID, 'idem-1');
     expect(recorded?.sessionHash).toBe('hashed:session-abc');
   });
 
@@ -51,10 +54,10 @@ describe('HoldItem', () => {
     const { useCase, wishlists } = makeUseCase();
     await seedWishlistWithItem(wishlists);
     const first = await useCase.execute({
-      wishlistId: 'w1', itemId: 'item-1', sessionId: 'session-abc', idempotencyKey: 'idem-1',
+      wishlistId: WISHLIST_ID, itemId: ITEM_ID, sessionId: 'session-abc', idempotencyKey: 'idem-1',
     });
     const second = await useCase.execute({
-      wishlistId: 'w1', itemId: 'item-1', sessionId: 'session-abc', idempotencyKey: 'idem-1',
+      wishlistId: WISHLIST_ID, itemId: ITEM_ID, sessionId: 'session-abc', idempotencyKey: 'idem-1',
     });
     // The aggregate hides its hold counter, so "not a second hold" is asserted
     // behaviourally: SequentialTokenGenerator hands out a fresh id per call, so
@@ -62,19 +65,19 @@ describe('HoldItem', () => {
     // being created.
     expect(second).toEqual(first);
     expect(second.holdId).toBe(first.holdId);
-    const reloaded = await wishlists.findById('w1');
-    expect(reloaded?.itemView?.status).toBe('held');
+    const reloaded = await wishlists.findById(WISHLIST_ID);
+    expect(reloaded?.toItemView()?.status).toBe('held');
   });
 
   it('throws ItemAlreadyHeldError for a second, different hold attempt on a held item', async () => {
     const { useCase, wishlists } = makeUseCase();
     await seedWishlistWithItem(wishlists);
     await useCase.execute({
-      wishlistId: 'w1', itemId: 'item-1', sessionId: 'session-abc', idempotencyKey: 'idem-1',
+      wishlistId: WISHLIST_ID, itemId: ITEM_ID, sessionId: 'session-abc', idempotencyKey: 'idem-1',
     });
     await expect(
       useCase.execute({
-        wishlistId: 'w1', itemId: 'item-1', sessionId: 'session-xyz', idempotencyKey: 'idem-2',
+        wishlistId: WISHLIST_ID, itemId: ITEM_ID, sessionId: 'session-xyz', idempotencyKey: 'idem-2',
       }),
     ).rejects.toThrow(ItemAlreadyHeldError);
   });
