@@ -1,10 +1,12 @@
 import { DomainValidationError } from '../errors.js';
+import { HoldId } from '../value-objects/HoldId.js';
 import { HoldSecret } from '../value-objects/HoldSecret.js';
+import { ItemId } from '../value-objects/ItemId.js';
 
 export class Hold {
   private constructor(
-    readonly id: string,
-    readonly itemId: string,
+    readonly id: HoldId,
+    readonly itemId: ItemId,
     readonly secret: HoldSecret,
     readonly sessionHash: string,
     readonly idempotencyKey: string,
@@ -19,6 +21,13 @@ export class Hold {
     if (props.expiresAt.getTime() <= props.now.getTime()) {
       throw new DomainValidationError('Hold expiresAt must be in the future');
     }
-    return new Hold(props.id, props.itemId, secret, props.sessionHash, props.idempotencyKey, props.expiresAt);
+    return new Hold(
+      HoldId.from(props.id),
+      ItemId.from(props.itemId),
+      secret,
+      props.sessionHash,
+      props.idempotencyKey,
+      props.expiresAt,
+    );
   }
 }

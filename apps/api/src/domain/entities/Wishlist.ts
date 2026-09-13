@@ -1,6 +1,8 @@
 import { DomainValidationError, ItemAlreadyHeldError, ItemNotFoundError } from '../errors.js';
 import { GuestKey } from '../value-objects/GuestKey.js';
 import { OwnerToken } from '../value-objects/OwnerToken.js';
+import { Slug } from '../value-objects/Slug.js';
+import { WishlistId } from '../value-objects/WishlistId.js';
 import { Item } from './Item.js';
 
 /**
@@ -22,8 +24,8 @@ export class Wishlist {
   private itemState: WishlistItemState | null = null;
 
   private constructor(
-    readonly id: string,
-    readonly slug: string,
+    readonly id: WishlistId,
+    readonly slug: Slug,
     readonly title: string,
     readonly ownerToken: OwnerToken,
     readonly key: GuestKey,
@@ -35,8 +37,8 @@ export class Wishlist {
     if (title.length === 0) throw new DomainValidationError('Wishlist title must not be empty');
     if (title.length > 120) throw new DomainValidationError('Wishlist title must be at most 120 characters');
     return new Wishlist(
-      props.id,
-      props.slug,
+      WishlistId.from(props.id),
+      Slug.from(props.slug),
       title,
       OwnerToken.from(props.ownerToken),
       GuestKey.from(props.key),
@@ -53,12 +55,12 @@ export class Wishlist {
     id: string; slug: string; title: string; ownerToken: string; key: string; keyGen: number;
     itemState?: WishlistItemState;
   }): Wishlist {
-    if (props.itemState && props.itemState.item.wishlistId !== props.id) {
+    if (props.itemState && props.itemState.item.wishlistId.value !== props.id) {
       throw new DomainValidationError('Item belongs to a different wishlist');
     }
     const wishlist = new Wishlist(
-      props.id,
-      props.slug,
+      WishlistId.from(props.id),
+      Slug.from(props.slug),
       props.title,
       OwnerToken.from(props.ownerToken),
       GuestKey.from(props.key),
@@ -68,15 +70,17 @@ export class Wishlist {
     return wishlist;
   }
 
-  /** Attaches the wishlist's item. This slice allows exactly one item per wishlist. */
-  addItem(item: Item): void {
-    if (item.wishlistId !== this.id) {
-      throw new DomainValidationError('Item belongs to a different wishlist');
-    }
+  /**
+   * Creates and attaches this wishlist's item, assigning it this wishlist's
+   * own id — the caller supplies only the id/title a new item needs.
+   */
+  addItem(props: { id: string; title: string }): Item {
     if (this.itemState !== null) {
       throw new DomainValidationError('Wishlist already has an item; this slice supports a single item per wishlist');
     }
+    const item = Item.createSingle({ id: props.id, wishlistId: this.id.value, title: props.title });
     this.itemState = { item, seq: 0, activeHolds: 0, status: 'available' };
+    return item;
   }
 
   get item(): Item | null {
@@ -84,9 +88,9 @@ export class Wishlist {
   }
 
   /** The read shape the presentation layer renders, without a repository join. */
-  get itemView(): { id: string; title: string; status: 'available' | 'held' } | null {
+  toItemView(): { id: string; title: string; status: 'available' | 'held' } | null {
     if (this.itemState === null) return null;
-    return { id: this.itemState.item.id, title: this.itemState.item.title, status: this.itemState.status };
+    return { id: this.itemState.item.id.value, title: this.itemState.item.title, status: this.itemState.status };
   }
 
   /**
@@ -95,7 +99,7 @@ export class Wishlist {
    */
   authorizeHold(itemId: string): { expectedSeq: number } {
     const state = this.itemState;
-    if (state === null || state.item.id !== itemId) throw new ItemNotFoundError(itemId);
+    if (state === null || state.item.id.value !== itemId) throw new ItemNotFoundError(itemId);
     if (state.activeHolds >= state.item.quantity) throw new ItemAlreadyHeldError(itemId);
     return { expectedSeq: state.seq };
   }
