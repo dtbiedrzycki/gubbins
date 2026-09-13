@@ -15,6 +15,10 @@ describe('Hold.create', () => {
     expect(hold.expiresAt).toEqual(validProps.expiresAt);
   });
 
+  it('wraps the secret in a value object', () => {
+    expect(Hold.create(validProps).secret.value).toBe('hold-secret');
+  });
+
   it('rejects an empty secret', () => {
     expect(() => Hold.create({ ...validProps, secret: '' })).toThrow(DomainValidationError);
   });
