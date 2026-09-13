@@ -30,16 +30,22 @@ export class CreateList {
         ownerToken: this.tokenGenerator.generateOwnerToken(),
         key: this.tokenGenerator.generateGuestKey(),
       });
-      await ctx.wishlists.insert(wishlist);
-
       const item = Item.createSingle({
         id: this.tokenGenerator.generateId(),
         wishlistId: wishlist.id,
         title: input.itemTitle,
       });
-      await ctx.items.insert(item);
+      // Attach before insert: the repository persists the aggregate it is
+      // handed, so the item must already be part of it.
+      wishlist.addItem(item);
+      await ctx.wishlists.insert(wishlist);
 
-      return { slug: wishlist.slug, ownerToken: wishlist.ownerToken, key: wishlist.key, itemId: item.id };
+      return {
+        slug: wishlist.slug,
+        ownerToken: wishlist.ownerToken.value,
+        key: wishlist.key.value,
+        itemId: item.id,
+      };
     });
   }
 }

@@ -24,7 +24,7 @@ export class EnterGuestKey {
   async execute(input: EnterGuestKeyInput): Promise<EnterGuestKeyOutput> {
     const wishlist = await this.wishlists.findBySlug(input.slug);
     if (!wishlist) throw new WishlistNotFoundError();
-    if (!this.secretComparer.compareInConstantTime(wishlist.key, input.key)) {
+    if (!wishlist.key.matches(input.key, this.secretComparer)) {
       throw new InvalidGuestKeyError();
     }
     return { wishlistId: wishlist.id, keyGen: wishlist.keyGen, sessionId: this.tokenGenerator.generateSessionId() };
