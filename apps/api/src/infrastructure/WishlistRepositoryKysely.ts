@@ -21,7 +21,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
 
   async insert(wishlist: Wishlist): Promise<void> {
     await this.db.insertInto('wishlists').values({
-      id: wishlist.id, slug: wishlist.slug, title: wishlist.title,
+      id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
       owner_token: wishlist.ownerToken.value, key: wishlist.key.value, key_gen: wishlist.keyGen,
       created_at: new Date().toISOString(),
     }).execute();
@@ -50,7 +50,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     const item = await this.items.findByWishlistId(row.id);
     let itemState: WishlistItemState | undefined;
     if (item) {
-      const state = await this.items.getState(item.id);
+      const state = await this.items.getState(item.id.value);
       itemState = { item, seq: state.seq, activeHolds: state.activeHolds, status: state.status };
     }
     return Wishlist.reconstitute({

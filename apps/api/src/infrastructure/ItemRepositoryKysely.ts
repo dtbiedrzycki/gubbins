@@ -9,11 +9,11 @@ export class ItemRepositoryKysely implements ItemRepository {
   async insert(item: Item): Promise<void> {
     const now = new Date().toISOString();
     await this.db.insertInto('items').values({
-      id: item.id, wishlist_id: item.wishlistId, type: item.type, title: item.title,
+      id: item.id.value, wishlist_id: item.wishlistId.value, type: item.type, title: item.title,
       quantity: item.quantity, created_at: now,
     }).execute();
     await this.db.insertInto('item_state').values({
-      item_id: item.id, seq: 0, active_holds: 0, status: 'available', updated_at: now,
+      item_id: item.id.value, seq: 0, active_holds: 0, status: 'available', updated_at: now,
     }).execute();
   }
 
