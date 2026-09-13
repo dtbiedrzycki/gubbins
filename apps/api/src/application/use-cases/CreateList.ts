@@ -1,5 +1,4 @@
 import { Wishlist } from '../../domain/entities/Wishlist.js';
-import { Item } from '../../domain/entities/Item.js';
 import type { UnitOfWork } from '../ports/UnitOfWork.js';
 import type { TokenGenerator } from '../ports/TokenGenerator.js';
 
@@ -30,21 +29,20 @@ export class CreateList {
         ownerToken: this.tokenGenerator.generateOwnerToken(),
         key: this.tokenGenerator.generateGuestKey(),
       });
-      const item = Item.createSingle({
+      // Wishlist assigns its own id to the item it creates.
+      const item = wishlist.addItem({
         id: this.tokenGenerator.generateId(),
-        wishlistId: wishlist.id,
         title: input.itemTitle,
       });
       // Attach before insert: the repository persists the aggregate it is
       // handed, so the item must already be part of it.
-      wishlist.addItem(item);
       await ctx.wishlists.insert(wishlist);
 
       return {
-        slug: wishlist.slug,
+        slug: wishlist.slug.value,
         ownerToken: wishlist.ownerToken.value,
         key: wishlist.key.value,
-        itemId: item.id,
+        itemId: item.id.value,
       };
     });
   }

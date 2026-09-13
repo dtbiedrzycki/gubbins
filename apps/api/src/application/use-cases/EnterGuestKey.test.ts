@@ -6,9 +6,11 @@ import { PlainSecretComparer } from '../test-fakes/PlainSecretComparer.js';
 import { SequentialTokenGenerator } from '../test-fakes/SequentialTokenGenerator.js';
 import { WishlistNotFoundError, InvalidGuestKeyError } from '../../domain/errors.js';
 
+const WISHLIST_ID = '11111111-1111-4111-8111-111111111111';
+
 async function seedWishlist(wishlists: InMemoryWishlistRepository) {
   const wishlist = Wishlist.create({
-    id: 'w1', slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'correct-key',
+    id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'correct-key',
   });
   await wishlists.insert(wishlist);
   return wishlist;
@@ -22,7 +24,7 @@ describe('EnterGuestKey', () => {
 
     const result = await useCase.execute({ slug: 'abc123', key: 'correct-key' });
 
-    expect(result).toEqual({ wishlistId: 'w1', keyGen: 1, sessionId: 'session-1' });
+    expect(result).toEqual({ wishlistId: WISHLIST_ID, keyGen: 1, sessionId: 'session-1' });
   });
 
   it('throws InvalidGuestKeyError for a wrong key', async () => {

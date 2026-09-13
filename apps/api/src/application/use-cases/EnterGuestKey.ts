@@ -27,6 +27,6 @@ export class EnterGuestKey {
     if (!wishlist.key.matches(input.key, this.secretComparer)) {
       throw new InvalidGuestKeyError();
     }
-    return { wishlistId: wishlist.id, keyGen: wishlist.keyGen, sessionId: this.tokenGenerator.generateSessionId() };
+    return { wishlistId: wishlist.id.value, keyGen: wishlist.keyGen, sessionId: this.tokenGenerator.generateSessionId() };
   }
 }
