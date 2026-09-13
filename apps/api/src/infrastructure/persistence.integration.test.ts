@@ -10,7 +10,7 @@ import { EventStoreKysely } from './EventStoreKysely.js';
 import { UnitOfWorkKysely } from './UnitOfWorkKysely.js';
 import { Wishlist } from '../domain/entities/Wishlist.js';
 import { Item } from '../domain/entities/Item.js';
-import { ConcurrencyError } from '../domain/errors.js';
+import { ConcurrencyError, ItemNotFoundError } from '../domain/errors.js';
 
 let db: Kysely<Database>;
 
@@ -33,6 +33,60 @@ describe('WishlistRepositoryKysely', () => {
   it('returns null for an unknown slug', async () => {
     const repo = new WishlistRepositoryKysely(db);
     expect(await repo.findBySlug('no-such-slug')).toBeNull();
+  });
+
+  it('round-trips a wishlist together with its attached item', async () => {
+    const repo = new WishlistRepositoryKysely(db);
+    const wishlist = Wishlist.create({ id: 'w1', slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' });
+    wishlist.addItem(Item.createSingle({ id: 'i1', wishlistId: 'w1', title: 'Stroller' }));
+
+    await repo.insert(wishlist);
+    const found = await repo.findBySlug('abc123');
+
+    expect(found?.itemView).toEqual({ id: 'i1', title: 'Stroller', status: 'available' });
+    expect(found?.item?.id).toBe('i1');
+  });
+
+  it('findById loads the full aggregate, item included', async () => {
+    const repo = new WishlistRepositoryKysely(db);
+    const wishlist = Wishlist.create({ id: 'w1', slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' });
+    wishlist.addItem(Item.createSingle({ id: 'i1', wishlistId: 'w1', title: 'Stroller' }));
+    await repo.insert(wishlist);
+
+    const found = await repo.findById('w1');
+
+    expect(found?.itemView).toEqual({ id: 'i1', title: 'Stroller', status: 'available' });
+    expect(found?.item?.id).toBe('i1');
+  });
+
+  it('returns null for an unknown id', async () => {
+    const repo = new WishlistRepositoryKysely(db);
+    expect(await repo.findById('no-such-id')).toBeNull();
+  });
+
+  it('markItemHeld marks the wishlist item held', async () => {
+    const repo = new WishlistRepositoryKysely(db);
+    const wishlist = Wishlist.create({ id: 'w1', slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' });
+    wishlist.addItem(Item.createSingle({ id: 'i1', wishlistId: 'w1', title: 'Stroller' }));
+    await repo.insert(wishlist);
+
+    await repo.markItemHeld('w1', 'i1', 1);
+
+    const found = await repo.findById('w1');
+    expect(found?.itemView?.status).toBe('held');
+  });
+
+  it('markItemHeld throws ItemNotFoundError for an item in a different wishlist', async () => {
+    const repo = new WishlistRepositoryKysely(db);
+    const first = Wishlist.create({ id: 'w1', slug: 'wishlist-w1', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' });
+    first.addItem(Item.createSingle({ id: 'i1', wishlistId: 'w1', title: 'Stroller' }));
+    const second = Wishlist.create({ id: 'w2', slug: 'wishlist-w2', title: 'Wedding', ownerToken: 'owner-tok-2', key: 'guest-key-2' });
+    second.addItem(Item.createSingle({ id: 'i2', wishlistId: 'w2', title: 'Toaster' }));
+    await repo.insert(first);
+    await repo.insert(second);
+
+    await expect(repo.markItemHeld('w2', 'i1', 1)).rejects.toThrow(ItemNotFoundError);
+    expect((await repo.findById('w1'))?.itemView?.status).toBe('available');
   });
 });
 
