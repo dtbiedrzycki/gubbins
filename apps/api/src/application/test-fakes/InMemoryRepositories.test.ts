@@ -27,6 +27,19 @@ describe('InMemoryWishlistRepository', () => {
     expect(loaded?.item).toBeNull();
   });
 
+  it('reconstitutes on every read rather than handing back the stored instance', async () => {
+    const repo = new InMemoryWishlistRepository();
+    const inserted = aWishlist().build();
+    await repo.insert(inserted);
+
+    const loaded = await repo.findBySlug('abc123');
+    expect(loaded).not.toBe(inserted);
+    expect(loaded?.id).toBe(inserted.id);
+    expect(loaded?.slug).toBe(inserted.slug);
+    expect(loaded?.title).toBe(inserted.title);
+    expect(loaded?.keyGen).toBe(inserted.keyGen);
+  });
+
   it('marks the item held, so the reloaded aggregate refuses a second hold', async () => {
     const repo = new InMemoryWishlistRepository();
     await repo.insert(aWishlist().withItem(anItem().build()).build());

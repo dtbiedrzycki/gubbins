@@ -22,10 +22,6 @@ class InMemoryItemRepository implements ItemRepository {
     this.states.set(item.id, { seq: 0, activeHolds: 0, status: 'available' });
   }
 
-  async findById(id: string): Promise<Item | null> {
-    return this.byId.get(id) ?? null;
-  }
-
   async findByWishlistId(wishlistId: string): Promise<Item | null> {
     for (const item of this.byId.values()) {
       if (item.wishlistId === wishlistId) return item;
@@ -82,12 +78,15 @@ export class InMemoryWishlistRepository implements WishlistRepository {
     await this.items.markHeld(itemId, newSeq);
   }
 
-  /** Rebuilds the aggregate from the stored wishlist plus its item's current state. */
+  /**
+   * Rebuilds the aggregate from the stored wishlist plus its item's current
+   * state. Every read path reconstitutes — never hands back the stored
+   * instance — so the fake's read identity matches the real repository's.
+   */
   private async hydrate(wishlist: Wishlist | undefined): Promise<Wishlist | null> {
     if (wishlist === undefined) return null;
     const item = await this.items.findByWishlistId(wishlist.id);
-    if (item === null) return wishlist;
-    const state = await this.items.getState(item.id);
+    const itemState = item === null ? undefined : { item, ...(await this.items.getState(item.id)) };
     return Wishlist.reconstitute({
       id: wishlist.id,
       slug: wishlist.slug,
@@ -95,7 +94,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
       ownerToken: wishlist.ownerToken.value,
       key: wishlist.key.value,
       keyGen: wishlist.keyGen,
-      itemState: { item, ...state },
+      itemState,
     });
   }
 }

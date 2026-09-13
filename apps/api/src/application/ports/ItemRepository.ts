@@ -14,14 +14,12 @@ export interface ItemState {
  */
 export interface ItemRepository {
   insert(item: Item): Promise<void>;
-  findById(id: string): Promise<Item | null>;
   findByWishlistId(wishlistId: string): Promise<Item | null>;
   /**
-   * Like findById, but scoped to a wishlist: returns null if the item
-   * doesn't exist OR belongs to a different wishlist. Callers that already
-   * hold a validated wishlist context (e.g. a route acting on a guest
-   * session) should use this instead of findById, so a caller can never
-   * accidentally act on an item outside the wishlist it's authorized for.
+   * An item lookup scoped to a wishlist: returns null if the item doesn't
+   * exist OR belongs to a different wishlist. Used by
+   * `WishlistRepository.markItemHeld`, so a write can never land on an item
+   * outside the wishlist the aggregate was loaded for.
    */
   findInWishlist(wishlistId: string, itemId: string): Promise<Item | null>;
   getState(itemId: string): Promise<ItemState>;
