@@ -34,8 +34,12 @@ export class HoldItem {
     return this.unitOfWork.execute(async (ctx) => {
       // An unknown wishlist and an item that isn't in it are the same failure
       // from this use case's contract: there is no such item to hold.
+      // getItem is the one place that check now lives, replacing the
+      // wishlist.item?.id.value !== input.itemId comparison that used to be
+      // duplicated here and inside authorizeHold.
       const wishlist = await ctx.wishlists.findById(input.wishlistId);
-      if (!wishlist || wishlist.item?.id.value !== input.itemId) throw new ItemNotFoundError(input.itemId);
+      if (!wishlist) throw new ItemNotFoundError(input.itemId);
+      const item = wishlist.getItem(input.itemId);
 
       // Deliberately before the availability check: a replayed idempotency key
       // must return the original hold, not trip ItemAlreadyHeldError on the
@@ -45,7 +49,7 @@ export class HoldItem {
         return { holdId: existing.id, itemId: existing.itemId, expiresAt: existing.expiresAt.toISOString() };
       }
 
-      const { expectedSeq } = wishlist.authorizeHold(input.itemId);
+      const { expectedSeq } = wishlist.authorizeHold(item);
 
       const now = this.clock.now();
       const expiresAt = new Date(now.getTime() + HOLD_DURATION_MS);
@@ -64,8 +68,8 @@ export class HoldItem {
         itemId: hold.itemId.value,
         holdId: hold.id.value,
         secret: hold.secret.value,
-        sessionHash: hold.sessionHash,
-        idempotencyKey: hold.idempotencyKey,
+        sessionHash: hold.sessionHash.value,
+        idempotencyKey: hold.idempotencyKey.value,
         expiresAt: hold.expiresAt.toISOString(),
         occurredAt: now.toISOString(),
       };
@@ -77,7 +81,7 @@ export class HoldItem {
 
       await ctx.holds.recordHold({
         id: hold.id.value, itemId: hold.itemId.value, secret: hold.secret.value,
-        sessionHash: hold.sessionHash, idempotencyKey: hold.idempotencyKey, expiresAt: hold.expiresAt,
+        sessionHash: hold.sessionHash.value, idempotencyKey: hold.idempotencyKey.value, expiresAt: hold.expiresAt,
       });
       await ctx.wishlists.markItemHeld(input.wishlistId, input.itemId, expectedSeq + 1);
 

@@ -47,7 +47,7 @@ describe('HoldItem', () => {
     const reloaded = await wishlists.findById(WISHLIST_ID);
     expect(reloaded?.toItemView()?.status).toBe('held');
     const recorded = await holds.findByIdempotencyKey(ITEM_ID, 'idem-1');
-    expect(recorded?.sessionHash).toBe('hashed:session-abc');
+    expect(recorded?.sessionHash).toBe('df98a8544084cba1bfbcf00faea193bf73d10ae13eada8c8bacf2c7f1e1d92f4');
   });
 
   it('replays the original result for a repeated idempotency key instead of creating a second hold', async () => {
