@@ -29,11 +29,8 @@ export class CreateList {
         ownerToken: this.tokenGenerator.generateOwnerToken(),
         key: this.tokenGenerator.generateGuestKey(),
       });
-      // Wishlist assigns its own id to the item it creates.
-      const item = wishlist.addItem({
-        id: this.tokenGenerator.generateId(),
-        title: input.itemTitle,
-      });
+      // Wishlist mints its own item id via the generator it's handed.
+      const item = wishlist.addItem({ title: input.itemTitle }, this.tokenGenerator);
       // Attach before insert: the repository persists the aggregate it is
       // handed, so the item must already be part of it.
       await ctx.wishlists.insert(wishlist);
