@@ -90,7 +90,7 @@ export class Wishlist {
   /** The read shape the presentation layer renders, without a repository join. */
   toItemView(): { id: string; title: string; status: 'available' | 'held' } | null {
     if (this.itemState === null) return null;
-    return { id: this.itemState.item.id.value, title: this.itemState.item.title, status: this.itemState.status };
+    return this.itemState.item.toView(this.itemState.status);
   }
 
   /**

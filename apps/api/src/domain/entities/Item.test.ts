@@ -21,3 +21,11 @@ describe('Item.createSingle', () => {
     expect(() => Item.createSingle({ id: 'i1', wishlistId: WISHLIST_ID, title: 'Stroller' })).toThrow(DomainValidationError);
   });
 });
+
+describe('Item.toView', () => {
+  it('composes id, title, and the supplied status', () => {
+    const item = Item.createSingle({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Stroller' });
+    expect(item.toView('available')).toEqual({ id: ITEM_ID, title: 'Stroller', status: 'available' });
+    expect(item.toView('held')).toEqual({ id: ITEM_ID, title: 'Stroller', status: 'held' });
+  });
+});

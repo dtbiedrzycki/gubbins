@@ -22,4 +22,13 @@ export class Item {
   static reconstitute(props: { id: string; wishlistId: string; title: string }): Item {
     return new Item(ItemId.from(props.id), WishlistId.from(props.wishlistId), 'single', props.title, 1);
   }
+
+  /**
+   * The read shape the presentation layer renders. `status` is supplied by
+   * the caller rather than owned by Item itself — it's aggregate/projection
+   * state (activeHolds vs. quantity), not one of this entity's own fields.
+   */
+  toView(status: 'available' | 'held'): { id: string; title: string; status: 'available' | 'held' } {
+    return { id: this.id.value, title: this.title, status };
+  }
 }
