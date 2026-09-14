@@ -108,6 +108,7 @@ one-time renumbering documented in the restructuring history.
 | [072](0072-kysely-as-the-query-builder.md) | Kysely as the query builder | Accepted |
 | [073](0073-vite-react-spa-served-by-the-backend.md) | Vite + React SPA, served by the backend | Accepted |
 | [074](0074-tailwind-css-for-styling.md) | Tailwind CSS for styling | Accepted |
+| [075](0075-ledger-events-record-the-acting-role.md) | Ledger events record the acting role | Proposed |
 
 ## Imported ADRs (0001–0070)
 
