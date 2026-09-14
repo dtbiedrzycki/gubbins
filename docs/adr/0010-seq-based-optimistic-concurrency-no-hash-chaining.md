@@ -27,15 +27,20 @@ chain events by hash.
 
 ## Alternatives considered
 
-- **Hash chaining (each event linked to a hash of its predecessor)** —
-  rejected: hash chaining verifies the integrity of an already-written
-  history after the fact (detecting tampering or a missing link), which
-  is a different problem than catching two writers racing to append the
-  next event on the same stream right now. It would add hash computation
-  and verification to every append without doing anything the
-  `UNIQUE (itemId, seq)` constraint doesn't already do more directly —
-  catching the conflict synchronously, at write time, via the database
-  itself.
+- **Hash chaining (each event carrying a hash of its predecessor)** —
+  rejected: a chain does provide something `seq` does not —
+  tamper-evidence, since each event commits to its full prior history,
+  so an edited, deleted, or reordered event breaks every later link. (It
+  could also serve as the concurrency check via
+  `UNIQUE (itemId, prevHash)`; `seq` is chosen for simplicity, not
+  because a chain can't do the job.) But that property only matters
+  against an actor who can write event rows directly, and in this system
+  that actor is the operator (or someone holding the operator's data) —
+  both out of scope per the
+  [threat model](../spec/threat-model-summary.md). With no external
+  anchor (a signed or published chain head), such an actor could simply
+  recompute the chain anyway. Hashing every append would buy a guarantee
+  the threat model doesn't ask for.
 
 ## Consequences
 
@@ -49,3 +54,10 @@ chain events by hash.
   between events, `rebuildProjections`'s truncate-and-refold recovery
   path only needs each item's event order, which `seq` already provides
   — there is no chain to reconstruct or re-verify.
+- The ledger is not tamper-evident against direct database writes: an
+  edited payload, or a deleted event with `seq` values shifted to close
+  the gap, is not detectable by the application. This is accepted under
+  the threat model's explicit non-goal of protection against a hostile
+  server operator. Revisit if a party other than the operator ever needs
+  to verify ledger history (e.g. multi-tenant hosting, or guest-held
+  receipts that could anchor a chain head).
