@@ -98,13 +98,26 @@ export class Wishlist {
   }
 
   /**
-   * Decides whether a hold may be placed on `itemId`, purely from already-loaded
+   * Resolves `itemId` to the Item this wishlist owns, or throws
+   * ItemNotFoundError. This is the only way to obtain an Item to pass to
+   * authorizeHold — establishing it as genuinely this wishlist's item
+   * before any hold decision is made.
+   */
+  getItem(itemId: string): Item {
+    if (this.itemState === null || this.itemState.item.id.value !== itemId) {
+      throw new ItemNotFoundError(itemId);
+    }
+    return this.itemState.item;
+  }
+
+  /**
+   * Decides whether a hold may be placed on `item`, purely from already-loaded
    * state — no I/O. Returns the seq the caller must use for its optimistic write.
    */
-  authorizeHold(itemId: string): { expectedSeq: number } {
+  authorizeHold(item: Item): { expectedSeq: number } {
     const state = this.itemState;
-    if (state === null || state.item.id.value !== itemId) throw new ItemNotFoundError(itemId);
-    if (state.activeHolds >= state.item.quantity) throw new ItemAlreadyHeldError(itemId);
+    if (state === null || state.item.id.value !== item.id.value) throw new ItemNotFoundError(item.id.value);
+    if (state.activeHolds >= item.quantity) throw new ItemAlreadyHeldError(item.id.value);
     return { expectedSeq: state.seq };
   }
 }

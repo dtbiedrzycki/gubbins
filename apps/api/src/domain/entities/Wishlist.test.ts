@@ -71,7 +71,7 @@ describe('Wishlist.reconstitute', () => {
       itemState: { item, seq: 7, activeHolds: 0, status: 'available' },
     });
     expect(wishlist.item).toBe(item);
-    expect(wishlist.authorizeHold(ITEM_ID)).toEqual({ expectedSeq: 7 });
+    expect(wishlist.authorizeHold(item)).toEqual({ expectedSeq: 7 });
   });
 
   it('rejects an item state whose item belongs to a different wishlist', () => {
@@ -138,21 +138,43 @@ describe('Wishlist.authorizeHold', () => {
 
   it('returns the expected seq when the item is available', () => {
     const wishlist = withState({ item, seq: 4, activeHolds: 0, status: 'available' });
-    expect(wishlist.authorizeHold(ITEM_ID)).toEqual({ expectedSeq: 4 });
+    expect(wishlist.authorizeHold(item)).toEqual({ expectedSeq: 4 });
   });
 
   it('throws ItemNotFoundError when no item is attached', () => {
     const wishlist = Wishlist.create(validProps);
-    expect(() => wishlist.authorizeHold(ITEM_ID)).toThrow(ItemNotFoundError);
+    expect(() => wishlist.authorizeHold(item)).toThrow(ItemNotFoundError);
   });
 
-  it('throws ItemNotFoundError when the id does not match the attached item', () => {
+  it('throws ItemNotFoundError when the given item does not match the attached item', () => {
     const wishlist = withState({ item, seq: 4, activeHolds: 0, status: 'available' });
-    expect(() => wishlist.authorizeHold('44444444-4444-4444-8444-444444444444')).toThrow(ItemNotFoundError);
+    const otherItem = Item.reconstitute({ id: '44444444-4444-4444-8444-444444444444', wishlistId: WISHLIST_ID, title: 'Pram' });
+    expect(() => wishlist.authorizeHold(otherItem)).toThrow(ItemNotFoundError);
   });
 
   it('throws ItemAlreadyHeldError when active holds have reached the item quantity', () => {
     const wishlist = withState({ item, seq: 4, activeHolds: item.quantity, status: 'held' });
-    expect(() => wishlist.authorizeHold(ITEM_ID)).toThrow(ItemAlreadyHeldError);
+    expect(() => wishlist.authorizeHold(item)).toThrow(ItemAlreadyHeldError);
+  });
+});
+
+describe('Wishlist.getItem', () => {
+  const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Cot' });
+  const withState = (itemState: WishlistItemState) =>
+    Wishlist.reconstitute({ ...validProps, keyGen: 1, itemState });
+
+  it('returns the attached item when the id matches', () => {
+    const wishlist = withState({ item, seq: 4, activeHolds: 0, status: 'available' });
+    expect(wishlist.getItem(ITEM_ID)).toBe(item);
+  });
+
+  it('throws ItemNotFoundError when no item is attached', () => {
+    const wishlist = Wishlist.create(validProps);
+    expect(() => wishlist.getItem(ITEM_ID)).toThrow(ItemNotFoundError);
+  });
+
+  it('throws ItemNotFoundError when the id does not match the attached item', () => {
+    const wishlist = withState({ item, seq: 4, activeHolds: 0, status: 'available' });
+    expect(() => wishlist.getItem('44444444-4444-4444-8444-444444444444')).toThrow(ItemNotFoundError);
   });
 });
