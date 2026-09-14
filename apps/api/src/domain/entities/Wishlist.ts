@@ -99,9 +99,10 @@ export class Wishlist {
 
   /**
    * Resolves `itemId` to the Item this wishlist owns, or throws
-   * ItemNotFoundError. This is the only way to obtain an Item to pass to
-   * authorizeHold — establishing it as genuinely this wishlist's item
-   * before any hold decision is made.
+   * ItemNotFoundError. `authorizeHold` checks this Item by reference
+   * identity, so an Item obtained here (or via the `item` getter) is the
+   * only thing that will satisfy it — a separately-constructed Item with a
+   * matching id will not.
    */
   getItem(itemId: string): Item {
     if (this.itemState === null || this.itemState.item.id.value !== itemId) {
@@ -113,11 +114,15 @@ export class Wishlist {
   /**
    * Decides whether a hold may be placed on `item`, purely from already-loaded
    * state — no I/O. Returns the seq the caller must use for its optimistic write.
+   * Ownership is checked by reference identity (not just matching id), and
+   * availability is read from the aggregate's own tracked item, never from
+   * the caller-supplied `item` — the parameter only proves which item the
+   * caller means to act on, it isn't a trusted source of that item's state.
    */
   authorizeHold(item: Item): { expectedSeq: number } {
     const state = this.itemState;
-    if (state === null || state.item.id.value !== item.id.value) throw new ItemNotFoundError(item.id.value);
-    if (state.activeHolds >= item.quantity) throw new ItemAlreadyHeldError(item.id.value);
+    if (state === null || state.item !== item) throw new ItemNotFoundError(item.id.value);
+    if (state.activeHolds >= state.item.quantity) throw new ItemAlreadyHeldError(item.id.value);
     return { expectedSeq: state.seq };
   }
 }

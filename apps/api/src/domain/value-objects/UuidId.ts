@@ -19,9 +19,14 @@ const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}
  * `private`-keyword field on a class returned from a generic function trips
  * TS4094 ("exported anonymous class type" may not have a private/protected
  * member) during declaration emit. A true private field sidesteps that
- * while still preventing external construction/comparison, and — as a
- * bonus — the emitted .d.ts keeps the brand's literal string, so the
- * nominal-typing guarantee holds for consumers of the built package too.
+ * while still preventing external construction/comparison — within this
+ * project's own source-level compilation, which is the only context that
+ * currently matters, since `apps/api` is private and consumed by nothing
+ * outside this workspace. That guarantee does NOT survive into a compiled
+ * `.d.ts` for an external consumer: the brand's literal string is preserved
+ * there, but the ES-private-field encapsulation that makes it unforgeable is
+ * not, so a hand-built object literal with the right property key would
+ * satisfy the emitted type without ever going through `from`.
  */
 export function createUuidId<Brand extends string>(brand: Brand) {
   class UuidId {

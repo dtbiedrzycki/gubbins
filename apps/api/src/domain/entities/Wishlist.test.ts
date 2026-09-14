@@ -152,6 +152,14 @@ describe('Wishlist.authorizeHold', () => {
     expect(() => wishlist.authorizeHold(otherItem)).toThrow(ItemNotFoundError);
   });
 
+  it('throws ItemNotFoundError for a separately-constructed item with the same id, not the attached reference', () => {
+    const wishlist = withState({ item, seq: 4, activeHolds: 0, status: 'available' });
+    // Same id/wishlistId as the attached item, but a distinct object — id-value equality
+    // would let this through; reference identity (the actual guarantee) must not.
+    const lookalike = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Cot' });
+    expect(() => wishlist.authorizeHold(lookalike)).toThrow(ItemNotFoundError);
+  });
+
   it('throws ItemAlreadyHeldError when active holds have reached the item quantity', () => {
     const wishlist = withState({ item, seq: 4, activeHolds: item.quantity, status: 'held' });
     expect(() => wishlist.authorizeHold(item)).toThrow(ItemAlreadyHeldError);
