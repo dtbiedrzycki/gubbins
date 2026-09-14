@@ -22,7 +22,10 @@ export class WishlistBuilder {
 
   build(): Wishlist {
     const wishlist = Wishlist.create({ ...this.props });
-    if (this.itemProps !== null) wishlist.addItem(this.itemProps);
+    if (this.itemProps !== null) {
+      const { id, title } = this.itemProps;
+      wishlist.addItem({ title }, { generateId: () => id });
+    }
     return wishlist;
   }
 }

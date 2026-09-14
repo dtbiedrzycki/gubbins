@@ -48,13 +48,13 @@ describe('InMemoryWishlistRepository', () => {
     const repo = new InMemoryWishlistRepository();
     await repo.insert(aWishlist().withItem({ id: ITEM_ID, title: 'Stroller' }).build());
     const beforeHold = await repo.findById(WISHLIST_ID);
-    expect(beforeHold?.authorizeHold(ITEM_ID)).toEqual({ expectedSeq: 0 });
+    expect(beforeHold?.authorizeHold(beforeHold.getItem(ITEM_ID))).toEqual({ expectedSeq: 0 });
 
     await repo.markItemHeld(WISHLIST_ID, ITEM_ID, 1);
 
     const afterHold = await repo.findById(WISHLIST_ID);
     expect(afterHold?.toItemView()?.status).toBe('held');
-    expect(() => afterHold?.authorizeHold(ITEM_ID)).toThrow(ItemAlreadyHeldError);
+    expect(() => afterHold?.authorizeHold(afterHold.getItem(ITEM_ID))).toThrow(ItemAlreadyHeldError);
   });
 
   it('preserves the wishlist fields when it rebuilds the aggregate after a hold', async () => {
