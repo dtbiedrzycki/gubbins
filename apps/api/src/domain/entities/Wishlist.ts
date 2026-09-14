@@ -71,14 +71,18 @@ export class Wishlist {
   }
 
   /**
-   * Creates and attaches this wishlist's item, assigning it this wishlist's
-   * own id — the caller supplies only the id/title a new item needs.
+   * Creates and attaches this wishlist's item, minting the item's id itself
+   * via the supplied generator and assigning its own id as the item's
+   * wishlistId — the caller supplies only the title a new item needs.
+   * `ids` is taken as a structural type, not an imported interface:
+   * domain/ may not import application/ (ADR-012); the application layer's
+   * TokenGenerator already satisfies this shape.
    */
-  addItem(props: { id: string; title: string }): Item {
+  addItem(props: { title: string }, ids: { generateId(): string }): Item {
     if (this.itemState !== null) {
       throw new DomainValidationError('Wishlist already has an item; this slice supports a single item per wishlist');
     }
-    const item = Item.createSingle({ id: props.id, wishlistId: this.id.value, title: props.title });
+    const item = Item.createSingle({ id: ids.generateId(), wishlistId: this.id.value, title: props.title });
     this.itemState = { item, seq: 0, activeHolds: 0, status: 'available' };
     return item;
   }

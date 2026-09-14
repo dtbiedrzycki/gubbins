@@ -86,20 +86,26 @@ describe('Wishlist.reconstitute', () => {
 describe('Wishlist.addItem', () => {
   it('attaches the item, which is then reachable through the aggregate', () => {
     const wishlist = Wishlist.create(validProps);
-    const item = wishlist.addItem({ id: ITEM_ID, title: 'Cot' });
+    const item = wishlist.addItem({ title: 'Cot' }, { generateId: () => ITEM_ID });
     expect(wishlist.item).toBe(item);
   });
 
   it('assigns the wishlist\'s own id to the created item', () => {
     const wishlist = Wishlist.create(validProps);
-    const item = wishlist.addItem({ id: ITEM_ID, title: 'Cot' });
+    const item = wishlist.addItem({ title: 'Cot' }, { generateId: () => ITEM_ID });
     expect(item.wishlistId.value).toBe(WISHLIST_ID);
+  });
+
+  it('mints the item id via the supplied generator, not the caller', () => {
+    const wishlist = Wishlist.create(validProps);
+    const item = wishlist.addItem({ title: 'Cot' }, { generateId: () => ITEM_ID });
+    expect(item.id.value).toBe(ITEM_ID);
   });
 
   it('throws when a second item is added', () => {
     const wishlist = Wishlist.create(validProps);
-    wishlist.addItem({ id: ITEM_ID, title: 'Cot' });
-    expect(() => wishlist.addItem({ id: '44444444-4444-4444-8444-444444444444', title: 'Pram' }))
+    wishlist.addItem({ title: 'Cot' }, { generateId: () => ITEM_ID });
+    expect(() => wishlist.addItem({ title: 'Pram' }, { generateId: () => '44444444-4444-4444-8444-444444444444' }))
       .toThrow(DomainValidationError);
   });
 });
@@ -111,7 +117,7 @@ describe('Wishlist.toItemView', () => {
 
   it('reports an added item as available', () => {
     const wishlist = Wishlist.create(validProps);
-    wishlist.addItem({ id: ITEM_ID, title: 'Cot' });
+    wishlist.addItem({ title: 'Cot' }, { generateId: () => ITEM_ID });
     expect(wishlist.toItemView()).toEqual({ id: ITEM_ID, title: 'Cot', status: 'available' });
   });
 
