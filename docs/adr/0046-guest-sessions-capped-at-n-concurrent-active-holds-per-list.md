@@ -1,4 +1,4 @@
-# 0046. Guest sessions capped at N concurrent active holds per list
+# 0046. Each guest session capped at N concurrent active holds per list
 
 - **Status:** Accepted
 - **Date:** 2026-09-09
@@ -18,7 +18,8 @@ recover.
 
 ## Decision
 
-We will cap guest sessions at N concurrent active holds across a list, set
+We will cap each guest session at N concurrent active holds on a list —
+a limit per session, not one shared by all of the list's guests — set
 well above honest use as a ceiling on absurdity rather than a quota, and
 add an owner-side hold-release control as the reversal path. This is framed
 as blast-radius limiting, not access control: a session identifier is not

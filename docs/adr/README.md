@@ -79,7 +79,7 @@ one-time renumbering documented in the restructuring history.
 | [043](0043-sourceurl-env-var-drives-agpl-3-0-network-use-compliance.md) | SOURCE_URL env var drives AGPL-3.0 network-use compliance link | Accepted |
 | [044](0044-payment-methods-are-per-list-configuration-not-a-hardcoded.md) | Payment methods are per-list configuration, not a hardcoded enum | Accepted |
 | [045](0045-contribution-snapshots-its-payment-method-at-pledge-time.md) | Contribution snapshots its payment method at pledge time | Accepted |
-| [046](0046-guest-sessions-capped-at-n-concurrent-active-holds-per-list.md) | Guest sessions capped at N concurrent active holds per list | Accepted |
+| [046](0046-guest-sessions-capped-at-n-concurrent-active-holds-per-list.md) | Each guest session capped at N concurrent active holds per list | Accepted |
 | [047](0047-contribution-amounts-bounded-by-absolute-and-target.md) | Contribution amounts bounded by absolute and target-relative ceilings | Accepted |
 | [048](0048-hold-contribution-submits-carry-a-client-generated.md) | Hold/contribution submits carry a client-generated idempotency key | Accepted |
 | [049](0049-civil-dates-and-instants-modelled-distinctly-via-per-list.md) | Civil dates and instants modelled distinctly via per-list timezone | Accepted |

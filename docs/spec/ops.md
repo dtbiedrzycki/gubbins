@@ -48,7 +48,7 @@
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Hold-expiry reminder email | unset → reminders disabled, warning logged |
 | `TRUSTED_PROXY_HOPS` | Number of reverse proxies in front of the app. `0` = none, read the socket address. `1` or more = read the address the outermost trusted proxy appended to `X-Forwarded-For`, counting from the right, so a client-supplied header value cannot be mistaken for the real one. The quickstart's Tunnel-plus-local-proxy path is `2`. Must be set correctly or per-IP rate limiting ([threat model](threat-model-summary.md)) is either evadable (too high) or collapses into a single global bucket (too low) | `0` |
 | `DEFAULT_TIMEZONE` | IANA fallback when browser detection is unavailable at list creation | `UTC` |
-| `MAX_ACTIVE_HOLDS_PER_SESSION` | Concurrent active holds one guest session may have across a list | `10` |
+| `MAX_ACTIVE_HOLDS_PER_SESSION` | Concurrent active holds a single guest session may have on one list | `10` |
 | `MAX_CONTRIBUTION_TARGET_MULTIPLE` | Ceiling as a multiple of `targetMinor`, where a target exists | `5` |
 | `HOLD_DURATION_DAYS` | Initial hold length; the single self-service extension adds the same again | `3` |
 | `PURGE_AFTER_DAYS` | Days after `eventDate` before the whole list is deleted. Minimum 1. Applies to existing lists on change, since `purgeAt` is derived — treat as set-once for an instance serving live lists | `90` |
