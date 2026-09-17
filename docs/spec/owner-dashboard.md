@@ -22,8 +22,8 @@
   status and identity become visible to the owner regardless of the
   toggles. "Revealed" means `revealedAt IS NOT NULL OR now >= revealAfter`
   — a stored flag set once on first crossing, so the transition is one-way
-  and a later timezone or event-date edit cannot re-hide what the owner has
-  already seen. *(ADR-[020](../adr/0020-owner-status-identity-visibility-auto-reveals-at-revealafter.md), ADR-[070](../adr/0070-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md))*
+  and a later `revealAfter` edit cannot re-hide what the owner has already
+  seen. *(ADR-[020](../adr/0020-owner-status-identity-visibility-auto-reveals-at-revealafter.md), ADR-[070](../adr/0070-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md))*
 - **Payment methods**: managed from list settings — add, edit, reorder,
   remove. Editing a method's label or handle does **not** rewrite existing
   contributions, which retain their snapshot (ADR-[045](../adr/0045-contribution-snapshots-its-payment-method-at-pledge-time.md)); the reconciliation

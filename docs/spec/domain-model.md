@@ -214,7 +214,8 @@ GuestDataAccess (plain table, not event-sourced — same category as
   implied wrongly. *(ADR-[061](../adr/0061-currency-validation-minor-unit-storage-and-the-ceiling.md))*
 - `revealAfter < purgeAt`, compared as resolved instants, not civil dates
 - Once `revealedAt` is set it is never cleared, and owner visibility never
-  reverts, regardless of subsequent `timezone` or `eventDate` edits
+  reverts, regardless of subsequent `revealAfter`, `timezone`, or
+  `eventDate` edits
 - `PURGE_AFTER_DAYS` must be ≥ 1. At 0, `purgeAt` resolves to the same
   instant as the default `revealAfter`, violating `revealAfter < purgeAt`
   above.
