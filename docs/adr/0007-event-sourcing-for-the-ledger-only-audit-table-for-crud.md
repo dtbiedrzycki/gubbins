@@ -10,9 +10,7 @@ The ledger (holds, purchases, contributions) needs a strong audit trail,
 replayability, and support for later corrections (voids, redactions)
 without rewriting history — the kind of guarantee event sourcing
 provides. The rest of the system's data (list/item metadata, settings)
-is ordinary CRUD with no such requirements, and forcing it through an
-event store would add ceremony for no benefit while also complicating
-purge, which needs to remain a plain `DELETE`
+is ordinary CRUD with no such requirements
 ([data & persistence](../spec/data-and-persistence.md)).
 
 ## Decision
@@ -27,10 +25,18 @@ stored and audited conventionally and purged with a plain `DELETE`.
 ## Alternatives considered
 
 - **Event-sourcing the entire system, including CRUD metadata** —
-  rejected: metadata edits (list/item details, settings) have no replay,
-  audit-immutability, or correction need beyond a simple changelog, and
-  forcing them through an event store complicates purge (which must
-  remain a plain `DELETE`) for no benefit.
+  rejected: nothing reads metadata history beyond a changelog, and the
+  cost is concrete. Every item would carry event history from creation,
+  breaking the rule that zero-history items may be hard-deleted
+  (ADR-[017](./0017-items-with-ledger-history-are-archived-not-deleted.md));
+  every metadata shape change would need an event upcaster as well as a
+  migration
+  (ADR-[032](./0032-migrations-are-forward-only-rollback-restore-from-backup.md));
+  and every settings edit would pay for synchronous projections
+  (ADR-[009](./0009-synchronous-in-transaction-projections-not-eventually.md))
+  that merely copy the row. Neither purge nor personal data separates
+  the two designs: whole-list purge deletes events too, and the audit
+  table keeps old values just as an event log would.
 - **Plain CRUD with row-level audit logging for the ledger too** —
   rejected: the ledger specifically needs append-only, replayable history
   to support later corrections (voids, redactions) without ever
@@ -42,8 +48,10 @@ stored and audited conventionally and purged with a plain `DELETE`.
 - Ledger correctness is derived by replaying events into projections
   (`rebuildProjections`), giving a canonical, rebuildable source of truth
   for claims and money.
-- CRUD metadata purge stays simple (a `DELETE`), unencumbered by
-  event-log immutability concerns.
+- The audit table's `oldValue`/`newValue` can hold personal data an
+  owner typed into free text, such as an item description, which
+  persists until whole-list purge at `purgeAt`, not until the field is
+  next edited.
 - **This is a load-bearing, foundational precedent.** Later decisions
   build directly on the ledger being event-sourced: the GDPR erasure
   design (ADR-[057](./0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md))
