@@ -51,9 +51,10 @@ one session creates several.
   people behind it, so a shared row would let one guest overwrite
   another. `email` is hold-only and carries its own grace-period purge
   ([privacy](../spec/privacy.md)), which is a simple per-row check under
-  1:1 and a cross-record question otherwise. A session-scoped row would
-  also let the owner's per-row redact action silently strip identity from
-  records not visible on the screen they are acting from.
+  1:1 and a cross-record question otherwise. A shared row would also
+  widen the owner's redact action: redacting the name on one pledge
+  would strip it from every other hold and pledge that guest made, none
+  of which are on the screen the owner is acting from.
 
 ## Consequences
 
