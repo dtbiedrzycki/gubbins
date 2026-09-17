@@ -109,15 +109,17 @@ one-time renumbering documented in the restructuring history.
 
 ADRs 0001–0070 were imported from `gubbins-spec.md`'s former §4 ADR
 Index — pre-repository product/architecture decisions for the
-application itself, plus two repository-native ADRs (devcontainer
-sandboxing for Claude Code `auto`-mode runs, and Claude Code/`gh`
-credentialing in the dev image — see
-[development environment](../spec/development-environment.md)) — both
-documenting infrastructure that already existed in the repo before
-being written up here. The numbering is gap-free as of this
-restructuring; earlier interim states (including a mid-restructuring
-renumber and two folded duplicates) are recorded in git history, not in
-the current numbering.
+application itself, plus three repository-native ADRs (CI hosting in
+ADR-[038](0038-ci-runs-on-github-actions-kept-forge-portable.md),
+devcontainer sandboxing for Claude Code `auto`-mode runs, and Claude
+Code/`gh` credentialing in the dev image — see
+[development environment](../spec/development-environment.md)) — all
+three documenting infrastructure that already existed in the repo before
+being written up here. The numbering is gap-free. Two imported entries
+were folded into others rather than kept: the query-string guest-key
+transport into
+ADR-[067](0067-the-guest-key-travels-in-a-fragment.md), and a
+release-scanning stub into the CI decision now recorded as ADR-038.
 
 *(Not every ADR carries a long Consequences section — some decisions are
 fully covered by their linked spec topic and stay short.
