@@ -8,13 +8,17 @@
 - **Quantity reduction**: permitted below the currently committed count.
   Existing holds/purchases are grandfathered; new holds are blocked until
   releases/expiries bring committed count back under the new quantity.
+  A reduction below the committed count shows a warning before saving
+  that more may already be held or bought than the new quantity.
+  *(ADR-[019](../adr/0019-quantity-may-drop-below-committed-holds-purchases.md))*
 - **Price/target changes** (group, fund): permitted at any time, including
   after contributions exist. `targetMinor` is read live at contribution time,
   never snapshotted, so no historical rewrite occurs. A reduction that would
   immediately overfund the item triggers a confirming dialog before saving.
 - **Spoiler-mode interaction**: while `ownerSeesClaimStatus` is off and
-  the list has not yet revealed, blocked edits (delete, in edge cases
-  quantity) return a generic reason with no counts. Once revealed, claim
+  the list has not yet revealed, blocked edits (delete) return a generic
+  reason with no counts, and the quantity-reduction warning states only
+  that more is committed than the new quantity, without counts. Once revealed, claim
   status and identity become visible to the owner regardless of the
   toggles. "Revealed" means `revealedAt IS NOT NULL OR now >= revealAfter`
   — a stored flag set once on first crossing, so the transition is one-way
