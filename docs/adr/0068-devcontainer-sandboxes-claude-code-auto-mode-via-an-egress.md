@@ -30,10 +30,14 @@ The proxy enforces a domain/SNI-based allowlist — `registry.npmjs.org`
 (npm); `github.com`, `api.github.com`, `codeload.github.com`,
 `objects.githubusercontent.com`, `raw.githubusercontent.com` (GitHub); and
 `api.anthropic.com` — HTTPS only, port 443 only; an allowlisted domain does
-not imply an allowlisted arbitrary port. This project's own Codeberg remote
-is deliberately excluded: an `auto`-mode session is expected to work
-locally and have a human push, not to have a path from the sandboxed agent
-to the project's own repository. `app` carries zero `NET_ADMIN`/`NET_RAW`
+not imply an allowlisted arbitrary port. An `auto`-mode session is still
+expected to work locally and have a human push, but the network layer
+cannot enforce that: the project's own repository is on GitHub, which the
+allowlist has to admit anyway, and an SNI allowlist sees hostnames rather
+than repositories. What the agent can do there is bounded by the
+credentials in the container
+(ADR-[069](./0069-claude-code-and-gh-ship-in-the-dev-image-only.md)),
+not by the proxy. `app` carries zero `NET_ADMIN`/`NET_RAW`
 or other elevated network capabilities.
 
 ## Alternatives considered
@@ -50,8 +54,10 @@ or other elevated network capabilities.
 - **`bypassPermissions` under either firewall design** — considered and
   rejected outright: removing per-action judgment entirely is a different
   risk posture that no network control substitutes for.
-- **Codeberg on the allowlist** — rejected: unnecessary for local
-  write-and-test work, and an avoidable increase in blast radius.
+- **Keeping the project's own repository off the allowlist** — no longer
+  available: it was excluded while the project was hosted elsewhere, and
+  a hostname-based allowlist cannot separate it from the GitHub traffic
+  the sandbox needs.
 - **An allowlist with no network-topology isolation** (proxy env vars
   alone, without `internal: true`) — rejected: leaves a bypass open if
   something in `app` ignores the proxy environment variables and dials out

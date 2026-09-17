@@ -17,8 +17,10 @@
   on an `internal: true` Docker network with no direct route out; a
   single-purpose `egress-proxy` sidecar — the only container with
   external network reach — enforces a domain/SNI-based allowlist (npm
-  registry, GitHub, the Anthropic API; deliberately excluding this
-  project's own Codeberg remote). Neither container needs
+  registry, GitHub, the Anthropic API). The allowlist matches hostnames,
+  not repositories, so it does not hold the agent away from this
+  project's own GitHub repository; what it can do there is bounded by the
+  credentials in the container, not by the proxy. Neither container needs
   `NET_ADMIN`/`NET_RAW`, and the allowlist needs no maintenance as DNS or
   CDN IPs rotate, since enforcement never depends on a resolved IP. Not
   used for `default`/`acceptEdits`/`plan` sessions, where a human

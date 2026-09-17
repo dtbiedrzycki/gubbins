@@ -61,8 +61,7 @@ allowlist covers ongoing runtime traffic only, not login handshakes.
   human-driven action the sandbox wasn't built to carry, undermining
   the blast-radius reasoning
   ADR-[068](./0068-devcontainer-sandboxes-claude-code-auto-mode-via-an-egress.md)
-  exists for — the same reasoning ADR-068 already applied to excluding
-  Codeberg from the allowlist.
+  exists for.
 
 ## Consequences
 
