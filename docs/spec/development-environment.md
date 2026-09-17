@@ -24,7 +24,7 @@
   used for `default`/`acceptEdits`/`plan` sessions, where a human
   confirms every command already. `bypassPermissions` is out of scope
   entirely and not enabled anywhere in this setup.
-- **Claude Code and `gh` in the `app` image** *(ADR-[069](../adr/0069-claude-code-and-gh-ship-in-the-app-image-with-no-baked-in.md))*: both installed
+- **Claude Code and `gh` in the dev image only, never the production image** *(ADR-[069](../adr/0069-claude-code-and-gh-ship-in-the-dev-image-only.md))*: both installed
   by default in `Dockerfile.dev`. Credentials for neither are ever baked
   into the image. Claude Code auth is a one-time interactive `claude
   login`, deliberately not persisted — its OAuth state lives in the

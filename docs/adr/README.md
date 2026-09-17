@@ -102,7 +102,7 @@ one-time renumbering documented in the restructuring history.
 | [066](0066-client-ip-resolution-is-a-hop-count.md) | Client IP resolution is a hop count | Accepted |
 | [067](0067-the-guest-key-travels-in-a-fragment.md) | The guest key travels in a fragment | Accepted |
 | [068](0068-devcontainer-sandboxes-claude-code-auto-mode-via-an-egress.md) | Devcontainer sandboxes Claude Code auto mode via an egress-proxy sidecar | Accepted |
-| [069](0069-claude-code-and-gh-ship-in-the-app-image-with-no-baked-in.md) | Claude Code and gh ship in the app image with no baked-in credentials | Accepted |
+| [069](0069-claude-code-and-gh-ship-in-the-dev-image-only.md) | Claude Code and gh ship in the development image only, with no baked-in credentials | Accepted |
 | [070](0070-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md) | revealedAt makes owner claim-status reveal one-way sticky | Accepted |
 
 ## Imported ADRs (0001–0070)

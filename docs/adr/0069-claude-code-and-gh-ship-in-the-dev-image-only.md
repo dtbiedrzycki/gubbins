@@ -1,4 +1,4 @@
-# 0069. Claude Code and `gh` ship in the `app` image with no baked-in credentials
+# 0069. Claude Code and `gh` ship in the development image only, with no baked-in credentials
 
 - **Status:** Accepted
 - **Date:** 2026-09-10
@@ -6,7 +6,9 @@
 
 ## Context
 
-Extending the `app` image with Claude Code and `gh` raises the same
+Extending the development image (`Dockerfile.dev`, run as the
+devcontainer's `app` service — never the distributed production image)
+with Claude Code and `gh` raises the same
 constraint the project holds everywhere else credentials touch this
 repo: nothing sensitive may end up in a Docker image layer or a
 committed file. Both tools also sit downstream of
@@ -16,8 +18,8 @@ quietly create a hole in it.
 
 ## Decision
 
-We will ship Claude Code and `gh` in the `app` image with no
-credentials baked in. Claude Code authenticates via a one-time
+We will ship Claude Code and `gh` in the development image only, with
+no credentials baked in. Claude Code authenticates via a one-time
 interactive `claude login` (OAuth), deliberately not persisted across
 rebuilds — re-authenticate after each one. `gh` authenticates via a
 fine-grained, repo-scoped (contents + metadata) personal access token
@@ -86,6 +88,6 @@ allowlist covers ongoing runtime traffic only, not login handshakes.
   calls and `gh`'s clone/API calls all land on already-listed hosts —
   but it was never extended to accommodate login itself, and doesn't
   need to be, since login never happens on that network.
-- Devcontainer/CI concern only, same scope as
+- Development image only, same scope as
   ADR-[068](./0068-devcontainer-sandboxes-claude-code-auto-mode-via-an-egress.md).
-  No bearing on the production app's runtime.
+  The production image contains neither tool.
