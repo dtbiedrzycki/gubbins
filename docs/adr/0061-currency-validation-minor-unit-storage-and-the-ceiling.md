@@ -6,19 +6,11 @@
 
 ## Context
 
-Two gaps surfaced while auditing the contribution ceiling
-(ADR-[047](./0047-contribution-amounts-bounded-by-absolute-and-target.md)).
-First, `currency` had no validation rule anywhere in the spec, while
-`timezone` — added later by
-ADR-[049](./0049-civil-dates-and-instants-modelled-distinctly-via-per-list.md)
-— carries an explicit one; the asymmetry was age, not intent, since
-newer decisions got rigorous treatment and older asserted fields never
-went back for it. Second, the minor-unit storage rule existed as a
-single unexplained bullet in [payments](../spec/payments.md), despite
-being as load-bearing as the timezone model and carrying less written
-rationale than the choice of QR library. Auditing both together also
-exposed that ADR-047's absolute ceiling, expressed in minor units,
-denominates differently across currencies and has no
+Auditing the contribution ceiling
+(ADR-[047](./0047-contribution-amounts-bounded-by-absolute-and-target.md))
+found that `currency` had no validation rule, that minor-unit storage
+had no written rationale, and that ADR-047's absolute ceiling, expressed
+in minor units, denominates differently across currencies and has no
 currency-independent meaning.
 
 ## Decision
