@@ -22,7 +22,7 @@
   Gubbins instance collects, that it is deleted after the event, and
   that the operator is the data controller. It contains no owner-supplied
   content and renders identically on every failed and successful gate, so
-  it adds no per-slug signal (ADR-[016](../adr/0016-no-public-list-directory-lookups-fail-generically.md), ADR-[056](../adr/0056-owner-configurable-privacynotice-field-shown-only-when-set.md)).
+  it adds no per-slug signal (ADR-[016](../adr/0016-no-public-list-directory-lookups-fail-generically.md), ADR-[056](../adr/0056-privacy-notice-rendered-by-the-app-with-operator-contact.md)).
 - **Owner access** = owner token alone; the key is not required, so key
   rotation cannot lock the owner out. The token is **never carried in a
   URL**. The owner pastes or types it into the homepage input already
@@ -61,10 +61,10 @@
   full-control link exists to save (ADR-[062](../adr/0062-the-owner-token-never-travels-in-a-url.md)).
 - The "save your owner token" screen also states plainly that the owner is
   responsible for any guest names, emails, or messages collected through
-  the list, with a link to the privacy-notice guide ([governance, licensing & release](governance-licensing-and-release.md)) —
+  the list, with a link to the privacy guide ([governance, licensing & release](governance-licensing-and-release.md)) —
   controller-awareness at the one moment every owner is guaranteed to
   pass through, rather than left to an optional field they may never
-  fill in. *(ADR-[056](../adr/0056-owner-configurable-privacynotice-field-shown-only-when-set.md))*
+  fill in. *(ADR-[056](../adr/0056-privacy-notice-rendered-by-the-app-with-operator-contact.md))*
 - **No owner email is collected.** Automated owner-token recovery is
   deferred (ADR-[051](../adr/0051-owner-token-recovery-deferred-direct-operator-access-is-the.md)), so there is nothing for an address to do; storing
   one against a future feature would be collection without a purpose,

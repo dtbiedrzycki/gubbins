@@ -37,17 +37,16 @@
   names, emails, and messages are collected and what happens to them —
   squarely the controller role under GDPR for any EU-guest list, with
   this project itself neither controller nor processor (there is no
-  hosted service in the loop). An optional `privacyNotice` field ([domain model](domain-model.md)) lets
-  the owner author their own notice (who's hosting this, how to contact
-  them, that data is deleted after the event), rendered to guests when
-  set. The app does not auto-generate or infer this text — it doesn't
-  know the operator's identity, jurisdiction, or preferred contact
-  method, and a confident-looking but incomplete auto-generated notice
-  would be worse than an honest gap. A docs template ([governance, licensing & release](governance-licensing-and-release.md)) gives
-  operators a starting point to paste in and edit. The creation
-  acknowledgement screen ([access & identity](access-identity.md)) also states the controller obligation
-  plainly at the one moment every owner passes through, so awareness
-  doesn't depend on the optional field being filled in. *(ADR-[056](../adr/0056-owner-configurable-privacynotice-field-shown-only-when-set.md))*
+  hosted service in the loop). Every list renders an app-authored privacy
+  notice after key entry ([guest UX](guest-ux.md)): what is collected,
+  when it is deleted, the backup retention window, and a link to
+  self-service data access. Controller identity and contact come from
+  `PRIVACY_CONTACT` ([ops](ops.md)); when unset, the notice says no
+  contact has been provided rather than omitting the line. The owner may
+  add an optional `privacyNotice` note ([domain model](domain-model.md))
+  beneath it. The creation acknowledgement screen
+  ([access & identity](access-identity.md)) also states the controller
+  obligation plainly at the one moment every owner passes through. *(ADR-[056](../adr/0056-privacy-notice-rendered-by-the-app-with-operator-contact.md))*
 - **Right to erasure, honored via redaction, not deletion.** The owner can
   redact an individual hold's or contribution's `GuestPii` row from the
   reconciliation or thank-you view — nulling `name`/`email`/`message` in
@@ -83,9 +82,11 @@
   — not restored or accessed for any purpose — until it rotates out;
   re-apply the redaction if a restore does happen; and let the backup
   retention window ([backup, restore & upgrade safety](backup-restore-and-upgrade.md)) bound how long that lasts. The
-  privacy-notice template ([governance, licensing & release](governance-licensing-and-release.md)) states the window, since a guest
+  app-rendered privacy notice states the window, since a guest
   exercising erasure has to be told when backup copies of their data
-  will be gone. *(ADR-[065](../adr/0065-erasure-across-backups-and-the-subject-access-routing-fix.md))*
+  will be gone. Each redaction logs a warning, naming no guest, that
+  backups taken before it hold the erased data and must be deleted by
+  the end of the window. *(ADR-[065](../adr/0065-erasure-across-backups-and-the-subject-access-routing-fix.md))*
 - **Data-at-rest theft (stolen SQLite file or stolen backup) is a distinct
   actor from the operator themselves**, and is explicitly out of the
   application's scope to mitigate — encryption-at-rest is a deployment/OS-

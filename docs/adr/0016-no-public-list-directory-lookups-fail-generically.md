@@ -42,10 +42,10 @@ wrong or whether the list exists at all
   rather than re-deriving: ADR-[054](./0054-post-purgeat-lookups-return-the-same-generic-not-found.md)'s
   post-purge lookups return this same generic response rather than a
   distinguishable "this list existed and was purged" message, and
-  ADR-[056](./0056-owner-configurable-privacynotice-field-shown-only-when-set.md)'s
-  owner-configurable privacy notice renders identically on every failed
-  and successful gate attempt so its presence or absence adds no
-  per-slug signal of its own.
+  ADR-[056](./0056-privacy-notice-rendered-by-the-app-with-operator-contact.md)
+  keeps the key gate's privacy statement static and identical on every
+  failed and successful attempt, so it adds no per-slug signal of its
+  own.
 - Combined with unguessable `TokenGenerator` output and rate limiting
   (ADR-[040](./0040-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md)),
   this closes the enumeration/guessing vector for slugs, keys, tokens,

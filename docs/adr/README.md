@@ -89,7 +89,7 @@ one-time renumbering documented in the restructuring history.
 | [053](0053-guest-invite-qr-available-on-demand-from-the-owner-dashboard.md) | Guest-invite QR available on demand from the owner dashboard | Accepted |
 | [054](0054-post-purgeat-lookups-return-the-same-generic-not-found.md) | Post-purgeAt lookups return the same generic not-found response | Accepted |
 | [055](0055-instance-teardown-addressed-as-a-documentation-checklist.md) | Instance teardown addressed as a documentation checklist | Accepted |
-| [056](0056-owner-configurable-privacynotice-field-shown-only-when-set.md) | Owner-configurable privacyNotice field, shown only when set | Accepted |
+| [056](0056-privacy-notice-rendered-by-the-app-with-operator-contact.md) | Privacy notice rendered by the app, with operator contact | Accepted |
 | [057](0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md) | GDPR erasure via a redactable side-table (GuestPii), not events | Accepted |
 | [058](0058-guest-self-service-data-access-erasure-via-guestdataaccess.md) | Guest self-service data access/erasure via GuestDataAccess secret | Accepted |
 | [059](0059-offline-non-monetary-gifts-recorded-via-manualgiftentry.md) | Offline non-monetary gifts recorded via ManualGiftEntry table | Accepted |

@@ -31,7 +31,11 @@ backups: JSON export carries `guest_pii` with `redactedAt`, import lets
 redaction win on conflict, and the remaining obligation is procedural —
 hold pre-redaction backups beyond use pending rotation, re-apply
 redaction after any restore, bounded by a stated backup retention
-window never exceeding `PURGE_AFTER_DAYS`. Separately, we will route
+window never exceeding `PURGE_AFTER_DAYS`. Because that obligation falls
+on the operator, the app surfaces it when it arises: each redaction logs
+a warning that older backups hold the erased data and must be deleted by
+a stated date, and the quickstart and backup guide state the window up
+front. Separately, we will route
 guest subject-access requests to
 ADR-[058](./0058-guest-self-service-data-access-erasure-via-guestdataaccess.md)'s
 self-service view at `/{slug}/my-data`, never to JSON export.
@@ -46,6 +50,14 @@ self-service view at `/{slug}/my-data`, never to JSON export.
   rejected: it only works if the journal lives outside the database
   being restored, meaning a second store, a second retention question,
   and a file that is itself a record of who exercised erasure.
+- **Crypto-shredding with keys in a separate file on the volume**, so
+  backups could outlive the window harmlessly — rejected: it moves the
+  retention duty onto the key file and its copies rather than removing
+  it, a whole-volume backup silently defeats it, and a lost key file
+  loses every guest's personal data on restore.
+- **Personal-data-free backups for long-term retention** — deferred:
+  restoring one loses the names and messages the owner's thank-you view
+  depends on.
 - **Continue recommending JSON export for subject-access/portability
   requests** — rejected: the export is a whole-list dump, so handing it
   to a requesting guest discloses every other guest's data. The
@@ -68,6 +80,12 @@ self-service view at `/{slug}/my-data`, never to JSON export.
   ADR-058's self-service view already serves the guest-side case
   correctly and per-guest, so guest requests go to `/{slug}/my-data`
   while export stays owner-side portability and backup only.
-- ADR-033's crypto-shredding deferral is reaffirmed, not reopened: the
-  deferral still depends on `purgeAt` keeping retention short, and
-  should be revisited if that ever stops being true.
+- ADR-033's crypto-shredding deferral was re-examined against backups
+  kept beyond the window and still stands: every scheme relocates the
+  operator's retention duty rather than removing it, so the app's part
+  is making that duty visible. The deferral still depends on `purgeAt`
+  keeping retention short, and should be revisited if that stops being
+  true.
+- The redaction warning names no guest — only the redaction time and
+  delete-by date — keeping to [privacy](../spec/privacy.md)'s rule that
+  guest names and emails never appear in logs.

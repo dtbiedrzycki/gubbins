@@ -42,12 +42,11 @@
   block ([owner dashboard & editing rules](owner-dashboard.md), carried-forward flag) and manual contributions/
   `ManualGiftEntry` ([manual contributions](manual-contributions.md), ADR-[059](../adr/0059-offline-non-monetary-gifts-recorded-via-manualgiftentry.md)) both supporting a null/no-online-rail
   path, without weakening the block itself.
-- **Privacy notice**: free-text field (≤1000 chars) in list settings,
-  same escaping treatment as names/messages. Empty by default. A short
-  inline hint links to the docs template ([governance, licensing & release](governance-licensing-and-release.md)) rather than pre-filling
-  it in the field itself, so the owner makes an active choice about the
-  content rather than shipping unedited placeholder text to guests.
-  *(ADR-[056](../adr/0056-owner-configurable-privacynotice-field-shown-only-when-set.md))*
+- **Privacy note**: optional free-text field (≤1000 chars) in list
+  settings, same escaping treatment as names/messages, shown to guests
+  beneath the app-rendered privacy notice. Empty by default. Settings
+  preview the notice guests see, so the owner adds only what it doesn't
+  already cover. *(ADR-[056](../adr/0056-privacy-notice-rendered-by-the-app-with-operator-contact.md))*
 - **Hold release**: the owner may release any active hold from the
   dashboard (see [holds](holds.md)), emitting `HoldReleased`. Confirming dialog states
   the holder's name where spoiler settings permit it to be shown, and a

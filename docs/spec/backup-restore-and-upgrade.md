@@ -26,7 +26,9 @@
   supplies the recipe — but the window itself is not optional guidance:
   it is what makes the erasure-in-backups obligation ([privacy](privacy.md))
   dischargeable, being the "specified length of time" a privacy notice
-  has to state. *(ADR-[065](../adr/0065-erasure-across-backups-and-the-subject-access-routing-fix.md))*
+  has to state. The app surfaces the obligation when it arises: each
+  redaction logs the date by which older backups must be gone
+  ([privacy](privacy.md)). *(ADR-[065](../adr/0065-erasure-across-backups-and-the-subject-access-routing-fix.md))*
 - **Migrations are forward-only** (see [ops](ops.md)). Rollback story is "restore
   from the pre-upgrade backup," documented as a required pre-upgrade step,
   not "run a down migration." *(ADR-[032](../adr/0032-migrations-are-forward-only-rollback-restore-from-backup.md))*

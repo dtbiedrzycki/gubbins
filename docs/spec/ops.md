@@ -60,6 +60,7 @@
 | `NODE_ENV` | Runtime mode | `production` |
 | `METRICS_ENABLED` | Expose `/metrics` (Prometheus text format via OpenTelemetry exporter); pull-based, scraped by the operator's own tooling — does not violate the no-outbound-requests principle since nothing leaves the box unprompted | `false` |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Operator-supplied collector for trace export; unset = spans stay in-process only, never leave the container | unset |
+| `PRIVACY_CONTACT` | GDPR controller identity and contact (e.g. a name and email), shown in every list's app-rendered privacy notice after key entry. Unset → the notice states that no contact has been provided | unset |
 | `SOURCE_URL` | AGPL-3.0 compliance: link surfaced in the footer/about page pointing to the source of the code actually running. Defaults to the upstream repo; **operators who modify the code are responsible for updating this** to their own fork before serving guests, per AGPL §13's network-use clause | upstream repo URL |
 
 Notes on `CREATE_SECRET`:

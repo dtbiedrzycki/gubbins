@@ -15,12 +15,12 @@
 - Tapping a card opens a full-screen item detail (not a modal) with
   notes, image, and a sticky bottom action bar — keeps the
   scrollable list itself dense and scannable on small screens.
-- **Privacy notice link**: after key entry, when the owner has set
-  `privacyNotice`, a small "Privacy" link appears in the guest page
-  footer opening the notice as plain text. When unset, no link renders —
-  no dead affordance pointing at nothing. The key gate instead carries
+- **Privacy notice link**: after key entry, a small "Privacy" link always
+  appears in the guest page footer, opening the app-rendered notice as
+  plain text, with the owner's `privacyNotice` note beneath it when set.
+  The key gate instead carries
   the static app-authored statement ([access & identity](access-identity.md)), which renders unconditionally
-  whether or not the slug exists. *(ADR-[056](../adr/0056-owner-configurable-privacynotice-field-shown-only-when-set.md))*
+  whether or not the slug exists. *(ADR-[056](../adr/0056-privacy-notice-rendered-by-the-app-with-operator-contact.md))*
 
 **Empty / near-empty / fully-claimed states**
 - **Empty list** (owner hasn't added items yet): "This list is still being

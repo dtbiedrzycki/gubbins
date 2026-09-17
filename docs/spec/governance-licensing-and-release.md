@@ -49,7 +49,9 @@
   resolved-address log line ([ops](ops.md)); backup
   guide covering `VACUUM INTO` +
   JSON export/import with an off-device-copy recommendation (per [backup, restore & upgrade safety](backup-restore-and-upgrade.md));
-  and an erasure-request section covering the split between guest
+  the retention window and the redaction warning stated up front in the
+  quickstart and backup guide, not only in the erasure section; and an
+  erasure-request section covering the split between guest
   self-service and export ([privacy](privacy.md)), the beyond-use commitment, the backup
   retention window ([backup, restore & upgrade safety](backup-restore-and-upgrade.md)), and re-applying a redaction after any
   restore.
@@ -76,16 +78,11 @@
   container. Framed as "an internet-facing box you forgot about is a
   liability, not just clutter," since the realistic failure mode is
   abandonment, not misuse. *(ADR-[055](../adr/0055-instance-teardown-addressed-as-a-documentation-checklist.md))*
-- **Privacy-notice template**: a short, fill-in-the-blank example in
-  `docs/`, covering operator identity/contact, what's collected (names,
-  optional emails, messages), retention (tied to `purgeAt`), and the
-  backup retention window ([backup, restore & upgrade safety](backup-restore-and-upgrade.md)) alongside `purgeAt` — a guest
-  exercising erasure has to be told when backup copies of their data will
-  be gone, which is part of the obligation rather than an optional detail
-  — and a plain
-  statement that this is a self-hosted instance, not a hosted service —
-  written for the owner to paste into the `privacyNotice` field and edit,
-  not to use verbatim. *(ADR-[056](../adr/0056-owner-configurable-privacynotice-field-shown-only-when-set.md))*
+- **Operator privacy guide**: what the app-rendered privacy notice
+  states (what's collected, retention tied to `purgeAt`, the backup
+  retention window, self-service data access), how to set
+  `PRIVACY_CONTACT` to the operator's identity and contact, and when an
+  owner's optional `privacyNotice` note is worth adding. *(ADR-[056](../adr/0056-privacy-notice-rendered-by-the-app-with-operator-contact.md))*
 - **Demo instance**: deferred, not rejected. A public seeded demo would
   aid adoption but is real ongoing hosting/maintenance weight for a
   project whose architectural stance is "no infra run on your behalf."

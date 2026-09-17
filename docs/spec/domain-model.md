@@ -57,10 +57,10 @@ Wishlist
   purgeAt                 derived instant; end of (eventDate +
                           PURGE_AFTER_DAYS) in `timezone`; must be
                           > revealAfter
-  privacyNotice            optional owner-authored free text, ≤1000 chars,
-                          escaped on output. Rendered to guests when set;
-                          entirely omitted (no empty link, no placeholder)
-                          when null. See [privacy](privacy.md), ADR-[056](../adr/0056-owner-configurable-privacynotice-field-shown-only-when-set.md).
+  privacyNotice            optional owner-authored note, ≤1000 chars,
+                          escaped on output. Shown beneath the
+                          app-rendered privacy notice when set; nothing
+                          extra renders when null. See [privacy](privacy.md), ADR-[056](../adr/0056-privacy-notice-rendered-by-the-app-with-operator-contact.md).
 
 Item
   type                    single | group | fund   (immutable after first claim)
@@ -224,8 +224,9 @@ GuestDataAccess (plain table, not event-sourced — same category as
   ADR-[054](../adr/0054-post-purgeat-lookups-return-the-same-generic-not-found.md)), or the instance homepage ([access & identity](access-identity.md)). There is no separate owner
   or event name field; `title` is the only list-identifying string, so
   this single rule is what keeps the key gate silent.
-  The same applies to `privacyNotice` ([privacy](privacy.md), ADR-[056](../adr/0056-owner-configurable-privacynotice-field-shown-only-when-set.md)), which by
-  construction identifies the operator. A static, app-authored privacy
+  The same applies to the app-rendered privacy notice, `PRIVACY_CONTACT`,
+  and `privacyNotice` ([privacy](privacy.md), ADR-[056](../adr/0056-privacy-notice-rendered-by-the-app-with-operator-contact.md)), which identify the
+  operator. A static, app-authored privacy
   statement — identical across all instances and slugs, carrying no
   owner-supplied content — is rendered pre-auth instead,
   unconditionally, so its presence signals nothing about whether a slug

@@ -62,7 +62,7 @@ obligation, not the owner's choice.
   gives the timezone field itself. `eventDate` remains a civil date, and
   the instant/civil-date distinction stands untouched.
 - `purgeAt` deliberately stays derived:
-  ADR-[056](./0056-owner-configurable-privacynotice-field-shown-only-when-set.md)
+  ADR-[056](./0056-privacy-notice-rendered-by-the-app-with-operator-contact.md)
   makes the operator the GDPR data controller, and the operator is not
   always the owner; letting an owner set an arbitrary deletion instant
   would hand away control of data the operator is answerable for.
