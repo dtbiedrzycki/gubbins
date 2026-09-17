@@ -55,7 +55,10 @@
   addresses the app directly. And once with several simulated guests
   behind one shared VPN egress address: distinct from venue wifi in that
   the guests are unrelated and dispersed, so a lockout penalises someone
-  for strangers' behaviour. If either produces an unacceptable
+  for strangers' behaviour. Separately, send rotating forged
+  `X-Forwarded-For` values straight to the app from a public address with
+  `TRUSTED_PROXY_HOPS` above 0, asserting the header is ignored, the
+  per-IP limit still trips, and the warning fires. If either produces an unacceptable
   false-positive rate, the candidate remedy is converting guest-key-entry
   per-IP from a lockout to an added delay, matching the reasoning ADR-[040](../adr/0040-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md)
   already applied to the per-slug aggregate. *(ADR-[040](../adr/0040-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md), ADR-[066](../adr/0066-client-ip-resolution-is-a-hop-count.md))*

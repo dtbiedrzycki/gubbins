@@ -23,9 +23,11 @@ edge case.
 We will resolve client IP behind a proxy as a hop count
 (`TRUSTED_PROXY_HOPS`), not a boolean, counting the Nth entry in
 `X-Forwarded-For` from the right — the position written by controlled
-infrastructure, invariant to however much an attacker prepends.
-Misconfiguration in either direction is detected and warned about, and
-the resolved address is logged once at start so an operator can verify
+infrastructure, invariant to however much an attacker prepends. The
+header is honoured only when the connecting peer is a loopback, private,
+or unique-local address; a request from a public address resolves to
+that address and is warned about. Misconfiguration in either direction
+is detected and warned about, and the resolved address is logged once at start so an operator can verify
 it in seconds.
 
 ## Alternatives considered
@@ -36,10 +38,13 @@ it in seconds.
   including `CREATE_SECRET`. Both settings being wrong is the signal
   that the type is wrong: the real question is not whether to trust a
   proxy but how many sit in front, and only a count answers it.
-- **A CIDR allowlist** — rejected for this audience as more precise but
-  wrong-shaped: it asks a hobbyist to know their Docker network
-  topology, where a hop count asks a question the quickstart can simply
-  answer.
+- **A configured list of trusted proxy addresses (CIDR ranges)** — the
+  app would honour `X-Forwarded-For` only from those addresses. Rejected
+  for this audience as more precise but wrong-shaped: it asks a hobbyist
+  for their proxy's addresses, which Docker reassigns when containers are
+  recreated, where a hop count asks a question the quickstart can simply
+  answer. The private-peer check keeps the part of its protection that
+  needs no configuration.
 - **Read `CF-Connecting-IP` directly** — rejected as vendor-specific: on
   the Tunnel path it is simpler and harder to get wrong, since
   Cloudflare strips any inbound copy, but the spec continues to support
@@ -65,15 +70,22 @@ it in seconds.
   why the resolved address is logged once at start; a count set too
   high reads leftward into attacker-controlled entries, which is why an
   over-high value warns and falls back rather than trusting what it
-  finds; and a request reaching the app directly bypasses the chain
-  entirely, which is where Cloudflare Tunnel is genuinely stronger than
-  a self-hosted nginx, since with no public port there is no path
-  around the edge for a forged header to enter.
+  finds.
+- A request that reaches the app directly, rather than through the
+  proxy, would otherwise carry a forged header past the whole chain.
+  The private-peer check stops this for requests from the internet, but
+  not from a host on the same private network, nor where something in
+  front rewrites the source to a private address (rootless Docker's port
+  forwarding does). Deployments close the rest by leaving the app's own
+  port reachable only through the proxy: an outbound tunnel accepts no
+  inbound connections at all, while a reverse proxy on a host with
+  published ports needs the app's port left unpublished.
 - **This is a mechanism defect, not a threshold question, and is a
   sibling of ADR-[040](./0040-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md)'s
   rate-limit tuning, not a re-tune of it.** ADR-040's numbers are left
   untouched; this decision only fixes how the IP feeding those numbers
   is resolved.
 - It does mean the pre-v1 test was measuring the wrong configuration;
-  [testing](../spec/testing.md) now runs three scenarios: direct,
-  behind a misconfigured proxy, and behind shared VPN egress.
+  [testing](../spec/testing.md) now runs four scenarios: direct,
+  behind a misconfigured proxy, behind shared VPN egress, and a forged
+  header sent straight to the app.

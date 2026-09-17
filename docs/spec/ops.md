@@ -16,7 +16,11 @@
   rate limiting has degraded to a single instance-wide bucket, and names
   the variable to set. If the count exceeds the entries actually present,
   it logs that the value is too high and falls back to the leftmost
-  available entry rather than trusting a client-supplied one. Neither is
+  available entry rather than trusting a client-supplied one. If the
+  count is above 0 and a request arrives from a peer that is not
+  loopback, private, or unique-local, the header is ignored, the peer
+  address is used, and the app warns once per start that its port is
+  reachable other than through the proxy. None is
   fatal — the signal is a request header, so it cannot be checked at
   boot, and a running instance with degraded limits serves an event
   better than one that refuses to start during it.
@@ -46,7 +50,7 @@
 | `CREATE_SECRET` | One or more comma-separated invite secrets; presenting any valid value authorizes list creation once the instance has self-locked | unset |
 | `ALLOW_OPEN_CREATION` | Bypass the self-lock; creation always open, no secret required | `false` |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Hold-expiry reminder email | unset → reminders disabled, warning logged |
-| `TRUSTED_PROXY_HOPS` | Number of reverse proxies in front of the app. `0` = none, read the socket address. `1` or more = read the address the outermost trusted proxy appended to `X-Forwarded-For`, counting from the right, so a client-supplied header value cannot be mistaken for the real one. The quickstart's Tunnel-plus-local-proxy path is `2`. Must be set correctly or per-IP rate limiting ([threat model](threat-model-summary.md)) is either evadable (too high) or collapses into a single global bucket (too low) | `0` |
+| `TRUSTED_PROXY_HOPS` | Number of reverse proxies in front of the app. `0` = none, read the socket address. `1` or more = read the address the outermost trusted proxy appended to `X-Forwarded-For`, counting from the right, so a client-supplied header value cannot be mistaken for the real one. The quickstart's Tunnel-plus-local-proxy path is `2`. Honoured only from loopback, private, or unique-local peers. Must be set correctly or per-IP rate limiting ([threat model](threat-model-summary.md)) is either evadable (too high) or collapses into a single global bucket (too low) | `0` |
 | `DEFAULT_TIMEZONE` | IANA fallback when browser detection is unavailable at list creation | `UTC` |
 | `MAX_ACTIVE_HOLDS_PER_SESSION` | Concurrent active holds a single guest session may have on one list | `10` |
 | `MAX_CONTRIBUTION_TARGET_MULTIPLE` | Ceiling as a multiple of `targetMinor`, where a target exists | `5` |

@@ -44,8 +44,9 @@
 - **Docs**: quickstart (docker-compose one-liner, minimal env vars,
   explicit callout that creation is open-by-default until the first
   list exists); reverse-proxy examples for nginx/Caddy/Traefik
-  demonstrating `TRUSTED_PROXY_HOPS` set correctly for each topology, and
-  how to verify it from the resolved-address log line ([ops](ops.md)); backup
+  demonstrating `TRUSTED_PROXY_HOPS` set correctly for each topology, the
+  app's own port left unpublished, and how to verify it from the
+  resolved-address log line ([ops](ops.md)); backup
   guide covering `VACUUM INTO` +
   JSON export/import with an off-device-copy recommendation (per [backup, restore & upgrade safety](backup-restore-and-upgrade.md));
   and an erasure-request section covering the split between guest
