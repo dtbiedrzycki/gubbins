@@ -28,7 +28,10 @@
   first release), CI on GitHub Actions. Kept forge-portable: workflows
   call repository scripts, and commit signatures verify offline against
   `.allowed_signers` ([commit signing](../commit-signing.md)). *(ADR-[038](../adr/0038-ci-runs-on-github-actions-kept-forge-portable.md))*
-- **CI pipeline** (PR gate, every push): lint (incl. layer-boundary rule
+- **CI pipeline** (PR gate, every push): ADR/spec link check
+  (`scripts/check_adr_links.py`, every relative link and heading anchor
+  under [`docs/adr/`](../adr/README.md) and `docs/spec/`)
+  → lint (incl. layer-boundary rule
   and the `piiRef` integrity assertion, [testing](testing.md))
   → typecheck → unit tests + coverage → integration tests (real SQLite)
   → migration test against seeded prior schema ([backup, restore & upgrade safety](backup-restore-and-upgrade.md)) → security tests
