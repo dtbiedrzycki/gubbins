@@ -17,15 +17,17 @@
   touching the domain model or an existing invariant require an ADR stub
   in the PR.
 - **SECURITY.md**: dedicated security-contact email address (optionally
-  with a published PGP key) as the reporting channel — Forgejo/Codeberg
-  has no GitHub-style private security-advisory feature, so email is the
-  disclosure mechanism rather than a structured/tracked in-platform flow.
+  with a published PGP key) as the reporting channel — email rather than
+  a forge's built-in private vulnerability reporting, so the channel
+  survives a change of forge, at the cost of a structured/tracked
+  in-platform flow.
   Best-effort response time stated plainly; coordinated disclosure;
   "supported versions: latest release" only — no multi-version support
   matrix promised pre-1.0. *(ADR-[039](../adr/0039-security-disclosure-via-a-dedicated-email-address.md))*
-- **Hosting & CI platform**: Forgejo, deployed via Codeberg. CI is written
-  as Forgejo Actions workflows (GitHub Actions-compatible syntax, the
-  actively developed path over legacy Woodpecker). *(ADR-[038](../adr/0038-ci-hosted-on-forgejo-actions-via-codeberg-not-github-actions.md))*
+- **Hosting & CI platform**: repository on GitHub (private until the
+  first release), CI on GitHub Actions. Kept forge-portable: workflows
+  call repository scripts, and commit signatures verify offline against
+  `.allowed_signers` ([commit signing](../commit-signing.md)). *(ADR-[038](../adr/0038-ci-runs-on-github-actions-kept-forge-portable.md))*
 - **CI pipeline** (PR gate, every push): lint (incl. layer-boundary rule
   and the `piiRef` integrity assertion, [testing](testing.md))
   → typecheck → unit tests + coverage → integration tests (real SQLite)
@@ -33,11 +35,8 @@
   (the full set enumerated in [testing](testing.md)) → Playwright e2e (incl. `axe`, [accessibility & browser support](accessibility-and-browser-support.md)).
 - **Release gate** (tagged releases only, not every push): multi-arch
   Docker build, SBOM generation (CycloneDX via `syft`), dependency
-  vulnerability scan, container image scan. Kept off the per-push path
-  given Codeberg shared-runner quota limits (materially tighter than
-  GitHub's free-tier minutes for open source); a self-hosted Forgejo
-  runner is documented as an option for maintainers who want release-gate
-  steps on every push instead. *(ADR-[038](../adr/0038-ci-hosted-on-forgejo-actions-via-codeberg-not-github-actions.md))*
+  vulnerability scan, container image scan — run where the published
+  image is produced. *(ADR-[038](../adr/0038-ci-runs-on-github-actions-kept-forge-portable.md))*
 - **Dependency budget**: tied to the existing guest-bundle budget in
   [performance & resource budget](performance-and-resource-budget.md) via a `size-limit`-style CI check, rather than a separate vague
   policy. New runtime dependencies require a one-line justification in

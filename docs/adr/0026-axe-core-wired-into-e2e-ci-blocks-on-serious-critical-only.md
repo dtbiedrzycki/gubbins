@@ -52,5 +52,5 @@ a concrete v1.0 release-checklist item rather than an open-ended ratchet.
   hold and contribute flows — the two commitment-critical paths — are
   required before v1, not merely recommended.
 - "Zero moderate violations" is a tracked v1.0 release-checklist item
-  (a Forgejo issue), giving the ratchet an actual endpoint instead of an
+  (a tracked issue), giving the ratchet an actual endpoint instead of an
   indefinite intention.

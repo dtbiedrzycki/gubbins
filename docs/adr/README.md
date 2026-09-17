@@ -71,7 +71,7 @@ one-time renumbering documented in the restructuring history.
 | [035](0035-constant-time-comparison-generalized-to-all-secret.md) | Constant-time comparison generalized to all secret comparisons | Accepted |
 | [036](0036-session-and-owner-access-cookies-require-secure-https.md) | Session and owner-access cookies require Secure; HTTPS required | Accepted |
 | [037](0037-agpl-3-0-selected-as-project-licence.md) | AGPL-3.0 selected as project licence | Accepted |
-| [038](0038-ci-hosted-on-forgejo-actions-via-codeberg-not-github-actions.md) | CI hosted on Forgejo Actions via Codeberg, not GitHub Actions | Accepted |
+| [038](0038-ci-runs-on-github-actions-kept-forge-portable.md) | CI runs on GitHub Actions, kept forge-portable | Accepted |
 | [039](0039-security-disclosure-via-a-dedicated-email-address.md) | Security disclosure via a dedicated email address | Accepted |
 | [040](0040-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md) | Rate-limit thresholds set as concrete hardcoded defaults | Accepted |
 | [041](0041-demo-instance-formally-deferred-not-rejected.md) | Demo instance formally deferred, not rejected | Accepted |

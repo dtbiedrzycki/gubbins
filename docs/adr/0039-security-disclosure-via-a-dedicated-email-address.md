@@ -7,9 +7,13 @@
 ## Context
 
 The project needs a working channel for researchers to report security
-issues. GitHub's private security-advisory workflow (structured intake,
-coordinated-disclosure tooling built into the platform) has no
-equivalent on Forgejo/Codeberg, where this project is hosted.
+issues. The repository is currently on GitHub, whose private
+vulnerability reporting offers structured intake and
+coordinated-disclosure tooling, but the project is deliberately
+forge-portable
+(ADR-[038](./0038-ci-runs-on-github-actions-kept-forge-portable.md)): a
+channel built into one forge stops working if the repository moves or is
+mirrored.
 
 ## Decision
 
@@ -19,17 +23,15 @@ disclosure channel.
 
 ## Alternatives considered
 
-- **GitHub-style private security advisories** — rejected: the
-  structured intake and coordinated-disclosure tooling this workflow
-  depends on doesn't exist on Forgejo/Codeberg, where this project is
-  hosted.
+- **The forge's built-in private vulnerability reporting (currently
+  GitHub's)** — rejected: it works only while the repository stays on
+  that forge, and reports filed there do not move with it.
 
 ## Consequences
 
-- Disclosure is less structured and untracked compared to GitHub's flow
-  — there's no built-in intake form, status tracking, or coordinated
-  advisory publication.
-- The channel is real and working today rather than depending on
-  platform features that don't exist on Forgejo/Codeberg.
+- Disclosure is less structured than a forge's built-in flow — there's
+  no intake form, status tracking, or coordinated advisory publication.
+- The channel survives a change of forge, since it depends on no
+  platform feature.
 - SECURITY.md must be kept current with the contact address and, if
   published, the PGP key.

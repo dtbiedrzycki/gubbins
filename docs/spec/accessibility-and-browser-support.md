@@ -53,7 +53,7 @@
   commitment-critical paths) are required before v1, tracked as a release
   checklist item rather than left as an informal recommendation. The
   moderate/minor ratchet also gets a concrete checkpoint — **zero moderate
-  violations required before the v1.0 release** — tracked as a Forgejo
+  violations required before the v1.0 release** — tracked as an
   issue, rather than an open-ended "tighten over time" intention that could
   silently become permanent debt. *(ADR-[026](../adr/0026-axe-core-wired-into-e2e-ci-blocks-on-serious-critical-only.md))*
 - **Browser support matrix**: last 4 major versions of Chrome, Firefox,
