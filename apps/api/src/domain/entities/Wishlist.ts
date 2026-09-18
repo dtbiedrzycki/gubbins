@@ -2,7 +2,7 @@ import { DomainValidationError, ItemAlreadyHeldError, ItemNotFoundError } from '
 import { GuestKey } from '../value-objects/GuestKey.js';
 import { OwnerToken } from '../value-objects/OwnerToken.js';
 import { Slug } from '../value-objects/Slug.js';
-import { WishlistId } from '../value-objects/WishlistId.js';
+import { UuidId } from '../value-objects/UuidId.js';
 import { Item } from './Item.js';
 
 /**
@@ -29,7 +29,7 @@ export class Wishlist {
    * `create`, where the untrusted caller input arrives.
    */
   private constructor(
-    readonly id: WishlistId,
+    readonly id: UuidId,
     readonly slug: Slug,
     readonly title: string,
     readonly ownerToken: OwnerToken,
@@ -42,7 +42,7 @@ export class Wishlist {
 
   static create(props: { id: string; slug: string; title: string; ownerToken: string; key: string }): Wishlist {
     return new Wishlist(
-      WishlistId.from(props.id),
+      UuidId.from(props.id),
       Slug.from(props.slug),
       props.title.trim(),
       OwnerToken.from(props.ownerToken),
@@ -64,7 +64,7 @@ export class Wishlist {
       throw new DomainValidationError('Item belongs to a different wishlist');
     }
     const wishlist = new Wishlist(
-      WishlistId.from(props.id),
+      UuidId.from(props.id),
       Slug.from(props.slug),
       props.title,
       OwnerToken.from(props.ownerToken),

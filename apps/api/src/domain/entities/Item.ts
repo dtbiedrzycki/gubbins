@@ -1,6 +1,5 @@
 import { DomainValidationError } from '../errors.js';
-import { ItemId } from '../value-objects/ItemId.js';
-import { WishlistId } from '../value-objects/WishlistId.js';
+import { UuidId } from '../value-objects/UuidId.js';
 
 export class Item {
   /**
@@ -11,8 +10,8 @@ export class Item {
    * *is*.
    */
   private constructor(
-    readonly id: ItemId,
-    readonly wishlistId: WishlistId,
+    readonly id: UuidId,
+    readonly wishlistId: UuidId,
     readonly type: 'single',
     readonly title: string,
     readonly quantity: number,
@@ -22,12 +21,12 @@ export class Item {
   }
 
   static createSingle(props: { id: string; wishlistId: string; title: string }): Item {
-    return new Item(ItemId.from(props.id), WishlistId.from(props.wishlistId), 'single', props.title.trim(), 1);
+    return new Item(UuidId.from(props.id), UuidId.from(props.wishlistId), 'single', props.title.trim(), 1);
   }
 
   /** Reconstructs an Item from persisted fields. */
   static reconstitute(props: { id: string; wishlistId: string; title: string }): Item {
-    return new Item(ItemId.from(props.id), WishlistId.from(props.wishlistId), 'single', props.title, 1);
+    return new Item(UuidId.from(props.id), UuidId.from(props.wishlistId), 'single', props.title, 1);
   }
 
   /**
