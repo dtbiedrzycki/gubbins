@@ -23,8 +23,7 @@ export class EnterGuestKey {
 
   async execute(input: EnterGuestKeyInput): Promise<EnterGuestKeyOutput> {
     const wishlist = await this.wishlists.findBySlug(input.slug);
-    // No wishlist id exists yet when the slug itself doesn't resolve, so the
-    // slug is the closest identifier available for the error message.
+    // Looked up by slug, so no wishlist id exists yet when this fails.
     if (!wishlist) throw new WishlistNotFoundError(input.slug);
     if (!wishlist.key.matches(input.key, this.secretComparer)) {
       throw new InvalidGuestKeyError(wishlist.id.value);
