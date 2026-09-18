@@ -45,12 +45,17 @@ export class Item {
    * with more than one unit.
    */
   static reconstitute(props: {
-    id: string; wishlistId: string; type: 'single'; title: string; quantity: number; seq: number; activeHolds: number;
+    id: string; wishlistId: string; type: string; title: string; quantity: number; seq: number; activeHolds: number;
   }): Item {
     return new Item(
       UuidId.from(props.id),
       UuidId.from(props.wishlistId),
-      props.type,
+      // The constructor itself throws DomainValidationError for anything but
+      // 'single' (line ~30), so this cast just satisfies the narrower field
+      // type; it does not weaken the check. Keeping `props.type` as `string`
+      // is what lets infrastructure pass `row.type` straight through without
+      // its own `as 'single'` cast silencing the compiler at that boundary.
+      props.type as 'single',
       props.title,
       props.quantity,
       props.seq,
