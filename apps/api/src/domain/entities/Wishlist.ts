@@ -1,4 +1,4 @@
-import { DomainValidationError, ItemAlreadyHeldError, ItemNotFoundError } from '../errors.js';
+import { DomainValidationError, ItemNotFoundError } from '../errors.js';
 import { GuestKey } from '../value-objects/GuestKey.js';
 import { OwnerToken } from '../value-objects/OwnerToken.js';
 import { Slug } from '../value-objects/Slug.js';
@@ -6,22 +6,13 @@ import { UuidId } from '../value-objects/UuidId.js';
 import { Item } from './Item.js';
 
 /**
- * An item as held by the aggregate once loaded: the entity together with the
- * concurrency/availability state that used to be returned separately by the
- * repository. One shape, one load — not an item lookup plus a state lookup.
- */
-export interface WishlistItemState {
-  item: Item;
-  seq: number;
-  activeHolds: number;
-  status: 'available' | 'held';
-}
-
-/**
- * Aggregate Root. `Item` is reachable only through the wishlist that owns it.
+ * Aggregate Root. `Item` is reachable only through the wishlist that owns it:
+ * the wishlist is what authorizes a caller to act on an item, while the item
+ * itself owns availability and hold-placing. Wishlist authorizes, Item
+ * decides, Hold records.
  */
 export class Wishlist {
-  private itemState: WishlistItemState | null = null;
+  private _item: Item | null = null;
 
   /**
    * Enforces the aggregate's own invariants, so neither `create` nor
@@ -53,14 +44,14 @@ export class Wishlist {
 
   /**
    * Reconstructs a Wishlist from persisted fields — used by repositories, not
-   * by application-layer creation flows. `itemState` carries the already-loaded
-   * item and its availability state, which `create` cannot have yet.
+   * by application-layer creation flows. `item` is the already-loaded item,
+   * carrying its own concurrency state, which `create` cannot have yet.
    */
   static reconstitute(props: {
     id: string; slug: string; title: string; ownerToken: string; key: string; keyGen: number;
-    itemState?: WishlistItemState;
+    item?: Item;
   }): Wishlist {
-    if (props.itemState && props.itemState.item.wishlistId.value !== props.id) {
+    if (props.item && props.item.wishlistId.value !== props.id) {
       throw new DomainValidationError('Item belongs to a different wishlist');
     }
     const wishlist = new Wishlist(
@@ -71,7 +62,7 @@ export class Wishlist {
       GuestKey.from(props.key),
       props.keyGen,
     );
-    wishlist.itemState = props.itemState ?? null;
+    wishlist._item = props.item ?? null;
     return wishlist;
   }
 
@@ -84,50 +75,28 @@ export class Wishlist {
    * TokenGenerator already satisfies this shape.
    */
   addItem(props: { title: string }, ids: { generateId(): string }): Item {
-    if (this.itemState !== null) {
+    if (this._item !== null) {
       throw new DomainValidationError('Wishlist already has an item; this slice supports a single item per wishlist');
     }
-    const item = Item.createSingle({ id: ids.generateId(), wishlistId: this.id.value, title: props.title });
-    this.itemState = { item, seq: 0, activeHolds: 0, status: 'available' };
-    return item;
+    this._item = Item.createSingle({ id: ids.generateId(), wishlistId: this.id.value, title: props.title });
+    return this._item;
   }
 
   get item(): Item | null {
-    return this.itemState?.item ?? null;
-  }
-
-  /** The read shape the presentation layer renders, without a repository join. */
-  toItemView(): { id: string; title: string; status: 'available' | 'held' } | null {
-    if (this.itemState === null) return null;
-    return this.itemState.item.toView(this.itemState.status);
+    return this._item;
   }
 
   /**
    * Resolves `itemId` to the Item this wishlist owns, or throws
-   * ItemNotFoundError. `authorizeHold` checks this Item by reference
-   * identity, so an Item obtained here (or via the `item` getter) is the
-   * only thing that will satisfy it — a separately-constructed Item with a
-   * matching id will not.
+   * ItemNotFoundError. This is the aggregate's authorization step and the
+   * only supported way to obtain a holdable Item: it returns the very
+   * instance the aggregate tracks, so state the item records — a placed
+   * hold — is visible through the wishlist afterwards.
    */
   getItem(itemId: string): Item {
-    if (this.itemState === null || this.itemState.item.id.value !== itemId) {
+    if (this._item === null || this._item.id.value !== itemId) {
       throw new ItemNotFoundError(itemId);
     }
-    return this.itemState.item;
-  }
-
-  /**
-   * Decides whether a hold may be placed on `item`, purely from already-loaded
-   * state — no I/O. Returns the seq the caller must use for its optimistic write.
-   * Ownership is checked by reference identity (not just matching id), and
-   * availability is read from the aggregate's own tracked item, never from
-   * the caller-supplied `item` — the parameter only proves which item the
-   * caller means to act on, it isn't a trusted source of that item's state.
-   */
-  authorizeHold(item: Item): { expectedSeq: number } {
-    const state = this.itemState;
-    if (state === null || state.item !== item) throw new ItemNotFoundError(item.id.value);
-    if (state.activeHolds >= state.item.quantity) throw new ItemAlreadyHeldError(item.id.value);
-    return { expectedSeq: state.seq };
+    return this._item;
   }
 }

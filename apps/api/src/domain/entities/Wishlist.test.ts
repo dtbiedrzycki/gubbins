@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { Wishlist, type WishlistItemState } from './Wishlist.js';
+import { Wishlist } from './Wishlist.js';
 import { Item } from './Item.js';
-import { DomainValidationError, ItemAlreadyHeldError, ItemNotFoundError } from '../errors.js';
+import { DomainValidationError, ItemNotFoundError } from '../errors.js';
 
 const WISHLIST_ID = '11111111-1111-4111-8111-111111111111';
 const OTHER_WISHLIST_ID = '99999999-9999-4999-8999-999999999999';
@@ -52,6 +52,8 @@ describe('Wishlist.create', () => {
 
 describe('Wishlist.reconstitute', () => {
   const persisted = { ...validProps, keyGen: 3 };
+  const itemOf = (wishlistId: string) =>
+    Item.reconstitute({ id: ITEM_ID, wishlistId, title: 'Cot', seq: 7, activeHolds: 0 });
 
   it('enforces the title invariant on persisted rows too', () => {
     expect(() => Wishlist.reconstitute({ ...persisted, title: '' })).toThrow(DomainValidationError);
@@ -69,22 +71,16 @@ describe('Wishlist.reconstitute', () => {
     expect(Wishlist.reconstitute(persisted).item).toBeNull();
   });
 
-  it('restores the loaded item state', () => {
-    const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Cot' });
-    const wishlist = Wishlist.reconstitute({
-      ...persisted,
-      itemState: { item, seq: 7, activeHolds: 0, status: 'available' },
-    });
+  it('attaches the loaded item, concurrency state and all', () => {
+    const item = itemOf(WISHLIST_ID);
+    const wishlist = Wishlist.reconstitute({ ...persisted, item });
     expect(wishlist.item).toBe(item);
-    expect(wishlist.authorizeHold(item)).toEqual({ expectedSeq: 7 });
+    expect(wishlist.item?.seq).toBe(7);
   });
 
-  it('rejects an item state whose item belongs to a different wishlist', () => {
-    const item = Item.reconstitute({ id: ITEM_ID, wishlistId: OTHER_WISHLIST_ID, title: 'Cot' });
-    expect(() => Wishlist.reconstitute({
-      ...persisted,
-      itemState: { item, seq: 7, activeHolds: 0, status: 'available' },
-    })).toThrow(DomainValidationError);
+  it('rejects an item that belongs to a different wishlist', () => {
+    expect(() => Wishlist.reconstitute({ ...persisted, item: itemOf(OTHER_WISHLIST_ID) }))
+      .toThrow(DomainValidationError);
   });
 });
 
@@ -107,6 +103,11 @@ describe('Wishlist.addItem', () => {
     expect(item.id.value).toBe(ITEM_ID);
   });
 
+  it('starts the new item available', () => {
+    const wishlist = Wishlist.create(validProps);
+    expect(wishlist.addItem({ title: 'Cot' }, { generateId: () => ITEM_ID }).status).toBe('available');
+  });
+
   it('throws when a second item is added', () => {
     const wishlist = Wishlist.create(validProps);
     wishlist.addItem({ title: 'Cot' }, { generateId: () => ITEM_ID });
@@ -115,79 +116,33 @@ describe('Wishlist.addItem', () => {
   });
 });
 
-describe('Wishlist.toItemView', () => {
-  it('is null before an item is added', () => {
-    expect(Wishlist.create(validProps).toItemView()).toBeNull();
-  });
-
-  it('reports an added item as available', () => {
-    const wishlist = Wishlist.create(validProps);
-    wishlist.addItem({ title: 'Cot' }, { generateId: () => ITEM_ID });
-    expect(wishlist.toItemView()).toEqual({ id: ITEM_ID, title: 'Cot', status: 'available' });
-  });
-
-  it('reports a held item as held', () => {
-    const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Cot' });
-    const wishlist = Wishlist.reconstitute({
-      ...validProps, keyGen: 1,
-      itemState: { item, seq: 2, activeHolds: 1, status: 'held' },
-    });
-    expect(wishlist.toItemView()).toEqual({ id: ITEM_ID, title: 'Cot', status: 'held' });
-  });
-});
-
-describe('Wishlist.authorizeHold', () => {
-  const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Cot' });
-  const withState = (itemState: WishlistItemState) =>
-    Wishlist.reconstitute({ ...validProps, keyGen: 1, itemState });
-
-  it('returns the expected seq when the item is available', () => {
-    const wishlist = withState({ item, seq: 4, activeHolds: 0, status: 'available' });
-    expect(wishlist.authorizeHold(item)).toEqual({ expectedSeq: 4 });
-  });
-
-  it('throws ItemNotFoundError when no item is attached', () => {
-    const wishlist = Wishlist.create(validProps);
-    expect(() => wishlist.authorizeHold(item)).toThrow(ItemNotFoundError);
-  });
-
-  it('throws ItemNotFoundError when the given item does not match the attached item', () => {
-    const wishlist = withState({ item, seq: 4, activeHolds: 0, status: 'available' });
-    const otherItem = Item.reconstitute({ id: '44444444-4444-4444-8444-444444444444', wishlistId: WISHLIST_ID, title: 'Pram' });
-    expect(() => wishlist.authorizeHold(otherItem)).toThrow(ItemNotFoundError);
-  });
-
-  it('throws ItemNotFoundError for a separately-constructed item with the same id, not the attached reference', () => {
-    const wishlist = withState({ item, seq: 4, activeHolds: 0, status: 'available' });
-    // Same id/wishlistId as the attached item, but a distinct object — id-value equality
-    // would let this through; reference identity (the actual guarantee) must not.
-    const lookalike = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Cot' });
-    expect(() => wishlist.authorizeHold(lookalike)).toThrow(ItemNotFoundError);
-  });
-
-  it('throws ItemAlreadyHeldError when active holds have reached the item quantity', () => {
-    const wishlist = withState({ item, seq: 4, activeHolds: item.quantity, status: 'held' });
-    expect(() => wishlist.authorizeHold(item)).toThrow(ItemAlreadyHeldError);
-  });
-});
-
 describe('Wishlist.getItem', () => {
-  const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Cot' });
-  const withState = (itemState: WishlistItemState) =>
-    Wishlist.reconstitute({ ...validProps, keyGen: 1, itemState });
+  const withItem = () => {
+    const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Cot', seq: 4, activeHolds: 0 });
+    return { item, wishlist: Wishlist.reconstitute({ ...validProps, keyGen: 1, item }) };
+  };
 
   it('returns the attached item when the id matches', () => {
-    const wishlist = withState({ item, seq: 4, activeHolds: 0, status: 'available' });
+    const { item, wishlist } = withItem();
     expect(wishlist.getItem(ITEM_ID)).toBe(item);
   });
 
   it('throws ItemNotFoundError when no item is attached', () => {
-    const wishlist = Wishlist.create(validProps);
-    expect(() => wishlist.getItem(ITEM_ID)).toThrow(ItemNotFoundError);
+    expect(() => Wishlist.create(validProps).getItem(ITEM_ID)).toThrow(ItemNotFoundError);
   });
 
   it('throws ItemNotFoundError when the id does not match the attached item', () => {
-    const wishlist = withState({ item, seq: 4, activeHolds: 0, status: 'available' });
+    const { wishlist } = withItem();
     expect(() => wishlist.getItem('44444444-4444-4444-8444-444444444444')).toThrow(ItemNotFoundError);
+  });
+
+  it('returns the aggregate\'s own item, so a hold placed on it is visible through the wishlist', () => {
+    const { wishlist } = withItem();
+    wishlist.getItem(ITEM_ID).placeHold({
+      holdId: '55555555-5555-4555-8555-555555555555', secret: 'hold-secret',
+      sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1',
+      expiresAt: new Date('2026-01-01T00:10:00Z'), now: new Date('2026-01-01T00:00:00Z'),
+    });
+    expect(wishlist.item?.status).toBe('held');
   });
 });
