@@ -13,7 +13,7 @@ export class ItemRepositoryKysely implements ItemRepository {
       quantity: item.quantity, created_at: now,
     }).execute();
     await this.db.insertInto('item_state').values({
-      item_id: item.id.value, seq: item.seq, active_holds: item.activeHolds, status: item.status, updated_at: now,
+      item_id: item.id.value, seq: item.seq, active_holds: item.activeHolds, updated_at: now,
     }).execute();
   }
 
@@ -55,7 +55,7 @@ export class ItemRepositoryKysely implements ItemRepository {
       .where('item_id', '=', itemId).executeTakeFirst();
     if (!current) throw new Error(`No state for item ${itemId}`);
     await this.db.updateTable('item_state')
-      .set({ seq: newSeq, active_holds: current.active_holds + 1, status: 'held', updated_at: new Date().toISOString() })
+      .set({ seq: newSeq, active_holds: current.active_holds + 1, updated_at: new Date().toISOString() })
       .where('item_id', '=', itemId)
       .execute();
   }

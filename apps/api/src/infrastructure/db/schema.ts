@@ -23,7 +23,6 @@ export interface ItemStateTable {
   item_id: string;
   seq: number;
   active_holds: number;
-  status: string;
   updated_at: string;
 }
 
