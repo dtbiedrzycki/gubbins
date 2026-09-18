@@ -23,7 +23,11 @@ test('owner creates a list, guest enters the key, and holds the item', async ({ 
   await guestPage.getByLabel('Enter the guest key').fill(guestKey!);
   await guestPage.getByRole('button', { name: 'View list' }).click();
 
-  await expect(guestPage.getByText('Stroller')).toBeVisible();
+  // exact: true — the hold confirmation <dialog> is always in the DOM (closed,
+  // so display:none), and its "Hold “Stroller” for yourself?" prompt would
+  // otherwise make a substring match ambiguous under Playwright strict mode,
+  // which counts DOM matches regardless of visibility.
+  await expect(guestPage.getByText('Stroller', { exact: true })).toBeVisible();
   await guestPage.getByRole('button', { name: 'Hold this item' }).click();
   await guestPage.getByRole('button', { name: 'Yes, hold it' }).click();
   await expect(guestPage.getByRole('status')).toHaveText('Stroller is held.');
