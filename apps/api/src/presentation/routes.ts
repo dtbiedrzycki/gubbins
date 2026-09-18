@@ -72,13 +72,14 @@ export function registerRoutes(app: FastifyInstance, deps: AppDependencies): voi
 
     // Read through the aggregate: findBySlug already loaded the item and its
     // availability status, so there is no second repository round-trip and no
-    // way to render an item that isn't this wishlist's.
-    const itemView = wishlist.toItemView();
-    if (!itemView) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
+    // way to render an item that isn't this wishlist's. Shaping the response
+    // is presentation's job — the domain no longer owns a view of itself.
+    const item = wishlist.item;
+    if (!item) { reply.code(404).send(errorResponseSchema.parse({ message: 'Not found' })); return; }
 
     reply.send(listViewResponseSchema.parse({
       title: wishlist.title,
-      item: itemView,
+      item: { id: item.id.value, title: item.title, status: item.status },
     }));
   });
 
