@@ -1,7 +1,7 @@
 import type { Kysely, Selectable } from 'kysely';
 import type { Database, WishlistsTable } from './db/schema.js';
 import type { WishlistRepository } from '../application/ports/WishlistRepository.js';
-import { Wishlist, type WishlistItemState } from '../domain/entities/Wishlist.js';
+import { Wishlist } from '../domain/entities/Wishlist.js';
 import { ItemNotFoundError } from '../domain/errors.js';
 import { ItemRepositoryKysely } from './ItemRepositoryKysely.js';
 
@@ -48,15 +48,10 @@ export class WishlistRepositoryKysely implements WishlistRepository {
   /** Loads the whole aggregate for an already-fetched wishlist row. */
   private async hydrate(row: Selectable<WishlistsTable>): Promise<Wishlist> {
     const item = await this.items.findByWishlistId(row.id);
-    let itemState: WishlistItemState | undefined;
-    if (item) {
-      const state = await this.items.getState(item.id.value);
-      itemState = { item, seq: state.seq, activeHolds: state.activeHolds, status: state.status };
-    }
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
       ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen,
-      itemState,
+      item: item ?? undefined,
     });
   }
 }

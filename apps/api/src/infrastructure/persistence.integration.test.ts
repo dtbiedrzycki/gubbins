@@ -49,8 +49,9 @@ describe('WishlistRepositoryKysely', () => {
     await repo.insert(wishlist);
     const found = await repo.findBySlug('abc123');
 
-    expect(found?.toItemView()).toEqual({ id: I1, title: 'Stroller', status: 'available' });
     expect(found?.item?.id.value).toBe(I1);
+    expect(found?.item?.title).toBe('Stroller');
+    expect(found?.item?.status).toBe('available');
   });
 
   it('findById loads the full aggregate, item included', async () => {
@@ -61,8 +62,9 @@ describe('WishlistRepositoryKysely', () => {
 
     const found = await repo.findById(W1);
 
-    expect(found?.toItemView()).toEqual({ id: I1, title: 'Stroller', status: 'available' });
     expect(found?.item?.id.value).toBe(I1);
+    expect(found?.item?.title).toBe('Stroller');
+    expect(found?.item?.status).toBe('available');
   });
 
   it('returns null for an unknown id', async () => {
@@ -79,7 +81,7 @@ describe('WishlistRepositoryKysely', () => {
     await repo.markItemHeld(W1, I1, 1);
 
     const found = await repo.findById(W1);
-    expect(found?.toItemView()?.status).toBe('held');
+    expect(found?.item?.status).toBe('held');
   });
 
   it('markItemHeld throws ItemNotFoundError for an item in a different wishlist', async () => {
@@ -92,7 +94,7 @@ describe('WishlistRepositoryKysely', () => {
     await repo.insert(second);
 
     await expect(repo.markItemHeld(W2, I1, 1)).rejects.toThrow(ItemNotFoundError);
-    expect((await repo.findById(W1))?.toItemView()?.status).toBe('available');
+    expect((await repo.findById(W1))?.item?.status).toBe('available');
   });
 });
 
@@ -104,8 +106,11 @@ describe('ItemRepositoryKysely', () => {
 
     await repo.insert(item);
 
-    expect(await repo.findByWishlistId(W1)).toEqual(item);
-    expect(await repo.getState(I1)).toEqual({ seq: 0, activeHolds: 0, status: 'available' });
+    const found = await repo.findByWishlistId(W1);
+    expect(found).toEqual(item);
+    expect(found?.seq).toBe(0);
+    expect(found?.activeHolds).toBe(0);
+    expect(found?.status).toBe('available');
   });
 
   it('markHeld increments activeHolds and sets status/seq', async () => {
@@ -115,7 +120,10 @@ describe('ItemRepositoryKysely', () => {
 
     await repo.markHeld(I1, 1);
 
-    expect(await repo.getState(I1)).toEqual({ seq: 1, activeHolds: 1, status: 'held' });
+    const found = await repo.findInWishlist(W1, I1);
+    expect(found?.seq).toBe(1);
+    expect(found?.activeHolds).toBe(1);
+    expect(found?.status).toBe('held');
   });
 
   it('findByWishlistId finds the item belonging to a wishlist', async () => {
