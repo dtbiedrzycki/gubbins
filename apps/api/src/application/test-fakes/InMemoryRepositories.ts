@@ -1,7 +1,7 @@
 import { Wishlist } from '../../domain/entities/Wishlist.js';
-import type { Item } from '../../domain/entities/Item.js';
+import { Item } from '../../domain/entities/Item.js';
 import type { WishlistRepository } from '../ports/WishlistRepository.js';
-import type { ItemRepository, ItemState } from '../ports/ItemRepository.js';
+import type { ItemRepository } from '../ports/ItemRepository.js';
 import type { HoldRepository, HoldRecord } from '../ports/HoldRepository.js';
 import type { EventStore, DomainEvent } from '../ports/EventStore.js';
 import type { UnitOfWork, TransactionContext } from '../ports/UnitOfWork.js';
@@ -15,11 +15,9 @@ import { ConcurrencyError, ItemNotFoundError } from '../../domain/errors.js';
  */
 class InMemoryItemRepository implements ItemRepository {
   private byId = new Map<string, Item>();
-  private states = new Map<string, ItemState>();
 
   async insert(item: Item): Promise<void> {
     this.byId.set(item.id.value, item);
-    this.states.set(item.id.value, { seq: 0, activeHolds: 0, status: 'available' });
   }
 
   async findByWishlistId(wishlistId: string): Promise<Item | null> {
@@ -34,16 +32,21 @@ class InMemoryItemRepository implements ItemRepository {
     return item && item.wishlistId.value === wishlistId ? item : null;
   }
 
-  async getState(itemId: string): Promise<ItemState> {
-    const state = this.states.get(itemId);
-    if (!state) throw new Error(`No state for item ${itemId}`);
-    return state;
-  }
-
+  /**
+   * `Item` has no public setter for its concurrency fields, so marking held
+   * means reconstituting a fresh instance from the stored one plus the new
+   * seq — mirroring how a real UPDATE would overwrite the persisted row.
+   */
   async markHeld(itemId: string, newSeq: number): Promise<void> {
-    const state = this.states.get(itemId);
-    if (!state) throw new Error(`No state for item ${itemId}`);
-    this.states.set(itemId, { seq: newSeq, activeHolds: state.activeHolds + 1, status: 'held' });
+    const item = this.byId.get(itemId);
+    if (!item) throw new Error(`No item ${itemId}`);
+    this.byId.set(itemId, Item.reconstitute({
+      id: item.id.value,
+      wishlistId: item.wishlistId.value,
+      title: item.title,
+      seq: newSeq,
+      activeHolds: item.activeHolds + 1,
+    }));
   }
 }
 
@@ -79,14 +82,14 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   }
 
   /**
-   * Rebuilds the aggregate from the stored wishlist plus its item's current
-   * state. Every read path reconstitutes — never hands back the stored
-   * instance — so the fake's read identity matches the real repository's.
+   * Rebuilds the aggregate from the stored wishlist plus its item, which
+   * already carries its own concurrency state. Every read path
+   * reconstitutes — never hands back the stored instance — so the fake's
+   * read identity matches the real repository's.
    */
   private async hydrate(wishlist: Wishlist | undefined): Promise<Wishlist | null> {
     if (wishlist === undefined) return null;
     const item = await this.items.findByWishlistId(wishlist.id.value);
-    const itemState = item === null ? undefined : { item, ...(await this.items.getState(item.id.value)) };
     return Wishlist.reconstitute({
       id: wishlist.id.value,
       slug: wishlist.slug.value,
@@ -94,7 +97,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
       ownerToken: wishlist.ownerToken.value,
       key: wishlist.key.value,
       keyGen: wishlist.keyGen,
-      itemState,
+      item: item ?? undefined,
     });
   }
 }

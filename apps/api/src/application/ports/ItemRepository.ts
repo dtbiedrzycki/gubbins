@@ -1,11 +1,5 @@
 import type { Item } from '../../domain/entities/Item.js';
 
-export interface ItemState {
-  seq: number;
-  activeHolds: number;
-  status: 'available' | 'held';
-}
-
 /**
  * Not a use-case-facing port: use cases reach an item only through the
  * `Wishlist` aggregate that owns it. This is the internal collaborator a
@@ -22,6 +16,5 @@ export interface ItemRepository {
    * outside the wishlist the aggregate was loaded for.
    */
   findInWishlist(wishlistId: string, itemId: string): Promise<Item | null>;
-  getState(itemId: string): Promise<ItemState>;
   markHeld(itemId: string, newSeq: number): Promise<void>;
 }

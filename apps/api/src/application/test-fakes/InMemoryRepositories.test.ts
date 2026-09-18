@@ -13,7 +13,9 @@ describe('InMemoryWishlistRepository', () => {
     await repo.insert(aWishlist().withItem({ id: ITEM_ID, title: 'Stroller' }).build());
 
     for (const loaded of [await repo.findBySlug('abc123'), await repo.findById(WISHLIST_ID)]) {
-      expect(loaded?.toItemView()).toEqual({ id: ITEM_ID, title: 'Stroller', status: 'available' });
+      expect(loaded?.item?.id.value).toBe(ITEM_ID);
+      expect(loaded?.item?.title).toBe('Stroller');
+      expect(loaded?.item?.status).toBe('available');
     }
   });
 
@@ -48,13 +50,22 @@ describe('InMemoryWishlistRepository', () => {
     const repo = new InMemoryWishlistRepository();
     await repo.insert(aWishlist().withItem({ id: ITEM_ID, title: 'Stroller' }).build());
     const beforeHold = await repo.findById(WISHLIST_ID);
-    expect(beforeHold?.authorizeHold(beforeHold.getItem(ITEM_ID))).toEqual({ expectedSeq: 0 });
+    const itemBeforeHold = beforeHold!.getItem(ITEM_ID);
+    expect(itemBeforeHold.status).toBe('available');
+    expect(itemBeforeHold.seq).toBe(0);
 
     await repo.markItemHeld(WISHLIST_ID, ITEM_ID, 1);
 
     const afterHold = await repo.findById(WISHLIST_ID);
-    expect(afterHold?.toItemView()?.status).toBe('held');
-    expect(() => afterHold?.authorizeHold(afterHold.getItem(ITEM_ID))).toThrow(ItemAlreadyHeldError);
+    expect(afterHold?.item?.status).toBe('held');
+    expect(() => afterHold!.getItem(ITEM_ID).placeHold({
+      holdId: '44444444-4444-4444-8444-444444444444',
+      secret: 'irrelevant',
+      sessionHash: 'irrelevant',
+      idempotencyKey: 'irrelevant',
+      expiresAt: new Date(),
+      now: new Date(),
+    })).toThrow(ItemAlreadyHeldError);
   });
 
   it('preserves the wishlist fields when it rebuilds the aggregate after a hold', async () => {
@@ -78,6 +89,6 @@ describe('InMemoryWishlistRepository', () => {
     await repo.insert(aWishlist().withId(OTHER_WISHLIST_ID).withSlug('def456').build());
 
     await expect(repo.markItemHeld(OTHER_WISHLIST_ID, ITEM_ID, 1)).rejects.toThrow(ItemNotFoundError);
-    expect((await repo.findById(WISHLIST_ID))?.toItemView()?.status).toBe('available');
+    expect((await repo.findById(WISHLIST_ID))?.item?.status).toBe('available');
   });
 });

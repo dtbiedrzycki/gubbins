@@ -11,14 +11,14 @@ describe('aWishlist', () => {
   it('builds an itemless Wishlist when no item is attached', () => {
     const wishlist = aWishlist().build();
     expect(wishlist.item).toBeNull();
-    expect(wishlist.toItemView()).toBeNull();
   });
 
   it('attaches the item given to withItem, assigning the wishlist id', () => {
     const wishlist = aWishlist().withItem({ id: '77777777-7777-4777-8777-777777777777', title: 'Cot' }).build();
+    expect(wishlist.item?.id.value).toBe('77777777-7777-4777-8777-777777777777');
     expect(wishlist.item?.title).toBe('Cot');
     expect(wishlist.item?.wishlistId.value).toBe(wishlist.id.value);
-    expect(wishlist.toItemView()).toEqual({ id: '77777777-7777-4777-8777-777777777777', title: 'Cot', status: 'available' });
+    expect(wishlist.item?.status).toBe('available');
   });
 });
 
