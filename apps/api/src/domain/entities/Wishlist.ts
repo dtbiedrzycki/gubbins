@@ -16,8 +16,10 @@ export class Wishlist {
 
   /**
    * Enforces the aggregate's own invariants, so neither `create` nor
-   * `reconstitute` can produce an invalid Wishlist. Trimming stays in
-   * `create`, where the untrusted caller input arrives.
+   * `reconstitute` can produce an invalid Wishlist. Blankness is checked
+   * against the title's trimmed content, so a whitespace-only title is
+   * rejected on every path, but the stored value is not normalized here:
+   * trimming stays in `create`, where the untrusted caller input arrives.
    */
   private constructor(
     readonly id: UuidId,
@@ -27,7 +29,7 @@ export class Wishlist {
     readonly key: GuestKey,
     readonly keyGen: number,
   ) {
-    if (title.length === 0) throw new DomainValidationError('Wishlist title must not be empty');
+    if (title.trim().length === 0) throw new DomainValidationError('Wishlist title must not be empty');
     if (title.length > 120) throw new DomainValidationError('Wishlist title must be at most 120 characters');
   }
 

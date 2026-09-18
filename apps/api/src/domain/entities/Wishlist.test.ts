@@ -53,11 +53,15 @@ describe('Wishlist.create', () => {
 describe('Wishlist.reconstitute', () => {
   const persisted = { ...validProps, keyGen: 3 };
   const itemOf = (wishlistId: string) =>
-    Item.reconstitute({ id: ITEM_ID, wishlistId, title: 'Cot', seq: 7, activeHolds: 0 });
+    Item.reconstitute({ id: ITEM_ID, wishlistId, type: 'single', title: 'Cot', quantity: 1, seq: 7, activeHolds: 0 });
 
   it('enforces the title invariant on persisted rows too', () => {
     expect(() => Wishlist.reconstitute({ ...persisted, title: '' })).toThrow(DomainValidationError);
     expect(() => Wishlist.reconstitute({ ...persisted, title: 'a'.repeat(121) })).toThrow(DomainValidationError);
+  });
+
+  it('rejects a whitespace-only title, not just an empty one', () => {
+    expect(() => Wishlist.reconstitute({ ...persisted, title: '   ' })).toThrow(DomainValidationError);
   });
 
   it('restores the persisted fields as value objects', () => {
@@ -118,7 +122,7 @@ describe('Wishlist.addItem', () => {
 
 describe('Wishlist.getItem', () => {
   const withItem = () => {
-    const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Cot', seq: 4, activeHolds: 0 });
+    const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Cot', quantity: 1, seq: 4, activeHolds: 0 });
     return { item, wishlist: Wishlist.reconstitute({ ...validProps, keyGen: 1, item }) };
   };
 
@@ -142,7 +146,7 @@ describe('Wishlist.getItem', () => {
       holdId: '55555555-5555-4555-8555-555555555555', secret: 'hold-secret',
       sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1',
       expiresAt: new Date('2026-01-01T00:10:00Z'), now: new Date('2026-01-01T00:00:00Z'),
-    });
+    }, { hash: () => 'b'.repeat(64) });
     expect(wishlist.item?.status).toBe('held');
   });
 });
