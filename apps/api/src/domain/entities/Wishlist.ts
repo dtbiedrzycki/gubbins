@@ -23,6 +23,11 @@ export interface WishlistItemState {
 export class Wishlist {
   private itemState: WishlistItemState | null = null;
 
+  /**
+   * Enforces the aggregate's own invariants, so neither `create` nor
+   * `reconstitute` can produce an invalid Wishlist. Trimming stays in
+   * `create`, where the untrusted caller input arrives.
+   */
   private constructor(
     readonly id: WishlistId,
     readonly slug: Slug,
@@ -30,16 +35,16 @@ export class Wishlist {
     readonly ownerToken: OwnerToken,
     readonly key: GuestKey,
     readonly keyGen: number,
-  ) {}
-
-  static create(props: { id: string; slug: string; title: string; ownerToken: string; key: string }): Wishlist {
-    const title = props.title.trim();
+  ) {
     if (title.length === 0) throw new DomainValidationError('Wishlist title must not be empty');
     if (title.length > 120) throw new DomainValidationError('Wishlist title must be at most 120 characters');
+  }
+
+  static create(props: { id: string; slug: string; title: string; ownerToken: string; key: string }): Wishlist {
     return new Wishlist(
       WishlistId.from(props.id),
       Slug.from(props.slug),
-      title,
+      props.title.trim(),
       OwnerToken.from(props.ownerToken),
       GuestKey.from(props.key),
       1,

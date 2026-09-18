@@ -53,6 +53,11 @@ describe('Wishlist.create', () => {
 describe('Wishlist.reconstitute', () => {
   const persisted = { ...validProps, keyGen: 3 };
 
+  it('enforces the title invariant on persisted rows too', () => {
+    expect(() => Wishlist.reconstitute({ ...persisted, title: '' })).toThrow(DomainValidationError);
+    expect(() => Wishlist.reconstitute({ ...persisted, title: 'a'.repeat(121) })).toThrow(DomainValidationError);
+  });
+
   it('restores the persisted fields as value objects', () => {
     const wishlist = Wishlist.reconstitute(persisted);
     expect(wishlist.keyGen).toBe(3);

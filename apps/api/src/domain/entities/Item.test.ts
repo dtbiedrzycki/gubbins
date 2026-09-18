@@ -22,6 +22,15 @@ describe('Item.createSingle', () => {
   });
 });
 
+describe('Item.reconstitute', () => {
+  it('enforces the title invariant on persisted rows too', () => {
+    expect(() => Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: '' })).toThrow(DomainValidationError);
+    expect(() => Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'a'.repeat(121) })).toThrow(
+      DomainValidationError,
+    );
+  });
+});
+
 describe('Item.toView', () => {
   it('composes id, title, and the supplied status', () => {
     const item = Item.createSingle({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Stroller' });
