@@ -55,7 +55,7 @@ export class HoldItem {
         idempotencyKey: input.idempotencyKey,
         expiresAt,
         now,
-      });
+      }, this.hasher);
 
       // Cast at the EventStore port boundary only: DomainEvent's index signature
       // exists so the store can hold heterogeneous events, but ItemHeldEvent
