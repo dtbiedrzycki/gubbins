@@ -59,12 +59,13 @@ describe('InMemoryWishlistRepository', () => {
     const afterHold = await repo.findById(WISHLIST_ID);
     expect(afterHold?.item?.status).toBe('held');
     expect(() => afterHold!.getItem(ITEM_ID).placeHold({
-      holdId: '44444444-4444-4444-8444-444444444444',
-      secret: 'irrelevant',
       sessionHash: 'irrelevant',
       idempotencyKey: 'irrelevant',
       expiresAt: new Date(),
       now: new Date(),
+    }, {
+      generateId: () => '44444444-4444-4444-8444-444444444444',
+      generateHoldSecret: () => 'irrelevant',
     }, { hash: (value: string) => value })).toThrow(ItemAlreadyHeldError);
   });
 
