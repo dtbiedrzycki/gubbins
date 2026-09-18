@@ -3,7 +3,7 @@ export class ItemNotFoundError extends Error {
   constructor(itemId: string) { super(`Item not found: ${itemId}`); }
 }
 export class WishlistNotFoundError extends Error {
-  constructor(wishlistId: string) { super(`Wishlist not found: ${wishlistId}`); }
+  constructor(slug: string) { super(`Wishlist not found: ${slug}`); }
 }
 export class ItemAlreadyHeldError extends Error {
   constructor(itemId: string) { super(`Item already held: ${itemId}`); }
