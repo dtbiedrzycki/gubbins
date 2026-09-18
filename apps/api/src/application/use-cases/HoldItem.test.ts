@@ -69,6 +69,21 @@ describe('HoldItem', () => {
     expect(reloaded?.item?.status).toBe('held');
   });
 
+  it('persists the post-hold seq, not the pre-hold one, so a reload sees the version placeHold advanced to', async () => {
+    const { useCase, wishlists } = makeUseCase();
+    await seedWishlistWithItem(wishlists);
+    // The seeded item starts at seq 0 (ItemBuilder's default); placeHold
+    // appends against that and advances to 1. Asserting the reloaded value
+    // is 1, not 0, is what would catch markItemHeld being called with
+    // expectedSeq instead of expectedSeq + 1 — nothing else in this suite
+    // reads the persisted seq back.
+    await useCase.execute({
+      wishlistId: WISHLIST_ID, itemId: ITEM_ID, sessionId: 'session-abc', idempotencyKey: 'idem-1',
+    });
+    const reloaded = await wishlists.findById(WISHLIST_ID);
+    expect(reloaded?.item?.seq).toBe(1);
+  });
+
   it('throws ItemAlreadyHeldError for a second, different hold attempt on a held item', async () => {
     const { useCase, wishlists } = makeUseCase();
     await seedWishlistWithItem(wishlists);

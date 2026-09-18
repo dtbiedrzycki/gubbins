@@ -32,9 +32,8 @@ export class HoldItem {
     return this.unitOfWork.execute(async (ctx) => {
       // An unknown wishlist and an item that isn't in it are the same failure
       // from this use case's contract: there is no such item to hold.
-      // getItem is the one place that check now lives, replacing the
-      // wishlist.item?.id.value !== input.itemId comparison that used to be
-      // duplicated here and inside authorizeHold.
+      // getItem is the aggregate's one authorization step for reaching an
+      // item at all, so this is the only place that check needs to live.
       const wishlist = await ctx.wishlists.findById(input.wishlistId);
       if (!wishlist) throw new ItemNotFoundError(input.itemId);
       const item = wishlist.getItem(input.itemId);
