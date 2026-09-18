@@ -1,5 +1,3 @@
-import { Hold } from '../../domain/entities/Hold.js';
-import type { ItemHeldEvent } from '../../domain/events/ItemHeldEvent.js';
 import type { DomainEvent } from '../ports/EventStore.js';
 import type { UnitOfWork } from '../ports/UnitOfWork.js';
 import type { TokenGenerator } from '../ports/TokenGenerator.js';
@@ -49,13 +47,10 @@ export class HoldItem {
         return { holdId: existing.id, itemId: existing.itemId, expiresAt: existing.expiresAt.toISOString() };
       }
 
-      const { expectedSeq } = wishlist.authorizeHold(item);
-
       const now = this.clock.now();
       const expiresAt = new Date(now.getTime() + HOLD_DURATION_MS);
-      const hold = Hold.create({
-        id: this.tokenGenerator.generateId(),
-        itemId: input.itemId,
+      const { hold, event, expectedSeq } = item.placeHold({
+        holdId: this.tokenGenerator.generateId(),
         secret: this.tokenGenerator.generateHoldSecret(),
         sessionHash: this.hasher.hash(input.sessionId),
         idempotencyKey: input.idempotencyKey,
@@ -63,19 +58,9 @@ export class HoldItem {
         now,
       });
 
-      const event: ItemHeldEvent = {
-        type: 'ItemHeld',
-        itemId: hold.itemId.value,
-        holdId: hold.id.value,
-        secret: hold.secret.value,
-        sessionHash: hold.sessionHash.value,
-        idempotencyKey: hold.idempotencyKey.value,
-        expiresAt: hold.expiresAt.toISOString(),
-        occurredAt: now.toISOString(),
-      };
       // Cast at the EventStore port boundary only: DomainEvent's index signature
       // exists so the store can hold heterogeneous events, but ItemHeldEvent
-      // itself stays free of one, so this literal's assignment above is still
+      // itself stays free of one, so placeHold's return is still
       // excess-property-checked against the concrete event shape.
       await ctx.eventStore.append(input.itemId, expectedSeq, [event as unknown as DomainEvent]);
 
@@ -83,6 +68,9 @@ export class HoldItem {
         id: hold.id.value, itemId: hold.itemId.value, secret: hold.secret.value,
         sessionHash: hold.sessionHash.value, idempotencyKey: hold.idempotencyKey.value, expiresAt: hold.expiresAt,
       });
+      // placeHold has already advanced the in-memory item's seq past
+      // expectedSeq, so the persisted row must record that next value, not
+      // whatever item.seq happens to read after further calls.
       await ctx.wishlists.markItemHeld(input.wishlistId, input.itemId, expectedSeq + 1);
 
       return { holdId: hold.id.value, itemId: hold.itemId.value, expiresAt: hold.expiresAt.toISOString() };

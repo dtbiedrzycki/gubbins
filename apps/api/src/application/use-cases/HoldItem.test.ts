@@ -45,7 +45,7 @@ describe('HoldItem', () => {
     expect(result.itemId).toBe(ITEM_ID);
     expect(result.expiresAt).toBe('2026-01-04T00:00:00.000Z');
     const reloaded = await wishlists.findById(WISHLIST_ID);
-    expect(reloaded?.toItemView()?.status).toBe('held');
+    expect(reloaded?.item?.status).toBe('held');
     const recorded = await holds.findByIdempotencyKey(ITEM_ID, 'idem-1');
     expect(recorded?.sessionHash).toBe('df98a8544084cba1bfbcf00faea193bf73d10ae13eada8c8bacf2c7f1e1d92f4');
   });
@@ -66,7 +66,7 @@ describe('HoldItem', () => {
     expect(second).toEqual(first);
     expect(second.holdId).toBe(first.holdId);
     const reloaded = await wishlists.findById(WISHLIST_ID);
-    expect(reloaded?.toItemView()?.status).toBe('held');
+    expect(reloaded?.item?.status).toBe('held');
   });
 
   it('throws ItemAlreadyHeldError for a second, different hold attempt on a held item', async () => {
