@@ -26,7 +26,8 @@ export class ItemRepositoryKysely implements ItemRepository {
       .executeTakeFirst();
     if (!row) return null;
     return Item.reconstitute({
-      id: row.id, wishlistId: row.wishlist_id, title: row.title, seq: row.seq, activeHolds: row.active_holds,
+      id: row.id, wishlistId: row.wishlist_id, type: row.type, title: row.title, quantity: row.quantity,
+      seq: row.seq, activeHolds: row.active_holds,
     });
   }
 
@@ -40,7 +41,8 @@ export class ItemRepositoryKysely implements ItemRepository {
       .executeTakeFirst();
     if (!row) return null;
     return Item.reconstitute({
-      id: row.id, wishlistId: row.wishlist_id, title: row.title, seq: row.seq, activeHolds: row.active_holds,
+      id: row.id, wishlistId: row.wishlist_id, type: row.type, title: row.title, quantity: row.quantity,
+      seq: row.seq, activeHolds: row.active_holds,
     });
   }
 
