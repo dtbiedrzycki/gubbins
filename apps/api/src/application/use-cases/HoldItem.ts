@@ -49,13 +49,11 @@ export class HoldItem {
       const now = this.clock.now();
       const expiresAt = new Date(now.getTime() + HOLD_DURATION_MS);
       const { hold, event, expectedSeq } = item.placeHold({
-        holdId: this.tokenGenerator.generateId(),
-        secret: this.tokenGenerator.generateHoldSecret(),
         sessionHash: this.hasher.hash(input.sessionId),
         idempotencyKey: input.idempotencyKey,
         expiresAt,
         now,
-      }, this.hasher);
+      }, this.tokenGenerator, this.hasher);
 
       // Cast at the EventStore port boundary only: DomainEvent's index signature
       // exists so the store can hold heterogeneous events, but ItemHeldEvent
