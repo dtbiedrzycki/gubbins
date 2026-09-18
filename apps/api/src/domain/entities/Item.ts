@@ -85,11 +85,13 @@ export class Item {
 
   /**
    * Places a hold on this item: decides whether it may be held, mints the
-   * Hold and the event recording it, and advances this item's own state.
-   * The availability rule, the version it is decided against, and the Hold
-   * all live here because they are all about this one item — which is also
-   * where the event stream's consistency boundary sits (`event_log` is
-   * unique on `(item_id, seq)`).
+   * Hold — including its id and secret, which belong to a hold that does
+   * not exist yet and so are not the caller's to supply — and the event
+   * recording it, then advances this item's own state. The availability
+   * rule, the version it is decided against, and the Hold all live here
+   * because they are all about this one item — which is also where the
+   * event stream's consistency boundary sits (`event_log` is unique on
+   * `(item_id, seq)`).
    *
    * Reach an Item through `Wishlist.getItem` rather than loading one
    * directly: the wishlist is what authorizes the caller to act on it.
@@ -106,22 +108,24 @@ export class Item {
    */
   placeHold(
     props: {
-      holdId: string; secret: string; sessionHash: string; idempotencyKey: string;
+      sessionHash: string; idempotencyKey: string;
       expiresAt: Date; now: Date;
     },
     /**
-     * Taken as a structural type, not an imported interface: domain/ may not
-     * import application/ (ADR-012). Same precedent as
-     * `HoldSecret.matches`'s comparer and `Wishlist.addItem`'s id generator.
+     * Taken as structural types, not imported interfaces: domain/ may not
+     * import application/ (ADR-012). Same precedent as `Wishlist.addItem`'s
+     * id generator and `HoldSecret.matches`'s comparer — the application
+     * layer's `TokenGenerator` already satisfies this shape.
      */
+    tokens: { generateId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): { hold: Hold; event: ItemHeldEvent; expectedSeq: number } {
     if (this.status === 'held') throw new ItemAlreadyHeldError(this.id.value);
 
     const hold = Hold.create({
-      id: props.holdId,
+      id: tokens.generateId(),
       itemId: this.id.value,
-      secret: props.secret,
+      secret: tokens.generateHoldSecret(),
       sessionHash: props.sessionHash,
       idempotencyKey: props.idempotencyKey,
       expiresAt: props.expiresAt,

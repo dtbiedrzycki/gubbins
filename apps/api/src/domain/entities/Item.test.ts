@@ -51,9 +51,9 @@ describe('Item availability', () => {
 
 describe('Item.placeHold', () => {
   const now = new Date('2026-01-01T00:00:00Z');
+  const GENERATED_HOLD_ID = '55555555-5555-4555-8555-555555555555';
+  const GENERATED_SECRET = 'hold-secret';
   const holdProps = {
-    holdId: '55555555-5555-4555-8555-555555555555',
-    secret: 'hold-secret',
     sessionHash: 'a'.repeat(64),
     idempotencyKey: 'idem-1',
     expiresAt: new Date('2026-01-01T00:10:00Z'),
@@ -62,25 +62,27 @@ describe('Item.placeHold', () => {
   const available = () =>
     Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 4, activeHolds: 0 });
 
-  const fakeHasher = { hash: (value: string) => (value === holdProps.secret ? 'f'.repeat(64) : 'e'.repeat(64)) };
+  const fakeTokens = { generateId: () => GENERATED_HOLD_ID, generateHoldSecret: () => GENERATED_SECRET };
+  const fakeHasher = { hash: (value: string) => (value === GENERATED_SECRET ? 'f'.repeat(64) : 'e'.repeat(64)) };
 
-  it('mints a hold against this item', () => {
-    const { hold } = available().placeHold(holdProps, fakeHasher);
-    expect(hold.id.value).toBe(holdProps.holdId);
+  it('mints a hold against this item, using the domain\'s own id and secret generators', () => {
+    const { hold } = available().placeHold(holdProps, fakeTokens, fakeHasher);
+    expect(hold.id.value).toBe(GENERATED_HOLD_ID);
+    expect(hold.secret.value).toBe(GENERATED_SECRET);
     expect(hold.itemId.value).toBe(ITEM_ID);
     expect(hold.expiresAt).toEqual(holdProps.expiresAt);
   });
 
   it('returns the seq the caller must append against', () => {
-    expect(available().placeHold(holdProps, fakeHasher).expectedSeq).toBe(4);
+    expect(available().placeHold(holdProps, fakeTokens, fakeHasher).expectedSeq).toBe(4);
   });
 
   it('emits an ItemHeld event carrying the hashed secret, not the raw one', () => {
-    const { event } = available().placeHold(holdProps, fakeHasher);
+    const { event } = available().placeHold(holdProps, fakeTokens, fakeHasher);
     expect(event).toEqual({
       type: 'ItemHeld',
       itemId: ITEM_ID,
-      holdId: holdProps.holdId,
+      holdId: GENERATED_HOLD_ID,
       secretHash: 'f'.repeat(64),
       sessionHash: holdProps.sessionHash,
       idempotencyKey: 'idem-1',
@@ -92,7 +94,7 @@ describe('Item.placeHold', () => {
 
   it('records the hold against the item, which becomes held', () => {
     const item = available();
-    item.placeHold(holdProps, fakeHasher);
+    item.placeHold(holdProps, fakeTokens, fakeHasher);
     expect(item.activeHolds).toBe(1);
     expect(item.status).toBe('held');
     expect(item.seq).toBe(5);
@@ -100,11 +102,11 @@ describe('Item.placeHold', () => {
 
   it('throws ItemAlreadyHeldError when active holds have reached the quantity', () => {
     const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 4, activeHolds: 1 });
-    expect(() => item.placeHold(holdProps, fakeHasher)).toThrow(ItemAlreadyHeldError);
+    expect(() => item.placeHold(holdProps, fakeTokens, fakeHasher)).toThrow(ItemAlreadyHeldError);
   });
 
   it('rejects an expiry that is not in the future', () => {
-    expect(() => available().placeHold({ ...holdProps, expiresAt: now }, fakeHasher)).toThrow(DomainValidationError);
+    expect(() => available().placeHold({ ...holdProps, expiresAt: now }, fakeTokens, fakeHasher)).toThrow(DomainValidationError);
   });
 });
 

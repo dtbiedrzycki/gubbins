@@ -143,9 +143,11 @@ describe('Wishlist.getItem', () => {
   it('returns the aggregate\'s own item, so a hold placed on it is visible through the wishlist', () => {
     const { wishlist } = withItem();
     wishlist.getItem(ITEM_ID).placeHold({
-      holdId: '55555555-5555-4555-8555-555555555555', secret: 'hold-secret',
       sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1',
       expiresAt: new Date('2026-01-01T00:10:00Z'), now: new Date('2026-01-01T00:00:00Z'),
+    }, {
+      generateId: () => '55555555-5555-4555-8555-555555555555',
+      generateHoldSecret: () => 'hold-secret',
     }, { hash: () => 'b'.repeat(64) });
     expect(wishlist.item?.status).toBe('held');
   });
