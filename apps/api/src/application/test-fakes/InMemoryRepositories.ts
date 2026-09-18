@@ -43,7 +43,9 @@ class InMemoryItemRepository implements ItemRepository {
     this.byId.set(itemId, Item.reconstitute({
       id: item.id.value,
       wishlistId: item.wishlistId.value,
+      type: item.type,
       title: item.title,
+      quantity: item.quantity,
       seq: newSeq,
       activeHolds: item.activeHolds + 1,
     }));

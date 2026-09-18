@@ -65,7 +65,7 @@ describe('InMemoryWishlistRepository', () => {
       idempotencyKey: 'irrelevant',
       expiresAt: new Date(),
       now: new Date(),
-    })).toThrow(ItemAlreadyHeldError);
+    }, { hash: (value: string) => value })).toThrow(ItemAlreadyHeldError);
   });
 
   it('preserves the wishlist fields when it rebuilds the aggregate after a hold', async () => {

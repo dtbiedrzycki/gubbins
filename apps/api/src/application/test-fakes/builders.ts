@@ -35,11 +35,15 @@ export function aWishlist(): WishlistBuilder {
 }
 
 export class ItemBuilder {
-  private props = { id: DEFAULT_ITEM_ID, wishlistId: DEFAULT_WISHLIST_ID, title: 'Stroller', seq: 0, activeHolds: 0 };
+  private props = {
+    id: DEFAULT_ITEM_ID, wishlistId: DEFAULT_WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0, activeHolds: 0,
+  };
 
   withId(id: string): this { this.props.id = id; return this; }
   withWishlistId(wishlistId: string): this { this.props.wishlistId = wishlistId; return this; }
   withTitle(title: string): this { this.props.title = title; return this; }
+  withType(type: string): this { this.props.type = type; return this; }
+  withQuantity(quantity: number): this { this.props.quantity = quantity; return this; }
   withSeq(seq: number): this { this.props.seq = seq; return this; }
   withActiveHolds(activeHolds: number): this { this.props.activeHolds = activeHolds; return this; }
 
