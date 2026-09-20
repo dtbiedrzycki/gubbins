@@ -13,18 +13,20 @@
 - SQLite data file bind-mounted (not a named volume) in dev, so a developer can inspect or delete `wishlist.db` directly
 - `customizations.vscode.extensions` for ESLint/Prettier/Vitest, and `customizations.vscode.settings` for format-on-save; namespaced so other IDEs ignore gracefully
 - Dev image separate from the minimal, non-root production image
-- **Claude Code sandboxing for `auto`-mode runs** *(ADR-[070](../adr/0070-devcontainer-sandboxes-claude-code-auto-mode-via-an-egress.md))*: `app` sits
+- **Claude Code sandboxing for `auto`-mode runs** *(ADR-[068](../adr/0068-devcontainer-sandboxes-claude-code-auto-mode-via-an-egress.md))*: `app` sits
   on an `internal: true` Docker network with no direct route out; a
   single-purpose `egress-proxy` sidecar — the only container with
   external network reach — enforces a domain/SNI-based allowlist (npm
-  registry, GitHub, the Anthropic API; deliberately excluding this
-  project's own Codeberg remote). Neither container needs
+  registry, GitHub, the Anthropic API). The allowlist matches hostnames,
+  not repositories, so it does not hold the agent away from this
+  project's own GitHub repository; what it can do there is bounded by the
+  credentials in the container, not by the proxy. Neither container needs
   `NET_ADMIN`/`NET_RAW`, and the allowlist needs no maintenance as DNS or
   CDN IPs rotate, since enforcement never depends on a resolved IP. Not
   used for `default`/`acceptEdits`/`plan` sessions, where a human
   confirms every command already. `bypassPermissions` is out of scope
   entirely and not enabled anywhere in this setup.
-- **Claude Code and `gh` in the `app` image** *(ADR-[071](../adr/0071-claude-code-and-gh-ship-in-the-app-image-with-no-baked-in.md))*: both installed
+- **Claude Code and `gh` in the dev image only, never the production image** *(ADR-[069](../adr/0069-claude-code-and-gh-ship-in-the-dev-image-only.md))*: both installed
   by default in `Dockerfile.dev`. Credentials for neither are ever baked
   into the image. Claude Code auth is a one-time interactive `claude
   login`, deliberately not persisted — its OAuth state lives in the

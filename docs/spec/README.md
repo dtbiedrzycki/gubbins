@@ -33,5 +33,5 @@ for the decision log.
 | Backup, restore & upgrade safety | [backup-restore-and-upgrade.md](backup-restore-and-upgrade.md) |
 | Observability (logging, metrics, tracing) | [observability.md](observability.md) |
 | Governance, licensing & release process | [governance-licensing-and-release.md](governance-licensing-and-release.md) |
-| Threat model | [threat-model.md](threat-model.md) |
+| Threat model | [threat-model-summary.md](threat-model-summary.md) |
 | Time, timezones & display | [time-and-timezones.md](time-and-timezones.md) |

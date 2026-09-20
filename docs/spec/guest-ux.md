@@ -15,12 +15,12 @@
 - Tapping a card opens a full-screen item detail (not a modal) with
   notes, image, and a sticky bottom action bar — keeps the
   scrollable list itself dense and scannable on small screens.
-- **Privacy notice link**: after key entry, when the owner has set
-  `privacyNotice`, a small "Privacy" link appears in the guest page
-  footer opening the notice as plain text. When unset, no link renders —
-  no dead affordance pointing at nothing. The key gate instead carries
+- **Privacy notice link**: after key entry, a small "Privacy" link always
+  appears in the guest page footer, opening the app-rendered notice as
+  plain text, with the owner's `privacyNotice` note beneath it when set.
+  The key gate instead carries
   the static app-authored statement ([access & identity](access-identity.md)), which renders unconditionally
-  whether or not the slug exists. *(ADR-[058](../adr/0058-owner-configurable-privacynotice-field-shown-only-when-set.md))*
+  whether or not the slug exists. *(ADR-[056](../adr/0056-privacy-notice-rendered-by-the-app-with-operator-contact.md))*
 
 **Empty / near-empty / fully-claimed states**
 - **Empty list** (owner hasn't added items yet): "This list is still being
@@ -57,7 +57,7 @@
   the payment app's own amount field.
 - For open-ended `fund` items (no target): no remainder-based suggestions —
   flat preset amounts derived from the list's currency exponent
-  ([payments](payments.md), ADR-[063](../adr/0063-currency-validation-minor-unit-storage-and-the-ceiling.md)) at three round magnitudes, plus custom,
+  ([payments](payments.md), ADR-[061](../adr/0061-currency-validation-minor-unit-storage-and-the-ceiling.md)) at three round magnitudes, plus custom,
   same informational-only treatment.
 - "Cover the rest" is hidden once remainder ≤ 0 under `allowOverfunding:
   block`; kept visible with a confirming dialog under `warn`/`allow`.
@@ -76,13 +76,13 @@
   silently overfunding. This records the pledge with the method snapshot
   attached.
 - The contribution confirmation screen ("I've sent it" succeeded)
-  surfaces the same guest self-service data link ([access & identity](access-identity.md), ADR-[060](../adr/0060-guest-self-service-data-access-erasure-via-guestdataaccess.md)) the hold
+  surfaces the same guest self-service data link ([access & identity](access-identity.md), ADR-[058](../adr/0058-guest-self-service-data-access-erasure-via-guestdataaccess.md)) the hold
   confirmation screen shows — the guest's one durable way back into "what
   do you have on me," regardless of which flow created it.
 - No pre-payment draft state exists server-side — closing the tab before
   this step leaves nothing to recover; the guest simply redoes the
   (client-only) selection. This is why no dedicated contribution recovery
-  secret is issued (ADR-[052](../adr/0052-contribution-amount-recorded-only-at-i-ve-sent-it.md)) — only the same-session hint ([access & identity](access-identity.md)) helps
+  secret is issued (ADR-[050](../adr/0050-contribution-amount-recorded-only-at-i-ve-sent-it.md)) — only the same-session hint ([access & identity](access-identity.md)) helps
   with accidental resubmission, and only on the same device/session.
 - Combined progress bar (solid = confirmed, hatched = pledged) shown both
   on the item card and inside this flow before/after submission.
@@ -100,7 +100,7 @@
 - This is an honest-guest correctness guard first: a slow response over
   venue wifi followed by a second tap is close to certain at a real event,
   and would otherwise produce two pledges against one payment, or two holds
-  where the guest can only recover the second hold's secret. *(ADR-[050](../adr/0050-hold-contribution-submits-carry-a-client-generated.md))*
+  where the guest can only recover the second hold's secret. *(ADR-[048](../adr/0048-hold-contribution-submits-carry-a-client-generated.md))*
 
 **Message from giver to owner**
 - Optional free-text field, ≤300 chars, on both the hold sheet and the
@@ -108,7 +108,7 @@
 - Visible to the owner **immediately**, regardless of
   `ownerSeesClaimStatus`, `ownerSeesClaimerIdentity`, or `revealAfter` —
   treated as a personal note, not claim-status information that spoiler
-  settings are meant to protect. *(ADR-[023](../adr/0023-giver-message-visible-to-owner-immediately-not-spoiler-gated.md))*
+  settings are meant to protect. *(ADR-[022](../adr/0022-giver-message-visible-to-owner-immediately-not-spoiler-gated.md))*
 
 ---
 

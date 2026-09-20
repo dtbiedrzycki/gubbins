@@ -10,7 +10,7 @@
   nullable method, no `contributorSessionHash` — none of which apply to
   a void.) A voided contribution is subtracted from `pledgedMinor` /
   `confirmedMinor` in `item_state` and rendered as voided rather than
-  hidden in the reconciliation view. *(ADR-[062](../adr/0062-manual-contributions-are-voidable-not-editable.md))*
+  hidden in the reconciliation view. *(ADR-[060](../adr/0060-manual-contributions-are-voidable-not-editable.md))*
 - `HoldExpired` is **derived, not emitted**
 - Event payloads carry a version field `v` from day one
 - **Streams are scoped per item**, matching the consistency boundary
@@ -31,10 +31,10 @@
   relying on a compensating event to hide it later — a compensating event
   nulls the *projection*, not the source-of-truth payload, which would
   leave plaintext PII permanently recoverable from the event stream
-  regardless of redaction. Per ADR-[033](../adr/0033-migrations-are-forward-only-rollback-restore-from-backup.md), this is a payload shape change;
-  consistent with the precedent set in ADR-[046](../adr/0046-payment-methods-are-per-list-configuration-not-a-hardcoded.md)/[047](../adr/0047-contribution-snapshots-its-payment-method-at-pledge-time.md)/[050](../adr/0050-hold-contribution-submits-carry-a-client-generated.md), the project is
+  regardless of redaction. Per ADR-[032](../adr/0032-migrations-are-forward-only-rollback-restore-from-backup.md), this is a payload shape change;
+  consistent with the precedent set in ADR-[044](../adr/0044-payment-methods-are-per-list-configuration-not-a-hardcoded.md)/[045](../adr/0045-contribution-snapshots-its-payment-method-at-pledge-time.md)/[048](../adr/0048-hold-contribution-submits-carry-a-client-generated.md), the project is
   pre-1.0 with no deployed instances, so the shape is amended in place
-  rather than versioned/upcasted. *(ADR-[059](../adr/0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md), amends ADR-[034](../adr/0034-crypto-shredding-deferred-whole-list-purge-covers-the-need.md))*
+  rather than versioned/upcasted. *(ADR-[057](../adr/0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md), amends ADR-[033](../adr/0033-crypto-shredding-deferred-whole-list-purge-covers-the-need.md))*
 - **Idempotency is enforced via `UNIQUE (itemId, idempotencyKey)` on the
   `holds` and `contributions` projections**, written in the same
   transaction as the event append (per the synchronous-projection rule
@@ -42,10 +42,10 @@
   is introduced. The key is carried in the `ItemHeld`,
   `ContributionPledged`, and `ManualContributionRecorded` payloads so a
   `rebuildProjections` run reconstructs the constraint rather than
-  dropping it. *(ADR-[050](../adr/0050-hold-contribution-submits-carry-a-client-generated.md))*
+  dropping it. *(ADR-[048](../adr/0048-hold-contribution-submits-carry-a-client-generated.md))*
 - **Audit table for CRUD metadata**: `(entityId, field, oldValue, newValue, changedAt)`. Purge is a `DELETE`.
 - SQLite in WAL mode, single file on a mounted volume
-- **Rate limiting is also stored in SQLite** — a `rate_limit_attempts` table, fixed-window, lazily expired the same way hold expiry is (never a cron sweep). No new service dependency introduced for this. See [threat model](threat-model.md) for thresholds.
+- **Rate limiting is also stored in SQLite** — a `rate_limit_attempts` table, fixed-window, lazily expired the same way hold expiry is (never a cron sweep). No new service dependency introduced for this. See [threat model](threat-model-summary.md) for thresholds.
 - DB-level check constraints as a backstop to application invariants
 
 ---

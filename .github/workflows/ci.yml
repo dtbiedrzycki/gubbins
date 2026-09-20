@@ -33,6 +33,13 @@ jobs:
           echo "Verifying range: $range"
           bash scripts/verify-signatures.sh "$range"
 
+  docs-links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check ADR and spec links resolve
+        run: python3 scripts/check_adr_links.py
+
   build:
     runs-on: ubuntu-latest
     steps:

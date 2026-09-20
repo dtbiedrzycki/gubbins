@@ -23,10 +23,10 @@ the choice made, and the consequences accepted.
 
 ## Numbering
 
-The numbering scheme (including the starting number and whether earlier
-decisions get backfilled) is **not settled yet** — some decisions
-predate this repository and will be imported later. Until then, agree a
-number on the PR that introduces an ADR.
+ADRs are numbered `0001..N` with no gaps. New ADRs take the next free
+number; folding or superseding an ADR does not free its number for
+reuse (see "An accepted ADR is immutable" above) except during the
+one-time renumbering documented in the restructuring history.
 
 ## Index
 
@@ -55,69 +55,78 @@ number on the PR that introduces an ADR.
 | [019](0019-quantity-may-drop-below-committed-holds-purchases.md) | Quantity may drop below committed holds/purchases | Accepted |
 | [020](0020-owner-status-identity-visibility-auto-reveals-at-revealafter.md) | Owner status/identity visibility auto-reveals at revealAfter | Accepted |
 | [021](0021-thank-you-tracking-stored-outside-rebuildprojections-scope.md) | Thank-you tracking stored outside rebuildProjections scope | Accepted |
-| [023](0023-giver-message-visible-to-owner-immediately-not-spoiler-gated.md) | Giver message visible to owner immediately, not spoiler-gated | Accepted |
-| [024](0024-wcag-2-2-level-aa-is-the-accessibility-target.md) | WCAG 2.2 Level AA is the accessibility target | Accepted |
-| [025](0025-hold-sheet-and-contribute-flow-use-native-dialog.md) | Hold sheet and contribute flow use native <dialog> | Accepted |
-| [026](0026-screen-reader-status-changes-use-aria-live-regions.md) | Screen-reader status changes use ARIA live regions | Accepted |
-| [027](0027-axe-core-wired-into-e2e-ci-blocks-on-serious-critical-only.md) | axe-core wired into e2e; CI blocks on serious/critical only | Accepted |
-| [028](0028-browser-support-matrix-widened-for-the-guest-facing-surface.md) | Browser support matrix widened for the guest-facing surface | Accepted |
-| [029](0029-i18n-groundwork-is-intl-formatting-plus-icu-messageformat.md) | i18n groundwork is Intl formatting plus ICU MessageFormat strings | Accepted |
-| [030](0030-performance-resource-targets-set-for-pi-class-hardware.md) | Performance/resource targets set for Pi-class hardware | Accepted |
-| [031](0031-logging-metrics-tracing-standardized-on-pino-opentelemetry.md) | Logging/metrics/tracing standardized on pino + OpenTelemetry | Accepted |
-| [032](0032-physical-backup-via-vacuum-into-not-raw-file-copy.md) | Physical backup via VACUUM INTO, not raw file copy | Accepted |
-| [033](0033-migrations-are-forward-only-rollback-restore-from-backup.md) | Migrations are forward-only; rollback = restore from backup | Accepted |
-| [034](0034-crypto-shredding-deferred-whole-list-purge-covers-the-need.md) | Crypto-shredding deferred; whole-list purge covers the need | Accepted |
-| [035](0035-threat-model-documented-in-docs-threat-model-md.md) | Threat model documented in docs/threat-model.md | Accepted |
-| [036](0036-constant-time-comparison-generalized-to-all-secret.md) | Constant-time comparison generalized to all secret comparisons | Accepted |
-| [037](0037-session-and-owner-access-cookies-require-secure-https.md) | Session and owner-access cookies require Secure; HTTPS required | Accepted |
-| [039](0039-agpl-3-0-selected-as-project-licence.md) | AGPL-3.0 selected as project licence | Accepted |
-| [040](0040-ci-hosted-on-forgejo-actions-via-codeberg-not-github-actions.md) | CI hosted on Forgejo Actions via Codeberg, not GitHub Actions | Accepted |
-| [041](0041-security-disclosure-via-a-dedicated-email-address.md) | Security disclosure via a dedicated email address | Accepted |
-| [042](0042-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md) | Rate-limit thresholds set as concrete hardcoded defaults | Accepted |
-| [043](0043-demo-instance-formally-deferred-not-rejected.md) | Demo instance formally deferred, not rejected | Accepted |
-| [044](0044-anonymous-contributions-resolved-name-required-owner-only.md) | Anonymous contributions resolved: name required, owner-only | Accepted |
-| [045](0045-sourceurl-env-var-drives-agpl-3-0-network-use-compliance.md) | SOURCE_URL env var drives AGPL-3.0 network-use compliance link | Accepted |
-| [046](0046-payment-methods-are-per-list-configuration-not-a-hardcoded.md) | Payment methods are per-list configuration, not a hardcoded enum | Accepted |
-| [047](0047-contribution-snapshots-its-payment-method-at-pledge-time.md) | Contribution snapshots its payment method at pledge time | Accepted |
-| [048](0048-guest-sessions-capped-at-n-concurrent-active-holds-per-list.md) | Guest sessions capped at N concurrent active holds per list | Accepted |
-| [049](0049-contribution-amounts-bounded-by-absolute-and-target.md) | Contribution amounts bounded by absolute and target-relative ceilings | Accepted |
-| [050](0050-hold-contribution-submits-carry-a-client-generated.md) | Hold/contribution submits carry a client-generated idempotency key | Accepted |
-| [051](0051-civil-dates-and-instants-modelled-distinctly-via-per-list.md) | Civil dates and instants modelled distinctly via per-list timezone | Accepted |
-| [052](0052-contribution-amount-recorded-only-at-i-ve-sent-it.md) | Contribution amount recorded only at "I've sent it" | Accepted |
-| [053](0053-owner-token-recovery-deferred-direct-operator-access-is-the.md) | Owner-token recovery deferred; direct operator access is the path | Accepted |
-| [054](0054-guest-key-storage-changed-from-one-way-hash-to-plaintext.md) | Guest key storage changed from one-way hash to plaintext | Accepted |
-| [055](0055-guest-invite-qr-available-on-demand-from-the-owner-dashboard.md) | Guest-invite QR available on demand from the owner dashboard | Accepted |
-| [056](0056-post-purgeat-lookups-return-the-same-generic-not-found.md) | Post-purgeAt lookups return the same generic not-found response | Accepted |
-| [057](0057-instance-teardown-addressed-as-a-documentation-checklist.md) | Instance teardown addressed as a documentation checklist | Accepted |
-| [058](0058-owner-configurable-privacynotice-field-shown-only-when-set.md) | Owner-configurable privacyNotice field, shown only when set | Accepted |
-| [059](0059-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md) | GDPR erasure via a redactable side-table (GuestPii), not events | Accepted |
-| [060](0060-guest-self-service-data-access-erasure-via-guestdataaccess.md) | Guest self-service data access/erasure via GuestDataAccess secret | Accepted |
-| [061](0061-offline-non-monetary-gifts-recorded-via-manualgiftentry.md) | Offline non-monetary gifts recorded via ManualGiftEntry table | Accepted |
-| [062](0062-manual-contributions-are-voidable-not-editable.md) | Manual contributions are voidable, not editable | Accepted |
-| [063](0063-currency-validation-minor-unit-storage-and-the-ceiling.md) | Currency validation, minor-unit storage, and the ceiling reframe | Accepted |
-| [064](0064-the-owner-token-never-travels-in-a-url.md) | The owner token never travels in a URL | Accepted |
-| [065](0065-one-periodic-task-with-giver-email-purge-attached.md) | One periodic task, with giver-email purge attached | Accepted |
-| [066](0066-revealafter-is-stored-not-derived.md) | revealAfter is stored, not derived | Accepted |
-| [067](0067-erasure-across-backups-and-the-subject-access-routing-fix.md) | Erasure across backups, and the subject-access routing fix | Accepted |
-| [068](0068-client-ip-resolution-is-a-hop-count.md) | Client IP resolution is a hop count | Accepted |
-| [069](0069-the-guest-key-travels-in-a-fragment.md) | The guest key travels in a fragment | Accepted |
-| [070](0070-devcontainer-sandboxes-claude-code-auto-mode-via-an-egress.md) | Devcontainer sandboxes Claude Code auto mode via an egress-proxy sidecar | Accepted |
-| [071](0071-claude-code-and-gh-ship-in-the-app-image-with-no-baked-in.md) | Claude Code and gh ship in the app image with no baked-in credentials | Accepted |
-| [072](0072-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md) | revealedAt makes owner claim-status reveal one-way sticky | Accepted |
+| [022](0022-giver-message-visible-to-owner-immediately-not-spoiler-gated.md) | Giver message visible to owner immediately, not spoiler-gated | Accepted |
+| [023](0023-wcag-2-2-level-aa-is-the-accessibility-target.md) | WCAG 2.2 Level AA is the accessibility target | Accepted |
+| [024](0024-hold-sheet-and-contribute-flow-use-native-dialog.md) | Hold sheet and contribute flow use native <dialog> | Accepted |
+| [025](0025-screen-reader-status-changes-use-aria-live-regions.md) | Screen-reader status changes use ARIA live regions | Accepted |
+| [026](0026-axe-core-wired-into-e2e-ci-blocks-on-serious-critical-only.md) | axe-core wired into e2e; CI blocks on serious/critical only | Accepted |
+| [027](0027-browser-support-matrix-widened-for-the-guest-facing-surface.md) | Browser support matrix widened for the guest-facing surface | Accepted |
+| [028](0028-i18n-groundwork-is-intl-formatting-plus-icu-messageformat.md) | i18n groundwork is Intl formatting plus ICU MessageFormat strings | Accepted |
+| [029](0029-performance-resource-targets-set-for-pi-class-hardware.md) | Performance/resource targets set for Pi-class hardware | Accepted |
+| [030](0030-logging-metrics-tracing-standardized-on-pino-opentelemetry.md) | Logging/metrics/tracing standardized on pino + OpenTelemetry | Accepted |
+| [031](0031-physical-backup-via-vacuum-into-not-raw-file-copy.md) | Physical backup via VACUUM INTO, not raw file copy | Accepted |
+| [032](0032-migrations-are-forward-only-rollback-restore-from-backup.md) | Migrations are forward-only; rollback = restore from backup | Accepted |
+| [033](0033-crypto-shredding-deferred-whole-list-purge-covers-the-need.md) | Crypto-shredding deferred; whole-list purge covers the need | Accepted |
+| [034](0034-threat-model-documented-in-docs-threat-model-md.md) | Threat model documented in docs/threat-model.md | Accepted |
+| [035](0035-constant-time-comparison-generalized-to-all-secret.md) | Constant-time comparison generalized to all secret comparisons | Accepted |
+| [036](0036-session-and-owner-access-cookies-require-secure-https.md) | Session and owner-access cookies require Secure; HTTPS required | Accepted |
+| [037](0037-agpl-3-0-selected-as-project-licence.md) | AGPL-3.0 selected as project licence | Accepted |
+| [038](0038-ci-runs-on-github-actions-kept-forge-portable.md) | CI runs on GitHub Actions, kept forge-portable | Accepted |
+| [039](0039-security-disclosure-via-a-dedicated-email-address.md) | Security disclosure via a dedicated email address | Accepted |
+| [040](0040-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md) | Rate-limit thresholds set as concrete hardcoded defaults | Accepted |
+| [041](0041-demo-instance-formally-deferred-not-rejected.md) | Demo instance formally deferred, not rejected | Accepted |
+| [042](0042-anonymous-contributions-resolved-name-required-owner-only.md) | Anonymous contributions resolved: name required, owner-only | Accepted |
+| [043](0043-sourceurl-env-var-drives-agpl-3-0-network-use-compliance.md) | SOURCE_URL env var drives AGPL-3.0 network-use compliance link | Accepted |
+| [044](0044-payment-methods-are-per-list-configuration-not-a-hardcoded.md) | Payment methods are per-list configuration, not a hardcoded enum | Accepted |
+| [045](0045-contribution-snapshots-its-payment-method-at-pledge-time.md) | Contribution snapshots its payment method at pledge time | Accepted |
+| [046](0046-guest-sessions-capped-at-n-concurrent-active-holds-per-list.md) | Each guest session capped at N concurrent active holds per list | Accepted |
+| [047](0047-contribution-amounts-bounded-by-absolute-and-target.md) | Contribution amounts bounded by absolute and target-relative ceilings | Accepted |
+| [048](0048-hold-contribution-submits-carry-a-client-generated.md) | Hold/contribution submits carry a client-generated idempotency key | Accepted |
+| [049](0049-civil-dates-and-instants-modelled-distinctly-via-per-list.md) | Civil dates and instants modelled distinctly via per-list timezone | Accepted |
+| [050](0050-contribution-amount-recorded-only-at-i-ve-sent-it.md) | Contribution amount recorded only at "I've sent it" | Accepted |
+| [051](0051-owner-token-recovery-deferred-direct-operator-access-is-the.md) | Owner-token recovery deferred; direct operator access is the path | Accepted |
+| [052](0052-guest-key-storage-changed-from-one-way-hash-to-plaintext.md) | Guest key storage changed from one-way hash to plaintext | Accepted |
+| [053](0053-guest-invite-qr-available-on-demand-from-the-owner-dashboard.md) | Guest-invite QR available on demand from the owner dashboard | Accepted |
+| [054](0054-post-purgeat-lookups-return-the-same-generic-not-found.md) | Post-purgeAt lookups return the same generic not-found response | Accepted |
+| [055](0055-instance-teardown-addressed-as-a-documentation-checklist.md) | Instance teardown addressed as a documentation checklist | Accepted |
+| [056](0056-privacy-notice-rendered-by-the-app-with-operator-contact.md) | Privacy notice rendered by the app, with operator contact | Accepted |
+| [057](0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md) | GDPR erasure via a redactable side-table (GuestPii), not events | Accepted |
+| [058](0058-guest-self-service-data-access-erasure-via-guestdataaccess.md) | Guest self-service data access/erasure via GuestDataAccess secret | Accepted |
+| [059](0059-offline-non-monetary-gifts-recorded-via-manualgiftentry.md) | Offline non-monetary gifts recorded via ManualGiftEntry table | Accepted |
+| [060](0060-manual-contributions-are-voidable-not-editable.md) | Manual contributions are voidable, not editable | Accepted |
+| [061](0061-currency-validation-minor-unit-storage-and-the-ceiling.md) | Currency validation, minor-unit storage, and the ceiling reframe | Accepted |
+| [062](0062-the-owner-token-never-travels-in-a-url.md) | The owner token never travels in a URL | Accepted |
+| [063](0063-one-periodic-task-with-giver-email-purge-attached.md) | One periodic task, with giver-email purge attached | Accepted |
+| [064](0064-revealafter-is-stored-not-derived.md) | revealAfter is stored, not derived | Accepted |
+| [065](0065-erasure-across-backups-and-the-subject-access-routing-fix.md) | Erasure across backups, and the subject-access routing fix | Accepted |
+| [066](0066-client-ip-resolution-is-a-hop-count.md) | Client IP resolution is a hop count | Accepted |
+| [067](0067-the-guest-key-travels-in-a-fragment.md) | The guest key travels in a fragment | Accepted |
+| [068](0068-devcontainer-sandboxes-claude-code-auto-mode-via-an-egress.md) | Devcontainer sandboxes Claude Code auto mode via an egress-proxy sidecar | Accepted |
+| [069](0069-claude-code-and-gh-ship-in-the-dev-image-only.md) | Claude Code and gh ship in the development image only, with no baked-in credentials | Accepted |
+| [070](0070-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md) | revealedAt makes owner claim-status reveal one-way sticky | Accepted |
 
-## Imported ADRs (0001–0069, plus 0072)
+## Imported ADRs (0001–0070)
 
-ADRs 0001–0069, plus 0072 (renumbered from 0052a), are imported verbatim from `gubbins-spec.md`'s former §4 ADR Index — pre-repository
-product/architecture decisions for the application itself. The 0001–0069 range is no longer contiguous: ADR-0022 and ADR-0038 were folded/deleted during
-this restructuring (into 0069 and 0040 respectively), so their files no longer exist. 0070 and 0071 are
-the first two such repository-native ADRs — devcontainer sandboxing for
-Claude Code `auto`-mode runs, and Claude Code/`gh` credentialing in the
-dev image (§[3.12](../spec/development-environment.md)) — both documenting infrastructure that already existed
-in the repo before being written up here.
-0073 onward remains free.
+ADRs 0001–0070 were imported from `gubbins-spec.md`'s former §4 ADR
+Index — pre-repository product/architecture decisions for the
+application itself, plus three repository-native ADRs (CI hosting in
+ADR-[038](0038-ci-runs-on-github-actions-kept-forge-portable.md),
+devcontainer sandboxing for Claude Code `auto`-mode runs, and Claude
+Code/`gh` credentialing in the dev image — see
+[development environment](../spec/development-environment.md)) — all
+three documenting infrastructure that already existed in the repo before
+being written up here. The numbering is gap-free. Two imported entries
+were folded into others rather than kept: the query-string guest-key
+transport into
+ADR-[067](0067-the-guest-key-travels-in-a-fragment.md), and a
+release-scanning stub into the CI decision now recorded as ADR-038.
 
-*(Not every ADR carries a separate detail block. Blocks are written
-where a decision needs rationale, rejected alternatives, or context
-beyond what its body section already states — so ADR-[030](./0030-performance-resource-targets-set-for-pi-class-hardware.md) (§[3.17](../spec/performance-and-resource-budget.md)) and
-ADR-[035](./0035-threat-model-documented-in-docs-threat-model-md.md) (§[3.21](../spec/threat-model.md)), both fully covered by their sections, have none.
-Absence of a block is not an absence of reasoning.)*
+*(Not every ADR carries a long Consequences section — some decisions are
+fully covered by their linked spec topic and stay short.
+ADR-[029](./0029-performance-resource-targets-set-for-pi-class-hardware.md)
+([performance & resource budget](../spec/performance-and-resource-budget.md))
+and
+ADR-[034](./0034-threat-model-documented-in-docs-threat-model-md.md)
+([threat model](../spec/threat-model-summary.md)), both fully covered by
+their linked spec sections, are among the shortest entries in the
+corpus. Absence of length is not absence of reasoning.)*

@@ -15,7 +15,7 @@
   integer range — it is not a statement about how much money is reasonable,
   and is set far above any honest gift in any currency. Both are input
   validation, **not** overfunding policy: `allowOverfunding: allow` bypasses
-  neither. *(ADR-[049](../adr/0049-contribution-amounts-bounded-by-absolute-and-target.md), amended by ADR-[063](../adr/0063-currency-validation-minor-unit-storage-and-the-ceiling.md))*
+  neither. *(ADR-[047](../adr/0047-contribution-amounts-bounded-by-absolute-and-target.md), amended by ADR-[061](../adr/0061-currency-validation-minor-unit-storage-and-the-ceiling.md))*
 - **Fat-finger protection is a client-side confirmation, not a hard block.**
   Where an amount is disproportionate to the target or to the list's other
   amounts, the contribute flow asks the guest to confirm before submitting.
@@ -23,7 +23,7 @@
   ([manual contributions](manual-contributions.md)), so prevention at the point of entry is the proportionate control;
   a configured server-side money threshold was tried and removed as
   answering an unanswerable question — "how much money is too much" has no
-  currency-independent answer. *(ADR-[063](../adr/0063-currency-validation-minor-unit-storage-and-the-ceiling.md))*
+  currency-independent answer. *(ADR-[061](../adr/0061-currency-validation-minor-unit-storage-and-the-ceiling.md))*
 - Manual contributions ([manual contributions](manual-contributions.md)) warn rather than block above the ceiling —
   the owner is the authoritative party and may legitimately be recording
   an unusually large offline gift.
