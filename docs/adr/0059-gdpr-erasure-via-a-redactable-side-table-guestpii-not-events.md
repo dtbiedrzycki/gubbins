@@ -1,8 +1,8 @@
 # 0059. GDPR erasure via a redactable side-table (GuestPii), not events
 
 - **Status:** Accepted
-- **Date:** Not recorded (pre-repository decision, imported from `gubbins-spec.md`)
-- **Deciders:** Not recorded
+- **Date:** 2026-09-09
+- **Deciders:** dtbiedrzycki
 
 ## Decision
 
@@ -20,7 +20,7 @@ ADR-[007](./0007-event-sourcing-for-the-ledger-only-audit-table-for-crud.md)/[00
 `rebuildProjections` reconstructs the null correctly but the source of
 truth was never actually erased. Mutating event payloads directly was
 rejected outright — it isn't a scoped exception, it invalidates the
-immutability assumption every other event-sourcing decision from §[3.8](../../gubbins-spec.md#38-data--persistence)
+immutability assumption every other event-sourcing decision from §[3.8](../spec/data-and-persistence.md)
 onward depends on. The resolution moves PII out of the event stream
 entirely: `GuestPii` is a plain mutable table in the same category as
 `ThankYouStatus` (ADR-[021](./0021-thank-you-tracking-stored-outside-rebuildprojections-scope.md)) and the audit table, referenced by `piiRef`
@@ -37,14 +37,14 @@ relationship to the owner's chosen claim-status-visibility preference.
 `GuestPii` is deliberately per-record, not per-guest: one row per hold
 or contribution, even where one session creates several. Three of its
 four fields are genuinely per-record. `message` is the giver's note on
-*this* hold or *this* pledge (§[3.15](../../gubbins-spec.md#315-guest-ux--browse-hold-contribute-mobile-first-375px)), and a session-scoped row would
+*this* hold or *this* pledge (§[3.15](../spec/guest-ux.md)), and a session-scoped row would
 force it back onto the Hold/Contribution — returning PII to the event
 payload, which is the whole thing this ADR prevents. `name` may
 legitimately differ between records ("Dave" on a hold, "Dave & Sarah"
 on a pledge), and a shared device at an event is one session with
 several actual people behind it, so a shared row would let one guest
 overwrite another. `email` is hold-only and carries its own
-grace-period purge (§[3.7](../../gubbins-spec.md#37-privacy)), which is a simple per-row check under 1:1
+grace-period purge (§[3.7](../spec/privacy.md)), which is a simple per-row check under 1:1
 and a cross-record question otherwise. Redaction granularity follows
 from the same place: the owner's per-row redact action would, under
 session-scoped rows, silently strip identity from records not visible

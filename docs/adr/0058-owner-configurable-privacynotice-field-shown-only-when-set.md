@@ -1,8 +1,8 @@
 # 0058. Owner-configurable privacyNotice field, shown only when set
 
 - **Status:** Accepted
-- **Date:** Not recorded (pre-repository decision, imported from `gubbins-spec.md`)
-- **Deciders:** Not recorded
+- **Date:** 2026-09-09
+- **Deciders:** dtbiedrzycki
 
 ## Decision
 
@@ -21,7 +21,7 @@ data model, no owner input required) was also rejected: the app can state
 *what* it stores and *when* it's deleted, but not *who* is responsible for
 it or how to reach them, which are the two things a GDPR-facing notice
 most needs and the two things this system deliberately never collects
-about the owner (no accounts, no verified identity — §[1](../../gubbins-spec.md#1-overview), ADR-[001](./0001-no-accounts-slug-key-for-guests-owner-token-for-owners.md)). An
+about the owner (no accounts, no verified identity — §[1](../../gubbins-spec.md#design-principles), ADR-[001](./0001-no-accounts-slug-key-for-guests-owner-token-for-owners.md)). An
 auto-generated notice with those parts silently missing would look more
 complete than it is. The chosen middle ground — a real field, rendered
 when set, paired with a template — gets the "actually shown to guests"
@@ -29,10 +29,10 @@ benefit of the stronger option without the app asserting things it
 doesn't know.
 
 Rendering the owner-authored notice on the pre-authentication key gate
-was specified in §[3.15](../../gubbins-spec.md#315-guest-ux--browse-hold-contribute-mobile-first-375px) and later removed. It failed twice over: the
+was specified in §[3.15](../spec/guest-ux.md) and later removed. It failed twice over: the
 notice's whole purpose is naming the operator and how to reach them, so
 placing it pre-auth hands the operator's identity to anyone holding only
-a slug — an actor §[3.21](../../gubbins-spec.md#321-threat-model) says should learn nothing — and because the link
+a slug — an actor §[3.21](../spec/threat-model.md) says should learn nothing — and because the link
 rendered only when the field was set, its presence was itself a per-slug
 signal that the list existed and its owner had filled the field in,
 reopening exactly the enumeration question ADR-[016](./0016-no-public-list-directory-lookups-fail-generically.md) closed and ADR-[056](./0056-post-purgeat-lookups-return-the-same-generic-not-found.md)

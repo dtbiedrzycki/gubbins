@@ -1,8 +1,8 @@
 # 0071. Claude Code and `gh` ship in the `app` image with no baked-in credentials
 
 - **Status:** Accepted
-- **Date:** Not recorded (imported from `gubbins-pending-changeset.md`)
-- **Deciders:** Not recorded
+- **Date:** 2026-09-10
+- **Deciders:** dtbiedrzycki
 
 ## Decision
 
@@ -52,7 +52,7 @@ directory and `~/.claude.json` is a file.
 only (contents + metadata), delivered via `.env` — not `gh auth login`.
 The project already has a working convention for exactly this shape of
 secret (`.env.example` committed, `.env` gitignored, layering
-per-developer values onto §[3.11](../../gubbins-spec.md#311-ops) defaults), and the PAT slots into it with
+per-developer values onto §[3.11](../spec/ops.md) defaults), and the PAT slots into it with
 no new mechanism. `gh auth login`'s device-flow OAuth was considered —
 it avoids a static bearer token sitting in a file at all — but for a
 single-repo clone-and-occasional-API-call use case, that advantage didn't

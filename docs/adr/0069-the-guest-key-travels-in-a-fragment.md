@@ -1,62 +1,92 @@
 # 0069. The guest key travels in a fragment
 
-- **Status:** Accepted
-- **Date:** Not recorded (pre-repository decision, imported from `gubbins-spec.md`)
-- **Deciders:** Not recorded
+- **Status:** Accepted (supersedes 0022, merged into this entry)
+- **Date:** 2026-09-09
+- **Deciders:** dtbiedrzycki
+
+## Context
+
+Guests reach a list via an invitation link carrying a shared key, since most
+arrive from a text message and won't reliably type a speakable key correctly
+on a phone keyboard ([access & identity](../spec/access-identity.md)). The
+key originally traveled as a query parameter (`?key=`): the server validated
+it, set the session cookie, and issued a 302 redirect to strip it from the
+address bar. That design knowingly left two exposures undisclosed as
+unsolved: the browser's own history entry for the tapped link (unavoidable
+client-side, the same limitation every password-reset link has), and
+reverse-proxy/CDN access logs sitting outside the application's control —
+mitigated only by documentation recommending query-string redaction at the
+operator's proxy.
+
+Making Cloudflare Tunnel the recommended deployment path
+([governance, licensing & release](../spec/governance-licensing-and-release.md))
+broke that mitigation: the key now reached Cloudflare's edge logs before the
+redirect could strip it, and the operator has no way to configure redaction
+there. The recommended deployment path became exactly the one where the
+recommended mitigation was unavailable.
 
 ## Decision
 
-The guest key travels in the URL fragment (`/{slug}#key=`), not the query string, and is POSTed to the existing key-entry endpoint by a same-origin script. Fragments are never transmitted, so the key reaches no proxy, edge, or access log — closing the intermediary exposure ADR-[022](./0022-guest-key-travels-in-the-invitation-url-transport.md) disclosed as unsolvable, which became load-bearing once Cloudflare Tunnel became the recommended path and its edge logs were outside the operator's control. Browser history for the tapped link remains the one unmitigable residue
+We will move the guest key into the URL fragment (`/{slug}#key=`), not
+the query string; it is POSTed to the existing key-entry endpoint by a
+same-origin script. Per RFC 3986, a fragment is interpreted solely by the agent
+dereferencing the URI — it is never sent to a server, so it reaches no
+proxy, edge, or access log. This closes the intermediary exposure the
+query-string design could only document around; the application's own logs
+already excluded the query string on this route, and the key is now a POST
+body field the `pino` redact path also excludes.
 
-## Detail
+This repurposes fragments from their specified use (identifying part of a
+resource), but follows established precedent: OAuth 2.0's implicit flow
+returned access tokens this way, and client-side-encrypted pastebins place
+decryption keys there for the same reason — the closer analogy, being a
+secret placed by the link's sender and read by a same-origin script. That
+precedent was later deprecated by the OAuth 2.0 Security BCP for three
+reasons, addressed in turn: browser-history exposure applies but is
+identical under the query string and was already disclosed; referrer-header
+leakage does not apply, since fragments are never sent in `Referer` (query
+strings are, which argues for this change rather than against it); and
+page-JavaScript exposure is neutralized by the strict CSP, absence of inline
+scripts, and zero third-party origins already required by
+[privacy](../spec/privacy.md). The remaining deprecation reasons (token
+injection, absent sender-constraining) presuppose a redirect from a
+third-party authorization server, which this flow has none of.
 
-**ADR-069 detail:** ADR-[022](./0022-guest-key-travels-in-the-invitation-url-transport.md) put the guest key in a query string and
-disclosed the residual exposure — browser history and reverse-proxy logs
-— as "not fully solvable," mitigating what it could by documenting
-query-string redaction in the operator's proxy config. Making Cloudflare
-Tunnel the recommended path (§[3.20](../../gubbins-spec.md#320-governance-licensing--release-process)) broke that mitigation: the key
-reaches Cloudflare's edge logs before the redirect strips it, and the
-operator cannot configure redaction there. The recommended path became
-the one where the recommended mitigation was unavailable.
+## Alternatives considered
 
-Fragments solve it at every intermediary at once. RFC 3986 makes the
-property normative rather than incidental: interpretation of a fragment
-is performed solely by the agent dereferencing the URI, it is not passed
-to other systems during retrieval, and redirection does not account for
-it. So the key reaches no proxy, no edge, and no access log — access logs
-record request lines, not bodies, and the key is now a POST body field
-on the same endpoint manual entry already used.
+- **Query string (`?key=`) with a server-side redirect to strip it** — the
+  original decision (ADR-022). Rejected once Cloudflare Tunnel became the
+  recommended path: the key reaches Cloudflare's edge logs before the
+  redirect runs, and the operator cannot configure redaction there. Its
+  browser-history residue was already disclosed as unmitigable and carries
+  forward unchanged.
+- **"Short session lifetime" as a mitigation** — considered and withdrawn:
+  if the key leaks from history or a log, whoever reads it enters it
+  themselves and gets a fresh session, so the original guest's session
+  expiring doesn't address the threat.
 
-This is a repurposing, not intended use. Fragments were specified to
-identify part of a resource. But it is an established idiom with
-standards precedent: OAuth 2.0's implicit flow returned access tokens in
-the fragment for exactly this reason, and client-side-encrypted
-pastebins put decryption keys there so the server never sees them — the
-closer analogy, being a secret placed by the link's sender and read by a
-same-origin script.
+## Consequences
 
-That precedent was deprecated, and the reasons deserve stating rather
-than eliding. The OAuth 2.0 Security BCP cites fragment-borne tokens
-being exposed to browser history, referrer headers, and any JavaScript
-running on the page. Taken in turn: browser history applies, is
-unavoidable, is identical under the query string, and was already
-disclosed by ADR-[022](./0022-guest-key-travels-in-the-invitation-url-transport.md); referrer headers do not, since fragments are never
-included in `Referer` — it is the query string that leaks that way, which
-argues for this change rather than against it; and page JavaScript is the
-substantive one, already neutralised here by §[3.7](../../gubbins-spec.md#37-privacy)'s strict CSP, absence
-of inline scripts, and zero third-party origins. The remaining
-deprecation reasons — token injection, absent sender-constraining —
-presuppose a redirect from a third-party authorization server, of which
-there is none. **The CSP dependency is load-bearing: if a future change
-ever admits a third-party script, this decision degrades and should be
-revisited.**
-
-The cost is a JavaScript dependency on an entry path that previously had
-none — a small piece of client-side credential handling in a flow that
-was pleasingly dumb. §[3.16](../../gubbins-spec.md#316-accessibility--browser-support)'s graceful-degradation requirement is not
-breached: it governs the hold and contribute flows, and the failure mode
-here is falling back to the manual key-entry page that already exists for
-printed invitations. Two consequences are stated rather than assumed: the
-`pino` redact path moves from query string to POST body, and key entry
-becomes a state-changing unauthenticated POST needing `SameSite` and
-origin checking — a control the manual form required already.
+- Closes the reverse-proxy/edge-log exposure at every intermediary,
+  including Cloudflare Tunnel, without operator configuration.
+- Browser-history retention of the originally-tapped link remains a
+  disclosed, unmitigable residual risk — identical under both designs, and
+  unchanged by this decision.
+- Adds a JavaScript dependency to an entry path that previously had none: a
+  same-origin script now POSTs the fragment to the key-entry endpoint. This
+  does not breach
+  [accessibility & browser support](../spec/accessibility-and-browser-support.md)'s
+  graceful-degradation requirement (which governs the hold/contribute flows
+  specifically) — the fallback is the manual key-entry page that already
+  exists for printed invitations.
+- Key entry becomes a state-changing unauthenticated POST, needing
+  `SameSite` and origin checking — a control the manual entry form already
+  required.
+- **Load-bearing dependency, stated explicitly:** this decision relies on
+  the strict CSP, no inline scripts, and zero third-party origins
+  ([privacy](../spec/privacy.md)) to neutralize page-JavaScript exposure. If
+  a future change ever admits a third-party script, this decision degrades
+  and should be revisited.
+- Supersedes ADR-022 in full; that decision's file is retired (content
+  preserved in git history) since this Context section already carries its
+  reasoning and its one open exposure.

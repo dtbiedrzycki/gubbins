@@ -1,8 +1,8 @@
 # 0052. Contribution amount recorded only at "I've sent it"
 
 - **Status:** Accepted
-- **Date:** Not recorded (pre-repository decision, imported from `gubbins-spec.md`)
-- **Deciders:** Not recorded
+- **Date:** 2026-09-09
+- **Deciders:** dtbiedrzycki
 
 ## Decision
 
@@ -19,6 +19,6 @@ to strand across a tab close or device switch, which was the entire
 justification for a recovery secret. The residual gap (no cross-device
 pledge-status check; possible accidental resubmission if a guest forgets they
 already pledged) is accepted for now. A same-session hint, reusing the
-existing `sessionHash` pattern from holds (§[3.3](../../gubbins-spec.md#33-holds-single-items)), covers the common
+existing `sessionHash` pattern from holds (§[3.3](../spec/holds.md)), covers the common
 accidental-resubmit case without new infrastructure. Revisit if this proves an
 actual support burden post-launch.

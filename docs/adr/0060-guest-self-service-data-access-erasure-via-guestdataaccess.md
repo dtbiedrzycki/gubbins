@@ -1,8 +1,8 @@
 # 0060. Guest self-service data access/erasure via GuestDataAccess secret
 
 - **Status:** Accepted
-- **Date:** Not recorded (pre-repository decision, imported from `gubbins-spec.md`)
-- **Deciders:** Not recorded
+- **Date:** 2026-09-09
+- **Deciders:** dtbiedrzycki
 
 ## Decision
 
@@ -39,7 +39,7 @@ blanket rules already governing every other bearer secret in the system
 of the existing one.
 
 One limitation surfaced later, when key rotation was given a mechanism
-(§[3.1](../../gubbins-spec.md#31-access--identity), `keyGen`). Rotation forces a new session and therefore a new
+(§[3.1](../spec/access-identity.md), `keyGen`). Rotation forces a new session and therefore a new
 `sessionHash`, so a guest who acts both before and after one holds two
 access links rather than one — reintroducing, at two, the fragmentation
 this ADR rejected per-record secrets to avoid. It is accepted rather

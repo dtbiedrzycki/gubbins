@@ -1,8 +1,8 @@
-# 0052a. revealedAt makes owner claim-status reveal one-way sticky
+# 0072. revealedAt makes owner claim-status reveal one-way sticky
 
 - **Status:** Accepted
-- **Date:** Not recorded (pre-repository decision, imported from `gubbins-spec.md`)
-- **Deciders:** Not recorded
+- **Date:** 2026-09-09
+- **Deciders:** dtbiedrzycki
 
 ## Decision
 
@@ -10,7 +10,7 @@
 
 ## Detail
 
-**ADR-052a detail:** Because `revealAfter` is derived rather than stored, an owner
+**ADR-072 detail:** Because `revealAfter` is derived rather than stored, an owner
 editing the list timezone after the event would move it — and a forward move
 past `now` would re-hide claim status the owner has already seen, which is both
 useless (they already know) and confusing (the dashboard appears to lose data).

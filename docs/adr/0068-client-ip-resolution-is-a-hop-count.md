@@ -1,8 +1,8 @@
 # 0068. Client IP resolution is a hop count
 
 - **Status:** Accepted
-- **Date:** Not recorded (pre-repository decision, imported from `gubbins-spec.md`)
-- **Deciders:** Not recorded
+- **Date:** 2026-09-09
+- **Deciders:** dtbiedrzycki
 
 ## Decision
 
@@ -15,7 +15,7 @@ HTTPS a deployment requirement and identified the target population as
 self-hosters behind hobbyist reverse proxies — so the documented
 deployment and the default configuration were in direct conflict. Behind
 a proxy with the flag unset, every request presents the proxy's address
-and all five per-IP thresholds in §[3.21](../../gubbins-spec.md#321-threat-model) become one global bucket: five
+and all five per-IP thresholds in §[3.21](../spec/threat-model.md) become one global bucket: five
 mistyped keys lock out an entire guest list for fifteen minutes, which at
 a physical event with a printed key is not an edge case.
 
@@ -61,5 +61,5 @@ outage during an event is worse than degraded limits during one.
 
 This is a mechanism defect, not a threshold question, and deliberately
 does not re-tune ADR-[042](./0042-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md)'s numbers. It does mean that test was measuring
-the wrong configuration; §[3.13](../../gubbins-spec.md#313-testing) now runs three: direct, behind a
+the wrong configuration; §[3.13](../spec/testing.md) now runs three: direct, behind a
 misconfigured proxy, and behind shared VPN egress.

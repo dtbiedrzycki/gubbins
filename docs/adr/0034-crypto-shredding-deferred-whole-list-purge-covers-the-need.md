@@ -1,8 +1,8 @@
 # 0034. Crypto-shredding deferred; whole-list purge covers the need
 
 - **Status:** Accepted
-- **Date:** Not recorded (pre-repository decision, imported from `gubbins-spec.md`)
-- **Deciders:** Not recorded
+- **Date:** 2026-09-09
+- **Deciders:** dtbiedrzycki
 
 ## Decision
 
@@ -17,7 +17,7 @@ not consider: erasure across backups, where crypto-shredding is the only
 technique that genuinely works, since ciphertext can remain in every
 snapshot once the key is gone. Two key-store placements were worked
 through and both rejected — same-file (defeated by `VACUUM INTO`) and
-separate-container (forbidden by §[3.11](../../gubbins-spec.md#311-ops)'s single-container rule, and
+separate-container (forbidden by §[3.11](../spec/ops.md)'s single-container rule, and
 costly well beyond the container itself). The deferral holds because
 `purgeAt` bounds retention to months, making the exposure a few weeks of
 beyond-use ciphertext rather than indefinite plaintext. That dependency

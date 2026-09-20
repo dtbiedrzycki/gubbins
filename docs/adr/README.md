@@ -12,6 +12,10 @@ the choice made, and the consequences accepted.
   and mark the old one `Superseded by NNNN` (and vice-versa).
 - Keep them short. Link to code, issues, or other ADRs rather than
   restating them.
+- **Date** is the date the decision was actually made — set it to the
+  current date when a new ADR is authored, not left as the template's
+  placeholder. **Deciders** is `dtbiedrzycki` unless a specific ADR
+  names someone else.
 
 ## Status values
 
@@ -51,7 +55,6 @@ number on the PR that introduces an ADR.
 | [019](0019-quantity-may-drop-below-committed-holds-purchases.md) | Quantity may drop below committed holds/purchases | Accepted |
 | [020](0020-owner-status-identity-visibility-auto-reveals-at-revealafter.md) | Owner status/identity visibility auto-reveals at revealAfter | Accepted |
 | [021](0021-thank-you-tracking-stored-outside-rebuildprojections-scope.md) | Thank-you tracking stored outside rebuildProjections scope | Accepted |
-| [022](0022-guest-key-travels-in-the-invitation-url-transport.md) | Guest key travels in the invitation URL (transport superseded by 069) | Accepted |
 | [023](0023-giver-message-visible-to-owner-immediately-not-spoiler-gated.md) | Giver message visible to owner immediately, not spoiler-gated | Accepted |
 | [024](0024-wcag-2-2-level-aa-is-the-accessibility-target.md) | WCAG 2.2 Level AA is the accessibility target | Accepted |
 | [025](0025-hold-sheet-and-contribute-flow-use-native-dialog.md) | Hold sheet and contribute flow use native <dialog> | Accepted |
@@ -67,7 +70,6 @@ number on the PR that introduces an ADR.
 | [035](0035-threat-model-documented-in-docs-threat-model-md.md) | Threat model documented in docs/threat-model.md | Accepted |
 | [036](0036-constant-time-comparison-generalized-to-all-secret.md) | Constant-time comparison generalized to all secret comparisons | Accepted |
 | [037](0037-session-and-owner-access-cookies-require-secure-https.md) | Session and owner-access cookies require Secure; HTTPS required | Accepted |
-| [038](0038-superseded-by-040-dependency-sbom-image-scanning-scope.md) | Superseded by 040 (dependency/SBOM/image scanning scope) | Superseded by [0040](0040-ci-hosted-on-forgejo-actions-via-codeberg-not-github-actions.md) |
 | [039](0039-agpl-3-0-selected-as-project-licence.md) | AGPL-3.0 selected as project licence | Accepted |
 | [040](0040-ci-hosted-on-forgejo-actions-via-codeberg-not-github-actions.md) | CI hosted on Forgejo Actions via Codeberg, not GitHub Actions | Accepted |
 | [041](0041-security-disclosure-via-a-dedicated-email-address.md) | Security disclosure via a dedicated email address | Accepted |
@@ -81,7 +83,6 @@ number on the PR that introduces an ADR.
 | [049](0049-contribution-amounts-bounded-by-absolute-and-target.md) | Contribution amounts bounded by absolute and target-relative ceilings | Accepted |
 | [050](0050-hold-contribution-submits-carry-a-client-generated.md) | Hold/contribution submits carry a client-generated idempotency key | Accepted |
 | [051](0051-civil-dates-and-instants-modelled-distinctly-via-per-list.md) | Civil dates and instants modelled distinctly via per-list timezone | Accepted |
-| [052a](0052a-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md) | revealedAt makes owner claim-status reveal one-way sticky | Accepted |
 | [052](0052-contribution-amount-recorded-only-at-i-ve-sent-it.md) | Contribution amount recorded only at "I've sent it" | Accepted |
 | [053](0053-owner-token-recovery-deferred-direct-operator-access-is-the.md) | Owner-token recovery deferred; direct operator access is the path | Accepted |
 | [054](0054-guest-key-storage-changed-from-one-way-hash-to-plaintext.md) | Guest key storage changed from one-way hash to plaintext | Accepted |
@@ -102,22 +103,21 @@ number on the PR that introduces an ADR.
 | [069](0069-the-guest-key-travels-in-a-fragment.md) | The guest key travels in a fragment | Accepted |
 | [070](0070-devcontainer-sandboxes-claude-code-auto-mode-via-an-egress.md) | Devcontainer sandboxes Claude Code auto mode via an egress-proxy sidecar | Accepted |
 | [071](0071-claude-code-and-gh-ship-in-the-app-image-with-no-baked-in.md) | Claude Code and gh ship in the app image with no baked-in credentials | Accepted |
+| [072](0072-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md) | revealedAt makes owner claim-status reveal one-way sticky | Accepted |
 
-## Imported ADRs (0001–0069)
+## Imported ADRs (0001–0069, plus 0072)
 
-ADRs 0001–0069 (plus the 0052a numbering exception) are imported
-verbatim from `gubbins-spec.md`'s former §[4](../../gubbins-spec.md#4-adr-index) ADR Index — pre-repository
-product/architecture decisions for the application itself. 0070 and 0071 are
+ADRs 0001–0069, plus 0072 (renumbered from 0052a), are imported verbatim from `gubbins-spec.md`'s former §4 ADR Index — pre-repository
+product/architecture decisions for the application itself. The 0001–0069 range is no longer contiguous: ADR-0022 and ADR-0038 were folded/deleted during
+this restructuring (into 0069 and 0040 respectively), so their files no longer exist. 0070 and 0071 are
 the first two such repository-native ADRs — devcontainer sandboxing for
 Claude Code `auto`-mode runs, and Claude Code/`gh` credentialing in the
-dev image (§[3.12](../../gubbins-spec.md#312-development-environment)) — both documenting infrastructure that already existed
-in the repo before being written up here. 0072 onward remains free.
+dev image (§[3.12](../spec/development-environment.md)) — both documenting infrastructure that already existed
+in the repo before being written up here.
+0073 onward remains free.
 
 *(Not every ADR carries a separate detail block. Blocks are written
 where a decision needs rationale, rejected alternatives, or context
-beyond what its body section already states — so ADR-[030](./0030-performance-resource-targets-set-for-pi-class-hardware.md) (§[3.17](../../gubbins-spec.md#317-performance--resource-budget)) and
-ADR-[035](./0035-threat-model-documented-in-docs-threat-model-md.md) (§[3.21](../../gubbins-spec.md#321-threat-model)), both fully covered by their sections, have none, and
-ADR-[038](./0038-superseded-by-040-dependency-sbom-image-scanning-scope.md) has none because it is superseded. Absence of a block is not an
-absence of reasoning.)*
-
-*(Numbering note: ADR-[052](./0052-contribution-amount-recorded-only-at-i-ve-sent-it.md) was first assigned to the timezone-reveal-stickiness decision. To avoid renumbering a decision already referenced elsewhere in this document, that entry is retained as "052a" and the Cluster G decisions continue the sequence as 052–055. Treat "052a" and "052" as distinct entries; a future documentation pass may renumber 052a into the 05x range to remove the collision entirely. The consistency pass (§[5](../../gubbins-spec.md#5-open-questions)) extended the index to 069 without disturbing this; the collision remains confined to 052/052a, and 070+ is the next free number.)*
+beyond what its body section already states — so ADR-[030](./0030-performance-resource-targets-set-for-pi-class-hardware.md) (§[3.17](../spec/performance-and-resource-budget.md)) and
+ADR-[035](./0035-threat-model-documented-in-docs-threat-model-md.md) (§[3.21](../spec/threat-model.md)), both fully covered by their sections, have none.
+Absence of a block is not an absence of reasoning.)*

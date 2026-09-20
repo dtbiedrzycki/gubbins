@@ -1,8 +1,8 @@
 # 0050. Hold/contribution submits carry a client-generated idempotency key
 
 - **Status:** Accepted
-- **Date:** Not recorded (pre-repository decision, imported from `gubbins-spec.md`)
-- **Deciders:** Not recorded
+- **Date:** 2026-09-09
+- **Deciders:** dtbiedrzycki
 
 ## Decision
 
@@ -22,7 +22,7 @@ as the event append, so the constraint gets transactional correctness for free,
 and no new storage mechanism or expiry path is introduced. Keys are carried in
 the event payloads so `rebuildProjections` reconstructs rather than silently
 drops the constraint. Note the distinction from the existing `ConcurrencyError`
-retry (§[3.8](../../gubbins-spec.md#38-data--persistence)): that is a server-side retry against fresh state within one
+retry (§[3.8](../spec/data-and-persistence.md)): that is a server-side retry against fresh state within one
 request; this deduplicates two genuinely separate requests. `ItemHeld`,
 `ContributionPledged`, and `ManualContributionRecorded` gain the idempotency
 key, and `ItemHeld` additionally gains `sessionHash` (ADR-[048](./0048-guest-sessions-capped-at-n-concurrent-active-holds-per-list.md)). Under ADR-[033](./0033-migrations-are-forward-only-rollback-restore-from-backup.md) a
