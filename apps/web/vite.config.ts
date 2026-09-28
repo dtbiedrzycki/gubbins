@@ -12,7 +12,7 @@ export default defineConfig({
     // terser compresses the shared vendor chunk (React/react-router-dom/
     // @tanstack/react-query) noticeably tighter than esbuild's default
     // minifier — needed to keep the guest-flow bundle under the ADR-029
-    // 150KB gzipped budget (Task 17, Step 6).
+    // 200KB gzipped budget (Task 17, Step 6).
     minify: 'terser',
   },
   test: {

@@ -38,3 +38,14 @@ hardware rather than enforced at runtime.
 - Because the targets are budgets, not runtime guarantees, exceeding
   them under real load is a signal to revisit the decomposition rather
   than something the app itself detects and rejects.
+- The guest-flow JS budget was raised from 150KB to 200KB gzipped when
+  the front-end adopted React 19, Vite 8 and react-router 7. Measured
+  against the React 18 / Vite 5 / react-router 6 build it replaced,
+  React 19 accounts for ~27KB gzipped of the increase, Vite 8's Rolldown
+  output ~6KB and react-router 7 ~6KB, taking the guest flow from 148KB
+  to 187KB. The old figure was being cleared by 1.7KB, so no combination
+  of those upgrades fitted under it, and per the consequence above
+  exceeding a budget is a signal to revisit it rather than to police it.
+- The guest-page FCP target (< 2.5s on simulated 4G, no CDN) has **not**
+  been re-verified against the larger bundle; the Pi load test is where
+  that gets checked.
