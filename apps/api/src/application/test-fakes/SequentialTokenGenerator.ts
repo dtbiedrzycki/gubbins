@@ -2,7 +2,7 @@ import type { TokenGenerator } from '../ports/TokenGenerator.js';
 
 /**
  * Deterministic tokens for use-case tests: each kind counts from 1 on its
- * own, so `generateId()`'s first call is always `…001` no matter how many
+ * own, so `generateEntityId()`'s first call is always `…001` no matter how many
  * slugs or secrets were minted first.
  *
  * That independence is the point. A single shared counter made every value
@@ -41,7 +41,7 @@ export class SequentialTokenGenerator implements TokenGenerator {
    * the trailing field means the sequence still sorts in creation order,
    * so anything relying on v7's ordering behaves the same under test.
    */
-  generateId(): string {
+  generateEntityId(): string {
     return `00000000-0000-7000-8000-${String(this.next('id')).padStart(12, '0')}`;
   }
 

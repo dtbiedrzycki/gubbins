@@ -24,7 +24,7 @@ export class WishlistBuilder {
     const wishlist = Wishlist.create({ ...this.props });
     if (this.itemProps !== null) {
       const { id, title } = this.itemProps;
-      wishlist.addItem({ title }, { generateId: () => id });
+      wishlist.addItem({ title }, { generateEntityId: () => id });
     }
     return wishlist;
   }

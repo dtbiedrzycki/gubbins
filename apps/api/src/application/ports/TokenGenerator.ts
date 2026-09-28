@@ -1,5 +1,5 @@
 export interface TokenGenerator {
-  generateId(): string;
+  generateEntityId(): string;
   generateSlug(): string;
   generateOwnerToken(): string;
   generateGuestKey(): string;

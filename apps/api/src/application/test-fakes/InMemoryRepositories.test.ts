@@ -14,7 +14,7 @@ const HOLD_PROPS = {
   expiresAt: new Date('2026-01-01T00:15:00Z'),
   now: new Date('2026-01-01T00:00:00Z'),
 };
-const HOLD_TOKENS = { generateId: () => HOLD_ID, generateHoldSecret: () => 'hold-secret-1' };
+const HOLD_TOKENS = { generateEntityId: () => HOLD_ID, generateHoldSecret: () => 'hold-secret-1' };
 const HOLD_HASHER = { hash: (value: string) => value };
 
 describe('InMemoryWishlistRepository', () => {
@@ -116,7 +116,7 @@ describe('InMemoryWishlistRepository', () => {
       expiresAt: new Date(),
       now: new Date(),
     }, {
-      generateId: () => '44444444-4444-7444-8444-444444444444',
+      generateEntityId: () => '44444444-4444-7444-8444-444444444444',
       generateHoldSecret: () => 'irrelevant',
     }, { hash: (value: string) => value })).toThrow(ItemAlreadyHeldError);
   });
