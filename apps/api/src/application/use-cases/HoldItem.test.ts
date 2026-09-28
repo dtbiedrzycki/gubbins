@@ -10,8 +10,8 @@ import { FixedClock } from '../test-fakes/FixedClock.js';
 import { FakeHasher } from '../test-fakes/FakeHasher.js';
 import { ItemNotFoundError, ItemAlreadyHeldError } from '../../domain/errors.js';
 
-const WISHLIST_ID = '11111111-1111-4111-8111-111111111111';
-const ITEM_ID = '33333333-3333-4333-8333-333333333333';
+const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
+const ITEM_ID = '33333333-3333-7333-8333-333333333333';
 
 function makeUseCase() {
   const wishlists = new InMemoryWishlistRepository();
