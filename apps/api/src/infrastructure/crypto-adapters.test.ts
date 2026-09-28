@@ -31,15 +31,15 @@ describe('TokenGeneratorCrypto', () => {
    * would pass for the v4 that Node's `randomUUID()` returns — including
    * when handed a `{ version: 7 }` option it silently ignores.
    */
-  it('generateId produces an id the domain accepts', () => {
-    expect(() => UuidId.from(gen.generateId())).not.toThrow();
+  it('generateEntityId produces an id the domain accepts', () => {
+    expect(() => UuidId.from(gen.generateEntityId())).not.toThrow();
   });
 
-  it('generateId is monotonic within a millisecond', () => {
+  it('generateEntityId is monotonic within a millisecond', () => {
     // A burst this size reliably lands inside one millisecond, which is
     // where a v7 that fills the counter bits with randomness would sort
     // wrongly — `CreateList` mints two ids back to back.
-    const ids = Array.from({ length: 32 }, () => gen.generateId());
+    const ids = Array.from({ length: 32 }, () => gen.generateEntityId());
     expect([...ids].sort()).toEqual(ids);
   });
 

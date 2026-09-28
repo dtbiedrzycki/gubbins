@@ -11,7 +11,7 @@ export class TokenGeneratorCrypto implements TokenGenerator {
    * monotonic counter, without which ids minted in the same millisecond
    * sort in random order; `CreateList` mints two back to back.
    */
-  generateId(): string { return uuidv7(); }
+  generateEntityId(): string { return uuidv7(); }
   generateSlug(): string { return randomBytes(6).toString('base64url'); }
   generateOwnerToken(): string { return randomBytes(24).toString('base64url'); }
   generateGuestKey(): string { return randomBytes(24).toString('base64url'); }
