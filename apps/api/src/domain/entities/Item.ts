@@ -117,13 +117,13 @@ export class Item {
      * id generator and `HoldSecret.matches`'s comparer — the application
      * layer's `TokenGenerator` already satisfies this shape.
      */
-    tokens: { generateId(): string; generateHoldSecret(): string },
+    tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): { hold: Hold; event: ItemHeldEvent; expectedSeq: number } {
     if (this.status === 'held') throw new ItemAlreadyHeldError(this.id.value);
 
     const hold = Hold.create({
-      id: tokens.generateId(),
+      id: tokens.generateEntityId(),
       itemId: this.id.value,
       secret: tokens.generateHoldSecret(),
       sessionHash: props.sessionHash,

@@ -62,7 +62,7 @@ describe('Item.placeHold', () => {
   const available = () =>
     Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 4, activeHolds: 0 });
 
-  const fakeTokens = { generateId: () => GENERATED_HOLD_ID, generateHoldSecret: () => GENERATED_SECRET };
+  const fakeTokens = { generateEntityId: () => GENERATED_HOLD_ID, generateHoldSecret: () => GENERATED_SECRET };
   const fakeHasher = { hash: (value: string) => (value === GENERATED_SECRET ? 'f'.repeat(64) : 'e'.repeat(64)) };
 
   it('mints a hold against this item, using the domain\'s own id and secret generators', () => {

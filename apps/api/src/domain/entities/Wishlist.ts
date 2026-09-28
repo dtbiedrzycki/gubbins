@@ -76,11 +76,11 @@ export class Wishlist {
    * domain/ may not import application/ (ADR-012); the application layer's
    * TokenGenerator already satisfies this shape.
    */
-  addItem(props: { title: string }, ids: { generateId(): string }): Item {
+  addItem(props: { title: string }, ids: { generateEntityId(): string }): Item {
     if (this._item !== null) {
       throw new DomainValidationError('Wishlist already has an item; this slice supports a single item per wishlist');
     }
-    this._item = Item.createSingle({ id: ids.generateId(), wishlistId: this.id.value, title: props.title });
+    this._item = Item.createSingle({ id: ids.generateEntityId(), wishlistId: this.id.value, title: props.title });
     return this._item;
   }
 

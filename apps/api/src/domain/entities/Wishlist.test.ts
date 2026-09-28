@@ -91,31 +91,31 @@ describe('Wishlist.reconstitute', () => {
 describe('Wishlist.addItem', () => {
   it('attaches the item, which is then reachable through the aggregate', () => {
     const wishlist = Wishlist.create(validProps);
-    const item = wishlist.addItem({ title: 'Cot' }, { generateId: () => ITEM_ID });
+    const item = wishlist.addItem({ title: 'Cot' }, { generateEntityId: () => ITEM_ID });
     expect(wishlist.item).toBe(item);
   });
 
   it('assigns the wishlist\'s own id to the created item', () => {
     const wishlist = Wishlist.create(validProps);
-    const item = wishlist.addItem({ title: 'Cot' }, { generateId: () => ITEM_ID });
+    const item = wishlist.addItem({ title: 'Cot' }, { generateEntityId: () => ITEM_ID });
     expect(item.wishlistId.value).toBe(WISHLIST_ID);
   });
 
   it('mints the item id via the supplied generator, not the caller', () => {
     const wishlist = Wishlist.create(validProps);
-    const item = wishlist.addItem({ title: 'Cot' }, { generateId: () => ITEM_ID });
+    const item = wishlist.addItem({ title: 'Cot' }, { generateEntityId: () => ITEM_ID });
     expect(item.id.value).toBe(ITEM_ID);
   });
 
   it('starts the new item available', () => {
     const wishlist = Wishlist.create(validProps);
-    expect(wishlist.addItem({ title: 'Cot' }, { generateId: () => ITEM_ID }).status).toBe('available');
+    expect(wishlist.addItem({ title: 'Cot' }, { generateEntityId: () => ITEM_ID }).status).toBe('available');
   });
 
   it('throws when a second item is added', () => {
     const wishlist = Wishlist.create(validProps);
-    wishlist.addItem({ title: 'Cot' }, { generateId: () => ITEM_ID });
-    expect(() => wishlist.addItem({ title: 'Pram' }, { generateId: () => '44444444-4444-7444-8444-444444444444' }))
+    wishlist.addItem({ title: 'Cot' }, { generateEntityId: () => ITEM_ID });
+    expect(() => wishlist.addItem({ title: 'Pram' }, { generateEntityId: () => '44444444-4444-7444-8444-444444444444' }))
       .toThrow(DomainValidationError);
   });
 });
@@ -146,7 +146,7 @@ describe('Wishlist.getItem', () => {
       sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1',
       expiresAt: new Date('2026-01-01T00:10:00Z'), now: new Date('2026-01-01T00:00:00Z'),
     }, {
-      generateId: () => '55555555-5555-7555-8555-555555555555',
+      generateEntityId: () => '55555555-5555-7555-8555-555555555555',
       generateHoldSecret: () => 'hold-secret',
     }, { hash: () => 'b'.repeat(64) });
     expect(wishlist.item?.status).toBe('held');
