@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { Item } from './Item.js';
 import { DomainValidationError, ItemAlreadyHeldError } from '../errors.js';
 
-const ITEM_ID = '33333333-3333-4333-8333-333333333333';
-const WISHLIST_ID = '11111111-1111-4111-8111-111111111111';
+const ITEM_ID = '33333333-3333-7333-8333-333333333333';
+const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
 
 describe('Item.createSingle', () => {
   it('creates a single-type item with quantity 1', () => {
@@ -51,7 +51,7 @@ describe('Item availability', () => {
 
 describe('Item.placeHold', () => {
   const now = new Date('2026-01-01T00:00:00Z');
-  const GENERATED_HOLD_ID = '55555555-5555-4555-8555-555555555555';
+  const GENERATED_HOLD_ID = '55555555-5555-7555-8555-555555555555';
   const GENERATED_SECRET = 'hold-secret';
   const holdProps = {
     sessionHash: 'a'.repeat(64),

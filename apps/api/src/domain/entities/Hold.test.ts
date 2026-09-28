@@ -5,7 +5,7 @@ import { DomainValidationError } from '../errors.js';
 describe('Hold.create', () => {
   const now = new Date('2026-01-01T00:00:00Z');
   const validProps = {
-    id: '55555555-5555-4555-8555-555555555555', itemId: '33333333-3333-4333-8333-333333333333',
+    id: '55555555-5555-7555-8555-555555555555', itemId: '33333333-3333-7333-8333-333333333333',
     secret: 'hold-secret', sessionHash: 'a'.repeat(64),
     idempotencyKey: 'idem-1', expiresAt: new Date('2026-01-04T00:00:00Z'), now,
   };

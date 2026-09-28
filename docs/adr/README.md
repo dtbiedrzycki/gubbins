@@ -109,6 +109,7 @@ one-time renumbering documented in the restructuring history.
 | [073](0073-vite-react-spa-served-by-the-backend.md) | Vite + React SPA, served by the backend | Accepted |
 | [074](0074-tailwind-css-for-styling.md) | Tailwind CSS for styling | Accepted |
 | [075](0075-ledger-events-record-the-acting-role.md) | Ledger events record the acting role | Proposed |
+| [076](0076-uuidv7-for-domain-entity-identifiers.md) | UUIDv7 for domain entity identifiers | Accepted |
 
 ## Imported ADRs (0001–0070)
 

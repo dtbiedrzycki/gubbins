@@ -3,9 +3,9 @@ import { Wishlist } from './Wishlist.js';
 import { Item } from './Item.js';
 import { DomainValidationError, ItemNotFoundError } from '../errors.js';
 
-const WISHLIST_ID = '11111111-1111-4111-8111-111111111111';
-const OTHER_WISHLIST_ID = '99999999-9999-4999-8999-999999999999';
-const ITEM_ID = '33333333-3333-4333-8333-333333333333';
+const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
+const OTHER_WISHLIST_ID = '99999999-9999-7999-8999-999999999999';
+const ITEM_ID = '33333333-3333-7333-8333-333333333333';
 
 const validProps = { id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' };
 
@@ -115,7 +115,7 @@ describe('Wishlist.addItem', () => {
   it('throws when a second item is added', () => {
     const wishlist = Wishlist.create(validProps);
     wishlist.addItem({ title: 'Cot' }, { generateId: () => ITEM_ID });
-    expect(() => wishlist.addItem({ title: 'Pram' }, { generateId: () => '44444444-4444-4444-8444-444444444444' }))
+    expect(() => wishlist.addItem({ title: 'Pram' }, { generateId: () => '44444444-4444-7444-8444-444444444444' }))
       .toThrow(DomainValidationError);
   });
 });
@@ -137,7 +137,7 @@ describe('Wishlist.getItem', () => {
 
   it('throws ItemNotFoundError when the id does not match the attached item', () => {
     const { wishlist } = withItem();
-    expect(() => wishlist.getItem('44444444-4444-4444-8444-444444444444')).toThrow(ItemNotFoundError);
+    expect(() => wishlist.getItem('44444444-4444-7444-8444-444444444444')).toThrow(ItemNotFoundError);
   });
 
   it('returns the aggregate\'s own item, so a hold placed on it is visible through the wishlist', () => {
@@ -146,7 +146,7 @@ describe('Wishlist.getItem', () => {
       sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1',
       expiresAt: new Date('2026-01-01T00:10:00Z'), now: new Date('2026-01-01T00:00:00Z'),
     }, {
-      generateId: () => '55555555-5555-4555-8555-555555555555',
+      generateId: () => '55555555-5555-7555-8555-555555555555',
       generateHoldSecret: () => 'hold-secret',
     }, { hash: () => 'b'.repeat(64) });
     expect(wishlist.item?.status).toBe('held');
