@@ -3,6 +3,7 @@ import { ClockSystem } from './ClockSystem.js';
 import { TokenGeneratorCrypto } from './TokenGeneratorCrypto.js';
 import { SecretComparerCrypto } from './SecretComparerCrypto.js';
 import { HasherSha256 } from './HasherSha256.js';
+import { UuidId } from '../domain/value-objects/UuidId.js';
 
 describe('ClockSystem', () => {
   it('returns a Date close to the actual current time', () => {
@@ -24,9 +25,28 @@ describe('TokenGeneratorCrypto', () => {
     expect(a).not.toBe(b);
   });
 
-  it('generateId produces a valid UUID', () => {
-    const id = gen.generateId();
-    expect(id).toMatch(/^[0-9a-f-]{36}$/);
+  /**
+   * Asserted through `UuidId` rather than a local regex: the domain's
+   * invariant is the thing that must hold, and a shape-only check here
+   * would pass for the v4 that Node's `randomUUID()` returns — including
+   * when handed a `{ version: 7 }` option it silently ignores.
+   */
+  it('generateId produces an id the domain accepts', () => {
+    expect(() => UuidId.from(gen.generateId())).not.toThrow();
+  });
+
+  it('generateId is monotonic within a millisecond', () => {
+    // A burst this size reliably lands inside one millisecond, which is
+    // where a v7 that fills the counter bits with randomness would sort
+    // wrongly — `CreateList` mints two ids back to back.
+    const ids = Array.from({ length: 32 }, () => gen.generateId());
+    expect([...ids].sort()).toEqual(ids);
+  });
+
+  it('generateSessionId stays a v4, and so is not a domain id', () => {
+    const sessionId = gen.generateSessionId();
+    expect(sessionId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(() => UuidId.from(sessionId)).toThrow();
   });
 });
 
