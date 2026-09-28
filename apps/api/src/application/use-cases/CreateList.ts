@@ -23,7 +23,7 @@ export class CreateList {
   async execute(input: CreateListInput): Promise<CreateListOutput> {
     return this.unitOfWork.execute(async (ctx) => {
       const wishlist = Wishlist.create({
-        id: this.tokenGenerator.generateId(),
+        id: this.tokenGenerator.generateEntityId(),
         slug: this.tokenGenerator.generateSlug(),
         title: input.listTitle,
         ownerToken: this.tokenGenerator.generateOwnerToken(),
