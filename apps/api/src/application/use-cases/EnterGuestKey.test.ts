@@ -6,7 +6,7 @@ import { PlainSecretComparer } from '../test-fakes/PlainSecretComparer.js';
 import { SequentialTokenGenerator } from '../test-fakes/SequentialTokenGenerator.js';
 import { WishlistNotFoundError, InvalidGuestKeyError } from '../../domain/errors.js';
 
-const WISHLIST_ID = '11111111-1111-4111-8111-111111111111';
+const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
 
 async function seedWishlist(wishlists: InMemoryWishlistRepository) {
   const wishlist = Wishlist.create({
