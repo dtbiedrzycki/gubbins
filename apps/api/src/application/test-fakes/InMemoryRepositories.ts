@@ -8,6 +8,26 @@ import type { UnitOfWork, TransactionContext } from '../ports/UnitOfWork.js';
 import { ConcurrencyError, ItemNotFoundError } from '../../domain/errors.js';
 
 /**
+ * Copies an Item through `Item.reconstitute`, the way a real repository
+ * rebuilds one from its row. Reads must not hand back the stored instance:
+ * `Item.placeHold` mutates in place, so a shared instance would let an
+ * uncommitted decision — or a second one counted on top of an already
+ * persisted hold — show up on the next read, which a real SELECT could
+ * never do.
+ */
+function reconstituteFrom(item: Item, overrides: { seq?: number; activeHolds?: number } = {}): Item {
+  return Item.reconstitute({
+    id: item.id.value,
+    wishlistId: item.wishlistId.value,
+    type: item.type,
+    title: item.title,
+    quantity: item.quantity,
+    seq: overrides.seq ?? item.seq,
+    activeHolds: overrides.activeHolds ?? item.activeHolds,
+  });
+}
+
+/**
  * Not exported: `ItemRepository` is no longer use-case-facing, so this fake
  * exists only as the collaborator `InMemoryWishlistRepository` assembles the
  * aggregate from — the same role the item/item_state tables will play for the
@@ -16,39 +36,32 @@ import { ConcurrencyError, ItemNotFoundError } from '../../domain/errors.js';
 class InMemoryItemRepository implements ItemRepository {
   private byId = new Map<string, Item>();
 
+  /** Copies on write too, so a caller that keeps mutating its own instance after inserting cannot reach into the store. */
   async insert(item: Item): Promise<void> {
-    this.byId.set(item.id.value, item);
+    this.byId.set(item.id.value, reconstituteFrom(item));
   }
 
   async findByWishlistId(wishlistId: string): Promise<Item | null> {
     for (const item of this.byId.values()) {
-      if (item.wishlistId.value === wishlistId) return item;
+      if (item.wishlistId.value === wishlistId) return reconstituteFrom(item);
     }
     return null;
   }
 
   async findInWishlist(wishlistId: string, itemId: string): Promise<Item | null> {
     const item = this.byId.get(itemId);
-    return item && item.wishlistId.value === wishlistId ? item : null;
+    return item && item.wishlistId.value === wishlistId ? reconstituteFrom(item) : null;
   }
 
   /**
    * `Item` has no public setter for its concurrency fields, so marking held
-   * means reconstituting a fresh instance from the stored one plus the new
-   * seq — mirroring how a real UPDATE would overwrite the persisted row.
+   * means storing a fresh instance built from the stored one plus the new
+   * seq and hold count — mirroring how a real UPDATE overwrites the row.
    */
   async markHeld(itemId: string, newSeq: number): Promise<void> {
     const item = this.byId.get(itemId);
     if (!item) throw new Error(`No item ${itemId}`);
-    this.byId.set(itemId, Item.reconstitute({
-      id: item.id.value,
-      wishlistId: item.wishlistId.value,
-      type: item.type,
-      title: item.title,
-      quantity: item.quantity,
-      seq: newSeq,
-      activeHolds: item.activeHolds + 1,
-    }));
+    this.byId.set(itemId, reconstituteFrom(item, { seq: newSeq, activeHolds: item.activeHolds + 1 }));
   }
 }
 
