@@ -44,7 +44,7 @@ describe('WishlistRepositoryKysely', () => {
   it('round-trips a wishlist together with its attached item', async () => {
     const repo = new WishlistRepositoryKysely(db);
     const wishlist = Wishlist.create({ id: W1, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' });
-    wishlist.addItem({ title: 'Stroller' }, { generateId: () => I1 });
+    wishlist.addItem({ title: 'Stroller' }, { generateEntityId: () => I1 });
 
     await repo.insert(wishlist);
     const found = await repo.findBySlug('abc123');
@@ -57,7 +57,7 @@ describe('WishlistRepositoryKysely', () => {
   it('findById loads the full aggregate, item included', async () => {
     const repo = new WishlistRepositoryKysely(db);
     const wishlist = Wishlist.create({ id: W1, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' });
-    wishlist.addItem({ title: 'Stroller' }, { generateId: () => I1 });
+    wishlist.addItem({ title: 'Stroller' }, { generateEntityId: () => I1 });
     await repo.insert(wishlist);
 
     const found = await repo.findById(W1);
@@ -75,7 +75,7 @@ describe('WishlistRepositoryKysely', () => {
   it('markItemHeld marks the wishlist item held', async () => {
     const repo = new WishlistRepositoryKysely(db);
     const wishlist = Wishlist.create({ id: W1, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' });
-    wishlist.addItem({ title: 'Stroller' }, { generateId: () => I1 });
+    wishlist.addItem({ title: 'Stroller' }, { generateEntityId: () => I1 });
     await repo.insert(wishlist);
 
     await repo.markItemHeld(W1, I1, 1);
@@ -87,9 +87,9 @@ describe('WishlistRepositoryKysely', () => {
   it('markItemHeld throws ItemNotFoundError for an item in a different wishlist', async () => {
     const repo = new WishlistRepositoryKysely(db);
     const first = Wishlist.create({ id: W1, slug: 'wishlist-w1', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' });
-    first.addItem({ title: 'Stroller' }, { generateId: () => I1 });
+    first.addItem({ title: 'Stroller' }, { generateEntityId: () => I1 });
     const second = Wishlist.create({ id: W2, slug: 'wishlist-w2', title: 'Wedding', ownerToken: 'owner-tok-2', key: 'guest-key-2' });
-    second.addItem({ title: 'Toaster' }, { generateId: () => I2 });
+    second.addItem({ title: 'Toaster' }, { generateEntityId: () => I2 });
     await repo.insert(first);
     await repo.insert(second);
 
