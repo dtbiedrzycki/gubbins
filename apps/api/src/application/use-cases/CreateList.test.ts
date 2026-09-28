@@ -22,17 +22,17 @@ describe('CreateList', () => {
 
     const result = await useCase.execute({ listTitle: 'Baby Shower', itemTitle: 'Stroller' });
 
-    // SequentialTokenGenerator's shared counter: 1=wishlist id, 2=slug,
-    // 3=ownerToken, 4=key, 5=item id (see call order in CreateList.execute).
+    // Each kind counts from 1 on its own; the item id is the second id the
+    // use case mints, after the wishlist's.
     expect(result).toEqual({
-      slug: 'slug-2', ownerToken: 'owner-token-3', key: 'guest-key-4',
-      itemId: '00000000-0000-4000-8000-000000000005',
+      slug: 'slug-1', ownerToken: 'owner-token-1', key: 'guest-key-1',
+      itemId: '00000000-0000-4000-8000-000000000002',
     });
-    const persistedWishlist = await wishlists.findBySlug('slug-2');
+    const persistedWishlist = await wishlists.findBySlug('slug-1');
     expect(persistedWishlist?.title).toBe('Baby Shower');
     // The item is reachable only through the aggregate that owns it.
     const persistedItem = persistedWishlist?.item;
-    expect(persistedItem?.id.value).toBe('00000000-0000-4000-8000-000000000005');
+    expect(persistedItem?.id.value).toBe('00000000-0000-4000-8000-000000000002');
     expect(persistedItem?.title).toBe('Stroller');
     expect(persistedItem?.wishlistId.value).toBe(persistedWishlist?.id.value);
   });
