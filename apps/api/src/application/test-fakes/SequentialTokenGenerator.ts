@@ -30,13 +30,19 @@ export class SequentialTokenGenerator implements TokenGenerator {
   }
 
   /**
-   * A counter in a UUID-v4 envelope, not a UUID: `UuidId.from` requires the
-   * v4 version and variant nibbles, so a bare integer — or a UUIDv5/v7,
-   * which are the deterministic and ordered variants — is rejected outright.
-   * The envelope is the minimum shape that a plain sequence can wear here.
+   * A counter in a UUID-v7 envelope, not a UUID: `UuidId.from` requires the
+   * v7 version and variant nibbles (ADR-0076), so a bare integer is
+   * rejected outright. The envelope is the minimum shape a plain sequence
+   * can wear here.
+   *
+   * The leading 48 bits are a real v7's millisecond timestamp; zeroing them
+   * is what keeps these ids deterministic, and is the one way the fake's
+   * output deliberately differs from `TokenGeneratorCrypto`'s. Counting in
+   * the trailing field means the sequence still sorts in creation order,
+   * so anything relying on v7's ordering behaves the same under test.
    */
   generateId(): string {
-    return `00000000-0000-4000-8000-${String(this.next('id')).padStart(12, '0')}`;
+    return `00000000-0000-7000-8000-${String(this.next('id')).padStart(12, '0')}`;
   }
 
   generateSlug(): string { return this.label('slug'); }

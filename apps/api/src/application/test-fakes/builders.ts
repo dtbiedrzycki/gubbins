@@ -1,8 +1,8 @@
 import { Wishlist } from '../../domain/entities/Wishlist.js';
 import { Item } from '../../domain/entities/Item.js';
 
-const DEFAULT_WISHLIST_ID = '11111111-1111-4111-8111-111111111111';
-const DEFAULT_ITEM_ID = '33333333-3333-4333-8333-333333333333';
+const DEFAULT_WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
+const DEFAULT_ITEM_ID = '33333333-3333-7333-8333-333333333333';
 
 export class WishlistBuilder {
   private props = { id: DEFAULT_WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' };

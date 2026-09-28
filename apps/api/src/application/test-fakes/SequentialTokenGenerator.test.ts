@@ -5,8 +5,8 @@ import { UuidId } from '../../domain/value-objects/UuidId.js';
 describe('SequentialTokenGenerator', () => {
   it('counts each kind of token independently, from 1', () => {
     const gen = new SequentialTokenGenerator();
-    expect(gen.generateId()).toBe('00000000-0000-4000-8000-000000000001');
-    expect(gen.generateId()).toBe('00000000-0000-4000-8000-000000000002');
+    expect(gen.generateId()).toBe('00000000-0000-7000-8000-000000000001');
+    expect(gen.generateId()).toBe('00000000-0000-7000-8000-000000000002');
     expect(gen.generateSlug()).toBe('slug-1');
     expect(gen.generateOwnerToken()).toBe('owner-token-1');
     expect(gen.generateGuestKey()).toBe('guest-key-1');

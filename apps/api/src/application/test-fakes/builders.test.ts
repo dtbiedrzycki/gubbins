@@ -14,8 +14,8 @@ describe('aWishlist', () => {
   });
 
   it('attaches the item given to withItem, assigning the wishlist id', () => {
-    const wishlist = aWishlist().withItem({ id: '77777777-7777-4777-8777-777777777777', title: 'Cot' }).build();
-    expect(wishlist.item?.id.value).toBe('77777777-7777-4777-8777-777777777777');
+    const wishlist = aWishlist().withItem({ id: '77777777-7777-7777-8777-777777777777', title: 'Cot' }).build();
+    expect(wishlist.item?.id.value).toBe('77777777-7777-7777-8777-777777777777');
     expect(wishlist.item?.title).toBe('Cot');
     expect(wishlist.item?.wishlistId.value).toBe(wishlist.id.value);
     expect(wishlist.item?.status).toBe('available');
@@ -26,6 +26,6 @@ describe('anItem', () => {
   it('builds an Item with sensible defaults, overridable per field', () => {
     const item = anItem().withTitle('Custom Item').build();
     expect(item.title).toBe('Custom Item');
-    expect(item.wishlistId.value).toBe('11111111-1111-4111-8111-111111111111'); // default, not overridden
+    expect(item.wishlistId.value).toBe('11111111-1111-7111-8111-111111111111'); // default, not overridden
   });
 });
