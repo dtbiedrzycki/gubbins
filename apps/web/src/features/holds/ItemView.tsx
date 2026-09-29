@@ -19,6 +19,9 @@ export function ItemView({ slug, listTitle, item }: ItemViewProps) {
     mutate({ idempotencyKey: crypto.randomUUID() }, { onSuccess: () => setDialogOpen(false) });
   }
 
+  // useHoldItem stays pending until the refetched list view lands, so by the
+  // time isSuccess is true, `item` is normally already fresh. isSuccess only
+  // covers a refetch that failed, where the hold did succeed.
   const isHeld = item.status === 'held' || isSuccess;
 
   return (
