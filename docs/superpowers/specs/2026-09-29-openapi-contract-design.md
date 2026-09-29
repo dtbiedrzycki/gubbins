@@ -27,6 +27,7 @@ expects) derives its types from it, and a stale document fails `npm test`.
 | zod version | Upgrade to zod 4 in #6, so `fastify-type-provider-zod` 7.x (current, requires zod ≥ 4.1.5) can be used. |
 | Publishing the spec | A committed file only (`apps/api/openapi.json`). No runtime route and no Swagger UI. |
 | Web client runtime validation | Dropped. The server's zod serializer already refuses a non-conforming response. The web client depends on the generated types only. |
+| Type generator | `openapi-typescript` 7.x declares a peer of TypeScript 5, and the repo is on 6, so npm refuses it and `overrides` cannot override a peer. It runs from an isolated workspace package, `packages/api-typegen`, with its own nested TypeScript 5. The rest of the repo stays on TypeScript 6. |
 | API versioning | Lay the foundation only: the spec carries the release version, and ADR-0077 records the pre-1.0 policy and a 1.0 checklist item. There is no URL prefix, version route or breaking-change CI check yet. |
 
 ## Non-goals
@@ -76,6 +77,10 @@ expects) derives its types from it, and a stale document fails `npm test`.
   - `params` schemas are defined in `routes.ts`, because path parameters are
     an HTTP concern. `shared-types` remains body shapes only, as its header
     comment says.
+  - `registerRoutes` is registered as a plugin (`app.register(async (instance) =>
+    registerRoutes(instance, deps))`), queued after `@fastify/swagger`, so
+    swagger's `onRoute` hook sees every route while `buildApp` stays
+    synchronous. This was verified in a prototype.
   - Remove the `request.params as {…}` casts and the manual `.parse()` calls
     on request bodies and replies.
   - Handler logic does not change: the domain calls, the generic 404s
@@ -85,8 +90,11 @@ expects) derives its types from it, and a stale document fails `npm test`.
     `400 { message: 'Invalid request', issues }`, the same body as today.
     The handler detects the provider's validation error (its
     `hasZodFastifySchemaValidationErrors` helper, or the equivalent in 7.x)
-    in place of `ZodError`. `issues` carries zod's issues so that the body
-    stays compatible.
+    in place of `ZodError`. The provider does not expose zod's issue
+    objects, so `issues` is rebuilt from `error.validation` as
+    `{ code: v.keyword, path: v.instancePath.split('/').slice(1), message: v.message }`.
+    This keeps zod's `{ code, path: string[], message }` shape, which was
+    verified in a prototype.
   - A response that fails its schema (the provider's response serialization
     error) is a server bug: log it with `deps.logger.logError` and return a
     generic 500, the same as any other unhandled error.
@@ -118,8 +126,20 @@ expects) derives its types from it, and a stale document fails `npm test`.
 
 ### #15 `11-api-client`: generated types and the client
 
-- **Dependencies:** `openapi-fetch`, and `openapi-typescript` as a dev
-  dependency.
+- **Dependencies:** `openapi-fetch`, and `@gubbins/api-typegen` (a workspace
+  package) as a dev dependency.
+- **`packages/api-typegen` (new):** a plain-JavaScript package with no build
+  step. Its dev dependencies are `openapi-typescript` ^7.13 and `typescript`
+  ^5.9; npm nests both under the package, which was verified with the
+  repo's lockfile.
+  - It exports `generateApiTypes(specJson: string): Promise<string>`, which
+    returns the generated file with its header. A hand-written `index.d.ts`
+    gives the web's TypeScript its type.
+  - `bin/gen.js <spec> <out>` writes the file.
+  - Both the generation script and the freshness test call the same
+    function, so their output cannot differ.
+  - The package can be deleted once `openapi-typescript` supports
+    TypeScript 6.
 - **Generated types:** `apps/web/src/api/schema.gen.ts` is generated from
   `apps/api/openapi.json` by the `gen:api-types` script. It is committed,
   starts with a "generated — do not edit" header, and is excluded from
@@ -142,11 +162,13 @@ expects) derives its types from it, and a stale document fails `npm test`.
   - The rejections above are pinned by `@ts-expect-error` cases that the
     web `tsc --noEmit` run checks.
   - `openapi-msw` is not used, because it does not support MSW 3.
-- **Freshness test:** `apps/web/src/api/schema.gen.test.ts` runs
-  `openapi-typescript`'s programmatic API on the committed `openapi.json` and
-  asserts that the output equals `schema.gen.ts`, with the same "run
-  `npm run gen:api`" message.
-- **`client.test.ts`** uses `mock()`.
+- **Freshness test:** `apps/web/src/api/schema.gen.test.ts` (run in vitest's
+  `node` environment) calls `generateApiTypes` on the committed
+  `openapi.json` and asserts that the output equals `schema.gen.ts`, with the
+  same "run `npm run gen:api`" message.
+- **`client.test.ts`** uses `mock()`, except for its 500 case. That case
+  stays on raw `http.post`, because it deliberately tests a status outside
+  the contract.
 
 ### #16–#18 (`12-create-list-ui`, `13-guest-key-ui`, `14-holds-ui`): the feature tests
 
@@ -250,9 +272,13 @@ PR #6 therefore currently shows extra commits until it is restacked.
   details. The `issues` array in the 400 body may differ in detail from
   zod 3. The web only displays `message`, so this is acceptable. It is
   recorded in the #6 PR description.
-- **`fastify-type-provider-zod` 7.x API names** (the validation-error helper
-  and the response serialization error) are confirmed against the installed
-  package during implementation. The prototype was built on 4.0.2.
+- **A second TypeScript version:** `packages/api-typegen` carries TypeScript
+  5 until `openapi-typescript` supports 6. It only affects code generation;
+  nothing compiles against it.
+- **`fastify-type-provider-zod` 7.0.0 on zod 4.6** was verified in a
+  prototype: `hasZodFastifySchemaValidationErrors` and
+  `isResponseSerializationError` exist, `.trim()` still applies before the
+  handler, and the emitted document is OpenAPI 3.0.3.
 - **Conflicts during the restack:** each rebase is mechanical, except where
   the new commits in #13 and #15 are followed by later commits that touch
   `routes.ts`, `app.ts` or `client.ts`. Those conflicts are resolved in the
