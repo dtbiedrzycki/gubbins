@@ -2,7 +2,7 @@ import type { ReactElement } from 'react';
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { mock } from '../../test/msw/mock';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server } from '../../test/msw/server';
 import { CreateListForm } from './CreateListForm';
@@ -21,11 +21,7 @@ async function fillAndSubmit() {
 
 describe('CreateListForm', () => {
   it('shows the guest link, guest key, and owner token after a successful submit', async () => {
-    server.use(
-      http.post('/api/lists', () =>
-        HttpResponse.json({ slug: 'abc123', ownerToken: 'owner-secret-token', key: 'guest-key-value', itemId: 'item-1' }, { status: 201 }),
-      ),
-    );
+    server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'owner-secret-token', key: 'guest-key-value', itemId: 'item-1' }));
     await fillAndSubmit();
 
     expect(await screen.findByText('guest-key-value')).toBeInTheDocument();
@@ -33,11 +29,7 @@ describe('CreateListForm', () => {
   });
 
   it('never renders the owner token inside a link href (ADR-062)', async () => {
-    server.use(
-      http.post('/api/lists', () =>
-        HttpResponse.json({ slug: 'abc123', ownerToken: 'owner-secret-token', key: 'guest-key-value', itemId: 'item-1' }, { status: 201 }),
-      ),
-    );
+    server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'owner-secret-token', key: 'guest-key-value', itemId: 'item-1' }));
     await fillAndSubmit();
     await screen.findByText('owner-secret-token');
 
@@ -47,7 +39,7 @@ describe('CreateListForm', () => {
   });
 
   it('shows the server error message when the request fails', async () => {
-    server.use(http.post('/api/lists', () => HttpResponse.json({ message: 'Invalid request' }, { status: 400 })));
+    server.use(mock('post', '/api/lists', 400, { message: 'Invalid request' }));
     await fillAndSubmit();
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Invalid request');
