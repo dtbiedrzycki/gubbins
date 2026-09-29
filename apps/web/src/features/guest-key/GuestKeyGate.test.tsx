@@ -2,7 +2,7 @@ import type { ReactElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { mock } from '../../test/msw/mock';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server } from '../../test/msw/server';
 import { GuestKeyGate } from './GuestKeyGate';
@@ -13,7 +13,7 @@ function renderWithQueryClient(ui: ReactElement) {
 
 describe('GuestKeyGate', () => {
   it('calls onSuccess after a valid key is accepted', async () => {
-    server.use(http.post('/api/lists/abc123/session', () => HttpResponse.json({ ok: true }, { status: 200 })));
+    server.use(mock('post', '/api/lists/{slug}/session', 200, { ok: true }));
     const onSuccess = vi.fn();
     const user = userEvent.setup();
     renderWithQueryClient(<GuestKeyGate slug="abc123" onSuccess={onSuccess} />);
@@ -25,7 +25,7 @@ describe('GuestKeyGate', () => {
   });
 
   it('shows the same generic not-found message on a wrong key as on any other failure', async () => {
-    server.use(http.post('/api/lists/abc123/session', () => HttpResponse.json({ message: 'Not found' }, { status: 404 })));
+    server.use(mock('post', '/api/lists/{slug}/session', 404, { message: 'Not found' }));
     const user = userEvent.setup();
     renderWithQueryClient(<GuestKeyGate slug="abc123" onSuccess={() => {}} />);
 
