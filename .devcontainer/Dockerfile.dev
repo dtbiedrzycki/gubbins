@@ -15,10 +15,19 @@ FROM node:24.17-bookworm-slim
 # Apple Silicon depending on how Podman is running it) — without a
 # toolchain that fallback fails `npm ci` outright instead of just being
 # slower.
+#
+# gnupg is for scripts/verify-signatures.sh, which the git hooks run on
+# every commit and push: it checks the PGP-signed merges GitHub makes
+# through its web UI against .allowed_pgp_keys.asc. The base image ships
+# only gpgv, which can verify against a keyring but cannot import a key.
+# It has to be installed here rather than at runtime because the egress
+# proxy allowlists no Debian mirror (ADR-068); build-time fetches are not
+# subject to that allowlist.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     ca-certificates \
     openssh-client \
+    gnupg \
     sqlite3 \
     python3 \
     make \
