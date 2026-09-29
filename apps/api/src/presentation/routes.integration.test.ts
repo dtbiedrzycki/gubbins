@@ -3,6 +3,7 @@ import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { createDb } from '../infrastructure/db/createDb.js';
 import { migrateToLatest } from '../infrastructure/db/migrate.js';
 import { ConcurrencyError } from '../domain/errors.js';
+import type { Logger } from '../application/ports/Logger.js';
 import { buildDependencies } from './compositionRoot.js';
 import { buildApp } from './app.js';
 import { disposeWithApp } from './lifecycle.js';
@@ -40,6 +41,31 @@ describe('POST /api/lists', () => {
   it('returns 400 for an empty listTitle', async () => {
     const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: '', itemTitle: 'Stroller' } });
     expect(response.statusCode).toBe(400);
+  });
+
+  it('keeps the 400 body shape: message plus zod-style issues', async () => {
+    const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: '', itemTitle: 'Stroller' } });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      message: 'Invalid request',
+      issues: [{ code: 'too_small', path: ['listTitle'], message: expect.any(String) }],
+    });
+  });
+
+  it('rejects a whitespace-only listTitle (trim runs before min)', async () => {
+    const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: '   ', itemTitle: 'Stroller' } });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('returns the same 400 shape when the body is missing', async () => {
+    const response = await app.inject({ method: 'POST', url: '/api/lists' });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ message: 'Invalid request' });
+  });
+
+  it('ignores unknown extra fields in the body', async () => {
+    const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', admin: true } });
+    expect(response.statusCode).toBe(201);
   });
 });
 
@@ -191,5 +217,25 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
     });
 
     expect(response.statusCode).toBe(409);
+  });
+});
+
+describe('response validation', () => {
+  it('logs and returns a generic 500 when a handler produces a body that does not match its response schema', async () => {
+    const db = createDb(':memory:');
+    await migrateToLatest(db);
+    const errors: string[] = [];
+    const logger: Logger = { logInfo: () => {}, logWarn: () => {}, logError: (message) => { errors.push(message); } };
+    const deps = buildDependencies(db, logger);
+    const brokenCreateList = { execute: async () => ({ slug: 42 }) };
+    const brokenApp = buildApp({ ...deps, createList: brokenCreateList as unknown as typeof deps.createList }, { cookieSecret: 'test-secret' });
+    disposeWithApp(brokenApp, db);
+    onTestFinished(() => brokenApp.close());
+
+    const response = await brokenApp.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller' } });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual({ message: 'Internal server error' });
+    expect(errors).toContain('response_schema_mismatch');
   });
 });
