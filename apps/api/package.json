@@ -8,7 +8,8 @@
     "lint": "eslint src",
     "test": "vitest run --dir src",
     "migrate": "tsx src/infrastructure/db/migrate.ts",
-    "dev": "tsx watch src/presentation/server.ts"
+    "dev": "tsx watch src/presentation/server.ts",
+    "gen:openapi": "tsx scripts/emit-openapi.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^10.0.1",
