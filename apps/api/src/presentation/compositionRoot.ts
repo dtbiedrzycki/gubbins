@@ -21,8 +21,7 @@ export interface AppDependencies {
   logger: Logger;
 }
 
-export function buildDependencies(db: Kysely<Database>): AppDependencies {
-  const logger = new ConsoleLogger();
+export function buildDependencies(db: Kysely<Database>, logger: Logger = new ConsoleLogger()): AppDependencies {
   const unitOfWork = new UnitOfWorkKysely(db, (base) => new LoggingEventStore(base, logger));
   const tokenGenerator = new TokenGeneratorCrypto();
   const clock = new ClockSystem();

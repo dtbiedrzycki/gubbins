@@ -5,4 +5,12 @@ export class ConsoleLogger implements Logger {
   logInfo(message: string, meta?: Record<string, unknown>): void {
     console.log(JSON.stringify({ level: 'info', message, ...meta }));
   }
+
+  logWarn(message: string, meta?: Record<string, unknown>): void {
+    console.warn(JSON.stringify({ level: 'warn', message, ...meta }));
+  }
+
+  logError(message: string, meta?: Record<string, unknown>): void {
+    console.error(JSON.stringify({ level: 'error', message, ...meta }));
+  }
 }

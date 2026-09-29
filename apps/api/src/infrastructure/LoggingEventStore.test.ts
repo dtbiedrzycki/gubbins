@@ -10,7 +10,7 @@ describe('LoggingEventStore', () => {
       append: async (itemId, expectedSeq, events) => { appended.push([itemId, expectedSeq, events]); },
     };
     const logs: [string, Record<string, unknown> | undefined][] = [];
-    const logger: Logger = { logInfo: (message, meta) => { logs.push([message, meta]); } };
+    const logger: Logger = { logInfo: (message, meta) => { logs.push([message, meta]); }, logWarn: () => {}, logError: () => {} };
     const decorated = new LoggingEventStore(inner, logger);
     const event: DomainEvent = { type: 'ItemHeld', occurredAt: '2026-01-01T00:00:00.000Z' };
 
@@ -23,7 +23,7 @@ describe('LoggingEventStore', () => {
   it('propagates an error from the inner store without logging', async () => {
     const inner: EventStore = { append: async () => { throw new Error('boom'); } };
     const logs: unknown[] = [];
-    const logger: Logger = { logInfo: (...args) => { logs.push(args); } };
+    const logger: Logger = { logInfo: (...args) => { logs.push(args); }, logWarn: () => {}, logError: () => {} };
     const decorated = new LoggingEventStore(inner, logger);
 
     await expect(decorated.append('i1', 0, [])).rejects.toThrow('boom');
