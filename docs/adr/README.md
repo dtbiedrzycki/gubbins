@@ -110,6 +110,7 @@ one-time renumbering documented in the restructuring history.
 | [074](0074-tailwind-css-for-styling.md) | Tailwind CSS for styling | Accepted |
 | [075](0075-ledger-events-record-the-acting-role.md) | Ledger events record the acting role | Proposed |
 | [076](0076-uuidv7-for-domain-entity-identifiers.md) | UUIDv7 for domain entity identifiers | Accepted |
+| [077](0077-openapi-document-generated-from-route-schemas-is-the-api-contract.md) | The OpenAPI document generated from route schemas is the API contract | Accepted |
 
 ## Imported ADRs (0001–0070)
 
