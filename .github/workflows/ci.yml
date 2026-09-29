@@ -44,6 +44,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: scripts/test/verify-signatures.bats checks the PGP
+          # trust anchor against a real web-UI merge in this repo's history,
+          # and skips itself at the default depth of 1.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "24.17"
