@@ -1,5 +1,12 @@
 # Walking Skeleton Implementation Plan
 
+> **Amended 2026-09-29:** Tasks 11 and 13–16 (presentation, API client, and
+> the three feature tests) were changed after execution by
+> [the OpenAPI contract design](../specs/2026-09-29-openapi-contract-design.md)
+> and [its plan](2026-09-29-openapi-contract.md): routes declare zod schemas
+> that generate `apps/api/openapi.json`, and the web client and test mocks are
+> typed from it. The code blocks below show the pre-amendment versions.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the thinnest full-stack vertical slice of `gubbins` — owner creates a list with one single-type item, guest enters the key, guest holds the item — proving every architectural seam described in the specs works together, with real tests.
