@@ -13,6 +13,12 @@ export class TokenGeneratorCrypto implements TokenGenerator {
    */
   generateEntityId(): string { return uuidv7(); }
   generateSlug(): string { return randomBytes(6).toString('base64url'); }
+  /**
+   * The three bearer secrets (owner token, guest key, hold secret) get 24
+   * random bytes (192 bits) each, far beyond what brute-force guessing can
+   * reach even online and unthrottled. 24 is also divisible by 3, so the
+   * base64url encoding is exactly 32 characters with no padding.
+   */
   generateOwnerToken(): string { return randomBytes(24).toString('base64url'); }
   generateGuestKey(): string { return randomBytes(24).toString('base64url'); }
   generateHoldSecret(): string { return randomBytes(24).toString('base64url'); }
