@@ -13,6 +13,19 @@
 - SQLite data file bind-mounted (not a named volume) in dev, so a developer can inspect or delete `wishlist.db` directly
 - `customizations.vscode.extensions` for ESLint/Prettier/Vitest, and `customizations.vscode.settings` for format-on-save; namespaced so other IDEs ignore gracefully
 - Dev image separate from the minimal, non-root production image
+- **Playwright's Chromium baked into the dev image**, not fetched at
+  runtime, so `npm run test:e2e` works inside the container. Two
+  independent reasons it cannot be a runtime step: the slim base image
+  ships none of Chromium's shared libraries and installing them is
+  `apt`, which needs root the non-root container user does not have; and
+  under the `auto`-mode egress proxy above, Playwright's CDN is not on
+  the allowlist. Build-time network is not subject to that allowlist —
+  the same property the `gh` apt source already relies on — so baking
+  the browser keeps the runtime allowlist unwidened for what is only
+  ever a development-time dependency. The `PLAYWRIGHT_VERSION` build arg
+  must track the `playwright-core` version in `package-lock.json`;
+  `@playwright/test` is pinned exactly (not a `^` range) so the two
+  cannot drift apart silently on a fresh install
 - **Claude Code sandboxing for `auto`-mode runs** *(ADR-[068](../adr/0068-devcontainer-sandboxes-claude-code-auto-mode-via-an-egress.md))*: `app` sits
   on an `internal: true` Docker network with no direct route out; a
   single-purpose `egress-proxy` sidecar — the only container with

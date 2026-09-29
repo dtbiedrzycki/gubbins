@@ -78,6 +78,36 @@ RUN groupmod -g ${USER_GID} node \
 # volume chown below; after the usermod re-point so `node` is the final UID.
 RUN chown -R node:node /usr/local/lib/node_modules /usr/local/bin
 
+# Playwright's Chromium, baked into the image rather than fetched at
+# runtime. Two independent reasons it cannot be a runtime step:
+#
+#   1. bookworm-slim ships none of Chromium's shared libraries (libnss3,
+#      libgbm, libasound2, libatk, libxkbcommon, libpango, libcups...),
+#      and pulling them is apt — which needs root. The container runs as
+#      `node` with no sudo, so `playwright install --with-deps` can never
+#      succeed from inside a running container, sandboxed or not.
+#   2. Under the `auto`-mode egress proxy (docker-compose.sandbox.yml),
+#      cdn.playwright.dev is not on the allowlist. Baking at build time
+#      means that stays true — no ADR-068 allowlist widening needed for
+#      what is only ever a development-time dependency.
+#
+# Build-time network is not subject to the runtime egress allowlist —
+# same property the github-cli apt source above already relies on.
+#
+# PLAYWRIGHT_VERSION MUST match the playwright-core version resolved in
+# package-lock.json: Playwright refuses a browser build it didn't pin
+# ("Executable doesn't exist at ..."), so drift fails loudly at test
+# time rather than silently. Bump both together, then rebuild the image.
+ARG PLAYWRIGHT_VERSION=1.63.0
+
+# Default is ~/.cache/ms-playwright. Pointed at a fixed system path
+# instead so the binary lives in the image layer rather than in $HOME,
+# which the devcontainer flow may mount over.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN npx --yes playwright@${PLAYWRIGHT_VERSION} install --with-deps chromium \
+    && rm -rf /var/lib/apt/lists/* \
+    && chown -R node:node /ms-playwright
+
 # C.UTF-8 needs no locale-gen or the `locales` package — Debian's glibc
 # ships it built in. Without a UTF-8 locale, bookworm-slim defaults to
 # LANG unset/POSIX, and any TUI using UTF-8 box-drawing or spinner
