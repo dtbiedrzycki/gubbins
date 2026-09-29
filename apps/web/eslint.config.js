@@ -3,6 +3,7 @@ import tsPlugin from '@typescript-eslint/eslint-plugin';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 export default [
+  { ignores: ['src/api/schema.gen.ts'] },
   {
     files: ['src/**/*.{ts,tsx}'],
     languageOptions: {

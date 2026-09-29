@@ -1,0 +1,13 @@
+{
+  "name": "@gubbins/api-typegen",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Generates apps/web's API types from apps/api/openapi.json (ADR-0077). Isolated so openapi-typescript can use the TypeScript 5 it requires as a peer while the rest of the repo is on TypeScript 6; delete once openapi-typescript supports 6.",
+  "exports": { ".": { "types": "./index.d.ts", "default": "./index.js" } },
+  "bin": { "api-typegen": "./bin/gen.js" },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5.9.3"
+  }
+}
