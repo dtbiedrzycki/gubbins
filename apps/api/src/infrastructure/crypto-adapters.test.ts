@@ -64,6 +64,10 @@ describe('SecretComparerCrypto', () => {
   it('returns false (not throws) for strings of different lengths', () => {
     expect(comparer.compareInConstantTime('short', 'a much longer string')).toBe(false);
   });
+
+  it('returns false for strings with the same character count but different byte lengths', () => {
+    expect(comparer.compareInConstantTime('café', 'cafe')).toBe(false);
+  });
 });
 
 describe('HasherSha256', () => {
