@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
 import type { ListViewResponse } from '@gubbins/shared-types';
 import { server } from '../../test/msw/server';
+import { mock } from '../../test/msw/mock';
 import { useHoldItem } from './useHoldItem';
 import { useListView } from './useListView';
 
@@ -27,11 +28,13 @@ describe('useHoldItem', () => {
   it('refetches the list view when the hold fails, so the page shows who won', async () => {
     let listViewRequests = 0;
     server.use(
+      // Stateful handlers (they count or delay requests), so raw MSW rather
+      // than the fixed-response mock() helper.
       http.get('/api/lists/abc123', () => {
         listViewRequests += 1;
         return HttpResponse.json(listView(listViewRequests === 1 ? 'available' : 'held'));
       }),
-      http.post('/api/lists/abc123/items/item-1/hold', () => HttpResponse.json({ message: 'Item already held' }, { status: 409 })),
+      mock('post', '/api/lists/{slug}/items/{itemId}/hold', 409, { message: 'Item already held' }),
     );
     const { result } = renderListAndHold();
     await waitFor(() => expect(result.current.view.data?.item.status).toBe('available'));
