@@ -1,3 +1,3 @@
 export interface SecretComparer {
-  constantTimeEqual(a: string, b: string): boolean;
+  compareInConstantTime(a: string, b: string): boolean;
 }

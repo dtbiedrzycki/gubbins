@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { HoldSecret } from './HoldSecret.js';
 import { DomainValidationError } from '../errors.js';
 
-const exactComparer = { constantTimeEqual: (a: string, b: string) => a === b };
+const exactComparer = { compareInConstantTime: (a: string, b: string) => a === b };
 
 describe('HoldSecret', () => {
   it('exposes the raw secret as .value', () => {
@@ -28,7 +28,7 @@ describe('HoldSecret', () => {
   it('delegates the comparison to the comparer rather than comparing inline', () => {
     const calls: Array<[string, string]> = [];
     const alwaysTrue = {
-      constantTimeEqual: (a: string, b: string) => {
+      compareInConstantTime: (a: string, b: string) => {
         calls.push([a, b]);
         return true;
       },
