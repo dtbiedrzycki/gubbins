@@ -46,17 +46,16 @@ cleanup() {
 }
 trap cleanup EXIT
 
-pgp_anchor_imported=""
-
 if [ -f "$allowed_pgp" ] && command -v gpg >/dev/null 2>&1; then
-  pgp_anchor_imported=1
   workdir="$(mktemp -d)"
   GNUPGHOME="$workdir/gnupg"
   export GNUPGHOME
   mkdir -p -m 700 "$GNUPGHOME"
   gpg --batch --quiet --import "$allowed_pgp" 2>/dev/null || true
   # The anchor file *is* the trust decision, so every key it carries is
-  # ultimately trusted — otherwise a good signature reports U, not G.
+  # ultimately trusted. Not optional: without this, gpg reports a good
+  # signature from an imported-but-uncertified key as U, and `git` only
+  # reports G once the key is ultimately trusted (measured, both ways).
   gpg --batch --with-colons --fingerprint 2>/dev/null \
     | awk -F: '/^fpr:/ { print $10 ":6:" }' \
     | gpg --batch --quiet --import-ownertrust 2>/dev/null || true
@@ -93,18 +92,10 @@ while IFS= read -r sha; do
   count=$((count + 1))
   gstat="$(git -c gpg.ssh.allowedSignersFile="$allowed" \
              log -1 --format='%G?' "$sha")"
-  # G is good-and-trusted. U is good-but-untrusted, which only arises for
-  # PGP here, and is equally conclusive: GNUPGHOME is a keyring this script
-  # built from .allowed_pgp_keys.asc and nothing else, so a good signature
-  # against it *is* a signature by an allowed key, whatever gpg's
-  # web-of-trust model makes of the ownertrust above. SSH verification never
-  # reports U — an unlisted signer is E or B.
-  case "$gstat" in
-    G) continue ;;
-    U) if [ -n "$pgp_anchor_imported" ]; then continue; fi ;;
-  esac
-  echo "UNVERIFIED [$gstat] $(git log -1 --format='%h %an <%ae> — %s' "$sha")" >&2
-  rc=1
+  if [ "$gstat" != "G" ]; then
+    echo "UNVERIFIED [$gstat] $(git log -1 --format='%h %an <%ae> — %s' "$sha")" >&2
+    rc=1
+  fi
 done <<EOF
 $commits
 EOF
