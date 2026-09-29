@@ -46,7 +46,10 @@ cleanup() {
 }
 trap cleanup EXIT
 
+pgp_anchor_imported=""
+
 if [ -f "$allowed_pgp" ] && command -v gpg >/dev/null 2>&1; then
+  pgp_anchor_imported=1
   workdir="$(mktemp -d)"
   GNUPGHOME="$workdir/gnupg"
   export GNUPGHOME
@@ -90,16 +93,24 @@ while IFS= read -r sha; do
   count=$((count + 1))
   gstat="$(git -c gpg.ssh.allowedSignersFile="$allowed" \
              log -1 --format='%G?' "$sha")"
-  if [ "$gstat" != "G" ]; then
-    echo "UNVERIFIED [$gstat] $(git log -1 --format='%h %an <%ae> — %s' "$sha")" >&2
-    rc=1
-  fi
+  # G is good-and-trusted. U is good-but-untrusted, which only arises for
+  # PGP here, and is equally conclusive: GNUPGHOME is a keyring this script
+  # built from .allowed_pgp_keys.asc and nothing else, so a good signature
+  # against it *is* a signature by an allowed key, whatever gpg's
+  # web-of-trust model makes of the ownertrust above. SSH verification never
+  # reports U — an unlisted signer is E or B.
+  case "$gstat" in
+    G) continue ;;
+    U) if [ -n "$pgp_anchor_imported" ]; then continue; fi ;;
+  esac
+  echo "UNVERIFIED [$gstat] $(git log -1 --format='%h %an <%ae> — %s' "$sha")" >&2
+  rc=1
 done <<EOF
 $commits
 EOF
 
 if [ "$rc" -eq 0 ]; then
-  echo "verify-signatures: OK — $count commit(s) signed by a key in .allowed_signers"
+  echo "verify-signatures: OK — $count commit(s) signed by a key this repo trusts"
 else
   echo "verify-signatures: FAILED — commit(s) above are not signed by an allowed key" >&2
 fi

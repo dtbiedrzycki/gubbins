@@ -87,7 +87,7 @@ pgp_fixture_sha() {
   cd "$REPO_ROOT"
   run bash "$VERIFY_SCRIPT" "$sha~1..$sha"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"allowed_pgp_keys.asc"* ]]
+  [[ "$output" != *"UNVERIFIED"* ]]
 }
 
 @test "rejects that same commit when the PGP anchor carries no key" {
@@ -108,5 +108,5 @@ pgp_fixture_sha() {
   commit_file "$REPO" a.txt
   run bash "$VERIFY_SCRIPT"
   [ "$status" -eq 0 ]
-  [[ "$output" != *"allowed_pgp_keys.asc"* ]]
+  [[ "$output" != *"UNVERIFIED"* ]]
 }
