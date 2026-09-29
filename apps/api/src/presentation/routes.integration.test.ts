@@ -1,10 +1,11 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished } from 'vitest';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { createDb } from '../infrastructure/db/createDb.js';
 import { migrateToLatest } from '../infrastructure/db/migrate.js';
 import { ConcurrencyError } from '../domain/errors.js';
 import { buildDependencies } from './compositionRoot.js';
 import { buildApp } from './app.js';
+import { disposeWithApp } from './lifecycle.js';
 
 function extractCookieHeader(response: LightMyRequestResponse): string {
   const setCookie = response.headers['set-cookie'];
@@ -18,6 +19,11 @@ beforeEach(async () => {
   const db = createDb(':memory:');
   await migrateToLatest(db);
   app = buildApp(buildDependencies(db), { cookieSecret: 'test-secret' });
+  disposeWithApp(app, db);
+});
+
+afterEach(async () => {
+  await app.close();
 });
 
 describe('POST /api/lists', () => {
@@ -169,6 +175,12 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
     // through to the generic 500 handler.
     const throwingHoldItem = { execute: async () => { throw new ConcurrencyError(list.itemId, 0, 1); } };
     const raceApp = buildApp({ ...deps, holdItem: throwingHoldItem as unknown as typeof deps.holdItem }, { cookieSecret: 'test-secret' });
+    // Both apps share this test's own database, so neither owns it: close
+    // them, then destroy the database once.
+    onTestFinished(async () => {
+      await Promise.all([seedApp.close(), raceApp.close()]);
+      await db.destroy();
+    });
 
     const sessionResponse = await raceApp.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } });
     const cookie = extractCookieHeader(sessionResponse);
