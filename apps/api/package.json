@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "eslint src",
-    "test": "vitest run",
+    "test": "vitest run --dir src",
     "migrate": "tsx src/infrastructure/db/migrate.ts",
     "dev": "tsx watch src/presentation/server.ts"
   },
