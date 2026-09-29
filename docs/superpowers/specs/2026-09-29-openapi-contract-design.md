@@ -27,14 +27,17 @@ expects) derives its types from it, and a stale document fails `npm test`.
 | zod version | Upgrade to zod 4 in #6, so `fastify-type-provider-zod` 7.x (current, requires zod ≥ 4.1.5) can be used. |
 | Publishing the spec | A committed file only (`apps/api/openapi.json`). No runtime route and no Swagger UI. |
 | Web client runtime validation | Dropped. The server's zod serializer already refuses a non-conforming response. The web client depends on the generated types only. |
+| API versioning | Lay the foundation only: the spec carries the release version, and ADR-0077 records the pre-1.0 policy and a 1.0 checklist item. There is no URL prefix, version route or breaking-change CI check yet. |
 
 ## Non-goals
 
 - No change to the API itself: the same paths, methods, status codes and
   response bodies. The one addition is that the spec now documents the 400
   that routes with a body already return.
-- No served spec, no Swagger UI and no API versioning scheme. Each can be
-  added later without changing the rest of this design.
+- No served spec, no Swagger UI, no URL version prefix (`/api/v1`), no
+  runtime version route and no breaking-change detection in CI. Each can be
+  added later without changing the rest of this design. See
+  [API versioning](#api-versioning) for when.
 - No new CI jobs or steps. Freshness is enforced through `npm test`.
 - No change to the web's feature code, which keeps its `@gubbins/shared-types`
   type imports.
@@ -55,7 +58,8 @@ expects) derives its types from it, and a stale document fails `npm test`.
 - **Dependencies:** `fastify-type-provider-zod` 7.x and `@fastify/swagger`.
 - **`app.ts`:** set the provider's `validatorCompiler` and
   `serializerCompiler`, and register `@fastify/swagger` with
-  `jsonSchemaTransform` and `info: { title: 'gubbins', version }`. It is
+  `jsonSchemaTransform` and `info: { title: 'gubbins', version }`, where
+  `version` is the root `package.json` `version` (currently `0.0.0`). It is
   registered before the routes.
 - **`routes.ts`:**
   - Use `app.withTypeProvider<ZodTypeProvider>()`. Each route declares
@@ -106,6 +110,8 @@ expects) derives its types from it, and a stale document fails `npm test`.
   - the alternatives rejected: a hand-rolled TypeScript contract (a
     TypeScript-only consumer model), ts-rest (`@ts-rest/fastify` declares
     Fastify 4 support only), and tRPC (it replaces REST)
+  - the versioning policy and the 1.0 checklist item in
+    [API versioning](#api-versioning)
 
   The ADR is added in #13, following the stack's convention that an ADR is
   added in the same PR as the feature it describes.
@@ -166,6 +172,41 @@ expects) derives its types from it, and a stale document fails `npm test`.
   three feature tests) are amended by this
   design and its plan.
 
+## API versioning
+
+The web app ships in the same process as the API (ADR-0073), so it never
+needs versioning. The problem only arises for future non-web clients talking
+to self-hosted instances that operators upgrade on their own schedule.
+Nothing depends on the API yet: the repository is private until the first
+release, and only the latest release is supported pre-1.0
+(`governance-licensing-and-release.md`).
+
+This design lays the foundation only.
+
+- **`info.version`:** the spec's `info.version` is the app's release version,
+  from the root `package.json`. A client can tell which release a spec
+  describes. Bumping the release version changes `openapi.json`, so the
+  freshness test prompts a `npm run gen:api` in the same commit.
+- **Policy, recorded in ADR-0077:**
+  - Before 1.0 the API makes no compatibility promise. Breaking changes are
+    allowed, and are called out in the PR description.
+  - Additive changes (new routes, new optional fields, new response
+    statuses) are preferred over changing or removing existing ones.
+  - The versioning scheme is chosen by its own ADR before 1.0.
+- **1.0 checklist item, recorded in ADR-0077's consequences** (the same
+  convention as ADR-0026): before 1.0, choose the API versioning scheme (URL
+  prefix, header or media type, and whether more than one version is served
+  at once, weighed against the "latest release only" support policy and the
+  Pi-class resource budget), and add breaking-change detection that compares
+  `openapi.json` against the base branch (e.g. `oasdiff`, wrapped in a
+  `scripts/` entry per ADR-0038).
+
+A later URL prefix stays cheap because of this design. Hand-written API paths
+exist only in `routes.ts` and in the `mock()` calls, and the compiler flags
+each `mock()` call once the spec changes. The SPA fallback
+(`startsWith('/api/')`) and the Vite proxy (`/api`) already accept any
+`/api/...` prefix.
+
 ## Testing
 
 Each rebuilt branch must pass `npm run lint`, `npm test` and `npm run build`
@@ -177,7 +218,7 @@ on its own, not only at the top of the stack. In addition:
     behaves the same.
   - New tests: the 400 body shape (`message` + `issues`) is kept; a response
     that does not match its schema returns a 500 and is logged; the spec
-    freshness test.
+    freshness test; `info.version` equals the root `package.json` version.
 - **#15:** the client tests, the `mock()` type cases and the types
   freshness test.
 - **#16–#18:** the feature tests, with only the mock calls changed.
