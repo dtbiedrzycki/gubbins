@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 #
-# Verify that every commit in a range carries a good SSH signature made
-# by a key listed in the committed .allowed_signers file.
+# Verify that every commit in a range is signed by a key this repo trusts:
+# an SSH key from .allowed_signers, or a PGP key from .allowed_pgp_keys.asc.
 #
-# Forge-independent by design: it uses nothing but `git` and the
-# in-repo .allowed_signers, needs no prior `git config`, and works with
-# no network. CI, the git hooks, and anyone auditing the history all run
-# this same script.
+# Two anchors because two signers exist. Everything written here is
+# SSH-signed. Merges made through GitHub's web UI are PGP-signed by
+# GitHub's own key, which an SSH allowed-signers file cannot express.
+#
+# Forge-independent by design: it uses nothing but `git` and `gpg`, reads
+# its trust anchors from the two committed files, needs no prior
+# `git config`, keeps no keyring state, and works with no network. CI, the
+# git hooks, and anyone auditing the history all run this same script.
 #
 # Usage:
 #   scripts/verify-signatures.sh [<rev-range>]
@@ -24,10 +28,35 @@ set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"
 allowed="$root/.allowed_signers"
+allowed_pgp="$root/.allowed_pgp_keys.asc"
 
 if [ ! -f "$allowed" ]; then
   echo "verify-signatures: trust anchor not found: $allowed" >&2
   exit 2
+fi
+
+# Import the PGP anchor into a throwaway keyring so `git` can check
+# PGP-signed commits with the same --format='%G?' it uses for SSH ones.
+# GNUPGHOME points into a temp dir, so this leaves no keyring in $HOME.
+# Must end 0: bash takes the EXIT trap's last status as the script's own.
+workdir=""
+cleanup() {
+  [ -n "$workdir" ] && rm -rf "$workdir"
+  return 0
+}
+trap cleanup EXIT
+
+if [ -f "$allowed_pgp" ] && command -v gpg >/dev/null 2>&1; then
+  workdir="$(mktemp -d)"
+  GNUPGHOME="$workdir/gnupg"
+  export GNUPGHOME
+  mkdir -p -m 700 "$GNUPGHOME"
+  gpg --batch --quiet --import "$allowed_pgp" 2>/dev/null || true
+  # The anchor file *is* the trust decision, so every key it carries is
+  # ultimately trusted — otherwise a good signature reports U, not G.
+  gpg --batch --with-colons --fingerprint 2>/dev/null \
+    | awk -F: '/^fpr:/ { print $10 ":6:" }' \
+    | gpg --batch --quiet --import-ownertrust 2>/dev/null || true
 fi
 
 range="${1:-HEAD}"

@@ -68,3 +68,45 @@ setup() {
   run bash "$VERIFY_SCRIPT" "HEAD~2..HEAD~1"
   [ "$status" -eq 0 ]
 }
+
+# --- the PGP trust anchor (.allowed_pgp_keys.asc) ----------------------
+#
+# Signing a test commit with PGP would need a generated PGP key and a
+# `gpg` that can create one, so these use this repository's own web-UI
+# merge as the fixture instead. They skip where that commit is absent
+# (shallow clone, or history rewritten) or `gpg` is not installed.
+
+pgp_fixture_sha() {
+  git -C "$REPO_ROOT" rev-parse -q --verify "8fdba3d^{commit}" 2>/dev/null
+}
+
+@test "accepts a commit PGP-signed by a key in .allowed_pgp_keys.asc" {
+  command -v gpg >/dev/null || skip "gpg is not installed"
+  local sha; sha="$(pgp_fixture_sha)" || true
+  [ -n "$sha" ] || skip "fixture commit not present in this clone"
+  cd "$REPO_ROOT"
+  run bash "$VERIFY_SCRIPT" "$sha~1..$sha"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"allowed_pgp_keys.asc"* ]]
+}
+
+@test "rejects that same commit when the PGP anchor carries no key" {
+  command -v gpg >/dev/null || skip "gpg is not installed"
+  local sha; sha="$(pgp_fixture_sha)" || true
+  [ -n "$sha" ] || skip "fixture commit not present in this clone"
+  local clone="$BATS_TEST_TMPDIR/clone"
+  git clone -q --branch main "$REPO_ROOT" "$clone" 2>/dev/null || skip "cannot clone"
+  : > "$clone/.allowed_pgp_keys.asc"
+  cd "$clone"
+  run bash "$VERIFY_SCRIPT" "$sha~1..$sha"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"UNVERIFIED"* ]]
+}
+
+@test "an SSH-only history is unaffected by the PGP anchor being absent" {
+  [ ! -f "$REPO/.allowed_pgp_keys.asc" ]
+  commit_file "$REPO" a.txt
+  run bash "$VERIFY_SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"allowed_pgp_keys.asc"* ]]
+}
