@@ -18,18 +18,18 @@ export function CreateListForm() {
         <p>Your list is ready.</p>
         <div>
           <p className="text-sm font-medium">Guest link</p>
-          <a className="text-blue-600 underline" href={`/${data.slug}`}>
+          <a data-testid="guest-link" className="text-blue-600 underline" href={`/${data.slug}`}>
             {window.location.origin}/{data.slug}
           </a>
         </div>
         <div>
           <p className="text-sm font-medium">Guest key</p>
-          <p className="font-mono">{data.key}</p>
+          <p data-testid="guest-key" className="font-mono">{data.key}</p>
         </div>
         <div>
           {/* Never rendered inside a link — ADR-062: the owner token must never travel in a URL. */}
           <p className="text-sm font-medium">Owner token — keep this private</p>
-          <p className="break-all font-mono">{data.ownerToken}</p>
+          <p data-testid="owner-token" className="break-all font-mono">{data.ownerToken}</p>
         </div>
       </div>
     );

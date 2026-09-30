@@ -9,6 +9,7 @@
     "test": "vitest run --dir src",
     "migrate": "tsx src/infrastructure/db/migrate.ts",
     "dev": "tsx watch src/presentation/server.ts",
+    "start": "tsx src/presentation/server.ts",
     "gen:openapi": "tsx scripts/emit-openapi.ts"
   },
   "dependencies": {
