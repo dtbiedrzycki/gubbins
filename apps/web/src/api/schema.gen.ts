@@ -68,7 +68,12 @@ export interface paths {
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: never;
+    schemas: {
+        ErrorResponse: {
+            message: string;
+            issues?: unknown[];
+        };
+    };
     responses: never;
     parameters: never;
     requestBodies: never;
@@ -93,7 +98,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Default Response */
+            /** @description The list was created. */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -107,16 +112,13 @@ export interface operations {
                     };
                 };
             };
-            /** @description Default Response */
+            /** @description The request did not match the schema. */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        message: string;
-                        issues?: unknown[];
-                    };
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };
@@ -138,7 +140,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Default Response */
+            /** @description The key was accepted and a session cookie was set. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -150,28 +152,22 @@ export interface operations {
                     };
                 };
             };
-            /** @description Default Response */
+            /** @description The request did not match the schema. */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        message: string;
-                        issues?: unknown[];
-                    };
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Default Response */
+            /** @description No such list, or the key is wrong. The two are deliberately indistinguishable (ADR-016, ADR-054). */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        message: string;
-                        issues?: unknown[];
-                    };
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };
@@ -187,7 +183,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Default Response */
+            /** @description The list and its item. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -204,16 +200,13 @@ export interface operations {
                     };
                 };
             };
-            /** @description Default Response */
+            /** @description No such list, or no valid session for it. The two are deliberately indistinguishable (ADR-016, ADR-054). */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        message: string;
-                        issues?: unknown[];
-                    };
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };
@@ -236,7 +229,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Default Response */
+            /** @description The item is now held for this session. */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -249,40 +242,31 @@ export interface operations {
                     };
                 };
             };
-            /** @description Default Response */
+            /** @description The request did not match the schema. */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        message: string;
-                        issues?: unknown[];
-                    };
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Default Response */
+            /** @description No such list or item, or no valid session for the list. These are deliberately indistinguishable (ADR-016, ADR-054). */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        message: string;
-                        issues?: unknown[];
-                    };
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Default Response */
+            /** @description The item is already held. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        message: string;
-                        issues?: unknown[];
-                    };
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };
