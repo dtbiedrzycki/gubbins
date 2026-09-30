@@ -239,3 +239,41 @@ describe('response validation', () => {
     expect(errors).toContain('response_schema_mismatch');
   });
 });
+
+describe('requests Fastify rejects before validation', () => {
+  async function appWithCapturedErrors() {
+    const db = createDb(':memory:');
+    await migrateToLatest(db);
+    const errors: string[] = [];
+    const logger: Logger = { logInfo: () => {}, logWarn: () => {}, logError: (message) => { errors.push(message); } };
+    const capturingApp = buildApp(buildDependencies(db, logger), { cookieSecret: 'test-secret' });
+    disposeWithApp(capturingApp, db);
+    onTestFinished(() => capturingApp.close());
+    return { capturingApp, errors };
+  }
+
+  it.each([
+    ['syntactically invalid JSON', 'application/json', '{"listTitle": "x", '],
+    ['an empty body declared as JSON', 'application/json', ''],
+    ['an unsupported content type', 'application/x-www-form-urlencoded', 'listTitle=x&itemTitle=y'],
+  ])('answers %s with the 400 Invalid request body and logs no unhandled error', async (_name, contentType, payload) => {
+    const { capturingApp, errors } = await appWithCapturedErrors();
+
+    const response = await capturingApp.inject({ method: 'POST', url: '/api/lists', headers: { 'content-type': contentType }, payload });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ message: 'Invalid request' });
+    expect(errors).toEqual([]);
+  });
+});
+
+describe('root-level validation issues', () => {
+  it('reports an empty path, as zod does, when the body itself is the wrong type', async () => {
+    const response = await app.inject({ method: 'POST', url: '/api/lists', headers: { 'content-type': 'application/json' }, payload: 'null' });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      message: 'Invalid request',
+      issues: [{ code: 'invalid_type', path: [], message: expect.any(String) }],
+    });
+  });
+});

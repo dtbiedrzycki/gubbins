@@ -51,8 +51,22 @@ export function buildApp(deps: AppDependencies, options: BuildAppOptions): Fasti
     if (hasZodFastifySchemaValidationErrors(error)) {
       // The provider does not expose zod's issue objects; rebuild the same
       // { code, path, message } shape the pre-OpenAPI handler returned.
-      const issues = error.validation.map((v) => ({ code: v.keyword, path: v.instancePath.split('/').slice(1), message: v.message }));
+      // instancePath is '/a/b' for a nested issue and '/' for the body itself,
+      // which zod reports as []. (Array indices arrive as strings, not numbers.)
+      const issues = error.validation.map((v) => ({
+        code: v.keyword,
+        path: v.instancePath === '/' ? [] : v.instancePath.slice(1).split('/'),
+        message: v.message,
+      }));
       reply.code(400).send(errorResponseSchema.parse({ message: 'Invalid request', issues }));
+      return;
+    }
+    // Fastify rejects some requests before schema validation runs: malformed
+    // JSON, an empty body declared as JSON, an unsupported content type. Those
+    // are the client's fault, not an unhandled error, so they get the same 400
+    // as a validation failure and no error-log entry.
+    if ('code' in error && typeof error.code === 'string' && error.code.startsWith('FST_ERR_CTP_')) {
+      reply.code(400).send(errorResponseSchema.parse({ message: 'Invalid request' }));
       return;
     }
     if (error instanceof ZodError) {
