@@ -27,7 +27,7 @@ export class GuestKey {
    * The comparer is taken as a structural type rather than an imported
    * interface: domain/ may not import application/ (ADR-012).
    */
-  matches(candidate: string, comparer: { constantTimeEqual(a: string, b: string): boolean }): boolean {
-    return comparer.constantTimeEqual(this.value, candidate);
+  matches(candidate: string, comparer: { compareInConstantTime(a: string, b: string): boolean }): boolean {
+    return comparer.compareInConstantTime(this.value, candidate);
   }
 }
