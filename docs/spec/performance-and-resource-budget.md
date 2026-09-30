@@ -5,9 +5,10 @@
 - **API latency (p95)**: reads < 150ms; transactional writes (hold,
   contribution) < 300ms.
 - **Guest page FCP**: < 2.5s on simulated 4G, no CDN.
-- **Bundle budget**: guest-flow JS < 150KB gzipped; owner dashboard
+- **Bundle budget**: guest-flow JS < 200KB gzipped; owner dashboard
   code-split separately, no hard ceiling (far fewer users, less latency-
-  sensitive).
+  sensitive). Raised from 150KB when the front-end adopted React 19,
+  Vite 8 and react-router 7 — ADR-029 records the measurements.
 - **Concurrency target**: ~20 concurrent guest sessions served comfortably;
   beyond that, graceful degradation (slower responses), not failure — no
   request queue, existing rate limiting is sufficient backpressure.
