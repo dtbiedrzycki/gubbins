@@ -1,0 +1,32 @@
+{
+  "name": "@gubbins/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run --dir src",
+    "migrate": "tsx src/infrastructure/db/migrate.ts",
+    "dev": "tsx watch src/presentation/server.ts"
+  },
+  "dependencies": {
+    "@gubbins/shared-types": "*",
+    "fastify": "^5.0.0",
+    "@fastify/cookie": "^10.0.1",
+    "@fastify/static": "^10.1.5",
+    "kysely": "^0.29.6",
+    "better-sqlite3": "^11.3.0",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.2",
+    "eslint": "^10.11.0",
+    "@typescript-eslint/eslint-plugin": "^8.71.0",
+    "@typescript-eslint/parser": "^8.71.0",
+    "tsx": "^4.19.1",
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^24.19.0"
+  }
+}

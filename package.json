@@ -9,8 +9,11 @@
     "node": ">=24.17"
   },
   "packageManager": "npm@11.13.0",
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "test": "bats scripts/test"
+    "test": "bats scripts/test && npm run build --workspace=packages/shared-types --if-present && npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "build": "npm run build --workspace=packages/shared-types --if-present && npm run build --workspaces --if-present"
   },
   "devDependencies": {
     "bats": "^1.13.0"
