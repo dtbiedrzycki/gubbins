@@ -7,7 +7,7 @@ import { ZodError } from 'zod';
 import { $ZodError } from 'zod/v4/core';
 import {
   hasZodFastifySchemaValidationErrors, isResponseSerializationError,
-  jsonSchemaTransform, serializerCompiler, validatorCompiler,
+  jsonSchemaTransform, jsonSchemaTransformObject, serializerCompiler, validatorCompiler,
 } from 'fastify-type-provider-zod';
 import { errorResponseSchema } from '@gubbins/shared-types';
 import type { AppDependencies } from './compositionRoot.js';
@@ -19,6 +19,24 @@ export interface BuildAppOptions {
   /** Directory to serve as static files (the built apps/web bundle). Omit to skip static serving — used by Task 11's own integration tests, which only exercise /api routes. */
   webDist?: string;
 }
+
+// The provider emits an input and an output variant of every registered schema
+// ('ErrorResponseInput' and 'ErrorResponse'). The error body is only ever a
+// response, so drop the components no operation references. (Path-level $refs
+// only: nothing registered nests another registered schema.)
+interface DocumentWithComponents {
+  paths?: object;
+  components?: { schemas?: Record<string, unknown> };
+}
+
+const withoutUnusedSchemas: typeof jsonSchemaTransformObject = (document) => {
+  const openapi = jsonSchemaTransformObject(document) as DocumentWithComponents;
+  const referenced = JSON.stringify(openapi.paths ?? {});
+  const schemas = Object.fromEntries(
+    Object.entries(openapi.components?.schemas ?? {}).filter(([name]) => referenced.includes(`"#/components/schemas/${name}"`)),
+  );
+  return { ...openapi, components: { ...openapi.components, schemas } } as ReturnType<typeof jsonSchemaTransformObject>;
+};
 
 export function buildApp(deps: AppDependencies, options: BuildAppOptions): FastifyInstance {
   const app = Fastify({ logger: false });
@@ -33,6 +51,7 @@ export function buildApp(deps: AppDependencies, options: BuildAppOptions): Fasti
   app.register(swagger, {
     openapi: { info: { title: 'gubbins', version: appVersion } },
     transform: jsonSchemaTransform,
+    transformObject: withoutUnusedSchemas,
   });
   app.register(async (instance) => registerRoutes(instance, deps));
 

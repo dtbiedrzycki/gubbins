@@ -22,6 +22,17 @@ const slugItemParams = z.object({ slug: z.string(), itemId: z.string() });
 
 const NOT_FOUND = { message: 'Not found' } as const;
 
+// One shared component in the OpenAPI document instead of the error body
+// inlined into every 4xx response.
+z.globalRegistry.add(errorResponseSchema, { id: 'ErrorResponse' });
+
+/** A JSON response with the description OpenAPI shows for its status. */
+function json<T extends z.ZodType>(description: string, schema: T) {
+  return { description, content: { 'application/json': { schema } } };
+}
+
+const INVALID_REQUEST = 'The request did not match the schema.';
+
 interface SessionPayload {
   wishlistId: string;
   keyGen: number;
@@ -49,7 +60,10 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     schema: {
       operationId: 'createList',
       body: createListRequestSchema,
-      response: { 201: createListResponseSchema, 400: errorResponseSchema },
+      response: {
+        201: json('The list was created.', createListResponseSchema),
+        400: json(INVALID_REQUEST, errorResponseSchema),
+      },
     },
   }, async (request, reply) => {
     const result = await deps.createList.execute(request.body);
@@ -61,7 +75,11 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       operationId: 'enterGuestKey',
       params: slugParams,
       body: enterGuestKeyRequestSchema,
-      response: { 200: enterGuestKeyResponseSchema, 400: errorResponseSchema, 404: errorResponseSchema },
+      response: {
+        200: json('The key was accepted and a session cookie was set.', enterGuestKeyResponseSchema),
+        400: json(INVALID_REQUEST, errorResponseSchema),
+        404: json('No such list, or the key is wrong. The two are deliberately indistinguishable (ADR-016, ADR-054).', errorResponseSchema),
+      },
     },
   }, async (request, reply) => {
     const { slug } = request.params;
@@ -84,7 +102,10 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     schema: {
       operationId: 'getListView',
       params: slugParams,
-      response: { 200: listViewResponseSchema, 404: errorResponseSchema },
+      response: {
+        200: json('The list and its item.', listViewResponseSchema),
+        404: json('No such list, or no valid session for it. The two are deliberately indistinguishable (ADR-016, ADR-054).', errorResponseSchema),
+      },
     },
   }, async (request, reply) => {
     const wishlist = await deps.wishlists.findBySlug(request.params.slug);
@@ -114,7 +135,12 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       operationId: 'holdItem',
       params: slugItemParams,
       body: holdItemRequestSchema,
-      response: { 201: holdItemResponseSchema, 400: errorResponseSchema, 404: errorResponseSchema, 409: errorResponseSchema },
+      response: {
+        201: json('The item is now held for this session.', holdItemResponseSchema),
+        400: json(INVALID_REQUEST, errorResponseSchema),
+        404: json('No such list or item, or no valid session for the list. These are deliberately indistinguishable (ADR-016, ADR-054).', errorResponseSchema),
+        409: json('The item is already held.', errorResponseSchema),
+      },
     },
   }, async (request, reply) => {
     const { slug, itemId } = request.params;

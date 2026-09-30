@@ -30,4 +30,28 @@ describe('the OpenAPI document (ADR-0077)', () => {
       holdItem: ['201', '400', '404', '409'],
     });
   });
+  it('describes every response, rather than leaving the generator default', async () => {
+    const doc = JSON.parse(await generateOpenApiDocument());
+    const descriptions: string[] = [];
+    for (const methods of Object.values(doc.paths) as Record<string, { responses: Record<string, { description: string }> }>[]) {
+      for (const op of Object.values(methods)) for (const response of Object.values(op.responses)) descriptions.push(response.description);
+    }
+    expect(descriptions).toHaveLength(11);
+    expect(descriptions.filter((d) => !d.trim() || d === 'Default Response')).toEqual([]);
+  });
+
+  it('defines the error body once, as a component every error response references', async () => {
+    const doc = JSON.parse(await generateOpenApiDocument());
+    expect(Object.keys(doc.components.schemas)).toEqual(['ErrorResponse']);
+    const errorSchemas: unknown[] = [];
+    for (const methods of Object.values(doc.paths) as Record<string, { responses: Record<string, { content: { 'application/json': { schema: unknown } } }> }>[]) {
+      for (const op of Object.values(methods)) {
+        for (const [status, response] of Object.entries(op.responses)) {
+          if (status.startsWith('4')) errorSchemas.push(response.content['application/json'].schema);
+        }
+      }
+    }
+    expect(errorSchemas).toHaveLength(7);
+    expect(errorSchemas).toEqual(Array(7).fill({ $ref: '#/components/schemas/ErrorResponse' }));
+  });
 });

@@ -5,7 +5,24 @@
     "version": "0.0.0"
   },
   "components": {
-    "schemas": {}
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "issues": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "additionalProperties": false
+      }
+    }
   },
   "paths": {
     "/api/lists": {
@@ -39,7 +56,7 @@
         },
         "responses": {
           "201": {
-            "description": "Default Response",
+            "description": "The list was created.",
             "content": {
               "application/json": {
                 "schema": {
@@ -70,24 +87,11 @@
             }
           },
           "400": {
-            "description": "Default Response",
+            "description": "The request did not match the schema.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {}
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -129,7 +133,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Default Response",
+            "description": "The key was accepted and a session cookie was set.",
             "content": {
               "application/json": {
                 "schema": {
@@ -151,47 +155,21 @@
             }
           },
           "400": {
-            "description": "Default Response",
+            "description": "The request did not match the schema.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {}
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
           "404": {
-            "description": "Default Response",
+            "description": "No such list, or the key is wrong. The two are deliberately indistinguishable (ADR-016, ADR-054).",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {}
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -214,7 +192,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Default Response",
+            "description": "The list and its item.",
             "content": {
               "application/json": {
                 "schema": {
@@ -258,24 +236,11 @@
             }
           },
           "404": {
-            "description": "Default Response",
+            "description": "No such list, or no valid session for it. The two are deliberately indistinguishable (ADR-016, ADR-054).",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {}
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -325,7 +290,7 @@
         ],
         "responses": {
           "201": {
-            "description": "Default Response",
+            "description": "The item is now held for this session.",
             "content": {
               "application/json": {
                 "schema": {
@@ -352,70 +317,31 @@
             }
           },
           "400": {
-            "description": "Default Response",
+            "description": "The request did not match the schema.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {}
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
           "404": {
-            "description": "Default Response",
+            "description": "No such list or item, or no valid session for the list. These are deliberately indistinguishable (ADR-016, ADR-054).",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {}
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
           "409": {
-            "description": "Default Response",
+            "description": "The item is already held.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {}
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
