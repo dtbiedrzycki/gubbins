@@ -104,8 +104,16 @@ one-time renumbering documented in the restructuring history.
 | [068](0068-devcontainer-sandboxes-claude-code-auto-mode-via-an-egress.md) | Devcontainer sandboxes Claude Code auto mode via an egress-proxy sidecar | Accepted |
 | [069](0069-claude-code-and-gh-ship-in-the-dev-image-only.md) | Claude Code and gh ship in the development image only, with no baked-in credentials | Accepted |
 | [070](0070-revealedat-makes-owner-claim-status-reveal-one-way-sticky.md) | revealedAt makes owner claim-status reveal one-way sticky | Accepted |
+| [071](0071-fastify-as-the-backend-http-framework.md) | Fastify as the backend HTTP framework | Accepted |
+| [072](0072-kysely-as-the-query-builder.md) | Kysely as the query builder | Accepted |
+| [073](0073-vite-react-spa-served-by-the-backend.md) | Vite + React SPA, served by the backend | Accepted |
+| [074](0074-tailwind-css-for-styling.md) | Tailwind CSS for styling | Accepted |
+| [075](0075-ledger-events-record-the-acting-role.md) | Ledger events record the acting role | Proposed |
 
 ## Imported ADRs (0001–0070)
+
+ADRs 0071 onward are repo-native: written directly as each decision is
+made during implementation, not imported from `gubbins-spec.md`.
 
 ADRs 0001–0070 were imported from `gubbins-spec.md`'s former §4 ADR
 Index — pre-repository product/architecture decisions for the
