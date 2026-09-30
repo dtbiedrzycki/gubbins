@@ -238,6 +238,24 @@ describe('response validation', () => {
     expect(response.json()).toEqual({ message: 'Internal server error' });
     expect(errors).toContain('response_schema_mismatch');
   });
+
+  it('names the offending field in the log, without echoing its value', async () => {
+    const db = createDb(':memory:');
+    await migrateToLatest(db);
+    const logged: { message: string; meta?: Record<string, unknown> }[] = [];
+    const logger: Logger = { logInfo: () => {}, logWarn: () => {}, logError: (message, meta) => { logged.push({ message, meta }); } };
+    const deps = buildDependencies(db, logger);
+    const brokenCreateList = { execute: async () => ({ slug: 42 }) };
+    const brokenApp = buildApp({ ...deps, createList: brokenCreateList as unknown as typeof deps.createList }, { cookieSecret: 'test-secret' });
+    disposeWithApp(brokenApp, db);
+    onTestFinished(() => brokenApp.close());
+
+    await brokenApp.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller' } });
+
+    const entry = logged.find((l) => l.message === 'response_schema_mismatch');
+    expect(entry?.meta?.issues).toEqual(expect.arrayContaining([expect.objectContaining({ path: ['slug'], code: 'invalid_type' })]));
+    expect(JSON.stringify(entry?.meta)).not.toContain('42');
+  });
 });
 
 describe('requests Fastify rejects before validation', () => {

@@ -4,6 +4,7 @@ import fastifyStatic from '@fastify/static';
 import swagger from '@fastify/swagger';
 import path from 'node:path';
 import { ZodError } from 'zod';
+import { $ZodError } from 'zod/v4/core';
 import {
   hasZodFastifySchemaValidationErrors, isResponseSerializationError,
   jsonSchemaTransform, serializerCompiler, validatorCompiler,
@@ -75,12 +76,19 @@ export function buildApp(deps: AppDependencies, options: BuildAppOptions): Fasti
     }
     // A handler built a body its own response schema rejects: a server bug,
     // never the client's fault.
-    const event = isResponseSerializationError(error) ? 'response_schema_mismatch' : 'unhandled_error';
+    const mismatch = isResponseSerializationError(error);
+    const event = mismatch ? 'response_schema_mismatch' : 'unhandled_error';
+    // The serialization error's own message is fixed text; the zod error in its
+    // cause (a core $ZodError, not the classic ZodError) says which field failed. zod's messages name types, not values, so
+    // logging them does not echo response data.
+    const issues = mismatch && error.cause instanceof $ZodError
+      ? error.cause.issues.map(({ code, path, message }) => ({ code, path, message }))
+      : undefined;
     // Fastify's own `logger: false` above means nothing else in this process
     // logs unhandled errors — without this, a real failure (e.g. a
     // constraint violation, a bad migration) would produce a 500 with no
     // trace anywhere, stdout included.
-    deps.logger.logError(event, { message: error.message, stack: error.stack, url: request.url });
+    deps.logger.logError(event, { message: error.message, stack: error.stack, url: request.url, ...(issues && { issues }) });
     reply.code(500).send(errorResponseSchema.parse({ message: 'Internal server error' }));
   });
 
