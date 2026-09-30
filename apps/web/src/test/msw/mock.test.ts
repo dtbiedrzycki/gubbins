@@ -23,6 +23,10 @@ describe('mock()', () => {
     mock('post', '/api/lists/{slug}/items/{itemId}/hold', 201, { message: 'x' });
     // @ts-expect-error — the route has no GET
     mock('get', '/api/lists', 201, { slug: 's', ownerToken: 'o', key: 'k', itemId: 'i' });
+    // @ts-expect-error — the body is missing required fields of the 201 schema
+    mock('post', '/api/lists', 201, { slug: 's' });
+    // @ts-expect-error — the body has a property the 201 schema does not define
+    mock('post', '/api/lists', 201, { slug: 's', ownerToken: 'o', key: 'k', itemId: 'i', extra: true });
     expect(true).toBe(true);
   });
 });
