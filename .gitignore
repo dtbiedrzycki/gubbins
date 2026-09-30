@@ -37,3 +37,6 @@ Thumbs.db
 *.log
 *.swp
 .idea/
+
+# Local git worktrees used for isolated agent workspaces
+.worktrees/
