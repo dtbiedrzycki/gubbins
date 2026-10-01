@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Item } from './Item.js';
-import { DomainValidationError, ItemAlreadyHeldError } from '../errors.js';
+import { DomainValidationError, ItemUnavailableError } from '../errors.js';
 
 const ITEM_ID = '33333333-3333-7333-8333-333333333333';
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
@@ -101,9 +101,9 @@ describe('Item.placeHold', () => {
     expect(item.seq).toBe(5);
   });
 
-  it('throws ItemAlreadyHeldError when active holds have reached the quantity', () => {
+  it('throws ItemUnavailableError when active holds have reached the quantity', () => {
     const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 4, activeHolds: 1 });
-    expect(() => item.placeHold(holdProps, fakeTokens, fakeHasher)).toThrow(ItemAlreadyHeldError);
+    expect(() => item.placeHold(holdProps, fakeTokens, fakeHasher)).toThrow(ItemUnavailableError);
   });
 
   it('rejects an expiry that is not in the future', () => {

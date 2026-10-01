@@ -9,7 +9,7 @@ import {
 } from '@gubbins/shared-types';
 import type { AppDependencies } from './compositionRoot.js';
 import {
-  WishlistNotFoundError, InvalidGuestKeyError, ItemNotFoundError, ItemAlreadyHeldError, ConcurrencyError,
+  WishlistNotFoundError, InvalidGuestKeyError, ItemNotFoundError, ItemUnavailableError, ConcurrencyError,
 } from '../domain/errors.js';
 import type { Wishlist } from '../domain/entities/Wishlist.js';
 
@@ -164,7 +164,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       return reply.code(201).send(result);
     } catch (err) {
       if (err instanceof ItemNotFoundError) return reply.code(404).send(NOT_FOUND);
-      if (err instanceof ItemAlreadyHeldError || err instanceof ConcurrencyError) {
+      if (err instanceof ItemUnavailableError || err instanceof ConcurrencyError) {
         return reply.code(409).send({ message: 'Item already held' });
       }
       throw err;
