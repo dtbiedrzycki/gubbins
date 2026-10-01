@@ -3,7 +3,9 @@ import { Item } from '../../domain/entities/Item.js';
 import type { WishlistRepository } from '../ports/WishlistRepository.js';
 import type { ItemRepository } from '../ports/ItemRepository.js';
 import type { HoldRepository, HoldRecord } from '../ports/HoldRepository.js';
-import type { EventStore, DomainEvent } from '../ports/EventStore.js';
+import type { EventStore } from '../ports/EventStore.js';
+import type { Actor } from '../../domain/Actor.js';
+import type { LedgerEvent } from '../../domain/events/LedgerEvent.js';
 import type { UnitOfWork, TransactionContext } from '../ports/UnitOfWork.js';
 import { ConcurrencyError, ItemNotFoundError } from '../../domain/errors.js';
 
@@ -130,14 +132,19 @@ export class InMemoryHoldRepository implements HoldRepository {
 }
 
 export class InMemoryEventStore implements EventStore {
-  private streams = new Map<string, DomainEvent[]>();
+  private streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
 
-  async append(itemId: string, expectedSeq: number, events: DomainEvent[]): Promise<void> {
+  async append(itemId: string, expectedSeq: number, events: readonly LedgerEvent[], actor: Actor): Promise<void> {
     const stream = this.streams.get(itemId) ?? [];
     if (stream.length !== expectedSeq) {
       throw new ConcurrencyError(itemId, expectedSeq, stream.length);
     }
-    this.streams.set(itemId, [...stream, ...events]);
+    this.streams.set(itemId, [...stream, ...events.map((event) => ({ event, actor }))]);
+  }
+
+  /** What a stream holds, envelope included — tests read it to check what a use case appended and as whom. */
+  recorded(itemId: string): readonly { event: LedgerEvent; actor: Actor }[] {
+    return this.streams.get(itemId) ?? [];
   }
 }
 

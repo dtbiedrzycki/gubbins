@@ -64,6 +64,10 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn('item_id', 'text', (col) => col.notNull())
     .addColumn('seq', 'integer', (col) => col.notNull())
     .addColumn('event_type', 'text', (col) => col.notNull())
+    // Envelope metadata, not payload (ADR-0075): the role whose credential
+    // authorised the command. No `system` role exists; adding one needs an
+    // ADR and a migration that widens this check.
+    .addColumn('actor', 'text', (col) => col.notNull().check(sql`actor IN ('guest', 'owner')`))
     .addColumn('payload', 'text', (col) => col.notNull())
     .addColumn('recorded_at', 'text', (col) => col.notNull())
     .addUniqueConstraint('event_log_item_seq_unique', ['item_id', 'seq'])

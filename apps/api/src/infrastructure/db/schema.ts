@@ -1,4 +1,5 @@
 import type { Generated } from 'kysely';
+import type { Actor } from '../../domain/Actor.js';
 
 export interface WishlistsTable {
   id: string;
@@ -45,6 +46,7 @@ export interface EventLogTable {
   item_id: string;
   seq: number;
   event_type: string;
+  actor: Actor;
   payload: string;
   recorded_at: string;
 }

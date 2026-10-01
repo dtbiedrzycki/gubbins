@@ -60,4 +60,22 @@ describe('0001_init, as amended for holds stack A', () => {
 
     expect(rows.map((r) => r.name)).toEqual(expect.arrayContaining(['holds_item_id_idx', 'holds_session_hash_idx']));
   });
+
+  it('refuses an event row without an actor', async () => {
+    await expect(sql`insert into event_log (item_id, seq, event_type, payload, recorded_at) values (${I1}, 1, 'ItemHeld', '{}', ${NOW})`.execute(db))
+      .rejects.toThrow(/NOT NULL constraint failed: event_log.actor/);
+  });
+
+  it('refuses an actor other than guest or owner — there is no system role (ADR-0075)', async () => {
+    await expect(sql`insert into event_log (item_id, seq, event_type, actor, payload, recorded_at) values (${I1}, 1, 'ItemHeld', 'system', '{}', ${NOW})`.execute(db))
+      .rejects.toThrow(/CHECK constraint failed/);
+  });
+
+  it('accepts both roles', async () => {
+    await sql`insert into event_log (item_id, seq, event_type, actor, payload, recorded_at) values (${I1}, 1, 'ItemHeld', 'guest', '{}', ${NOW})`.execute(db);
+    await sql`insert into event_log (item_id, seq, event_type, actor, payload, recorded_at) values (${I1}, 2, 'HoldReleased', 'owner', '{}', ${NOW})`.execute(db);
+
+    const { rows } = await sql<{ actor: string }>`select actor from event_log order by seq`.execute(db);
+    expect(rows.map((r) => r.actor)).toEqual(['guest', 'owner']);
+  });
 });

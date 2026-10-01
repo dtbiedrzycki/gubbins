@@ -81,6 +81,7 @@ describe('Item.placeHold', () => {
     const { event } = available().placeHold(holdProps, fakeTokens, fakeHasher);
     expect(event).toEqual({
       type: 'ItemHeld',
+      v: 1,
       itemId: ITEM_ID,
       holdId: GENERATED_HOLD_ID,
       secretHash: 'f'.repeat(64),

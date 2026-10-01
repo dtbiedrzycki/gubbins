@@ -133,6 +133,7 @@ export class Item {
     });
     const event: ItemHeldEvent = {
       type: 'ItemHeld',
+      v: 1,
       itemId: hold.itemId.value,
       holdId: hold.id.value,
       secretHash: hasher.hash(hold.secret.value),
