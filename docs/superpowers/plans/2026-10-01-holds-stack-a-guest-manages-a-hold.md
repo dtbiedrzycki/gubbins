@@ -1036,7 +1036,7 @@ Expected: PASS.
 - [ ] **Step 5: Check the real failure mode by hand**
 
 ```bash
-S=/tmp/claude-1000/-workspace/579b5866-7072-4c64-b51f-e56c8ae4460e/scratchpad
+S=$(mktemp -d)
 # A database with the skeleton's event_log, as a build from before this stack left it.
 node -e "const D=require('better-sqlite3');const d=new D('$S/stale.db');d.exec(\"create table event_log (id integer primary key autoincrement, item_id text not null, seq integer not null, event_type text not null, payload text not null, recorded_at text not null)\");d.close()"
 DATABASE_PATH=$S/stale.db npm run migrate --workspace=apps/api; echo "exit $?"

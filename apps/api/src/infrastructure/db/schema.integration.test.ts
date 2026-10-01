@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { sql, type Insertable, type Kysely } from 'kysely';
 import { createDb } from './createDb.js';
+import { StaleSchemaError } from './assertSchemaMatches.js';
 import { migrateToLatest } from './migrate.js';
 import type { Database, HoldsTable } from './schema.js';
 
@@ -77,5 +78,24 @@ describe('0001_init, as amended for holds stack A', () => {
 
     const { rows } = await sql<{ actor: string }>`select actor from event_log order by seq`.execute(db);
     expect(rows.map((r) => r.actor)).toEqual(['guest', 'owner']);
+  });
+});
+
+describe('migrateToLatest on a database an older build created', () => {
+  it('refuses to start, naming the table and how to recover', async () => {
+    const stale = createDb(':memory:');
+    // The skeleton's event_log, before ADR-0075 added `actor`.
+    await sql`create table event_log (id integer primary key autoincrement, item_id text not null, seq integer not null,
+      event_type text not null, payload text not null, recorded_at text not null)`.execute(stale);
+
+    const migrating = migrateToLatest(stale);
+
+    await expect(migrating).rejects.toThrow(StaleSchemaError);
+    await expect(migrating).rejects.toThrow(/"event_log".*recreate the database.*DATABASE_PATH/s);
+    await stale.destroy();
+  });
+
+  it('accepts a database the current migration created, run again', async () => {
+    await expect(migrateToLatest(db)).resolves.toBeUndefined();
   });
 });
