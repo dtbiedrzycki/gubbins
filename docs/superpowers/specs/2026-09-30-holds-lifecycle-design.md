@@ -69,7 +69,7 @@ earlier ones where noted.
 | D2 | Owner release ships with a **minimal spoiler model**: owner-token entry, `ownerSeesClaimStatus` / `ownerSeesClaimerIdentity` toggles, sticky `revealedAt`; `revealAfter` nullable until sub-project 4. | `ownerSeesClaimStatus` defaults off; a release control shown only on held items would leak claim status. | Spoiler-neutral blind release; API-only release with no UI. |
 | D3 | Single items support **quantity ≥ 1**. | The availability rule has to be rewritten against hold rows anyway; closes the roadmap's quantity-1 open item. | Keep quantity = 1. |
 | D4 | **Hold rows are the source of truth for liveness.** `item_state.active_holds` is dropped; `item_state` keeps `seq` and `purchased_count`. | Under lazy expiry nothing is written when a hold expires, so a counter cannot stay honest. The spec already names `holds` as the source for the per-session count and expiry display. | Counter with lazy compaction (two sources of truth); emitting `HoldExpired` on read (spec: derived, not emitted). |
-| D5 | Hold state is **timestamps only**: nullable `releasedAt` / `purchasedAt` (at most one set) plus `expiresAt`; derived `statusAt(now)` → `active \| expired \| released \| purchased`. | "Active" is the spec's word (`MAX_ACTIVE_HOLDS_PER_SESSION`, `activeHolds`), so it names the derived state; no stored enum competes with it. Matches the spec's timestamp convention (`archivedAt`, `revealedAt`, `confirmedAt`). | Stored `resolution` enum; nullable `closedAs`. |
+| D5 | Hold state is **timestamps only**: nullable `releasedAt` / `purchasedAt` (at most one set) and `extendedAt` (set at most once), plus `expiresAt`; derived `statusAt(now)` → `active \| expired \| released \| purchased`. | "Active" is the spec's word (`MAX_ACTIVE_HOLDS_PER_SESSION`, `activeHolds`), so it names the derived state; no stored enum competes with it. Matches the spec's timestamp convention (`archivedAt`, `revealedAt`, `confirmedAt`). | Stored `resolution` enum; nullable `closedAs`. |
 | D6 | **`actor` is event-envelope metadata**, supplied by the use case to `EventStore.append(itemId, expectedSeq, events, actor)`. Domain command methods take no caller; payloads carry no actor. | ADR-0075 says exactly this. | `actor` parameter on domain methods / in payloads (an early draft of this design). |
 | D7 | **Authorization:** use cases call a domain policy, `HoldPermissions` (`mayExtend` / `mayRelease` / `mayPurchase`), over domain predicates. `AccessContext` is grown from the existing `SessionPayload`, built only in `presentation/`, and passed to use cases **beside** `TransactionContext`, never inside it. | DDD practice: authentication at the edge; rules a domain expert would state (spoiler gating, "only the holder may extend") live in the domain as a policy; entity methods stay free of caller parameters. `TransactionContext` is database-scoped, access is request-scoped. Also stops the raw session id crossing into `application/`. | `Accessor` parameter on entity methods; ambient AsyncLocalStorage; access inside `TransactionContext`. |
 | D8 | Load **only active holds**: `HoldRepository.findActiveForWishlist(wishlistId, now)`; the domain re-checks each with `statusAt(now)`; paths that need an expired hold load it by id or public key; a port contract suite pins the boundary. | Expired-but-unclosed holds are never closed under lazy expiry, so "all unclosed" grows without bound. Chooses purity + performance over completeness (the domain-model trilemma) with a contract test as the guard rail. | Load all unclosed holds. |
@@ -93,11 +93,12 @@ earlier ones where noted.
 **`Hold`** — own aggregate, referenced by `itemId`, reached through the
 `Wishlist`.
 - Fields: `id`, `itemId`, `publicKey`, `sessionHash`, `idempotencyKey`,
-  `piiRef`, `expiresAt`, `extended`, `releasedAt?`, `purchasedAt?`.
+  `piiRef`, `expiresAt`, `extendedAt?`, `releasedAt?`, `purchasedAt?`.
 - `statusAt(now)`: `purchased` if `purchasedAt`; `released` if
   `releasedAt`; `expired` if `now > expiresAt`; else `active`. The one
   definition of hold state; never stored.
-- `extend(now, duration)`: only `active` and not yet extended; adds
+- `extend(now, duration)`: only `active` and `extendedAt === null`; sets
+  `extendedAt = now` and adds
   `duration` to the **current** `expiresAt` (max exposure stays
   2 × duration, ADR-0002). Returns `HoldExtended`.
 - `release(now)`: only `active`. Sets `releasedAt`. Returns `HoldReleased`.
@@ -133,11 +134,13 @@ of the list's **active** holds (D8).
 Guest credentials are evaluated before owner; the actor recorded is the
 role of the credential that authorized the action (ADR-0075).
 
-**Events** — all payloads carry `v: 1`; no PII (only `piiRef`); actor is
+**Events** — all payloads carry `v: 1` and `occurredAt`; no PII (only `piiRef`); actor is
 envelope metadata (D6). `ItemHeld { holdId, itemId, publicKey,
 sessionHash, idempotencyKey, piiRef, expiresAt, occurredAt }`;
-`HoldExtended { holdId, expiresAt }`; `HoldReleased { holdId }`;
-`ItemPurchased { holdId }`. All appended to the item's stream.
+`HoldExtended { holdId, expiresAt, occurredAt }`;
+`HoldReleased { holdId, occurredAt }`; `ItemPurchased { holdId,
+occurredAt }`. All appended to the item's stream. `occurredAt` is what a
+rebuild folds into `extended_at`, `released_at` and `purchased_at`.
 
 ### 2. Persistence and schema (approved)
 
@@ -155,7 +158,7 @@ item_state  - active_holds
 holds       - secret
             + public_key text not null unique
             + pii_ref text not null references guest_pii(id)
-            + extended int not null default 0
+            + extended_at text null
             + released_at text null, purchased_at text null
             + CHECK (released_at IS NULL OR purchased_at IS NULL)
             + index (item_id), index (session_hash)
@@ -263,7 +266,7 @@ flowing into `openapi.json` (ADR-0077). `HOLD_DURATION_DAYS` and
 - `HoldConfirmation`: **Mark as purchased** primary; hold link with
   **Copy link** and a one-line explanation; shown once.
 - `HoldActions` shared by *Your holds* and `HoldLinkPage`: extend hidden
-  once extended; expired holds offer purchase only while a unit is free;
+  once `extendedAt` is set; expired holds offer purchase only while a unit is free;
   release confirms; changes announced via aria-live (ADR-0025).
 - `lib/holdCredential.ts` is the only importer of `@noble/ed25519`; the
   API client records the server clock offset from `Date` headers; the seed
