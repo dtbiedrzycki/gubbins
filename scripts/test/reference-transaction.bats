@@ -13,6 +13,23 @@ setup() {
   cd "$REPO"
 }
 
+# unsigned_commit <repo-dir> <filename> -> stdout: oid of an unsigned
+#   commit that no branch points at. It is committed on the checked-out
+#   branch and the branch reset straight back, both with signing and every
+#   hook disabled, so making the fixture never goes through the hook under
+#   test. The commit stays reachable by its oid for the test to use.
+unsigned_commit() {
+  local dir="$1" name="$2" base
+  base="$(git -C "$dir" rev-parse HEAD)"
+  echo "$name" > "$dir/$name"
+  git -C "$dir" add "$name"
+  git -C "$dir" -c core.hooksPath=/dev/null -c commit.gpgsign=false \
+    -c user.name="Unsigned" -c user.email="unsigned@example.com" \
+    commit -q -m "unsigned $name" --no-verify
+  git -C "$dir" rev-parse HEAD
+  git -C "$dir" -c core.hooksPath=/dev/null reset -q --hard "$base"
+}
+
 # Break caught: the hook rejecting legitimate updates (wrong range, or
 # verifying against the wrong anchors).
 @test "allows a fast-forward onto signed commits" {

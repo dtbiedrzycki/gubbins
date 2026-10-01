@@ -41,6 +41,9 @@ setup() {
 
 # Break caught: clones set up before the reference-transaction hook keep
 # merge/pull.verifySignatures, which rejects every GitHub web-UI merge.
+# The only test that fails if the unset lines go: the one above starts
+# from a fresh repo where they were never set. Delete both together once
+# no clone predates the hook.
 @test "unsets merge/pull.verifySignatures left by an earlier setup" {
   export SIGNING_NAME="Test Signer"
   export SIGNING_EMAIL="test@example.com"

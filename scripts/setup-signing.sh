@@ -88,7 +88,9 @@ git config --local gpg.ssh.allowedSignersFile "$allowed"
 git config --local core.hooksPath .githooks
 # Superseded by .githooks/reference-transaction: git's built-in check
 # reads only the tip and only SSH-verifies here, so it rejected every
-# GitHub web-UI merge (PGP-signed). Unset so re-running migrates a clone.
+# GitHub web-UI merge (PGP-signed). A clone set up by an earlier version
+# of this script still has them set; removing them here means re-running
+# the script cleans that clone up. `|| true`: absent is fine.
 git config --local --unset-all merge.verifySignatures || true
 git config --local --unset-all pull.verifySignatures || true
 
