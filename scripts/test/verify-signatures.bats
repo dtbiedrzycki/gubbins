@@ -76,10 +76,6 @@ setup() {
 # merge as the fixture instead. They skip where that commit is absent
 # (shallow clone, or history rewritten) or `gpg` is not installed.
 
-pgp_fixture_sha() {
-  git -C "$REPO_ROOT" rev-parse -q --verify "8fdba3d^{commit}" 2>/dev/null
-}
-
 @test "accepts a commit PGP-signed by a key in .allowed_pgp_keys.asc" {
   command -v gpg >/dev/null || skip "gpg is not installed"
   local sha; sha="$(pgp_fixture_sha)" || true

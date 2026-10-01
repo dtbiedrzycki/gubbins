@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+#
+# Verify every commit a local-branch update brings in — merge, pull,
+# fast-forward, `fetch src:dst`, `reset`, `branch -f`, a new commit — is
+# signed by a key this repo trusts, before the ref moves. It runs the
+# same scripts/verify-signatures.sh as CI and the other hooks, so it
+# checks both trust anchors (SSH and GitHub's PGP merge key) and the
+# whole incoming range, not just the tip as merge.verifySignatures did.
+#
+# Convenience guard like the other client hooks; CI and pre-receive are
+# the binding gates. `--no-verify` does not skip this hook; bypass it
+# deliberately with `git -c core.hooksPath= <command>`.
+#
+# $1: transaction state. stdin lines: <old-value> <new-value> <ref-name>
+
+set -euo pipefail
+
+# Only the "prepared" state can still abort the transaction.
+[ "${1:-}" = "prepared" ] || exit 0
+
+# Resolved from this file rather than the repo root, so the hook also
+# works when another repository points core.hooksPath here (the tests).
+verify="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/scripts/verify-signatures.sh"
+
+# True for git's all-zero "no such object" id, or an empty field.
+is_null() { [ -z "${1:-}" ] || printf '%s' "$1" | grep -Eq '^0+$'; }
+
+rc=0
+while read -r old new ref; do
+  # Remote-tracking refs, tags, stash: checked once they reach a branch.
+  case "$ref" in refs/heads/*) ;; *) continue ;; esac
+  # A deletion brings nothing in.
+  is_null "$new" && continue
+
+  # A null old value (a new branch, or an update that named no expected
+  # old value) is the verifier's "new ref" range: everything reachable
+  # from <new> that is not already on a remote.
+  bash "$verify" "$old..$new" || rc=1
+done
+
+if [ "$rc" -ne 0 ]; then
+  echo "reference-transaction: aborting — unsigned or untrusted commits." >&2
+fi
+exit "$rc"

@@ -3,6 +3,7 @@
 REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
 VERIFY_SCRIPT="$REPO_ROOT/scripts/verify-signatures.sh"
 SETUP_SCRIPT="$REPO_ROOT/scripts/setup-signing.sh"
+HOOKS_DIR="$REPO_ROOT/.githooks"
 
 ZERO_OID=0000000000000000000000000000000000000000
 
@@ -41,4 +42,25 @@ commit_file() {
   echo "$name" > "$dir/$name"
   git -C "$dir" add "$name"
   git -C "$dir" commit -q -m "add $name" "$@"
+}
+
+# pgp_fixture_sha -> stdout: this repository's own web-UI squash merge
+#   (PGP-signed by GitHub's key), or nothing in a clone that lacks it.
+pgp_fixture_sha() {
+  git -C "$REPO_ROOT" rev-parse -q --verify "8fdba3d^{commit}" 2>/dev/null
+}
+
+# unsigned_commit <repo-dir> <filename> -> stdout: oid of an unsigned
+#   commit on a detached HEAD, made with every hook and signing disabled,
+#   so the fixture itself never passes through the code under test.
+unsigned_commit() {
+  local dir="$1" name="$2" base
+  base="$(git -C "$dir" rev-parse HEAD)"
+  echo "$name" > "$dir/$name"
+  git -C "$dir" add "$name"
+  git -C "$dir" -c core.hooksPath=/dev/null -c commit.gpgsign=false \
+    -c user.name="Unsigned" -c user.email="unsigned@example.com" \
+    commit -q -m "unsigned $name" --no-verify
+  git -C "$dir" rev-parse HEAD
+  git -C "$dir" -c core.hooksPath=/dev/null reset -q --hard "$base"
 }
