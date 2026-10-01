@@ -32,10 +32,17 @@ while read -r old new ref; do
   # A deletion brings nothing in.
   is_null "$new" && continue
 
-  # A null old value (a new branch, or an update that named no expected
-  # old value) is the verifier's "new ref" range: everything reachable
-  # from <new> that is not already on a remote.
-  bash "$verify" "$old..$new" || rc=1
+  if is_null "$old"; then
+    # A new branch, or an update that named no expected old value
+    # (`branch -f`, `update-ref`): check everything reachable from <new>
+    # not already on a local branch. Not the verifier's own null-left
+    # "not on a remote" range — that suits pre-push, but here the
+    # remote-tracking refs are exactly the commits fetch left unchecked.
+    range="$new --not --branches"
+  else
+    range="$old..$new"
+  fi
+  bash "$verify" "$range" || rc=1
 done
 
 if [ "$rc" -ne 0 ]; then

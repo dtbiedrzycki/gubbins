@@ -69,6 +69,38 @@ setup() {
   [ "$status" -ne 0 ]
 }
 
+# fetched_unsigned -> stdout: oid of an unsigned commit fetched into
+#   refs/remotes/upstream/side, where (by design) nothing checked it.
+fetched_unsigned() {
+  local upstream="$BATS_TEST_TMPDIR/upstream" bad
+  git clone -q "$REPO" "$upstream"
+  bad="$(unsigned_commit "$upstream" bad.txt)"
+  git -C "$upstream" branch -q side "$bad"
+  git fetch -q "$upstream" side:refs/remotes/upstream/side
+  printf '%s\n' "$bad"
+}
+
+# Break caught: a null old value treated as "new ref, skip what is on a
+# remote" — remote-tracking refs are exactly the unchecked commits.
+@test "blocks creating a branch from a fetched unsigned commit" {
+  fetched_unsigned >/dev/null
+  run git switch -q -c side upstream/side
+  [ "$status" -ne 0 ]
+  run git rev-parse -q --verify refs/heads/side
+  [ "$status" -ne 0 ]
+}
+
+# Break caught: same, for an update that names no expected old value.
+@test "blocks branch -f onto a fetched unsigned commit" {
+  local before
+  git branch -q other
+  before="$(git rev-parse other)"
+  fetched_unsigned >/dev/null
+  run git branch -f other upstream/side
+  [ "$status" -ne 0 ]
+  [ "$(git rev-parse other)" = "$before" ]
+}
+
 # Break caught: the hook skipping ordinary commits on a branch.
 @test "blocks an unsigned commit on a branch" {
   local before
