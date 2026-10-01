@@ -29,10 +29,31 @@ setup() {
   [ "$(git config --local tag.gpgsign)" = "true" ]
   [ "$(git config --local gpg.format)" = "ssh" ]
   [ "$(git config --local core.hooksPath)" = ".githooks" ]
-  [ "$(git config --local merge.verifySignatures)" = "true" ]
+  # Verification on merge/pull is the reference-transaction hook's job.
+  run git config --local --get merge.verifySignatures
+  [ "$status" -eq 1 ]
+  run git config --local --get pull.verifySignatures
+  [ "$status" -eq 1 ]
   [ "$(git config --local user.email)" = "test@example.com" ]
   [ "$(git config --local gpg.ssh.allowedSignersFile)" = "$REPO/.allowed_signers" ]
   [ "$(grep -c 'test@example.com' "$REPO/.allowed_signers")" -eq 1 ]
+}
+
+# Break caught: clones set up before the reference-transaction hook keep
+# merge/pull.verifySignatures, which rejects every GitHub web-UI merge.
+@test "unsets merge/pull.verifySignatures left by an earlier setup" {
+  export SIGNING_NAME="Test Signer"
+  export SIGNING_EMAIL="test@example.com"
+  git config --local merge.verifySignatures true
+  git config --local pull.verifySignatures true
+
+  run bash "$SETUP_SCRIPT"
+  [ "$status" -eq 0 ]
+
+  run git config --local --get merge.verifySignatures
+  [ "$status" -eq 1 ]
+  run git config --local --get pull.verifySignatures
+  [ "$status" -eq 1 ]
 }
 
 @test "is idempotent: reuses the key and does not duplicate the trust line" {

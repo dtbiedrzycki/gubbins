@@ -12,8 +12,9 @@
 #   - generates a passphrase-less ed25519 signing key under
 #     .devcontainer/secrets/ if one isn't there yet
 #   - adds this identity to the committed .allowed_signers (if missing)
-#   - sets repo-local git config to sign every commit/tag, to verify
-#     signatures on merge/pull, and to use the repo's .githooks/
+#   - sets repo-local git config to sign every commit/tag and to use the
+#     repo's .githooks/ (whose reference-transaction hook verifies what
+#     every merge, pull and other branch update brings in)
 #   - prints the public key for you to share / register
 #
 # It never touches global git config and never sends anything anywhere.
@@ -84,9 +85,12 @@ git config --local user.signingkey "$root/$pub_file"
 git config --local commit.gpgsign true
 git config --local tag.gpgsign true
 git config --local gpg.ssh.allowedSignersFile "$allowed"
-git config --local merge.verifySignatures true
-git config --local pull.verifySignatures true
 git config --local core.hooksPath .githooks
+# Superseded by .githooks/reference-transaction: git's built-in check
+# reads only the tip and only SSH-verifies here, so it rejected every
+# GitHub web-UI merge (PGP-signed). Unset so re-running migrates a clone.
+git config --local --unset-all merge.verifySignatures || true
+git config --local --unset-all pull.verifySignatures || true
 
 echo "setup-signing: git config set (repo-local)"
 echo
