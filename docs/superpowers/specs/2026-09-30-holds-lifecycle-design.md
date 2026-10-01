@@ -1,8 +1,8 @@
 # Holds lifecycle — design (sub-project 2)
 
-**Status:** Draft, brainstorming in progress. Sections 1–4 approved;
-Section 5 presented, awaiting approval; Section 6 (testing and PR stack)
-not yet presented. Not yet reviewed as a written spec.
+**Status:** Draft, brainstorming in progress. Sections 1–5 approved;
+Section 6 (testing and PR stack) presented, awaiting approval. Not yet
+reviewed as a written spec.
 **Date:** 2026-09-30
 **Roadmap:** [roadmap to full spec](../plans/2026-09-30-roadmap-to-full-spec.md), sub-project 2
 **Governing ADRs:** 0002, 0008, 0009, 0012, 0035, 0046, 0048, 0052, 0057,
@@ -69,6 +69,7 @@ earlier ones where noted.
 | D13 | **Reminder bookkeeping lives in a side table** `hold_reminders`, outside `rebuildProjections`; delivery is **at most once** (claim, commit, then send). The reminder email cannot contain the hold link (the server never has the seed). | A column written by the periodic task and not derived from events would be wiped by a rebuild, causing duplicate reminders. At-most-once matches the spec's framing that a failed run costs a missed reminder. | `holds.reminded_for_expires_at` column (an earlier draft). |
 | D14 | **Migrations amend `0001_init` in place.** | Pre-1.0, no deployed instances: the ADR-0048 / ADR-0075 precedent. Avoids SQLite's table rebuild to drop `active_holds`. Dev databases must be recreated. | New `0002` migration. |
 | D15 | An **expired** hold may still be marked purchased if the item has a free unit; otherwise a conflict. | A guest who bought the gift offline after expiry should not have to re-hold it. | Purchase only while active. |
+| D16 | The guest list view shows item cards in a **responsive grid**: one column below `sm` (unchanged at the spec's 375 px mobile-first target), two from `sm`, three from `lg`; equal-height cards per row. | User direction; one column on phones keeps the guest-UX spec's mobile-first layout intact, so the spec amendment only adds the wider breakpoints. | Single column at every width (current spec wording). |
 
 ## Design
 
@@ -228,12 +229,12 @@ flowing into `openapi.json` (ADR-0077). `HOLD_DURATION_DAYS` and
   the saved hold link or the original device. It cannot carry the hold
   link.
 
-### 5. Web UI (presented, awaiting approval)
+### 5. Web UI (approved)
 
 | Route | Page | Contents |
 |---|---|---|
 | `/` | `CreateListPage` (extended) | "Already have a list? Paste your owner token" → `/{slug}/manage`; create gains optional first-item quantity |
-| `/:slug` | `ListPage` (extended) | item cards (status badge, units left, **Hold it** ≥ 44 px); **Your holds** with expiry and actions |
+| `/:slug` | `ListPage` (extended) | item cards in a responsive grid (D16: 1 / 2 / 3 columns at base / `sm` / `lg`) with status badge, units left, **Hold it** ≥ 44 px; **Your holds** with expiry and actions |
 | `/:slug/hold` | `HoldLinkPage` (new) | reads `#k=`, strips it with `replaceState`, derives key, `POST /hold-link`, shows hold and actions; generic invalid-link message |
 | `/:slug/manage` | `OwnerPage` (new) | add item; claim-visibility toggles; holds with **Release** when status visible, neutral line otherwise; release dialog names the holder only when identity visible |
 
@@ -253,7 +254,9 @@ flowing into `openapi.json` (ADR-0077). `HOLD_DURATION_DAYS` and
   lives only in component memory (never storage, never logs).
 - `schema.gen.ts` regenerated; MSW handlers updated.
 
-### 6. Testing and PR stack (not yet presented)
+### 6. Testing and PR stack (presented, awaiting approval)
+
+See the conversation draft; written here once approved.
 
 ## ADR and spec changes
 
@@ -264,7 +267,7 @@ flowing into `openapi.json` (ADR-0077). `HOLD_DURATION_DAYS` and
    rule does not apply to signature verification or public-key lookup;
    records the `@noble/ed25519` dependency.
 3. Spec amendments: holds and guest-UX (fragment link, seed credential),
-   data-and-persistence (`ItemHeld.publicKey`, `hold_reminders` and
+   guest-UX (responsive grid, D16), data-and-persistence (`ItemHeld.publicKey`, `hold_reminders` and
    `guest_pii` outside rebuild), access-identity (hold credential no
    longer a stored bearer secret).
 4. Roadmap: add sub-project 2b (session transfer) with D12's notes.
