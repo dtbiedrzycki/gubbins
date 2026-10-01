@@ -108,9 +108,10 @@ one-time renumbering documented in the restructuring history.
 | [072](0072-kysely-as-the-query-builder.md) | Kysely as the query builder | Accepted |
 | [073](0073-vite-react-spa-served-by-the-backend.md) | Vite + React SPA, served by the backend | Accepted |
 | [074](0074-tailwind-css-for-styling.md) | Tailwind CSS for styling | Accepted |
-| [075](0075-ledger-events-record-the-acting-role.md) | Ledger events record the acting role | Proposed |
+| [075](0075-ledger-events-record-the-acting-role.md) | Ledger events record the acting role | Accepted |
 | [076](0076-uuidv7-for-domain-entity-identifiers.md) | UUIDv7 for domain entity identifiers | Accepted |
 | [077](0077-openapi-document-generated-from-route-schemas-is-the-api-contract.md) | The OpenAPI document generated from route schemas is the API contract | Accepted |
+| [078](0078-wishlist-is-the-aggregate-root.md) | Wishlist is the aggregate root for its items and holds | Accepted |
 
 ## Imported ADRs (0001–0070)
 

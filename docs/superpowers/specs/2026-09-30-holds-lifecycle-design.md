@@ -1,8 +1,9 @@
 # Holds lifecycle — design (sub-project 2)
 
 **Status:** Approved (written spec reviewed and approved 2026-10-01).
-Next: stack A's implementation plan; later stacks are planned when they
-start (D20).
+Stack A is planned in
+[2026-10-01-holds-stack-a-guest-manages-a-hold.md](../plans/2026-10-01-holds-stack-a-guest-manages-a-hold.md);
+later stacks are planned when they start (D20).
 **Date:** 2026-09-30
 **Roadmap:** [roadmap to full spec](../plans/2026-09-30-roadmap-to-full-spec.md), sub-project 2
 **Governing ADRs:** 0002, 0008, 0009, 0012, 0035, 0046, 0048, 0052, 0057,

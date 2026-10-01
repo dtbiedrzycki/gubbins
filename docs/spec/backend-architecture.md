@@ -14,7 +14,7 @@ Key ports:
 - **`Clock`** — injected `now`; never call `Date.now()` below presentation. Makes the hold lifecycle deterministically testable.
 - **`TokenGenerator`** — slugs, owner tokens, hold secrets, creation invite secrets, **and guest-data-access secrets** ([access & identity](access-identity.md), ADR-[058](../adr/0058-guest-self-service-data-access-erasure-via-guestdataaccess.md)). Faked in tests.
 - **`UnitOfWork`** — `execute(fn)` wrapping a SQLite transaction.
-- **`EventStore`** — `append(itemId, expectedSeq, events)`, throws `ConcurrencyError`.
+- **`EventStore`** — `append(itemId, expectedSeq, events, actor)`, throws `ConcurrencyError`. `actor` is the role that authorised the command, supplied by the use case (ADR-[075](../adr/0075-ledger-events-record-the-acting-role.md)).
 - **`UrlMetadataFetcher`** — SSRF-guarded, entirely in infrastructure.
 
 Guardrails:

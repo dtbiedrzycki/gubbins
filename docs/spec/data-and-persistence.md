@@ -16,9 +16,17 @@
 - **Streams are scoped per item**, matching the consistency boundary
 - `UNIQUE (itemId, seq)` provides optimistic concurrency; losing writer retries against fresh state and re-evaluates the policy. Retry cap 3 with jitter.
 - Global auto-increment `id` gives cross-stream ordering for list-level views
+- **Each event row records the acting role** in an `actor` column
+  (`guest` or `owner`, `NOT NULL` with a check constraint) beside
+  `event_type` and `seq`: envelope metadata, never a payload field,
+  derived from the credential that authorised the command and never
+  from request input. *(ADR-[075](../adr/0075-ledger-events-record-the-acting-role.md))*
 - **Soft delete = a `Voided` event**, not a nullable column
 - **Projections are real tables**, written in the same transaction as the append — synchronous and strongly consistent, not eventually consistent
-  - `item_state` (lastSeq, activeHolds, purchasedCount, pledgedMinor, confirmedMinor)
+  - `item_state` (lastSeq, purchasedCount, pledgedMinor, confirmedMinor).
+    Hold liveness is read from `holds` rows, never kept as a counter:
+    under lazy expiry nothing is written when a hold expires, so a
+    counter could not stay honest (holds-lifecycle D4).
   - `holds` (per-hold rows, for expiry display, the reminder job, the
     per-session concurrent-hold count, and the idempotency constraint)
   - `contributions` (per-row ledger for reconciliation, and the

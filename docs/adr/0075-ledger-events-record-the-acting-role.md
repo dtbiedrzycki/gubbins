@@ -1,6 +1,6 @@
 # 0075. Ledger events record the acting role
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-09-14
 - **Deciders:** dtbiedrzycki
 
