@@ -1,4 +1,7 @@
-import { DomainValidationError } from '../errors.js';
+import { DomainValidationError, HoldAlreadyExtendedError, HoldNotActiveError } from '../errors.js';
+import type { HoldExtendedEvent } from '../events/HoldExtendedEvent.js';
+import type { HoldReleasedEvent } from '../events/HoldReleasedEvent.js';
+import type { ItemPurchasedEvent } from '../events/ItemPurchasedEvent.js';
 import { HoldSecret } from '../value-objects/HoldSecret.js';
 import { IdempotencyKey } from '../value-objects/IdempotencyKey.js';
 import { SessionHash } from '../value-objects/SessionHash.js';
@@ -83,5 +86,56 @@ export class Hold {
     if (this._releasedAt !== null) return 'released';
     if (now.getTime() > this._expiresAt.getTime()) return 'expired';
     return 'active';
+  }
+
+  /**
+   * A plain comparison: both sides are SHA-256 digests of a session id, not
+   * the secret itself, so timing here can at most reveal a digest prefix
+   * (contrast ADR-0035's constant-time rule for the secrets themselves).
+   */
+  belongsToSession(sessionHash: string): boolean {
+    return this.sessionHash.value === sessionHash;
+  }
+
+  canExtendAt(now: Date): boolean {
+    return this.statusAt(now) === 'active' && this._extendedAt === null;
+  }
+
+  canReleaseAt(now: Date): boolean {
+    return this.statusAt(now) === 'active';
+  }
+
+  /**
+   * The one self-service extension (ADR-0002): only while active, only
+   * once. Adds `durationMs` to the *current* expiry rather than to `now`,
+   * so the most a hold can ever last is twice the configured duration.
+   */
+  extend(now: Date, durationMs: number): HoldExtendedEvent {
+    if (!Number.isInteger(durationMs) || durationMs <= 0) {
+      throw new DomainValidationError('Hold extension must be a positive whole number of milliseconds');
+    }
+    if (this.statusAt(now) !== 'active') throw new HoldNotActiveError(this.id.value);
+    if (this._extendedAt !== null) throw new HoldAlreadyExtendedError(this.id.value);
+    this._extendedAt = now;
+    this._expiresAt = new Date(this._expiresAt.getTime() + durationMs);
+    return { type: 'HoldExtended', v: 1, holdId: this.id.value, expiresAt: this._expiresAt.toISOString(), occurredAt: now.toISOString() };
+  }
+
+  release(now: Date): HoldReleasedEvent {
+    if (this.statusAt(now) !== 'active') throw new HoldNotActiveError(this.id.value);
+    this._releasedAt = now;
+    return { type: 'HoldReleased', v: 1, holdId: this.id.value, occurredAt: now.toISOString() };
+  }
+
+  /**
+   * Ends the hold in a purchase. Refuses only the terminal states: an
+   * expired hold may still be purchased when its item has a free unit
+   * (holds-lifecycle D15), and only the wishlist — which sees the other
+   * holds — can tell, so reach this through `Wishlist.purchaseHold`.
+   */
+  markPurchased(now: Date): ItemPurchasedEvent {
+    if (this._purchasedAt !== null || this._releasedAt !== null) throw new HoldNotActiveError(this.id.value);
+    this._purchasedAt = now;
+    return { type: 'ItemPurchased', v: 1, holdId: this.id.value, occurredAt: now.toISOString() };
   }
 }

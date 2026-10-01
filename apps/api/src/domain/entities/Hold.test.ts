@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Hold } from './Hold.js';
-import { DomainValidationError } from '../errors.js';
+import { DomainValidationError, HoldAlreadyExtendedError, HoldNotActiveError } from '../errors.js';
 
 describe('Hold.create', () => {
   const now = new Date('2026-01-01T00:00:00Z');
@@ -111,5 +111,108 @@ describe('Hold.statusAt — the one definition of hold state (D5)', () => {
     });
     expect(hold.statusAt(now)).toBe('active');
     expect([hold.extendedAt, hold.releasedAt, hold.purchasedAt]).toEqual([null, null, null]);
+  });
+});
+
+const DAY = 86_400_000;
+const CREATED = new Date(EXPIRES_AT.getTime() - 3 * DAY);
+
+describe('Hold.extend', () => {
+  it('adds the duration to the current expiresAt — not to now — and stamps extendedAt', () => {
+    const hold = persisted();
+    const now = new Date(CREATED.getTime() + DAY);
+
+    hold.extend(now, 3 * DAY);
+
+    expect(hold.expiresAt).toEqual(new Date(EXPIRES_AT.getTime() + 3 * DAY));
+    expect(hold.extendedAt).toEqual(now);
+  });
+
+  it('returns HoldExtended carrying the new expiry', () => {
+    const now = new Date(CREATED.getTime() + DAY);
+    expect(persisted().extend(now, 3 * DAY)).toEqual({
+      type: 'HoldExtended', v: 1, holdId: HOLD_ID,
+      expiresAt: new Date(EXPIRES_AT.getTime() + 3 * DAY).toISOString(), occurredAt: now.toISOString(),
+    });
+  });
+
+  it('allows the extension at the very instant the hold expires', () => {
+    expect(() => persisted().extend(EXPIRES_AT, DAY)).not.toThrow();
+  });
+
+  it('refuses a second extension and leaves the hold as it was', () => {
+    const hold = persisted();
+    hold.extend(CREATED, DAY);
+    const expiresAfterFirst = hold.expiresAt;
+
+    expect(() => hold.extend(CREATED, DAY)).toThrow(HoldAlreadyExtendedError);
+    expect(hold.expiresAt).toEqual(expiresAfterFirst);
+  });
+
+  it.each([
+    ['expired', persisted, msFromExpiry(1)],
+    ['released', () => persisted({ releasedAt: CREATED }), CREATED],
+    ['purchased', () => persisted({ purchasedAt: CREATED }), CREATED],
+  ] as const)('refuses a %s hold', (_state, make, now) => {
+    expect(() => make().extend(now, DAY)).toThrow(HoldNotActiveError);
+  });
+
+  it('refuses a duration that is not a positive whole number of milliseconds', () => {
+    expect(() => persisted().extend(CREATED, 0)).toThrow(DomainValidationError);
+    expect(() => persisted().extend(CREATED, 1.5)).toThrow(DomainValidationError);
+  });
+});
+
+describe('Hold.release', () => {
+  it('stamps releasedAt and returns HoldReleased', () => {
+    const hold = persisted();
+    expect(hold.release(CREATED)).toEqual({ type: 'HoldReleased', v: 1, holdId: HOLD_ID, occurredAt: CREATED.toISOString() });
+    expect(hold.statusAt(CREATED)).toBe('released');
+  });
+
+  it.each([
+    ['expired', persisted, msFromExpiry(1)],
+    ['released', () => persisted({ releasedAt: CREATED }), CREATED],
+    ['purchased', () => persisted({ purchasedAt: CREATED }), CREATED],
+  ] as const)('refuses a %s hold', (_state, make, now) => {
+    expect(() => make().release(now)).toThrow(HoldNotActiveError);
+  });
+});
+
+describe('Hold.markPurchased', () => {
+  it('stamps purchasedAt and returns ItemPurchased', () => {
+    const hold = persisted();
+    expect(hold.markPurchased(CREATED)).toEqual({ type: 'ItemPurchased', v: 1, holdId: HOLD_ID, occurredAt: CREATED.toISOString() });
+    expect(hold.statusAt(CREATED)).toBe('purchased');
+  });
+
+  it('accepts an expired hold — whether a unit is still free is the wishlist\'s call (D15)', () => {
+    expect(() => persisted().markPurchased(msFromExpiry(1))).not.toThrow();
+  });
+
+  it.each([
+    ['released', () => persisted({ releasedAt: CREATED })],
+    ['purchased', () => persisted({ purchasedAt: CREATED })],
+  ] as const)('refuses a %s hold — both are terminal', (_state, make) => {
+    expect(() => make().markPurchased(CREATED)).toThrow(HoldNotActiveError);
+  });
+});
+
+describe('Hold predicates', () => {
+  it('belongsToSession compares the stored session hash', () => {
+    expect(persisted().belongsToSession('a'.repeat(64))).toBe(true);
+    expect(persisted().belongsToSession('b'.repeat(64))).toBe(false);
+  });
+
+  it('canExtendAt: active and never extended', () => {
+    expect(persisted().canExtendAt(CREATED)).toBe(true);
+    expect(persisted({ extendedAt: CREATED }).canExtendAt(CREATED)).toBe(false);
+    expect(persisted().canExtendAt(msFromExpiry(1))).toBe(false);
+  });
+
+  it('canReleaseAt: active, extended or not', () => {
+    expect(persisted({ extendedAt: CREATED }).canReleaseAt(CREATED)).toBe(true);
+    expect(persisted({ purchasedAt: CREATED }).canReleaseAt(CREATED)).toBe(false);
+    expect(persisted().canReleaseAt(msFromExpiry(1))).toBe(false);
   });
 });
