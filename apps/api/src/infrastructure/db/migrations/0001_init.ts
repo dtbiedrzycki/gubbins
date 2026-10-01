@@ -1,4 +1,4 @@
-import type { Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 
 export async function up(db: Kysely<unknown>): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Kysely migration schema-builder typing is intentionally loose; see ADR-0072.
@@ -27,6 +27,11 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn('item_id', 'text', (col) => col.primaryKey().references('items.id'))
     .addColumn('seq', 'integer', (col) => col.notNull())
     .addColumn('active_holds', 'integer', (col) => col.notNull())
+    // Purchases are terminal (holds spec), so this count only ever grows and
+    // no lazily-computed rule can leave it stale — unlike an active-hold
+    // count, which is why liveness is read from `holds` rows instead
+    // (holds-lifecycle D4).
+    .addColumn('purchased_count', 'integer', (col) => col.notNull().defaultTo(0).check(sql`purchased_count >= 0`))
     .addColumn('updated_at', 'text', (col) => col.notNull())
     .execute();
 
@@ -36,10 +41,23 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn('secret', 'text', (col) => col.notNull())
     .addColumn('session_hash', 'text', (col) => col.notNull())
     .addColumn('idempotency_key', 'text', (col) => col.notNull())
+    // Every instant below is written with toISOString(), so text comparison
+    // is time order — findActiveForWishlist relies on it.
     .addColumn('expires_at', 'text', (col) => col.notNull())
+    // Hold state is timestamps only; statusAt(now) derives active/expired/
+    // released/purchased from them (holds-lifecycle D5).
+    .addColumn('extended_at', 'text')
+    .addColumn('released_at', 'text')
+    .addColumn('purchased_at', 'text')
     .addColumn('created_at', 'text', (col) => col.notNull())
     .addUniqueConstraint('holds_item_idempotency_key_unique', ['item_id', 'idempotency_key'])
+    // A hold ends one way or the other, never both. A backstop: the domain
+    // already refuses it (holds-lifecycle §2, D9).
+    .addCheckConstraint('holds_released_or_purchased', sql`released_at IS NULL OR purchased_at IS NULL`)
     .execute();
+
+  await schema.createIndex('holds_item_id_idx').ifNotExists().on('holds').column('item_id').execute();
+  await schema.createIndex('holds_session_hash_idx').ifNotExists().on('holds').column('session_hash').execute();
 
   await schema.createTable('event_log').ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())

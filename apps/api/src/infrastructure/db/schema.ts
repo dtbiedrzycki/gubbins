@@ -23,6 +23,7 @@ export interface ItemStateTable {
   item_id: string;
   seq: number;
   active_holds: number;
+  purchased_count: Generated<number>;
   updated_at: string;
 }
 
@@ -33,6 +34,9 @@ export interface HoldsTable {
   session_hash: string;
   idempotency_key: string;
   expires_at: string;
+  extended_at: string | null;
+  released_at: string | null;
+  purchased_at: string | null;
   created_at: string;
 }
 
