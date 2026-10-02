@@ -1,5 +1,6 @@
 import type { Kysely } from 'kysely';
 import type { Database } from '../infrastructure/db/schema.js';
+import { RetryingUnitOfWork } from '../application/RetryingUnitOfWork.js';
 import { UnitOfWorkKysely } from '../infrastructure/UnitOfWorkKysely.js';
 import { WishlistRepositoryKysely } from '../infrastructure/WishlistRepositoryKysely.js';
 import { ClockSystem } from '../infrastructure/ClockSystem.js';
@@ -24,7 +25,7 @@ export interface AppDependencies {
 }
 
 export function buildDependencies(db: Kysely<Database>, logger: Logger = new ConsoleLogger()): AppDependencies {
-  const unitOfWork = new UnitOfWorkKysely(db, (base) => new LoggingEventStore(base, logger));
+  const unitOfWork = new RetryingUnitOfWork(new UnitOfWorkKysely(db, (base) => new LoggingEventStore(base, logger)));
   const tokenGenerator = new TokenGeneratorCrypto();
   const clock = new ClockSystem();
   const hasher = new HasherSha256();
