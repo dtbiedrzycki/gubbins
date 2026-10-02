@@ -95,6 +95,7 @@ These refine the spec where it is silent. Each is cheap to reverse before the PR
 11. **Following the PR #31 review (spec D21), an item's purchased count is computed from purchase entries** (holds with `purchased_at`) instead of an `item_state.purchased_count` column. Task 2.1 no longer adds the column. Following the PR #33 review, the count is derived in the aggregate: the repository loads the list's active or purchased holds and `Wishlist.purchasedCountOf` counts those with status purchased, so there is no count query; Tasks 4.1 and 7.1 build on that.
 12. **Following the PR #32 review (spec D22), `Wishlist` captures the instant it was loaded at; its commands and queries take no time argument.** `Wishlist.create` and `reconstitute` take `asOf`; repositories pass the `now` they load at, so `CreateList` gains a `Clock`. `Hold`'s instant-taking methods are the aggregate's internals. Tasks 5.x and 6.3 are brought in line on their own branches.
 13. **A hold replay from a different session is refused as `item_unavailable` (409)** rather than returning the other session's hold; stack E replaces this with `idempotency_conflict`.
+14. **The extend/release/purchase use cases share one body, `runHoldCommand` in `holdCommand.ts`; each passes its permission and its wishlist command.**
 
 ## File map
 
@@ -5217,12 +5218,14 @@ Expected: FAIL. `./ExtendHold.js` cannot be resolved.
 Create `apps/api/src/application/use-cases/holdCommand.ts`:
 
 ```ts
+import type { Actor } from '../../domain/Actor.js';
 import type { Hold } from '../../domain/entities/Hold.js';
-import type { Wishlist } from '../../domain/entities/Wishlist.js';
+import type { HoldCommandResult, Wishlist } from '../../domain/entities/Wishlist.js';
 import { HoldNotFoundError } from '../../domain/errors.js';
+import type { LedgerEvent } from '../../domain/events/LedgerEvent.js';
 import type { AccessContext } from '../AccessContext.js';
 import type { TransactionContext } from '../ports/UnitOfWork.js';
-import type { HoldView } from '../views/HoldView.js';
+import { toHoldView, type HoldView } from '../views/HoldView.js';
 
 export interface HoldCommandInput {
   wishlistId: string;
@@ -5236,10 +5239,10 @@ export interface HoldCommand {
 
 /**
  * Resolves `holdId` to a hold on this wishlist, or throws HoldNotFoundError.
- * An active hold comes from the aggregate's own snapshot, so the command
- * mutates the very instance the wishlist counts. A hold the snapshot leaves
- * out — expired, released or purchased (D8) — is loaded by id, and then must
- * be on this wishlist's item. Unknown, foreign and malformed ids all fail
+ * An active or purchased hold comes from the aggregate's own snapshot, so
+ * the command mutates the very instance the wishlist counts. A hold outside
+ * it — released or expired — is loaded by id, and then must be on this
+ * wishlist's item. Unknown, foreign and malformed ids all fail
  * alike: another list's hold id is a 404 like any other (IDOR).
  */
 export async function findOwnedHold(ctx: TransactionContext, wishlist: Wishlist, holdId: string): Promise<Hold> {
@@ -5247,19 +5250,49 @@ export async function findOwnedHold(ctx: TransactionContext, wishlist: Wishlist,
   if (!hold || !wishlist.owns(hold)) throw new HoldNotFoundError(holdId);
   return hold;
 }
+
+/**
+ * The body every hold command shares, run inside a unit of work: load the
+ * list, find the caller's hold, check permission, let the wishlist decide,
+ * then persist the outcome and answer with the hold's view. A command supplies
+ * only its permission check and its wishlist call. `now` is the clock reading
+ * the list is loaded at; the wishlist then decides everything as of it.
+ */
+export async function runHoldCommand<E extends LedgerEvent>(
+  ctx: TransactionContext,
+  input: HoldCommandInput,
+  access: AccessContext,
+  now: Date,
+  permit: (hold: Hold, access: AccessContext) => Actor | null,
+  decide: (wishlist: Wishlist, hold: Hold) => HoldCommandResult<E>,
+): Promise<HoldView> {
+  const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
+  if (!wishlist) throw new HoldNotFoundError(input.holdId);
+  const hold = await findOwnedHold(ctx, wishlist, input.holdId);
+  // Not permitted looks exactly like not found: a guest learns nothing
+  // about holds that are not theirs.
+  const actor = permit(hold, access);
+  if (!actor) throw new HoldNotFoundError(input.holdId);
+
+  const { item, event, expectedSeq } = decide(wishlist, hold);
+
+  await ctx.eventStore.append(item.id.value, expectedSeq, [event], actor);
+  await ctx.holds.save(hold);
+  await ctx.wishlists.saveItemState(item);
+  return toHoldView(wishlist, hold);
+}
 ```
 
 Create `apps/api/src/application/use-cases/ExtendHold.ts`:
 
 ```ts
-import { HoldNotFoundError } from '../../domain/errors.js';
 import { HoldPermissions } from '../../domain/policies/HoldPermissions.js';
 import type { AccessContext } from '../AccessContext.js';
 import { holdDurationMs, type HoldPolicy } from '../HoldPolicy.js';
 import type { Clock } from '../ports/Clock.js';
 import type { UnitOfWork } from '../ports/UnitOfWork.js';
-import { toHoldView, type HoldView } from '../views/HoldView.js';
-import { findOwnedHold, type HoldCommand, type HoldCommandInput } from './holdCommand.js';
+import type { HoldView } from '../views/HoldView.js';
+import { runHoldCommand, type HoldCommand, type HoldCommandInput } from './holdCommand.js';
 
 export class ExtendHold implements HoldCommand {
   constructor(
@@ -5269,22 +5302,11 @@ export class ExtendHold implements HoldCommand {
   ) {}
 
   async execute(input: HoldCommandInput, access: AccessContext): Promise<HoldView> {
-    return this.unitOfWork.execute(async (ctx) => {
+    return this.unitOfWork.execute((ctx) => {
       const now = this.clock.now();
-      const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
-      if (!wishlist) throw new HoldNotFoundError(input.holdId);
-      const hold = await findOwnedHold(ctx, wishlist, input.holdId);
-      // Not permitted looks exactly like not found: a guest learns nothing
-      // about holds that are not theirs.
-      const actor = HoldPermissions.mayExtend(hold, access);
-      if (!actor) throw new HoldNotFoundError(input.holdId);
-
-      const { item, event, expectedSeq } = wishlist.extendHold(hold, now, holdDurationMs(this.policy));
-
-      await ctx.eventStore.append(item.id.value, expectedSeq, [event], actor);
-      await ctx.holds.save(hold);
-      await ctx.wishlists.saveItemState(item);
-      return toHoldView(wishlist, hold, now);
+      return runHoldCommand(ctx, input, access, now, HoldPermissions.mayExtend, (wishlist, hold) =>
+        wishlist.extendHold(hold, holdDurationMs(this.policy)),
+      );
     });
   }
 }
