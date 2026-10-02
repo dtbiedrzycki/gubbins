@@ -69,7 +69,7 @@ earlier ones where noted.
 | D1 | Scope includes multi-item lists, guest PII, reminders + periodic task, and owner-side release. | The cross-item cap (ADR-0046) is meaningless with one item per list; PII, reminders and owner release complete the hold journey the spec describes. | Deferring each to its later sub-project. |
 | D2 | Owner release ships with a **minimal spoiler model**: owner-token entry, `ownerSeesClaimStatus` / `ownerSeesClaimerIdentity` toggles, sticky `revealedAt`; `revealAfter` nullable until sub-project 4. | `ownerSeesClaimStatus` defaults off; a release control shown only on held items would leak claim status. | Spoiler-neutral blind release; API-only release with no UI. |
 | D3 | Single items support **quantity ≥ 1**. | The availability rule has to be rewritten against hold rows anyway; closes the roadmap's quantity-1 open item. | Keep quantity = 1. |
-| D4 | **Hold rows are the source of truth for liveness.** `item_state.active_holds` is dropped; `item_state` keeps `seq` and `purchased_count`. | Under lazy expiry nothing is written when a hold expires, so a counter cannot stay honest. The spec already names `holds` as the source for the per-session count and expiry display. | Counter with lazy compaction (two sources of truth); emitting `HoldExpired` on read (spec: derived, not emitted). |
+| D4 | **Hold rows are the source of truth for liveness.** `item_state.active_holds` is dropped; `item_state` keeps `seq` (and, as first written, `purchased_count` — superseded by D21). | Under lazy expiry nothing is written when a hold expires, so a counter cannot stay honest. The spec already names `holds` as the source for the per-session count and expiry display. | Counter with lazy compaction (two sources of truth); emitting `HoldExpired` on read (spec: derived, not emitted). |
 | D5 | Hold state is **timestamps only**: nullable `releasedAt` / `purchasedAt` (at most one set) and `extendedAt` (set at most once), plus `expiresAt`; derived `statusAt(now)` → `active \| expired \| released \| purchased`. | "Active" is the spec's word (`MAX_ACTIVE_HOLDS_PER_SESSION`, `activeHolds`), so it names the derived state; no stored enum competes with it. Matches the spec's timestamp convention (`archivedAt`, `revealedAt`, `confirmedAt`). | Stored `resolution` enum; nullable `closedAs`. |
 | D6 | **`actor` is event-envelope metadata**, supplied by the use case to `EventStore.append(itemId, expectedSeq, events, actor)`. Domain command methods take no caller; payloads carry no actor. | ADR-0075 says exactly this. | `actor` parameter on domain methods / in payloads (an early draft of this design). |
 | D7 | **Authorization:** use cases call a domain policy, `HoldPermissions` (`mayExtend` / `mayRelease` / `mayPurchase`), over domain predicates. `AccessContext` is grown from the existing `SessionPayload`, built only in `presentation/`, and passed to use cases **beside** `TransactionContext`, never inside it. | DDD practice: authentication at the edge; rules a domain expert would state (spoiler gating, "only the holder may extend") live in the domain as a policy; entity methods stay free of caller parameters. `TransactionContext` is database-scoped, access is request-scoped. Also stops the raw session id crossing into `application/`. | `Accessor` parameter on entity methods; ambient AsyncLocalStorage; access inside `TransactionContext`. |
@@ -86,6 +86,7 @@ earlier ones where noted.
 | D18 | **Minimal `rebuildProjections` ships in this sub-project:** re-fold `item_state` and `holds` from `event_log`; `guest_pii` and `hold_reminders` untouched. | D10 and D13 are justified by rebuild-safety, and the testing spec requires a rebuild test; without the command those claims are untested. | Deferring rebuild to a later sub-project. |
 | D19 | **Delivered as seven vertical-slice stacks (A–G)**, each shipping end-to-end functionality with its own e2e coverage and merging to `main` before dependants start. ADRs and spec amendments land in the stack that first needs them. | Smaller reviewable units; each stack is a working feature; findings in one stack can reshape the next stack's plan. | One 11-PR horizontal stack (schema → domain → … → web). |
 | D20 | **Implementation plans are written just-in-time, one per stack**, each when its dependencies have merged. | Later plans reflect what was actually built. | All seven plans up front. |
+| D21 | **An item's purchased count is computed from purchase entries, never stored.** In stack A a purchase entry is a hold with `purchased_at` set; owner direct purchases (sub-project 4) add their own entries, and `PurchaseVoided` voids an entry rather than decrementing. `item_state` keeps only `seq`. | A stored count is a second source of truth beside the rows it counts; computing it cannot drift (D4's reasoning, applied to purchases). PR #31 review. | `item_state.purchased_count` maintained by each purchase (D4 as first written). |
 
 ## Design
 
@@ -155,7 +156,7 @@ wishlists   + owner_token_lookup text not null unique   -- sha256(owner_token), 
             + CHECK (owner_sees_claimer_identity = 0 OR owner_sees_claim_status = 1)
 items       + CHECK (quantity >= 1), index (wishlist_id)
 item_state  - active_holds
-            + purchased_count int not null default 0, CHECK (purchased_count >= 0)
+            - purchased_count never added: computed from purchase entries (D21)
 holds       - secret
             + public_key text not null unique
             + pii_ref text not null references guest_pii(id)
@@ -174,8 +175,9 @@ event_log   + actor text not null CHECK (actor IN ('guest','owner'))
 
 **Ports** (domain terms only, D9):
 - `WishlistRepository.findById` → aggregate with items and active holds;
-  `saveItemState(item)` writes `seq` and `purchased_count` as the domain
-  left them, with no read-before-write (roadmap open item 2).
+  `saveItemState(item)` writes `seq` as the domain
+  left them, with no read-before-write (roadmap open item 2); the purchased
+  count is read from purchase entries when the aggregate loads (D21).
 - `HoldRepository`: `insert`, `save`, `findById`, `findByPublicKey`,
   `findByIdempotencyKey`, `findActiveForWishlist(wishlistId, now)`.
 - `GuestPiiRepository.insert` (on `TransactionContext`).

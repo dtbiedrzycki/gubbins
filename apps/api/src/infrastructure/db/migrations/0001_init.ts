@@ -27,11 +27,6 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn('item_id', 'text', (col) => col.primaryKey().references('items.id'))
     .addColumn('seq', 'integer', (col) => col.notNull())
     .addColumn('active_holds', 'integer', (col) => col.notNull())
-    // Purchases are terminal (holds spec), so this count only ever grows and
-    // no lazily-computed rule can leave it stale — unlike an active-hold
-    // count, which is why liveness is read from `holds` rows instead
-    // (holds-lifecycle D4).
-    .addColumn('purchased_count', 'integer', (col) => col.notNull().defaultTo(0).check(sql`purchased_count >= 0`))
     .addColumn('updated_at', 'text', (col) => col.notNull())
     .execute();
 

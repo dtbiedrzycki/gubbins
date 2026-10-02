@@ -235,7 +235,8 @@ GuestDataAccess (plain table, not event-sourced — same category as
   at creation; no amount field exists on this entity by design — it
   records that a gift was given, not what it was worth
 - A `ManualGiftEntry`'s `itemId` link is advisory only — it never affects
-  `item_state` (activeHolds, purchasedCount, pledgedMinor, confirmedMinor)
+  `item_state` (pledgedMinor, confirmedMinor; active holds and purchases
+  are counted from rows, holds-lifecycle D4, D21)
   or guest-facing availability. An item received off-ledger is marked
   taken via the existing "mark as purchased directly" (single, [holds](holds.md)) or
   a manual `Contribution` (group/fund, [manual contributions](manual-contributions.md)) — both of which are ledger

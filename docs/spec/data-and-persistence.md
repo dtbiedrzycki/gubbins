@@ -23,10 +23,13 @@
   from request input. *(ADR-[075](../adr/0075-ledger-events-record-the-acting-role.md))*
 - **Soft delete = a `Voided` event**, not a nullable column
 - **Projections are real tables**, written in the same transaction as the append — synchronous and strongly consistent, not eventually consistent
-  - `item_state` (lastSeq, purchasedCount, pledgedMinor, confirmedMinor).
+  - `item_state` (lastSeq, pledgedMinor, confirmedMinor).
     Hold liveness is read from `holds` rows, never kept as a counter:
     under lazy expiry nothing is written when a hold expires, so a
-    counter could not stay honest (holds-lifecycle D4).
+    counter could not stay honest (holds-lifecycle D4). An item's
+    purchased count is likewise computed from purchase entries (purchased
+    holds; owner purchase entries later), never kept as a counter
+    (holds-lifecycle D4, D21).
   - `holds` (per-hold rows, for expiry display, the reminder job, the
     per-session concurrent-hold count, and the idempotency constraint)
   - `contributions` (per-row ledger for reconciliation, and the

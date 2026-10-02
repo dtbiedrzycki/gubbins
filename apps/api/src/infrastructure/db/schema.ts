@@ -24,7 +24,6 @@ export interface ItemStateTable {
   item_id: string;
   seq: number;
   active_holds: number;
-  purchased_count: Generated<number>;
   updated_at: string;
 }
 

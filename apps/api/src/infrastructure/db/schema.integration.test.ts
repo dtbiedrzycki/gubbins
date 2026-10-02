@@ -43,19 +43,6 @@ describe('0001_init schema', () => {
       .rejects.toThrow(/CHECK constraint failed/);
   });
 
-  it("defaults an item's purchased_count to 0", async () => {
-    await db.insertInto('item_state').values({ item_id: I1, seq: 0, active_holds: 0, updated_at: NOW }).execute();
-
-    const row = await db.selectFrom('item_state').select('purchased_count').executeTakeFirstOrThrow();
-
-    expect(row.purchased_count).toBe(0);
-  });
-
-  it('refuses a negative purchased_count', async () => {
-    await expect(db.insertInto('item_state').values({ item_id: I1, seq: 0, active_holds: 0, purchased_count: -1, updated_at: NOW }).execute())
-      .rejects.toThrow(/CHECK constraint failed/);
-  });
-
   it('indexes holds by item and by session', async () => {
     const { rows } = await sql<{ name: string }>`select name from pragma_index_list('holds')`.execute(db);
 
