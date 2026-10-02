@@ -39,26 +39,6 @@ setup() {
   [ "$(grep -c 'test@example.com' "$REPO/.allowed_signers")" -eq 1 ]
 }
 
-# Break caught: clones set up before the reference-transaction hook keep
-# merge/pull.verifySignatures, which rejects every GitHub web-UI merge.
-# The only test that fails if the unset lines go: the one above starts
-# from a fresh repo where they were never set. Delete both together once
-# no clone predates the hook.
-@test "unsets merge/pull.verifySignatures left by an earlier setup" {
-  export SIGNING_NAME="Test Signer"
-  export SIGNING_EMAIL="test@example.com"
-  git config --local merge.verifySignatures true
-  git config --local pull.verifySignatures true
-
-  run bash "$SETUP_SCRIPT"
-  [ "$status" -eq 0 ]
-
-  run git config --local --get merge.verifySignatures
-  [ "$status" -eq 1 ]
-  run git config --local --get pull.verifySignatures
-  [ "$status" -eq 1 ]
-}
-
 @test "is idempotent: reuses the key and does not duplicate the trust line" {
   export SIGNING_NAME="Test Signer"
   export SIGNING_EMAIL="test@example.com"

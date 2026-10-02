@@ -59,12 +59,11 @@ at different points. None depends on a specific forge.
 The client hooks catch mistakes early but are bypassable by design; the
 CI job and `pre-receive` are the gates that actually hold.
 
-Earlier setups also enabled git's built-in `merge.verifySignatures` /
-`pull.verifySignatures`. They are no longer used: they check only the
-tip commit, and in a clone they can verify only SSH signatures, so they
-rejected every GitHub web-UI merge and `git fetch src:dst` skipped them
-entirely. The `reference-transaction` hook replaces them. Re-run
-`scripts/setup-signing.sh` to unset them in an existing clone.
+The `reference-transaction` hook is used instead of git's built-in
+`merge.verifySignatures` / `pull.verifySignatures`, which setup does not
+enable: they check only the tip commit, and in a clone they can verify
+only SSH signatures, so they rejected every GitHub web-UI merge, and
+`git fetch src:dst` skipped them entirely.
 
 ## Self-hosted mirror operators
 
