@@ -5495,8 +5495,8 @@ describe('MarkHoldPurchased', () => {
 
     expect(eventStore.recorded(ITEM_ID).map(({ event, actor }) => [event.type, actor])).toEqual([['ItemHeld', 'guest'], ['ItemPurchased', 'guest']]);
     const reloaded = await wishlists.findById(WISHLIST_ID, clock.now());
-    expect(reloaded?.item?.purchasedCount).toBe(1);
-    expect(reloaded?.itemStatusAt(ITEM_ID, clock.now())).toBe('purchased');
+    expect(reloaded?.purchasedCountOf(ITEM_ID)).toBe(1);
+    expect(reloaded?.itemStatus(ITEM_ID)).toBe('purchased');
   });
 
   it('marks an expired hold purchased while the unit is still free (D15)', async () => {
@@ -5555,13 +5555,12 @@ Expected: FAIL. The module cannot be resolved.
 Create `apps/api/src/application/use-cases/MarkHoldPurchased.ts`:
 
 ```ts
-import { HoldNotFoundError } from '../../domain/errors.js';
 import { HoldPermissions } from '../../domain/policies/HoldPermissions.js';
 import type { AccessContext } from '../AccessContext.js';
 import type { Clock } from '../ports/Clock.js';
 import type { UnitOfWork } from '../ports/UnitOfWork.js';
-import { toHoldView, type HoldView } from '../views/HoldView.js';
-import { findOwnedHold, type HoldCommand, type HoldCommandInput } from './holdCommand.js';
+import type { HoldView } from '../views/HoldView.js';
+import { runHoldCommand, type HoldCommand, type HoldCommandInput } from './holdCommand.js';
 
 export class MarkHoldPurchased implements HoldCommand {
   constructor(
@@ -5570,21 +5569,10 @@ export class MarkHoldPurchased implements HoldCommand {
   ) {}
 
   async execute(input: HoldCommandInput, access: AccessContext): Promise<HoldView> {
-    return this.unitOfWork.execute(async (ctx) => {
+    return this.unitOfWork.execute((ctx) => {
       const now = this.clock.now();
-      const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
-      if (!wishlist) throw new HoldNotFoundError(input.holdId);
-      const hold = await findOwnedHold(ctx, wishlist, input.holdId);
       // Guest row only; the owner's direct purchase is sub-project 4.
-      const actor = HoldPermissions.mayPurchase(hold, access);
-      if (!actor) throw new HoldNotFoundError(input.holdId);
-
-      const { item, event, expectedSeq } = wishlist.purchaseHold(hold, now);
-
-      await ctx.eventStore.append(item.id.value, expectedSeq, [event], actor);
-      await ctx.holds.save(hold);
-      await ctx.wishlists.saveItemState(item);
-      return toHoldView(wishlist, hold, now);
+      return runHoldCommand(ctx, input, access, now, HoldPermissions.mayPurchase, (wishlist, hold) => wishlist.purchaseHold(hold));
     });
   }
 }
