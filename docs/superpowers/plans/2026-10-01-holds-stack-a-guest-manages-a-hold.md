@@ -5597,7 +5597,7 @@ Claude-Session: https://claude.ai/code/session_01RdJzbrWLV8Xvu5rEmGsgQn"
 - Create: `apps/api/src/application/use-cases/GetListView.ts`, `GetListView.test.ts`
 
 **Interfaces:**
-- Consumes: `HoldRepository.findForSession`, `Wishlist.itemStatusAt`, `toHoldView`, `HoldPolicy`.
+- Consumes: `HoldRepository.findForSession`, `Wishlist.itemStatus/holdStatus`, `toHoldView`, `HoldPolicy`.
 - Produces:
   - `interface ListView { title: string; item: { id: string; title: string; status: ItemStatus }; myHolds: HoldView[]; capabilities: { holdDurationDays: number } }`
   - `class GetListView`, constructor `(unitOfWork: UnitOfWork, clock: Clock, policy: HoldPolicy)`, with `execute(input: { wishlistId: string }, access: AccessContext): Promise<ListView>`
@@ -5750,13 +5750,13 @@ export class GetListView {
 
       return {
         title: wishlist.title,
-        item: { id: item.id.value, title: item.title, status: wishlist.itemStatusAt(item.id.value, now) },
+        item: { id: item.id.value, title: item.title, status: wishlist.itemStatus(item.id.value) },
         // Released holds were the guest's own choice and need no follow-up;
         // expired ones stay, since D15 may still let them be purchased.
         myHolds: mine
-          .filter((hold) => hold.statusAt(now) !== 'released')
+          .filter((hold) => wishlist.holdStatus(hold) !== 'released')
           .sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime())
-          .map((hold) => toHoldView(wishlist, hold, now)),
+          .map((hold) => toHoldView(wishlist, hold)),
         capabilities: { holdDurationDays: this.policy.durationDays },
       };
     });
