@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { beforeEach, describe, expect, it, onTestFinished } from 'vitest';
 import type { Kysely } from 'kysely';
 import { createDb } from './db/createDb.js';
 import { migrateToLatest } from './db/migrate.js';
@@ -39,5 +42,31 @@ describe('UnitOfWorkKysely', () => {
     ).rejects.toThrow('boom');
 
     expect(await new WishlistRepositoryKysely(db).findBySlug('abc123', NOW)).toBeNull();
+  });
+
+  it('takes the write lock at BEGIN, so a second writer cannot even start (BEGIN IMMEDIATE)', async () => {
+    // Two connections need a file; an in-memory database is per-connection.
+    const dir = mkdtempSync(join(tmpdir(), 'gubbins-uow-'));
+    const first = createDb(join(dir, 'test.db'));
+    await migrateToLatest(first);
+    // No busy wait: better-sqlite3 waits synchronously, which on one thread
+    // would block the first transaction from ever finishing.
+    const second = createDb(join(dir, 'test.db'), { busyTimeoutMs: 0 });
+    onTestFinished(async () => {
+      await first.destroy();
+      await second.destroy();
+      rmSync(dir, { recursive: true, force: true });
+    });
+
+    let secondStarted = false;
+    await new UnitOfWorkKysely(first).execute(async () => {
+      await expect(new UnitOfWorkKysely(second).execute(async () => { secondStarted = true; }))
+        .rejects.toMatchObject({ code: 'SQLITE_BUSY' });
+    });
+
+    // A deferred BEGIN would have let the second transaction start and read,
+    // failing only at its first write — the read-then-decide window the hold
+    // rules must not have.
+    expect(secondStarted).toBe(false);
   });
 });
