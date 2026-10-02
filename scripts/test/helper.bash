@@ -3,6 +3,7 @@
 REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
 VERIFY_SCRIPT="$REPO_ROOT/scripts/verify-signatures.sh"
 SETUP_SCRIPT="$REPO_ROOT/scripts/setup-signing.sh"
+HOOKS_DIR="$REPO_ROOT/.githooks"
 
 ZERO_OID=0000000000000000000000000000000000000000
 
@@ -41,4 +42,16 @@ commit_file() {
   echo "$name" > "$dir/$name"
   git -C "$dir" add "$name"
   git -C "$dir" commit -q -m "add $name" "$@"
+}
+
+# pgp_fixture_sha -> stdout: the squash merge of PR #1, made in GitHub's
+#   web UI and so PGP-signed by GitHub's web-flow key, the key in
+#   .allowed_pgp_keys.asc. Only GitHub holds that private key, so a test
+#   cannot make such a commit; this real one is the only fixture there is.
+#   Prints nothing in a clone that lacks it (shallow, or history
+#   rewritten). The full id: an abbreviation that became ambiguous would
+#   fail to resolve and silently skip the PGP tests.
+pgp_fixture_sha() {
+  git -C "$REPO_ROOT" rev-parse -q --verify \
+    "8fdba3d4229046d010fa376de17d89970e4479b3^{commit}" 2>/dev/null
 }

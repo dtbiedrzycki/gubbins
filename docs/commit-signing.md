@@ -43,20 +43,27 @@ key is listed merges it. From then on your own commits verify.
 
 ## Enforcement layers
 
-All four check the same thing — every commit signed by an
-`.allowed_signers` key — at different points. None depends on a
-specific forge.
+Every layer runs the same `scripts/verify-signatures.sh`, so they all
+check the same thing — every commit signed by a key in `.allowed_signers`
+(SSH) or `.allowed_pgp_keys.asc` (GitHub's PGP key for web-UI merges) —
+at different points. None depends on a specific forge.
 
 | Layer | Binding? | Where it runs |
 |---|---|---|
 | `.githooks/pre-commit` | Advisory (skipped by `--no-verify`) | Your clone, once `scripts/setup-signing.sh` has set `core.hooksPath` |
 | `.githooks/pre-push` | Advisory (skipped by `--no-verify`) | Your clone, on `git push` |
-| `verify-signatures` CI job | **Binding** for changes merged via CI | Any CI runner (`.github/workflows/ci.yml` here) |
+| `.githooks/reference-transaction` | Advisory (`--no-verify` does **not** skip it; bypass with `git -c core.hooksPath= …`) | Your clone, whenever a local branch moves: merge, pull, fast-forward, `fetch src:dst`, `reset`, `branch -f`, commit. Checks the whole incoming range |
+| `verify-signatures` CI job | **Binding** for changes merged via CI, once it is a required status check on `main` | Any CI runner (`.github/workflows/ci.yml` here) |
 | `.githooks/pre-receive` | **Binding** — the push is rejected | A self-hosted mirror's bare repo (see below) |
-| `merge.verifySignatures=true` | Binding locally — `git merge` / `git pull` abort on an unverified tip | Your clone, set by `scripts/setup-signing.sh` |
 
 The client hooks catch mistakes early but are bypassable by design; the
 CI job and `pre-receive` are the gates that actually hold.
+
+The `reference-transaction` hook is used instead of git's built-in
+`merge.verifySignatures` / `pull.verifySignatures`, which setup does not
+enable: they check only the tip commit, and in a clone they can verify
+only SSH signatures, so they rejected every GitHub web-UI merge, and
+`git fetch src:dst` skipped them entirely.
 
 ## Self-hosted mirror operators
 
@@ -83,8 +90,9 @@ bash scripts/setup-signing.sh
 This generates a passphrase-less `ed25519` key under
 `.devcontainer/secrets/` (git-ignored, persisted across dev-container
 rebuilds via the bind mount), adds your identity to `.allowed_signers`,
-and sets repo-local git config: sign every commit and tag, verify on
-merge/pull, and use `.githooks/`. It touches no global git config.
+and sets repo-local git config: sign every commit and tag, and use
+`.githooks/` (which verifies every branch update). It touches no global
+git config.
 
 The one-liner equivalent, if your key already exists and is in
 `.allowed_signers`:
@@ -94,7 +102,6 @@ git config --local gpg.format ssh \
  && git config --local user.signingkey "$PWD/.devcontainer/secrets/signing_ed25519.pub" \
  && git config --local commit.gpgsign true \
  && git config --local gpg.ssh.allowedSignersFile "$PWD/.allowed_signers" \
- && git config --local merge.verifySignatures true \
  && git config --local core.hooksPath .githooks
 ```
 

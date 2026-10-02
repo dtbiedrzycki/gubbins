@@ -29,7 +29,11 @@ setup() {
   [ "$(git config --local tag.gpgsign)" = "true" ]
   [ "$(git config --local gpg.format)" = "ssh" ]
   [ "$(git config --local core.hooksPath)" = ".githooks" ]
-  [ "$(git config --local merge.verifySignatures)" = "true" ]
+  # Verification on merge/pull is the reference-transaction hook's job.
+  run git config --local --get merge.verifySignatures
+  [ "$status" -eq 1 ]
+  run git config --local --get pull.verifySignatures
+  [ "$status" -eq 1 ]
   [ "$(git config --local user.email)" = "test@example.com" ]
   [ "$(git config --local gpg.ssh.allowedSignersFile)" = "$REPO/.allowed_signers" ]
   [ "$(grep -c 'test@example.com' "$REPO/.allowed_signers")" -eq 1 ]
