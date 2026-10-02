@@ -4350,14 +4350,14 @@ The new use cases are tested here with the in-memory fakes; PR 6 wires them to r
 - Test: `apps/api/src/application/views/HoldView.test.ts`
 
 **Interfaces:**
-- Consumes: `Hold.statusAt/canExtendAt/canReleaseAt`, `Wishlist.canPurchaseHold`.
+- Consumes: `Wishlist.holdStatus/canExtendHold/canReleaseHold/canPurchaseHold`.
 - Produces:
   - `interface HoldPolicy { durationDays: number }`
   - `DEFAULT_HOLD_POLICY: HoldPolicy` (`durationDays: 3`)
   - `holdDurationMs(policy: HoldPolicy): number`
   - `interface AccessContext { guestSession: { sessionHash: string } | null }`
   - `interface HoldView { holdId: string; itemId: string; status: HoldStatus; expiresAt: string; extendedAt: string | null; actions: { extend: boolean; release: boolean; purchase: boolean } }`
-  - `toHoldView(wishlist: Wishlist, hold: Hold, now: Date): HoldView`
+  - `toHoldView(wishlist: Wishlist, hold: Hold): HoldView` (as of the instant `wishlist` was loaded at)
 
 - [ ] **Step 1: Write the failing test**
 
@@ -4385,15 +4385,16 @@ function holdOn(overrides: Partial<Parameters<typeof Hold.reconstitute>[0]> = {}
   });
 }
 
-function wishlistWith(holds: Hold[] = []): Wishlist {
-  const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0, purchasedCount: 0 });
-  return Wishlist.reconstitute({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'o', key: 'k', keyGen: 1, item, holds });
+/** The list as loaded at `asOf`, carrying `holds`. */
+function wishlistAt(asOf: Date, holds: Hold[] = []): Wishlist {
+  const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0 });
+  return Wishlist.reconstitute({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'o', key: 'k', keyGen: 1, asOf, item, holds });
 }
 
 describe('toHoldView — the domain decides which actions the guest is offered', () => {
   it('shows an active, never-extended hold with every action open', () => {
     const hold = holdOn();
-    expect(toHoldView(wishlistWith([hold]), hold, T0)).toEqual({
+    expect(toHoldView(wishlistAt(T0, [hold]), hold)).toEqual({
       holdId: hold.id.value, itemId: ITEM_ID, status: 'active',
       expiresAt: at(3 * DAY).toISOString(), extendedAt: null,
       actions: { extend: true, release: true, purchase: true },
@@ -4402,20 +4403,20 @@ describe('toHoldView — the domain decides which actions the guest is offered',
 
   it('closes extend once the hold has used its one extension', () => {
     const hold = holdOn({ extendedAt: at(DAY) });
-    const view = toHoldView(wishlistWith([hold]), hold, at(DAY));
+    const view = toHoldView(wishlistAt(at(DAY), [hold]), hold);
     expect(view.extendedAt).toBe(at(DAY).toISOString());
     expect(view.actions).toEqual({ extend: false, release: true, purchase: true });
   });
 
   it('offers only purchase on an expired hold while a unit is free (D15)', () => {
     const hold = holdOn({ expiresAt: at(-1) });
-    const view = toHoldView(wishlistWith(), hold, T0);
+    const view = toHoldView(wishlistAt(T0), hold);
     expect(view.status).toBe('expired');
     expect(view.actions).toEqual({ extend: false, release: false, purchase: true });
   });
 
   it('offers nothing on an expired hold whose unit someone else now holds', () => {
-    const view = toHoldView(wishlistWith([holdOn({ sessionHash: 'b'.repeat(64) })]), holdOn({ expiresAt: at(-1) }), T0);
+    const view = toHoldView(wishlistAt(T0, [holdOn({ sessionHash: 'b'.repeat(64) })]), holdOn({ expiresAt: at(-1) }));
     expect(view.actions).toEqual({ extend: false, release: false, purchase: false });
   });
 
@@ -4423,7 +4424,7 @@ describe('toHoldView — the domain decides which actions the guest is offered',
     ['released', { releasedAt: T0 }],
     ['purchased', { purchasedAt: T0 }],
   ] as const)('offers nothing on a %s hold', (status, overrides) => {
-    const view = toHoldView(wishlistWith(), holdOn(overrides), T0);
+    const view = toHoldView(wishlistAt(T0), holdOn(overrides));
     expect(view.status).toBe(status);
     expect(view.actions).toEqual({ extend: false, release: false, purchase: false });
   });
@@ -4500,17 +4501,18 @@ export interface HoldView {
   actions: { extend: boolean; release: boolean; purchase: boolean };
 }
 
-export function toHoldView(wishlist: Wishlist, hold: Hold, now: Date): HoldView {
+/** `hold` as of the instant `wishlist` was loaded at; the wishlist answers every rule. */
+export function toHoldView(wishlist: Wishlist, hold: Hold): HoldView {
   return {
     holdId: hold.id.value,
     itemId: hold.itemId.value,
-    status: hold.statusAt(now),
+    status: wishlist.holdStatus(hold),
     expiresAt: hold.expiresAt.toISOString(),
     extendedAt: hold.extendedAt?.toISOString() ?? null,
     actions: {
-      extend: hold.canExtendAt(now),
-      release: hold.canReleaseAt(now),
-      purchase: wishlist.canPurchaseHold(hold, now),
+      extend: wishlist.canExtendHold(hold),
+      release: wishlist.canReleaseHold(hold),
+      purchase: wishlist.canPurchaseHold(hold),
     },
   };
 }
