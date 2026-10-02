@@ -3,5 +3,5 @@ export interface ItemPurchasedEvent {
   type: 'ItemPurchased';
   v: 1;
   holdId: string;
-  occurredAt: string; // ISO 8601 — folds into holds.purchased_at and item_state.purchased_count
+  occurredAt: string; // ISO 8601 — folds into holds.purchased_at
 }
