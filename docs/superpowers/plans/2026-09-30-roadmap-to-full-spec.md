@@ -1,7 +1,7 @@
 # Roadmap: walking skeleton to the full spec
 
 **Status:** Living document. Sub-project 1 is done; sub-project 2 is in
-design ([draft spec](../specs/2026-09-30-holds-lifecycle-design.md)); 2b–7
+progress ([spec](../specs/2026-09-30-holds-lifecycle-design.md); stack A [plan](2026-10-01-holds-stack-a-guest-manages-a-hold.md)); 2b–7
 are a backlog, each to be brainstormed → specced → planned → implemented
 separately (one spec/plan/PR-stack per sub-project).
 **Date:** 2026-09-30
@@ -16,7 +16,7 @@ during the skeleton's reviews, and the DDD foundation decisions made on
 | # | Sub-project | Scope |
 |---|---|---|
 | 1 | **Stack decisions + walking skeleton** — *done* | Stack ADRs, layered backend, React SPA, CI, and the thinnest slice (owner creates a list → guest enters key → guest holds one item). Follow-ons merged to main 2026-09-30: DDD foundation retrofit (`Wishlist` aggregate root, bearer-secret value objects) and the OpenAPI contract. |
-| 2 | **Holds lifecycle** — *in design* ([draft spec](../specs/2026-09-30-holds-lifecycle-design.md)) | Expiry (3 days, extend once, ADR-0002), lazy expiry computation, cross-item concurrent-hold cap (ADR-0046), idempotency (ADR-0048). Scope widened during brainstorming (2026-09-30) to include multi-item lists (quantity ≥ 1), guest PII on holds (`GuestPii` + `piiRef`), the reminder email and the one periodic task, owner access with owner-side hold release, and a minimal spoiler model. The hold credential becomes a client-held Ed25519 seed carried in a URL fragment; the server stores only the public key. |
+| 2 | **Holds lifecycle** — *in progress* ([spec](../specs/2026-09-30-holds-lifecycle-design.md)) | Expiry (3 days, extend once, ADR-0002), lazy expiry computation, cross-item concurrent-hold cap (ADR-0046), idempotency (ADR-0048). Scope widened during brainstorming (2026-09-30) to include multi-item lists (quantity ≥ 1), guest PII on holds (`GuestPii` + `piiRef`), the reminder email and the one periodic task, owner access with owner-side hold release, and a minimal spoiler model. The hold credential becomes a client-held Ed25519 seed carried in a URL fragment; the server stores only the public key. |
 | 2b | **Cross-device session transfer** | Let a guest move their session to another device by QR code or email, started from the current device. Covers switching devices, not a lost session (the saved hold link covers that). Consider reusing sub-project 2's Ed25519 signing scheme, device-bound keys or passkeys, and a client-initiated email of the hold link (the server never holds the seed, so it cannot send the link itself). Overlaps ADR-0058's my-data link; decide whether they are one mechanism. |
 | 3 | **Group gifts & funds** | Contributions, `allowOverfunding` policy (the Strategy pattern's first real use), payment methods (ADR-0044/0045), pledge-time snapshotting, `Money`/`Currency` value objects, `Item.type` as a `single \| group \| fund` union. |
 | 4 | **Owner dashboard** | Settings, reveal/spoiler timing (`revealAfter`, `revealedAt`), reconciliation, thank-you tracking, manual gift entries. |
@@ -68,9 +68,8 @@ constrain sub-projects 2–5.
 
 ## Open items to act on
 
-1. **Write the ADR for `Wishlist` as aggregate root** (compatible with ADR-0008,
-   `Item` reachable only through it). The code landed; no ADR records it yet.
-   Do this as sub-project 2's first task (listed in its spec's ADR changes).
+1. ~~**Write the ADR for `Wishlist` as aggregate root.**~~ Done:
+   ADR-[078](../../adr/0078-wishlist-is-the-aggregate-root.md) (holds stack A, PR 1).
 2. **Verify the quantity-1 assumption is gone** before starting 3: the write path
    must not decide availability itself (`markHeld` recomputing `active_holds`
    instead of taking what the domain decided). The review's fix was a port-shape
@@ -78,9 +77,11 @@ constrain sub-projects 2–5.
    dropped and `saveItemState` writes only what the domain decided.
 3. **`WishlistNotFoundError(input.slug)`** takes a slug where the parameter implies
    an id; rename the parameter to `identifier` (low priority, log-line accuracy).
-4. **Playwright e2e** did not run in some sandboxes because no browser was
-   installed; the dev image now bakes in Chromium (version must match the
-   lockfile). Confirm e2e runs green in CI before building on it.
+4. ~~**Playwright e2e** did not run in some sandboxes because no browser was
+   installed.~~ Confirmed running in CI: `main` at `11cf71f` (run
+   36897900694, 2026-10-01) ran the `e2e` job's `npm run test:e2e` step to
+   success, and it passes locally in the dev image. Playwright fails a run
+   that finds no tests, so success means the spec actually ran.
 
 ## How to start each sub-project
 
