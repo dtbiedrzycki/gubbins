@@ -292,6 +292,8 @@ with:
     counter could not stay honest (holds-lifecycle D4).
 ```
 
+> Superseded by Task 2.1 (PR #31 review, spec D21): `purchasedCount` was later removed from the `item_state` bullet; an item's purchased count is computed from purchase entries.
+
 and insert after the line `- Global auto-increment \`id\` gives cross-stream ordering for list-level views`:
 
 ```markdown
@@ -1497,7 +1499,7 @@ export interface ItemPurchasedEvent {
   type: 'ItemPurchased';
   v: 1;
   holdId: string;
-  occurredAt: string; // ISO 8601 — folds into holds.purchased_at and item_state.purchased_count
+  occurredAt: string; // ISO 8601 — folds into holds.purchased_at
 }
 ```
 
