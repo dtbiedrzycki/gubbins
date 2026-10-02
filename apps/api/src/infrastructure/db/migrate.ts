@@ -1,4 +1,5 @@
 import { pathToFileURL } from 'node:url';
+import { assertSchemaMatches } from './assertSchemaMatches.js';
 import { createDb } from './createDb.js';
 import { up } from './migrations/0001_init.js';
 import type { Database } from './schema.js';
@@ -6,6 +7,7 @@ import type { Kysely } from 'kysely';
 
 export async function migrateToLatest(db: Kysely<Database>): Promise<void> {
   await up(db as unknown as Kysely<unknown>);
+  await assertSchemaMatches(db);
 }
 
 /**

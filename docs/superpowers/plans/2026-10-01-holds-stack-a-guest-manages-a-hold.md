@@ -92,6 +92,7 @@ These refine the spec where it is silent. Each is cheap to reverse before the PR
 8. **`HOLD_DURATION_DAYS` must be a whole number ≥ 1**, with no upper cap, which the spec does not set. Unset or empty means 3.
 9. **Release is confirmed inline** ("Release your hold on Stroller?" with **Yes, release it** / **Keep my hold**) rather than in a second `<dialog>`.
 10. **The hold dialog keeps its CTA "Yes, hold it".** The `HoldSheet` rename, "Confirm hold" and the name/message fields arrive with stack D. Stack A only adds the "Held for you for N days." line and the open-time key.
+11. **Following the PR #31 review (spec D21), an item's purchased count is computed from purchase entries** (holds with `purchased_at`) instead of an `item_state.purchased_count` column. Task 2.1 no longer adds the column; Tasks 4.1 and 7.1 compute it.
 
 ## File map
 
@@ -291,6 +292,8 @@ with:
     counter could not stay honest (holds-lifecycle D4).
 ```
 
+> Superseded by Task 2.1 (PR #31 review, spec D21): `purchasedCount` was later removed from the `item_state` bullet; an item's purchased count is computed from purchase entries.
+
 and insert after the line `- Global auto-increment \`id\` gives cross-stream ordering for list-level views`:
 
 ```markdown
@@ -385,7 +388,7 @@ Open the PR against `main` as described under **PR map**.
 git switch -c feat/holds-a/02-schema-envelope feat/holds-a/01-docs
 ```
 
-### Task 2.1: Hold lifecycle columns, `purchased_count`, checks and indexes
+### Task 2.1: Hold lifecycle columns, checks and indexes
 
 `item_state.active_holds` stays for now. The domain still reads it until PR 4 replaces it with hold-state availability, which drops the column in the same commit.
 
@@ -398,7 +401,7 @@ git switch -c feat/holds-a/02-schema-envelope feat/holds-a/01-docs
 - Consumes: nothing new.
 - Produces:
   - `HoldsTable.extended_at | released_at | purchased_at: string | null`
-  - `ItemStateTable.purchased_count: Generated<number>`
+  - no `item_state.purchased_count`: an item's purchased count is computed from purchase entries (spec D21)
   - check constraint `holds_released_or_purchased`
   - indexes `holds_item_id_idx` and `holds_session_hash_idx`
 
@@ -437,7 +440,7 @@ function holdRow(overrides: Partial<Insertable<HoldsTable>> = {}): Insertable<Ho
   };
 }
 
-describe('0001_init, as amended for holds stack A', () => {
+describe('0001_init schema', () => {
   it("stores a hold's lifecycle timestamps, each null until set", async () => {
     await db.insertInto('holds').values(holdRow()).execute();
 
@@ -448,19 +451,6 @@ describe('0001_init, as amended for holds stack A', () => {
 
   it('refuses a hold that is both released and purchased', async () => {
     await expect(db.insertInto('holds').values(holdRow({ released_at: NOW, purchased_at: NOW })).execute())
-      .rejects.toThrow(/CHECK constraint failed/);
-  });
-
-  it("defaults an item's purchased_count to 0", async () => {
-    await db.insertInto('item_state').values({ item_id: I1, seq: 0, active_holds: 0, updated_at: NOW }).execute();
-
-    const row = await db.selectFrom('item_state').select('purchased_count').executeTakeFirstOrThrow();
-
-    expect(row.purchased_count).toBe(0);
-  });
-
-  it('refuses a negative purchased_count', async () => {
-    await expect(db.insertInto('item_state').values({ item_id: I1, seq: 0, active_holds: 0, purchased_count: -1, updated_at: NOW }).execute())
       .rejects.toThrow(/CHECK constraint failed/);
   });
 
@@ -475,7 +465,7 @@ describe('0001_init, as amended for holds stack A', () => {
 - [ ] **Step 2: Run them to see them fail**
 
 Run: `npm run test --workspace=apps/api -- src/infrastructure/db/schema.integration.test.ts`
-Expected: FAIL. TypeScript-unknown columns are only a type error, so vitest still runs, and SQLite reports `table holds has no column named released_at` / `no such column: purchased_count`. The index test fails on a missing name.
+Expected: FAIL. TypeScript-unknown columns are only a type error, so vitest still runs, and SQLite reports `table holds has no column named released_at` on the lifecycle columns. The index test fails on a missing name.
 
 - [ ] **Step 3: Amend `0001_init`**
 
@@ -483,22 +473,6 @@ In `apps/api/src/infrastructure/db/migrations/0001_init.ts`, change the import l
 
 ```ts
 import { sql, type Kysely } from 'kysely';
-```
-
-Replace the `item_state` block with:
-
-```ts
-  await schema.createTable('item_state').ifNotExists()
-    .addColumn('item_id', 'text', (col) => col.primaryKey().references('items.id'))
-    .addColumn('seq', 'integer', (col) => col.notNull())
-    .addColumn('active_holds', 'integer', (col) => col.notNull())
-    // Purchases are terminal (holds spec), so this count only ever grows and
-    // no lazily-computed rule can leave it stale — unlike an active-hold
-    // count, which is why liveness is read from `holds` rows instead
-    // (holds-lifecycle D4).
-    .addColumn('purchased_count', 'integer', (col) => col.notNull().defaultTo(0).check(sql`purchased_count >= 0`))
-    .addColumn('updated_at', 'text', (col) => col.notNull())
-    .execute();
 ```
 
 Replace the `holds` block with:
@@ -536,7 +510,6 @@ export interface ItemStateTable {
   item_id: string;
   seq: number;
   active_holds: number;
-  purchased_count: Generated<number>;
   updated_at: string;
 }
 
@@ -563,7 +536,7 @@ Expected: PASS. The new file is green and every existing API test is unchanged.
 
 ```bash
 git add apps/api/src/infrastructure/db
-git commit -m "feat(api): hold lifecycle columns, purchased_count, checks and indexes in 0001_init
+git commit -m "feat(api): hold lifecycle columns, checks and indexes in 0001_init
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01RdJzbrWLV8Xvu5rEmGsgQn"
@@ -1036,7 +1009,7 @@ Expected: PASS.
 - [ ] **Step 5: Check the real failure mode by hand**
 
 ```bash
-S=/tmp/claude-1000/-workspace/579b5866-7072-4c64-b51f-e56c8ae4460e/scratchpad
+S=$(mktemp -d)
 # A database with the skeleton's event_log, as a build from before this stack left it.
 node -e "const D=require('better-sqlite3');const d=new D('$S/stale.db');d.exec(\"create table event_log (id integer primary key autoincrement, item_id text not null, seq integer not null, event_type text not null, payload text not null, recorded_at text not null)\");d.close()"
 DATABASE_PATH=$S/stale.db npm run migrate --workspace=apps/api; echo "exit $?"
@@ -1526,7 +1499,7 @@ export interface ItemPurchasedEvent {
   type: 'ItemPurchased';
   v: 1;
   holdId: string;
-  occurredAt: string; // ISO 8601 — folds into holds.purchased_at and item_state.purchased_count
+  occurredAt: string; // ISO 8601 — folds into holds.purchased_at
 }
 ```
 

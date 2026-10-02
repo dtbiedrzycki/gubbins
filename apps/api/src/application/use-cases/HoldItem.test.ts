@@ -36,6 +36,18 @@ async function seedWishlistWithItem(wishlists: InMemoryWishlistRepository) {
 }
 
 describe('HoldItem', () => {
+  it('appends ItemHeld to the item stream as the guest (ADR-0075)', async () => {
+    const { useCase, wishlists, eventStore } = makeUseCase();
+    await seedWishlistWithItem(wishlists);
+
+    await useCase.execute({ wishlistId: WISHLIST_ID, itemId: ITEM_ID, sessionId: 'session-abc', idempotencyKey: 'idem-1' });
+
+    const recorded = eventStore.recorded(ITEM_ID);
+    expect(recorded).toHaveLength(1);
+    expect(recorded[0].actor).toBe('guest');
+    expect(recorded[0].event).toMatchObject({ type: 'ItemHeld', v: 1, itemId: ITEM_ID });
+  });
+
   it('holds an available item, appends ItemHeld, and marks it held', async () => {
     const { useCase, wishlists, holds } = makeUseCase();
     await seedWishlistWithItem(wishlists);

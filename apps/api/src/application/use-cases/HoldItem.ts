@@ -1,4 +1,3 @@
-import type { DomainEvent } from '../ports/EventStore.js';
 import type { UnitOfWork } from '../ports/UnitOfWork.js';
 import type { TokenGenerator } from '../ports/TokenGenerator.js';
 import type { Clock } from '../ports/Clock.js';
@@ -55,11 +54,9 @@ export class HoldItem {
         now,
       }, this.tokenGenerator, this.hasher);
 
-      // Cast at the EventStore port boundary only: DomainEvent's index signature
-      // exists so the store can hold heterogeneous events, but ItemHeldEvent
-      // itself stays free of one, so placeHold's return is still
-      // excess-property-checked against the concrete event shape.
-      await ctx.eventStore.append(input.itemId, expectedSeq, [event as unknown as DomainEvent]);
+      // Placing a hold is guest-only (ADR-0075), and HoldItem is only ever
+      // reached with a guest session, so the actor is fixed here.
+      await ctx.eventStore.append(input.itemId, expectedSeq, [event], 'guest');
 
       await ctx.holds.recordHold({
         id: hold.id.value, itemId: hold.itemId.value, secret: hold.secret.value,

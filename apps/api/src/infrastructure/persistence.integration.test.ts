@@ -11,6 +11,7 @@ import { UnitOfWorkKysely } from './UnitOfWorkKysely.js';
 import { Wishlist } from '../domain/entities/Wishlist.js';
 import { Item } from '../domain/entities/Item.js';
 import { ConcurrencyError, ItemNotFoundError } from '../domain/errors.js';
+import { anItemHeldEvent } from '../application/test-fakes/builders.js';
 
 const W1 = '11111111-1111-7111-8111-111111111111';
 const W2 = '22222222-2222-7222-8222-222222222222';
@@ -186,19 +187,29 @@ describe('HoldRepositoryKysely', () => {
 describe('EventStoreKysely', () => {
   it('appends events when expectedSeq matches the stream length', async () => {
     const store = new EventStoreKysely(db);
-    await store.append(I1, 0, [{ type: 'ItemHeld', occurredAt: '2026-01-01T00:00:00.000Z' }]);
+    await store.append(I1, 0, [anItemHeldEvent({ itemId: I1 })], 'guest');
 
     const rows = await db.selectFrom('event_log').selectAll().where('item_id', '=', I1).execute();
     expect(rows).toHaveLength(1);
     expect(rows[0].seq).toBe(1);
   });
 
+  it('records the actor on the row as envelope metadata, not in the payload (ADR-0075)', async () => {
+    const store = new EventStoreKysely(db);
+    await store.append(I1, 0, [anItemHeldEvent({ itemId: I1 })], 'guest');
+
+    const row = await db.selectFrom('event_log').select(['actor', 'payload']).where('item_id', '=', I1).executeTakeFirstOrThrow();
+    expect(row.actor).toBe('guest');
+    expect(JSON.parse(row.payload)).not.toHaveProperty('actor');
+    expect(JSON.parse(row.payload)).toMatchObject({ v: 1 });
+  });
+
   it('throws ConcurrencyError when expectedSeq is stale', async () => {
     const store = new EventStoreKysely(db);
-    await store.append(I1, 0, [{ type: 'ItemHeld', occurredAt: '2026-01-01T00:00:00.000Z' }]);
+    await store.append(I1, 0, [anItemHeldEvent({ itemId: I1 })], 'guest');
 
     await expect(
-      store.append(I1, 0, [{ type: 'ItemHeld', occurredAt: '2026-01-01T00:00:01.000Z' }]),
+      store.append(I1, 0, [anItemHeldEvent({ itemId: I1, holdId: '66666666-6666-7666-8666-666666666666' })], 'guest'),
     ).rejects.toThrow(ConcurrencyError);
   });
 });
