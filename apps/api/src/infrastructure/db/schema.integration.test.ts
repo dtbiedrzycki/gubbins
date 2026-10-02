@@ -29,7 +29,7 @@ function holdRow(overrides: Partial<Insertable<HoldsTable>> = {}): Insertable<Ho
   };
 }
 
-describe('0001_init, as amended for holds stack A', () => {
+describe('0001_init schema', () => {
   it("stores a hold's lifecycle timestamps, each null until set", async () => {
     await db.insertInto('holds').values(holdRow()).execute();
 
