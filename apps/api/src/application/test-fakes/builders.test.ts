@@ -18,7 +18,7 @@ describe('aWishlist', () => {
     expect(wishlist.item?.id.value).toBe('77777777-7777-7777-8777-777777777777');
     expect(wishlist.item?.title).toBe('Cot');
     expect(wishlist.item?.wishlistId.value).toBe(wishlist.id.value);
-    expect(wishlist.item?.status).toBe('available');
+    expect(wishlist.itemStatusAt('77777777-7777-7777-8777-777777777777', new Date('2026-01-01T00:00:00Z'))).toBe('available');
   });
 });
 

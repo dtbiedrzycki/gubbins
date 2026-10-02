@@ -70,11 +70,11 @@ constrain sub-projects 2–5.
 
 1. ~~**Write the ADR for `Wishlist` as aggregate root.**~~ Done:
    ADR-[078](../../adr/0078-wishlist-is-the-aggregate-root.md) (holds stack A, PR 1).
-2. **Verify the quantity-1 assumption is gone** before starting 3: the write path
-   must not decide availability itself (`markHeld` recomputing `active_holds`
-   instead of taking what the domain decided). The review's fix was a port-shape
-   change, not a SQL tweak. Sub-project 2 resolves this: `active_holds` is
-   dropped and `saveItemState` writes only what the domain decided.
+2. ~~**Verify the quantity-1 assumption is gone** before starting 3.~~ Done in
+   holds stack A, PR 4: `item_state.active_holds` is dropped, availability is
+   decided by `Wishlist` from the list's active holds, and
+   `WishlistRepository.saveItemState` writes only what the domain decided —
+   no read-before-write, pinned by the port contract suite.
 3. **`WishlistNotFoundError(input.slug)`** takes a slug where the parameter implies
    an id; rename the parameter to `identifier` (low priority, log-line accuracy).
 4. ~~**Playwright e2e** did not run in some sandboxes because no browser was

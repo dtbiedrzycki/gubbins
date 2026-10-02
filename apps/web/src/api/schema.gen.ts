@@ -195,7 +195,7 @@ export interface operations {
                             id: string;
                             title: string;
                             /** @enum {string} */
-                            status: "available" | "held";
+                            status: "available" | "held" | "purchased";
                         };
                     };
                 };

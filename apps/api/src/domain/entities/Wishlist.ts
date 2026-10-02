@@ -1,25 +1,40 @@
-import { DomainValidationError, ItemNotFoundError } from '../errors.js';
+import { DomainValidationError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError } from '../errors.js';
+import type { HoldExtendedEvent } from '../events/HoldExtendedEvent.js';
+import type { HoldReleasedEvent } from '../events/HoldReleasedEvent.js';
+import type { ItemHeldEvent } from '../events/ItemHeldEvent.js';
+import type { ItemPurchasedEvent } from '../events/ItemPurchasedEvent.js';
 import { GuestKey } from '../value-objects/GuestKey.js';
 import { OwnerToken } from '../value-objects/OwnerToken.js';
 import { Slug } from '../value-objects/Slug.js';
 import { UuidId } from '../value-objects/UuidId.js';
-import { Item } from './Item.js';
+import type { Hold } from './Hold.js';
+import { Item, type ItemStatus } from './Item.js';
+
+/** What a hold command leaves for the use case to persist: the hold, the item whose state moved, and the event to append at `expectedSeq`. */
+export interface HoldCommandResult<E> {
+  hold: Hold;
+  item: Item;
+  event: E;
+  expectedSeq: number;
+}
 
 /**
- * Aggregate Root. `Item` is reachable only through the wishlist that owns it:
- * the wishlist is what authorizes a caller to act on an item, while the item
- * itself owns availability and hold-placing. Wishlist authorizes, Item
- * decides, Hold records.
+ * Aggregate root (ADR-0078). Items are reachable only through it, and it
+ * carries the list's *active* holds as of the instant it was loaded
+ * (holds-lifecycle D8), so every rule that needs to see other holds —
+ * availability today, the session cap in stack C — is decided here. Holds
+ * are their own aggregate: the wishlist authorizes and decides commands on
+ * them; the use case persists the outcome.
  */
 export class Wishlist {
   private _item: Item | null = null;
+  private _activeHolds: Hold[] = [];
 
   /**
    * Enforces the aggregate's own invariants, so neither `create` nor
    * `reconstitute` can produce an invalid Wishlist. Blankness is checked
-   * against the title's trimmed content, so a whitespace-only title is
-   * rejected on every path, but the stored value is not normalized here:
-   * trimming stays in `create`, where the untrusted caller input arrives.
+   * against the title's trimmed content; trimming itself stays in `create`,
+   * where the untrusted caller input arrives.
    */
   private constructor(
     readonly id: UuidId,
@@ -35,46 +50,42 @@ export class Wishlist {
 
   static create(props: { id: string; slug: string; title: string; ownerToken: string; key: string }): Wishlist {
     return new Wishlist(
-      UuidId.from(props.id),
-      Slug.from(props.slug),
-      props.title.trim(),
-      OwnerToken.from(props.ownerToken),
-      GuestKey.from(props.key),
-      1,
+      UuidId.from(props.id), Slug.from(props.slug), props.title.trim(),
+      OwnerToken.from(props.ownerToken), GuestKey.from(props.key), 1,
     );
   }
 
   /**
-   * Reconstructs a Wishlist from persisted fields — used by repositories, not
-   * by application-layer creation flows. `item` is the already-loaded item,
-   * carrying its own concurrency state, which `create` cannot have yet.
+   * Reconstructs a Wishlist from persisted fields — used by repositories,
+   * not by creation flows. `activeHolds` are the list's holds active at load
+   * time; each must be on one of this wishlist's items.
    */
   static reconstitute(props: {
     id: string; slug: string; title: string; ownerToken: string; key: string; keyGen: number;
-    item?: Item;
+    item?: Item; activeHolds?: readonly Hold[];
   }): Wishlist {
     if (props.item && props.item.wishlistId.value !== props.id) {
       throw new DomainValidationError('Item belongs to a different wishlist');
     }
+    const holds = props.activeHolds ?? [];
+    for (const hold of holds) {
+      if (!props.item || hold.itemId.value !== props.item.id.value) {
+        throw new DomainValidationError('Hold belongs to an item outside this wishlist');
+      }
+    }
     const wishlist = new Wishlist(
-      UuidId.from(props.id),
-      Slug.from(props.slug),
-      props.title,
-      OwnerToken.from(props.ownerToken),
-      GuestKey.from(props.key),
-      props.keyGen,
+      UuidId.from(props.id), Slug.from(props.slug), props.title,
+      OwnerToken.from(props.ownerToken), GuestKey.from(props.key), props.keyGen,
     );
     wishlist._item = props.item ?? null;
+    wishlist._activeHolds = [...holds];
     return wishlist;
   }
 
   /**
-   * Creates and attaches this wishlist's item, minting the item's id itself
-   * via the supplied generator and assigning its own id as the item's
-   * wishlistId — the caller supplies only the title a new item needs.
-   * `ids` is taken as a structural type, not an imported interface:
-   * domain/ may not import application/ (ADR-012); the application layer's
-   * TokenGenerator already satisfies this shape.
+   * Creates and attaches this wishlist's item, minting its id via the
+   * supplied generator (a structural type: domain/ may not import
+   * application/, ADR-0012).
    */
   addItem(props: { title: string }, ids: { generateEntityId(): string }): Item {
     if (this._item !== null) {
@@ -90,15 +101,89 @@ export class Wishlist {
 
   /**
    * Resolves `itemId` to the Item this wishlist owns, or throws
-   * ItemNotFoundError. This is the aggregate's authorization step and the
-   * only supported way to obtain a holdable Item: it returns the very
-   * instance the aggregate tracks, so state the item records — a placed
-   * hold — is visible through the wishlist afterwards.
+   * ItemNotFoundError — the aggregate's authorization step for items.
    */
   getItem(itemId: string): Item {
     if (this._item === null || this._item.id.value !== itemId) {
       throw new ItemNotFoundError(itemId);
     }
     return this._item;
+  }
+
+  /** The loaded instance of an active hold, or null — a hold not in the snapshot is expired or closed (D8). */
+  findHold(holdId: string): Hold | null {
+    return this._activeHolds.find((hold) => hold.id.value === holdId) ?? null;
+  }
+
+  /** Whether `hold` is on one of this wishlist's items: the authorization step for a hold loaded by id, as `getItem` is for items. */
+  owns(hold: Hold): boolean {
+    return this._item !== null && hold.itemId.value === this._item.id.value;
+  }
+
+  itemStatusAt(itemId: string, now: Date): ItemStatus {
+    const item = this.getItem(itemId);
+    return item.statusGiven(this.activeHoldsOn(item, now));
+  }
+
+  holdItem(
+    props: { itemId: string; sessionHash: string; idempotencyKey: string; now: Date; durationMs: number },
+    tokens: { generateEntityId(): string; generateHoldSecret(): string },
+    hasher: { hash(value: string): string },
+  ): HoldCommandResult<ItemHeldEvent> {
+    const item = this.getItem(props.itemId);
+    const { hold, event, expectedSeq } = item.placeHold(props, this.activeHoldsOn(item, props.now), tokens, hasher);
+    this._activeHolds.push(hold);
+    return { hold, item, event, expectedSeq };
+  }
+
+  extendHold(hold: Hold, now: Date, durationMs: number): HoldCommandResult<HoldExtendedEvent> {
+    const item = this.itemOf(hold);
+    const event = hold.extend(now, durationMs);
+    return { hold, item, event, expectedSeq: item.recordEvent() };
+  }
+
+  releaseHold(hold: Hold, now: Date): HoldCommandResult<HoldReleasedEvent> {
+    const item = this.itemOf(hold);
+    const event = hold.release(now);
+    return { hold, item, event, expectedSeq: item.recordEvent() };
+  }
+
+  /**
+   * An active hold may always be purchased — its unit is already its own.
+   * An expired one may be too, so a guest who bought the gift after their
+   * hold lapsed need not re-hold it (D15) — but only while a unit is still
+   * free, or they would be buying one someone else now holds.
+   */
+  purchaseHold(hold: Hold, now: Date): HoldCommandResult<ItemPurchasedEvent> {
+    const item = this.itemOf(hold);
+    if (hold.statusAt(now) === 'expired' && item.availableUnits(this.activeHoldsOn(item, now)) === 0) {
+      throw new ItemUnavailableError(item.id.value);
+    }
+    const event = hold.markPurchased(now);
+    return { hold, item, event, expectedSeq: item.recordPurchase() };
+  }
+
+  /** `purchaseHold`'s rule as a question, for views that offer the action only when it would succeed. */
+  canPurchaseHold(hold: Hold, now: Date): boolean {
+    if (!this.owns(hold)) return false;
+    const status = hold.statusAt(now);
+    if (status === 'active') return true;
+    if (status !== 'expired') return false;
+    const item = this.itemOf(hold);
+    return item.availableUnits(this.activeHoldsOn(item, now)) > 0;
+  }
+
+  /**
+   * Re-checked at `now` rather than trusted from the load: the repository
+   * returned holds active when it ran (D8), and only `statusAt` defines
+   * active.
+   */
+  private activeHoldsOn(item: Item, now: Date): number {
+    return this._activeHolds.filter((hold) => hold.itemId.value === item.id.value && hold.statusAt(now) === 'active').length;
+  }
+
+  private itemOf(hold: Hold): Item {
+    if (!this.owns(hold)) throw new HoldNotFoundError(hold.id.value);
+    return this._item as Item;
   }
 }

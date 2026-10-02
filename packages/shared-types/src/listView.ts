@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const itemStatusSchema = z.enum(['available', 'held']);
+export const itemStatusSchema = z.enum(['available', 'held', 'purchased']);
 export type ItemStatus = z.infer<typeof itemStatusSchema>;
 
 export const listViewResponseSchema = z.object({

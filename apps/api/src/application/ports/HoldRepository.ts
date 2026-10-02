@@ -1,13 +1,25 @@
-export interface HoldRecord {
-  id: string;
-  itemId: string;
-  secret: string;
-  sessionHash: string;
-  idempotencyKey: string;
-  expiresAt: Date;
-}
+import type { Hold } from '../../domain/entities/Hold.js';
 
+/**
+ * Holds in domain terms (holds-lifecycle D9): no rows, no SQL vocabulary.
+ * Every method's behaviour, including the D8 expiry boundary, is pinned by
+ * application/ports/contracts/holdRepository.contract.ts against every
+ * implementation.
+ */
 export interface HoldRepository {
-  recordHold(hold: HoldRecord): Promise<void>;
-  findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<HoldRecord | null>;
+  insert(hold: Hold): Promise<void>;
+  /** Persists the hold's lifecycle — expiry and its extended/released/purchased instants — as the domain left them. */
+  save(hold: Hold): Promise<void>;
+  /** Any hold, whatever its state; null for an unknown (or malformed) id. Callers must still check the hold is on their list. */
+  findById(holdId: string): Promise<Hold | null>;
+  findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<Hold | null>;
+  /**
+   * The list's holds active at `now` — not released, not purchased, and
+   * `now <= expiresAt` — and no others (D8). Expired holds are never
+   * closed under lazy expiry, so "every unclosed hold" would grow without
+   * bound; the domain re-checks each one with `statusAt(now)`.
+   */
+  findActiveForWishlist(wishlistId: string, now: Date): Promise<Hold[]>;
+  /** Every hold `sessionHash` placed on the list, whatever its state, for "Your holds" — expired ones included, since D15 lets them be purchased. */
+  findForSession(wishlistId: string, sessionHash: string): Promise<Hold[]>;
 }

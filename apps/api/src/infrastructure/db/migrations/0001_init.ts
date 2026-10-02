@@ -26,7 +26,6 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   await schema.createTable('item_state').ifNotExists()
     .addColumn('item_id', 'text', (col) => col.primaryKey().references('items.id'))
     .addColumn('seq', 'integer', (col) => col.notNull())
-    .addColumn('active_holds', 'integer', (col) => col.notNull())
     .addColumn('updated_at', 'text', (col) => col.notNull())
     .execute();
 

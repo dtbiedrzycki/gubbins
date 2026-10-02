@@ -37,7 +37,7 @@ export function aWishlist(): WishlistBuilder {
 
 export class ItemBuilder {
   private props = {
-    id: DEFAULT_ITEM_ID, wishlistId: DEFAULT_WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0, activeHolds: 0,
+    id: DEFAULT_ITEM_ID, wishlistId: DEFAULT_WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0, purchasedCount: 0,
   };
 
   withId(id: string): this { this.props.id = id; return this; }
@@ -46,7 +46,7 @@ export class ItemBuilder {
   withType(type: string): this { this.props.type = type; return this; }
   withQuantity(quantity: number): this { this.props.quantity = quantity; return this; }
   withSeq(seq: number): this { this.props.seq = seq; return this; }
-  withActiveHolds(activeHolds: number): this { this.props.activeHolds = activeHolds; return this; }
+  withPurchasedCount(purchasedCount: number): this { this.props.purchasedCount = purchasedCount; return this; }
 
   build(): Item {
     return Item.reconstitute({ ...this.props });
