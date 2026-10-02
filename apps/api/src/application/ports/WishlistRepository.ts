@@ -17,9 +17,10 @@ export interface WishlistRepository {
   findBySlug(slug: string, now: Date): Promise<Wishlist | null>;
   findById(id: string, now: Date): Promise<Wishlist | null>;
   /**
-   * Writes an item's `seq` and `purchasedCount` exactly as the domain left
-   * them — no read-before-write, no arithmetic of its own (roadmap open
-   * item 2). Throws ItemNotFoundError unless the item exists on
+   * Writes an item's `seq` exactly as the domain left it — no
+   * read-before-write, no arithmetic of its own (roadmap open item 2). The
+   * purchased count is not written: loads compute it from purchase entries
+   * (D21). Throws ItemNotFoundError unless the item exists on
    * `item.wishlistId`.
    */
   saveItemState(item: Item): Promise<void>;

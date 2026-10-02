@@ -16,10 +16,10 @@ import type { WishlistRepository } from '../ports/WishlistRepository.js';
  * an unpersisted decision show up on the next read — which a SELECT never
  * could.
  */
-function copyItem(item: Item): Item {
+function copyItem(item: Item, purchasedCount: number): Item {
   return Item.reconstitute({
     id: item.id.value, wishlistId: item.wishlistId.value, type: item.type, title: item.title,
-    quantity: item.quantity, seq: item.seq, purchasedCount: item.purchasedCount,
+    quantity: item.quantity, seq: item.seq, purchasedCount,
   });
 }
 
@@ -38,9 +38,15 @@ function copyHold(hold: Hold): Hold {
  */
 export class InMemoryStore {
   readonly wishlists = new Map<string, Wishlist>();
+  /** Item rows. Their purchasedCount is always stored as 0 and ignored: loads compute it (D21). */
   readonly items = new Map<string, Item>();
   readonly holds = new Map<string, Hold>();
   readonly streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
+
+  /** Computed from purchase entries, never stored (holds-lifecycle D21): in stack A, the item's holds with purchasedAt set. */
+  purchasedCount(itemId: string): number {
+    return [...this.holds.values()].filter((h) => h.itemId.value === itemId && h.purchasedAt !== null).length;
+  }
 
   holdsOnList(wishlistId: string): Hold[] {
     return [...this.holds.values()].filter((hold) => this.items.get(hold.itemId.value)?.wishlistId.value === wishlistId);
@@ -53,7 +59,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   async insert(wishlist: Wishlist): Promise<void> {
     this.store.wishlists.set(wishlist.id.value, wishlist);
     const item = wishlist.item;
-    if (item !== null) this.store.items.set(item.id.value, copyItem(item));
+    if (item !== null) this.store.items.set(item.id.value, copyItem(item, 0));
   }
 
   async findBySlug(slug: string, now: Date): Promise<Wishlist | null> {
@@ -67,7 +73,8 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   async saveItemState(item: Item): Promise<void> {
     const stored = this.store.items.get(item.id.value);
     if (!stored || stored.wishlistId.value !== item.wishlistId.value) throw new ItemNotFoundError(item.id.value);
-    this.store.items.set(item.id.value, copyItem(item));
+    // seq only: the purchased count is never stored (D21).
+    this.store.items.set(item.id.value, copyItem(item, 0));
   }
 
   private hydrate(wishlist: Wishlist | undefined, now: Date): Wishlist | null {
@@ -77,7 +84,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
     return Wishlist.reconstitute({
       id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
       ownerToken: wishlist.ownerToken.value, key: wishlist.key.value, keyGen: wishlist.keyGen,
-      item: item ? copyItem(item) : undefined, activeHolds,
+      item: item ? copyItem(item, this.store.purchasedCount(item.id.value)) : undefined, activeHolds,
     });
   }
 }

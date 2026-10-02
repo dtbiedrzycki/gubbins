@@ -107,26 +107,26 @@ Backend (`apps/api/src`):
 | `domain/errors.ts` | modify (PR 3) | `ItemUnavailableError` (renamed), `HoldNotFoundError`, `HoldNotActiveError`, `HoldAlreadyExtendedError` |
 | `domain/entities/Hold.ts` | modify (PR 3) | timestamps, `reconstitute`, `statusAt`, `extend`, `release`, `markPurchased`, predicates |
 | `domain/policies/HoldPermissions.ts` | create (PR 3) | guest rows of the permission table |
-| `domain/entities/Item.ts` | modify (PR 4) | `purchasedCount` replaces `activeHolds`; availability from a passed-in active count; `recordEvent`, `recordPurchase` |
+| `domain/entities/Item.ts` | modify (PR 4) | `purchasedCount` (handed in at load, computed from purchase entries — D21) replaces `activeHolds`; availability from a passed-in active count; `recordEvent`, `recordPurchase` |
 | `domain/entities/Wishlist.ts` | modify (PR 4) | active-hold snapshot; `holdItem`, `extendHold`, `releaseHold`, `purchaseHold`, `findHold`, `owns`, `canPurchaseHold`, `itemStatusAt` |
 | `application/ports/EventStore.ts` | modify (PR 2) | `append(itemId, expectedSeq, events, actor)` |
 | `application/ports/HoldRepository.ts` | modify (PR 4) | speaks `Hold`; `insert`, `save`, `findById`, `findByIdempotencyKey`, `findActiveForWishlist`, `findForSession` |
 | `application/ports/WishlistRepository.ts` | modify (PR 4) | `findBySlug(slug, now)`, `findById(id, now)`, `saveItemState(item)` |
 | `application/ports/ItemRepository.ts` | modify (PR 4) | internal collaborator: `saveState` replaces `markHeld` |
 | `application/ports/contracts/*.contract.ts` | create (PR 4) | port contract suites (D9) |
-| `application/test-fakes/InMemoryRepositories.ts` | rewrite (PR 4) | shared `InMemoryStore`, `inMemoryPersistence()` |
+| `application/test-fakes/InMemoryRepositories.ts` | rewrite (PR 4) | shared `InMemoryStore`, `inMemoryPersistence()`; purchased count computed from stored holds (D21) |
 | `application/AccessContext.ts`, `HoldPolicy.ts`, `RetryingUnitOfWork.ts`, `views/HoldView.ts` | create (PR 5) | request credentials, hold config, conflict retry, view mapping |
 | `application/use-cases/holdCommand.ts` | create (PR 5) | `HoldCommand` shape, `findOwnedHold` |
 | `application/use-cases/ExtendHold.ts`, `ReleaseHold.ts`, `MarkHoldPurchased.ts`, `GetListView.ts` | create (PR 5) | use cases |
 | `application/use-cases/HoldItem.ts` | modify (PRs 2, 4, 5) | actor, aggregate API, `AccessContext`, `HoldView` |
 | `application/use-cases/EnterGuestKey.ts` | modify (PR 4) | `Clock` for the aggregate load |
 | `application/test-fakes/scenarios.ts` | create (PR 5) | shared seed for hold-command tests |
-| `infrastructure/db/migrations/0001_init.ts`, `db/schema.ts` | modify (PRs 2, 4) | stack A columns, checks, indexes |
+| `infrastructure/db/migrations/0001_init.ts`, `db/schema.ts` | modify (PRs 2, 4) | stack A columns, checks, indexes; `item_state` keeps `seq` only (D4, D21) |
 | `infrastructure/db/assertSchemaMatches.ts` | create (PR 2) | refuse a stale database at startup |
 | `infrastructure/db/immediateTransaction.ts` | create (PR 4) | `BEGIN IMMEDIATE` helper |
 | `infrastructure/db/createDb.ts` | modify (PR 4) | busy-timeout option |
-| `infrastructure/*Kysely.ts` | modify (PRs 2, 4) | adapters for the new ports |
-| `infrastructure/projections/rebuildProjections.ts` | create (PR 7) | D18 re-fold + CLI |
+| `infrastructure/*Kysely.ts` | modify (PRs 2, 4) | adapters for the new ports; item loads count purchased holds (D21) |
+| `infrastructure/projections/rebuildProjections.ts` | create (PR 7) | D18 re-fold of `holds` and `item_state.seq` + CLI |
 | `presentation/accessContext.ts` | create (PR 5) | cookie → `AccessContext` |
 | `presentation/domainErrorResponse.ts` | create (PR 6) | domain error → status + body |
 | `presentation/holdPolicyConfig.ts` | create (PR 6) | `HOLD_DURATION_DAYS` parsing |
@@ -1735,7 +1735,7 @@ git switch -c feat/holds-a/04-persistence feat/holds-a/03-domain-lifecycle
 
 ### Task 4.1: Availability from hold state — aggregate, ports, adapters, fakes and their contract suites
 
-One change, which no reviewer could approve in halves. `item_state.active_holds` goes. The `Wishlist` carries the list's active holds and decides availability from them. Every port, adapter and fake moves with it, and a contract suite holds both adapter sets to the same behaviour (D8, D9). External behaviour of the HTTP API is unchanged, apart from `status` gaining `'purchased'`.
+One change, which no reviewer could approve in halves. `item_state.active_holds` goes, leaving `item_state` with `seq` only: an item's purchased count is computed at load from its holds with `purchased_at` set (D21). The `Wishlist` carries the list's active holds and decides availability from them. Every port, adapter and fake moves with it, and a contract suite holds both adapter sets to the same behaviour (D8, D9). External behaviour of the HTTP API is unchanged, apart from `status` gaining `'purchased'`.
 
 **Files:**
 - Modify: `apps/api/src/domain/entities/Item.ts`, `Item.test.ts`
@@ -2828,17 +2828,51 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(justAfter?.itemStatusAt(ITEM_A, later(60_001))).toBe('available');
     });
 
-    it('saveItemState writes seq and purchasedCount exactly as the domain left them', async () => {
+    it('saveItemState writes seq exactly as the domain left it', async () => {
       const item = (await fx.wishlists.findById(LIST_A, NOW))!.getItem(ITEM_A);
       item.recordEvent();
+      item.recordEvent();
+
+      await fx.wishlists.saveItemState(item);
+
+      expect((await fx.wishlists.findById(LIST_A, NOW))?.item?.seq).toBe(2);
+    });
+
+    it('computes the purchased count from purchased holds: a saved purchase counts (D21)', async () => {
+      const hold = holdFixture();
+      await fx.holds.insert(hold);
+      hold.markPurchased(NOW);
+      await fx.holds.save(hold);
+
+      const reloaded = await fx.wishlists.findById(LIST_A, NOW);
+
+      expect(reloaded?.item?.purchasedCount).toBe(1);
+      expect(reloaded?.itemStatusAt(ITEM_A, NOW)).toBe('purchased');
+    });
+
+    it('does not take the purchased count from item state: saveItemState alone changes nothing (D21)', async () => {
+      const item = (await fx.wishlists.findById(LIST_A, NOW))!.getItem(ITEM_A);
       item.recordPurchase();
 
       await fx.wishlists.saveItemState(item);
 
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
-      expect(reloaded?.item?.seq).toBe(2);
-      expect(reloaded?.item?.purchasedCount).toBe(1);
-      expect(reloaded?.itemStatusAt(ITEM_A, NOW)).toBe('purchased');
+      expect(reloaded?.item?.seq).toBe(1);
+      expect(reloaded?.item?.purchasedCount).toBe(0);
+      expect(reloaded?.itemStatusAt(ITEM_A, NOW)).toBe('available');
+    });
+
+    it('counts neither a released nor an expired hold, nor a purchase on another list (D21)', async () => {
+      for (const hold of [
+        holdFixture({ releasedAt: later(-5) }),
+        holdFixture({ expiresAt: later(-1) }),
+        holdFixture({ itemId: ITEM_B, purchasedAt: later(-5) }),
+      ]) await fx.holds.insert(hold);
+
+      const reloaded = await fx.wishlists.findById(LIST_A, NOW);
+
+      expect(reloaded?.item?.purchasedCount).toBe(0);
+      expect(reloaded?.itemStatusAt(ITEM_A, NOW)).toBe('available');
     });
 
     it('saveItemState refuses an item claiming another list, and changes nothing', async () => {
@@ -2962,9 +2996,10 @@ export interface WishlistRepository {
   findBySlug(slug: string, now: Date): Promise<Wishlist | null>;
   findById(id: string, now: Date): Promise<Wishlist | null>;
   /**
-   * Writes an item's `seq` and `purchasedCount` exactly as the domain left
-   * them — no read-before-write, no arithmetic of its own (roadmap open
-   * item 2). Throws ItemNotFoundError unless the item exists on
+   * Writes an item's `seq` exactly as the domain left it — no
+   * read-before-write, no arithmetic of its own (roadmap open item 2). The
+   * purchased count is not written: loads compute it from purchase entries
+   * (D21). Throws ItemNotFoundError unless the item exists on
    * `item.wishlistId`.
    */
   saveItemState(item: Item): Promise<void>;
@@ -3013,10 +3048,10 @@ import type { WishlistRepository } from '../ports/WishlistRepository.js';
  * an unpersisted decision show up on the next read — which a SELECT never
  * could.
  */
-function copyItem(item: Item): Item {
+function copyItem(item: Item, purchasedCount: number): Item {
   return Item.reconstitute({
     id: item.id.value, wishlistId: item.wishlistId.value, type: item.type, title: item.title,
-    quantity: item.quantity, seq: item.seq, purchasedCount: item.purchasedCount,
+    quantity: item.quantity, seq: item.seq, purchasedCount,
   });
 }
 
@@ -3035,9 +3070,15 @@ function copyHold(hold: Hold): Hold {
  */
 export class InMemoryStore {
   readonly wishlists = new Map<string, Wishlist>();
+  /** Item rows. Their purchasedCount is always stored as 0 and ignored: loads compute it (D21). */
   readonly items = new Map<string, Item>();
   readonly holds = new Map<string, Hold>();
   readonly streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
+
+  /** Computed from purchase entries, never stored (holds-lifecycle D21): in stack A, the item's holds with purchasedAt set. */
+  purchasedCount(itemId: string): number {
+    return [...this.holds.values()].filter((h) => h.itemId.value === itemId && h.purchasedAt !== null).length;
+  }
 
   holdsOnList(wishlistId: string): Hold[] {
     return [...this.holds.values()].filter((hold) => this.items.get(hold.itemId.value)?.wishlistId.value === wishlistId);
@@ -3050,7 +3091,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   async insert(wishlist: Wishlist): Promise<void> {
     this.store.wishlists.set(wishlist.id.value, wishlist);
     const item = wishlist.item;
-    if (item !== null) this.store.items.set(item.id.value, copyItem(item));
+    if (item !== null) this.store.items.set(item.id.value, copyItem(item, 0));
   }
 
   async findBySlug(slug: string, now: Date): Promise<Wishlist | null> {
@@ -3064,7 +3105,8 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   async saveItemState(item: Item): Promise<void> {
     const stored = this.store.items.get(item.id.value);
     if (!stored || stored.wishlistId.value !== item.wishlistId.value) throw new ItemNotFoundError(item.id.value);
-    this.store.items.set(item.id.value, copyItem(item));
+    // seq only: the purchased count is never stored (D21).
+    this.store.items.set(item.id.value, copyItem(item, 0));
   }
 
   private hydrate(wishlist: Wishlist | undefined, now: Date): Wishlist | null {
@@ -3074,7 +3116,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
     return Wishlist.reconstitute({
       id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
       ownerToken: wishlist.ownerToken.value, key: wishlist.key.value, keyGen: wishlist.keyGen,
-      item: item ? copyItem(item) : undefined, activeHolds,
+      item: item ? copyItem(item, this.store.purchasedCount(item.id.value)) : undefined, activeHolds,
     });
   }
 }
@@ -3224,7 +3266,7 @@ In `apps/api/src/application/test-fakes/builders.test.ts`, replace line 21 with:
 
 - [ ] **Step 9: Change the Kysely adapters and drop `active_holds`**
 
-In `0001_init.ts`, delete the line `.addColumn('active_holds', 'integer', (col) => col.notNull())` from `item_state`. In `schema.ts`, delete `active_holds: number;` from `ItemStateTable`. In `apps/api/src/infrastructure/db/schema.integration.test.ts`, delete `active_holds: 0, ` from both `item_state` inserts.
+In `0001_init.ts`, delete the line `.addColumn('active_holds', 'integer', (col) => col.notNull())` from `item_state`. In `schema.ts`, delete `active_holds: number;` from `ItemStateTable`. In `apps/api/src/infrastructure/db/schema.integration.test.ts`, delete `active_holds: 0, ` from both `item_state` inserts. `item_state` is left with `item_id`, `seq` and `updated_at`: there is no `purchased_count` column (Task 2.1, D21). `ItemRepositoryKysely` computes an item's purchased count in the load query, as a correlated `count(*)` of its holds with `purchased_at` set, and `saveState` writes `seq` only.
 
 Replace `apps/api/src/infrastructure/HoldRepositoryKysely.ts` with:
 
@@ -3334,7 +3376,7 @@ export class ItemRepositoryKysely implements ItemRepository {
       quantity: item.quantity, created_at: now,
     }).execute();
     await this.db.insertInto('item_state').values({
-      item_id: item.id.value, seq: item.seq, purchased_count: item.purchasedCount, updated_at: now,
+      item_id: item.id.value, seq: item.seq, updated_at: now,
     }).execute();
   }
 
@@ -3342,19 +3384,27 @@ export class ItemRepositoryKysely implements ItemRepository {
     const row = await this.db.selectFrom('items')
       .innerJoin('item_state', 'item_state.item_id', 'items.id')
       .selectAll('items')
-      .select(['item_state.seq as seq', 'item_state.purchased_count as purchased_count'])
+      .select('item_state.seq as seq')
+      // The purchased count is computed from purchase entries, never stored
+      // (holds-lifecycle D21): in stack A, this item's holds with purchased_at set.
+      .select((eb) => eb.selectFrom('holds')
+        .select(eb.fn.countAll<number>().as('n'))
+        .whereRef('holds.item_id', '=', 'items.id')
+        .where('holds.purchased_at', 'is not', null)
+        .as('purchased_count'))
       .where('wishlist_id', '=', wishlistId)
       .executeTakeFirst();
     if (!row) return null;
     return Item.reconstitute({
       id: row.id, wishlistId: row.wishlist_id, type: row.type, title: row.title, quantity: row.quantity,
-      seq: row.seq, purchasedCount: row.purchased_count,
+      seq: row.seq, purchasedCount: Number(row.purchased_count),
     });
   }
 
+  /** Writes `seq` only: the purchased count is never stored (D21). */
   async saveState(item: Item): Promise<void> {
     const result = await this.db.updateTable('item_state')
-      .set({ seq: item.seq, purchased_count: item.purchasedCount, updated_at: new Date().toISOString() })
+      .set({ seq: item.seq, updated_at: new Date().toISOString() })
       .where('item_id', '=', item.id.value)
       // Scoped by wishlist as well as id: a write lands only on an item of
       // the list the aggregate was loaded for.
@@ -3723,9 +3773,10 @@ In `docs/superpowers/plans/2026-09-30-roadmap-to-full-spec.md`, replace open ite
 git add apps/api packages/shared-types apps/web/src/api/schema.gen.ts docs/superpowers/plans/2026-09-30-roadmap-to-full-spec.md
 git commit -m "feat(api): the Wishlist aggregate loads active holds and decides availability from them
 
-Drops item_state.active_holds (D4); saveItemState replaces markHeld
-(roadmap open item 2); port contract suites run against the in-memory
-fakes and the Kysely adapters (D8, D9).
+Drops item_state.active_holds (D4); saveItemState replaces markHeld and
+writes seq only, the purchased count being computed from purchased holds
+at load (D21; roadmap open item 2); port contract suites run against the
+in-memory fakes and the Kysely adapters (D8, D9).
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01RdJzbrWLV8Xvu5rEmGsgQn"
@@ -6629,13 +6680,22 @@ afterEach(async () => {
   await db.destroy();
 });
 
-/** The event-derived projections, minus write-time bookkeeping (created_at / updated_at record when a row was written, not a ledger fact). */
+/**
+ * The event-derived projections, minus write-time bookkeeping (created_at /
+ * updated_at record when a row was written, not a ledger fact), plus each
+ * item's purchased count as the repository load computes it from purchased
+ * holds — it is no column (D21).
+ */
 async function projections() {
+  const wishlistIds = await db.selectFrom('wishlists').select('id').orderBy('id').execute();
   return {
     holds: await db.selectFrom('holds')
       .select(['id', 'item_id', 'secret', 'session_hash', 'idempotency_key', 'expires_at', 'extended_at', 'released_at', 'purchased_at'])
       .orderBy('id').execute(),
-    itemState: await db.selectFrom('item_state').select(['item_id', 'seq', 'purchased_count']).orderBy('item_id').execute(),
+    itemState: await db.selectFrom('item_state').select(['item_id', 'seq']).orderBy('item_id').execute(),
+    purchasedCounts: await Promise.all(
+      wishlistIds.map(async ({ id }) => (await deps.wishlists.findById(id, clock.now()))?.item?.purchasedCount),
+    ),
   };
 }
 
@@ -6687,8 +6747,8 @@ describe('rebuildProjections (D18)', () => {
   it('repairs a projection that drifted from the ledger', async () => {
     await aBusyLedger();
     const incremental = await projections();
-    await db.updateTable('item_state').set({ seq: 99, purchased_count: 7 }).execute();
-    await db.updateTable('holds').set({ released_at: null, extended_at: '2000-01-01T00:00:00.000Z' }).execute();
+    await db.updateTable('item_state').set({ seq: 99 }).execute();
+    await db.updateTable('holds').set({ released_at: null, purchased_at: null, extended_at: '2000-01-01T00:00:00.000Z' }).execute();
 
     await rebuildProjections(db);
 
@@ -6804,12 +6864,12 @@ export async function rebuildProjections(db: Kysely<Database>): Promise<{ events
       }
     }
 
-    // seq and purchased_count are pure functions of each item's stream;
-    // an item with no events folds back to zero.
+    // seq is a pure function of each item's stream; an item with no events
+    // folds back to zero. The purchased count is not folded: it is never
+    // stored, and loads compute it from the holds re-folded above (D21).
     await sql`
       update item_state set
         seq = (select coalesce(max(seq), 0) from event_log where event_log.item_id = item_state.item_id),
-        purchased_count = (select count(*) from event_log where event_log.item_id = item_state.item_id and event_type = 'ItemPurchased'),
         updated_at = ${new Date().toISOString()}
     `.execute(trx);
 

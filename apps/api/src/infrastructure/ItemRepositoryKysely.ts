@@ -14,7 +14,7 @@ export class ItemRepositoryKysely implements ItemRepository {
       quantity: item.quantity, created_at: now,
     }).execute();
     await this.db.insertInto('item_state').values({
-      item_id: item.id.value, seq: item.seq, purchased_count: item.purchasedCount, updated_at: now,
+      item_id: item.id.value, seq: item.seq, updated_at: now,
     }).execute();
   }
 
@@ -22,19 +22,27 @@ export class ItemRepositoryKysely implements ItemRepository {
     const row = await this.db.selectFrom('items')
       .innerJoin('item_state', 'item_state.item_id', 'items.id')
       .selectAll('items')
-      .select(['item_state.seq as seq', 'item_state.purchased_count as purchased_count'])
+      .select('item_state.seq as seq')
+      // The purchased count is computed from purchase entries, never stored
+      // (holds-lifecycle D21): in stack A, this item's holds with purchased_at set.
+      .select((eb) => eb.selectFrom('holds')
+        .select(eb.fn.countAll<number>().as('n'))
+        .whereRef('holds.item_id', '=', 'items.id')
+        .where('holds.purchased_at', 'is not', null)
+        .as('purchased_count'))
       .where('wishlist_id', '=', wishlistId)
       .executeTakeFirst();
     if (!row) return null;
     return Item.reconstitute({
       id: row.id, wishlistId: row.wishlist_id, type: row.type, title: row.title, quantity: row.quantity,
-      seq: row.seq, purchasedCount: row.purchased_count,
+      seq: row.seq, purchasedCount: Number(row.purchased_count),
     });
   }
 
+  /** Writes `seq` only: the purchased count is never stored (D21). */
   async saveState(item: Item): Promise<void> {
     const result = await this.db.updateTable('item_state')
-      .set({ seq: item.seq, purchased_count: item.purchasedCount, updated_at: new Date().toISOString() })
+      .set({ seq: item.seq, updated_at: new Date().toISOString() })
       .where('item_id', '=', item.id.value)
       // Scoped by wishlist as well as id: a write lands only on an item of
       // the list the aggregate was loaded for.
