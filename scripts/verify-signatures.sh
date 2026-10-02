@@ -56,9 +56,14 @@ if [ -f "$allowed_pgp" ] && command -v gpg >/dev/null 2>&1; then
   # ultimately trusted. Not optional: without this, gpg reports a good
   # signature from an imported-but-uncertified key as U, and `git` only
   # reports G once the key is ultimately trusted (measured, both ways).
-  gpg --batch --with-colons --fingerprint 2>/dev/null \
-    | awk -F: '/^fpr:/ { print $10 ":6:" }' \
-    | gpg --batch --quiet --import-ownertrust 2>/dev/null || true
+  # Two steps, not one pipeline: with no key imported there is no trustdb
+  # yet, and two gpg processes started together can deadlock creating it.
+  ownertrust="$(gpg --batch --with-colons --fingerprint 2>/dev/null \
+    | awk -F: '/^fpr:/ { print $10 ":6:" }')" || true
+  if [ -n "$ownertrust" ]; then
+    printf '%s\n' "$ownertrust" \
+      | gpg --batch --quiet --import-ownertrust 2>/dev/null || true
+  fi
 fi
 
 range="${1:-HEAD}"

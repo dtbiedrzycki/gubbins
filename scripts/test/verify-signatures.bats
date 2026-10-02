@@ -99,6 +99,25 @@ setup() {
   [[ "$output" == *"UNVERIFIED"* ]]
 }
 
+# Break caught: with no key imported, the trustdb does not exist yet, and
+# a `gpg --fingerprint | gpg --import-ownertrust` pipeline starts both gpg
+# processes at once; they deadlock on trustdb.gpg.lock about one run in
+# three. Twenty bounded runs turn that race into a near-certain failure.
+@test "does not hang when the PGP anchor carries no key" {
+  command -v gpg >/dev/null || skip "gpg is not installed"
+  local sha; sha="$(pgp_fixture_sha)" || true
+  [ -n "$sha" ] || skip "fixture commit not present in this clone"
+  local clone="$BATS_TEST_TMPDIR/clone" i hung=0
+  git clone -q --branch main "$REPO_ROOT" "$clone" 2>/dev/null || skip "cannot clone"
+  : > "$clone/.allowed_pgp_keys.asc"
+  cd "$clone"
+  for i in $(seq 20); do
+    run timeout 10 bash "$VERIFY_SCRIPT" "$sha~1..$sha"
+    [ "$status" -ne 124 ] || hung=$((hung + 1))
+  done
+  [ "$hung" -eq 0 ]
+}
+
 @test "an SSH-only history is unaffected by the PGP anchor being absent" {
   [ ! -f "$REPO/.allowed_pgp_keys.asc" ]
   commit_file "$REPO" a.txt
