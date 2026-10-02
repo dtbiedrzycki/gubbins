@@ -18,6 +18,7 @@ const noDependencies: AppDependencies = {
   holdItem: unusedDependency('holdItem'),
   wishlists: unusedDependency('wishlists'),
   clock: unusedDependency('clock'),
+  hasher: unusedDependency('hasher'),
   logger: { logInfo: () => {}, logWarn: () => {}, logError: () => {} },
 };
 

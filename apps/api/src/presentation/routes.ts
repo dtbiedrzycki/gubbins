@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import {
@@ -11,9 +11,7 @@ import type { AppDependencies } from './compositionRoot.js';
 import {
   WishlistNotFoundError, InvalidGuestKeyError, ItemNotFoundError, ItemUnavailableError, ConcurrencyError,
 } from '../domain/errors.js';
-import type { Wishlist } from '../domain/entities/Wishlist.js';
-
-const SESSION_COOKIE = 'gubbins_session';
+import { SESSION_COOKIE, buildAccessContext, type SessionPayload } from './accessContext.js';
 
 // Path parameters are an HTTP concern, so their schemas live here rather than
 // in @gubbins/shared-types (which holds request/response bodies only).
@@ -32,26 +30,6 @@ function json<T extends z.ZodType>(description: string, schema: T) {
 }
 
 const INVALID_REQUEST = 'The request did not match the schema.';
-
-interface SessionPayload {
-  wishlistId: string;
-  keyGen: number;
-  sessionId: string;
-}
-
-function readSession(request: FastifyRequest, wishlist: Wishlist): SessionPayload | null {
-  const raw = request.cookies[SESSION_COOKIE];
-  if (!raw) return null;
-  const unsigned = request.unsignCookie(raw);
-  if (!unsigned.valid || !unsigned.value) return null;
-  try {
-    const payload = JSON.parse(unsigned.value) as SessionPayload;
-    if (payload.wishlistId !== wishlist.id.value || payload.keyGen !== wishlist.keyGen) return null;
-    return payload;
-  } catch {
-    return null;
-  }
-}
 
 export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies): void {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
@@ -110,12 +88,12 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
   }, async (request, reply) => {
     const wishlist = await deps.wishlists.findBySlug(request.params.slug, deps.clock.now());
     if (!wishlist) return reply.code(404).send(NOT_FOUND);
-    const session = readSession(request, wishlist);
+    const access = buildAccessContext(request, wishlist, deps.hasher);
     // Same generic 404 as an unknown slug — ADR-016/054: a caller must not be
     // able to tell "no such list" apart from "list exists, you're just not in
     // it" by status code alone (that would let an unauthenticated prober
     // enumerate valid slugs).
-    if (!session) return reply.code(404).send(NOT_FOUND);
+    if (!access.guestSession) return reply.code(404).send(NOT_FOUND);
 
     // Read through the aggregate: findBySlug already loaded the item and its
     // availability status, so there is no second repository round-trip and no
@@ -146,9 +124,9 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     const { slug, itemId } = request.params;
     const wishlist = await deps.wishlists.findBySlug(slug, deps.clock.now());
     if (!wishlist) return reply.code(404).send(NOT_FOUND);
-    const session = readSession(request, wishlist);
+    const access = buildAccessContext(request, wishlist, deps.hasher);
     // Same generic 404 as an unknown slug — see the GET route above.
-    if (!session) return reply.code(404).send(NOT_FOUND);
+    if (!access.guestSession) return reply.code(404).send(NOT_FOUND);
 
     // `wishlist` was loaded scoped to this URL's slug, so `wishlist.item` can
     // only ever be *this* wishlist's item or null. There is no query parameter
@@ -158,10 +136,9 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     if (wishlist.item?.id.value !== itemId) return reply.code(404).send(NOT_FOUND);
 
     try {
-      const result = await deps.holdItem.execute({
-        wishlistId: wishlist.id.value, itemId, sessionId: session.sessionId, idempotencyKey: request.body.idempotencyKey,
-      });
-      return reply.code(201).send(result);
+      const view = await deps.holdItem.execute({ wishlistId: wishlist.id.value, itemId, idempotencyKey: request.body.idempotencyKey }, access);
+      // PR 6 widens the response to the full hold view; until then, the skeleton's three fields.
+      return reply.code(201).send({ holdId: view.holdId, itemId: view.itemId, expiresAt: view.expiresAt });
     } catch (err) {
       if (err instanceof ItemNotFoundError) return reply.code(404).send(NOT_FOUND);
       if (err instanceof ItemUnavailableError || err instanceof ConcurrencyError) {

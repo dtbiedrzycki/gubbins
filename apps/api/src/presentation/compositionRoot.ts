@@ -14,6 +14,15 @@ import { EnterGuestKey } from '../application/use-cases/EnterGuestKey.js';
 import { HoldItem } from '../application/use-cases/HoldItem.js';
 import type { Logger } from '../application/ports/Logger.js';
 import type { Clock } from '../application/ports/Clock.js';
+import type { Hasher } from '../application/ports/Hasher.js';
+import { DEFAULT_HOLD_POLICY, type HoldPolicy } from '../application/HoldPolicy.js';
+
+export interface BuildDependenciesOptions {
+  /** Defaults to the system clock; integration tests pass a FixedClock to step through expiry. */
+  clock?: Clock;
+  /** Validated from HOLD_DURATION_DAYS by the server (holdPolicyConfig.ts); defaults to 3 days. */
+  holdPolicy?: HoldPolicy;
+}
 
 export interface AppDependencies {
   createList: CreateList;
@@ -22,12 +31,14 @@ export interface AppDependencies {
   wishlists: WishlistRepositoryKysely;
   logger: Logger;
   clock: Clock;
+  hasher: Hasher;
 }
 
-export function buildDependencies(db: Kysely<Database>, logger: Logger = new ConsoleLogger()): AppDependencies {
+export function buildDependencies(db: Kysely<Database>, logger: Logger = new ConsoleLogger(), options: BuildDependenciesOptions = {}): AppDependencies {
   const unitOfWork = new RetryingUnitOfWork(new UnitOfWorkKysely(db, (base) => new LoggingEventStore(base, logger)));
   const tokenGenerator = new TokenGeneratorCrypto();
-  const clock = new ClockSystem();
+  const clock = options.clock ?? new ClockSystem();
+  const holdPolicy = options.holdPolicy ?? DEFAULT_HOLD_POLICY;
   const hasher = new HasherSha256();
   const secretComparer = new SecretComparerCrypto();
   const wishlists = new WishlistRepositoryKysely(db);
@@ -35,9 +46,10 @@ export function buildDependencies(db: Kysely<Database>, logger: Logger = new Con
   return {
     createList: new CreateList(unitOfWork, tokenGenerator, clock),
     enterGuestKey: new EnterGuestKey(wishlists, secretComparer, tokenGenerator, clock),
-    holdItem: new HoldItem(unitOfWork, tokenGenerator, clock, hasher),
+    holdItem: new HoldItem(unitOfWork, tokenGenerator, clock, hasher, holdPolicy),
     wishlists,
     logger,
     clock,
+    hasher,
   };
 }

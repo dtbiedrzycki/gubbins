@@ -94,6 +94,7 @@ These refine the spec where it is silent. Each is cheap to reverse before the PR
 10. **The hold dialog keeps its CTA "Yes, hold it".** The `HoldSheet` rename, "Confirm hold" and the name/message fields arrive with stack D. Stack A only adds the "Held for you for N days." line and the open-time key.
 11. **Following the PR #31 review (spec D21), an item's purchased count is computed from purchase entries** (holds with `purchased_at`) instead of an `item_state.purchased_count` column. Task 2.1 no longer adds the column. Following the PR #33 review, the count is derived in the aggregate: the repository loads the list's active or purchased holds and `Wishlist.purchasedCountOf` counts those with status purchased, so there is no count query; Tasks 4.1 and 7.1 build on that.
 12. **Following the PR #32 review (spec D22), `Wishlist` captures the instant it was loaded at; its commands and queries take no time argument.** `Wishlist.create` and `reconstitute` take `asOf`; repositories pass the `now` they load at, so `CreateList` gains a `Clock`. `Hold`'s instant-taking methods are the aggregate's internals. Tasks 5.x and 6.3 are brought in line on their own branches.
+13. **A hold replay from a different session is refused as `item_unavailable` (409)** rather than returning the other session's hold; stack E replaces this with `idempotency_conflict`.
 
 ## File map
 
@@ -4776,6 +4777,15 @@ describe('HoldItem', () => {
     await expect(useCase.execute(input('idem-2'), OTHER_GUEST)).rejects.toThrow(ItemUnavailableError);
   });
 
+  it("refuses another session's idempotency key as ItemUnavailableError and writes nothing", async () => {
+    const { useCase, eventStore, holds } = await makeUseCase();
+    await useCase.execute(input(), GUEST);
+
+    await expect(useCase.execute(input(), OTHER_GUEST)).rejects.toThrow(ItemUnavailableError);
+    expect(eventStore.recorded(ITEM_ID)).toHaveLength(1);
+    expect((await holds.findByIdempotencyKey(ITEM_ID, 'idem-1'))?.sessionHash.value).toBe('a'.repeat(64));
+  });
+
   it('throws ItemNotFoundError without a guest session, for an unknown wishlist, or an item not on it', async () => {
     const { useCase } = await makeUseCase();
     await expect(useCase.execute(input(), { guestSession: null })).rejects.toThrow(ItemNotFoundError);
@@ -4915,7 +4925,7 @@ import type { Hasher } from '../ports/Hasher.js';
 import type { AccessContext } from '../AccessContext.js';
 import { holdDurationMs, type HoldPolicy } from '../HoldPolicy.js';
 import { toHoldView, type HoldView } from '../views/HoldView.js';
-import { ItemNotFoundError } from '../../domain/errors.js';
+import { ItemNotFoundError, ItemUnavailableError } from '../../domain/errors.js';
 
 export interface HoldItemInput {
   wishlistId: string;
@@ -4941,8 +4951,8 @@ export class HoldItem {
     if (!guest) throw new ItemNotFoundError(input.itemId);
 
     return this.unitOfWork.execute(async (ctx) => {
-      // Read once: the aggregate's active holds are loaded as of this
-      // instant, and every decision below is taken at the same one.
+      // Read once: the aggregate is loaded as of this instant, its active
+      // holds included, and decides everything below at the same one.
       const now = this.clock.now();
       const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
       if (!wishlist) throw new ItemNotFoundError(input.itemId);
@@ -4952,13 +4962,18 @@ export class HoldItem {
       // key must return the original hold (its current view), not trip
       // ItemUnavailableError on the hold it created itself.
       const existing = await ctx.holds.findByIdempotencyKey(input.itemId, input.idempotencyKey);
-      if (existing) return toHoldView(wishlist, existing, now);
+      if (existing) {
+        // Another session's key must not hand over that session's hold; refuse
+        // it as unavailable (stack E: idempotency_conflict). Never fall through
+        // to holdItem: UNIQUE (item_id, idempotency_key) would make it a 500.
+        if (!existing.belongsToSession(guest.sessionHash)) throw new ItemUnavailableError(input.itemId);
+        return toHoldView(wishlist, existing);
+      }
 
       const { hold, item, event, expectedSeq } = wishlist.holdItem({
         itemId: input.itemId,
         sessionHash: guest.sessionHash,
         idempotencyKey: input.idempotencyKey,
-        now,
         durationMs: holdDurationMs(this.policy),
       }, this.tokenGenerator, this.hasher);
 
@@ -4968,7 +4983,7 @@ export class HoldItem {
       // Persist exactly what the domain decided (roadmap open item 2).
       await ctx.wishlists.saveItemState(item);
 
-      return toHoldView(wishlist, hold, now);
+      return toHoldView(wishlist, hold);
     });
   }
 }
@@ -6434,7 +6449,7 @@ export function buildDependencies(
   const wishlists = new WishlistRepositoryKysely(db);
 
   return {
-    createList: new CreateList(unitOfWork, tokenGenerator),
+    createList: new CreateList(unitOfWork, tokenGenerator, clock),
     enterGuestKey: new EnterGuestKey(wishlists, secretComparer, tokenGenerator, clock),
     getListView: new GetListView(unitOfWork, clock, holdPolicy),
     holdItem: new HoldItem(unitOfWork, tokenGenerator, clock, hasher, holdPolicy),
