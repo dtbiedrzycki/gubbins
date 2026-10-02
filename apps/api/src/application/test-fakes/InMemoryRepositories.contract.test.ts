@@ -1,3 +1,4 @@
+import { describeEventStoreContract } from '../ports/contracts/eventStore.contract.js';
 import { describeHoldRepositoryContract } from '../ports/contracts/holdRepository.contract.js';
 import { describeWishlistRepositoryContract } from '../ports/contracts/wishlistRepository.contract.js';
 import type { PersistenceFactory } from '../ports/contracts/fixture.js';
@@ -14,3 +15,4 @@ const inMemory: PersistenceFactory = async () => {
 
 describeWishlistRepositoryContract('in-memory', inMemory);
 describeHoldRepositoryContract('in-memory', inMemory);
+describeEventStoreContract('in-memory', inMemory);
