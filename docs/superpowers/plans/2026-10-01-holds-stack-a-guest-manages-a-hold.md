@@ -5367,7 +5367,7 @@ describe('ReleaseHold', () => {
     await release(holdId);
 
     expect(eventStore.recorded(ITEM_ID).map(({ event, actor }) => [event.type, actor])).toEqual([['ItemHeld', 'guest'], ['HoldReleased', 'guest']]);
-    expect((await wishlists.findById(WISHLIST_ID, T0))?.itemStatusAt(ITEM_ID, T0)).toBe('available');
+    expect((await wishlists.findById(WISHLIST_ID, T0))?.itemStatus(ITEM_ID)).toBe('available');
     await expect(placeHold(OTHER_GUEST)).resolves.toMatchObject({ status: 'active' });
   });
 
@@ -5412,13 +5412,12 @@ Expected: FAIL. The module cannot be resolved.
 Create `apps/api/src/application/use-cases/ReleaseHold.ts`:
 
 ```ts
-import { HoldNotFoundError } from '../../domain/errors.js';
 import { HoldPermissions } from '../../domain/policies/HoldPermissions.js';
 import type { AccessContext } from '../AccessContext.js';
 import type { Clock } from '../ports/Clock.js';
 import type { UnitOfWork } from '../ports/UnitOfWork.js';
-import { toHoldView, type HoldView } from '../views/HoldView.js';
-import { findOwnedHold, type HoldCommand, type HoldCommandInput } from './holdCommand.js';
+import type { HoldView } from '../views/HoldView.js';
+import { runHoldCommand, type HoldCommand, type HoldCommandInput } from './holdCommand.js';
 
 export class ReleaseHold implements HoldCommand {
   constructor(
@@ -5427,22 +5426,11 @@ export class ReleaseHold implements HoldCommand {
   ) {}
 
   async execute(input: HoldCommandInput, access: AccessContext): Promise<HoldView> {
-    return this.unitOfWork.execute(async (ctx) => {
+    return this.unitOfWork.execute((ctx) => {
       const now = this.clock.now();
-      const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
-      if (!wishlist) throw new HoldNotFoundError(input.holdId);
-      const hold = await findOwnedHold(ctx, wishlist, input.holdId);
       // Guest row only in stack A; stack F adds the owner's, gated on
       // claim-status visibility.
-      const actor = HoldPermissions.mayRelease(hold, access);
-      if (!actor) throw new HoldNotFoundError(input.holdId);
-
-      const { item, event, expectedSeq } = wishlist.releaseHold(hold, now);
-
-      await ctx.eventStore.append(item.id.value, expectedSeq, [event], actor);
-      await ctx.holds.save(hold);
-      await ctx.wishlists.saveItemState(item);
-      return toHoldView(wishlist, hold, now);
+      return runHoldCommand(ctx, input, access, now, HoldPermissions.mayRelease, (wishlist, hold) => wishlist.releaseHold(hold));
     });
   }
 }
