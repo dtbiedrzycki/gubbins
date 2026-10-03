@@ -3587,7 +3587,7 @@ Replace the body of `HoldItem.execute` in `apps/api/src/application/use-cases/Ho
         itemId: input.itemId,
         sessionHash: this.hasher.hash(input.sessionId),
         idempotencyKey: input.idempotencyKey,
-        now,
+        at: now,
         durationMs: HOLD_DURATION_MS,
       }, this.tokenGenerator, this.hasher);
 
