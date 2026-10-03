@@ -128,9 +128,9 @@ export class Hold {
 
   /**
    * Ends the hold in a purchase. Refuses only the terminal states: an
-   * expired hold may still be purchased when its item has a free unit,
-   * and only the wishlist — which sees the other
-   * holds — can tell, so reach this through `Wishlist.purchaseHold`.
+   * expired hold may still be purchased when its item has a free unit, and
+   * only the wishlist — which sees the other holds — can tell, so reach this
+   * through `Wishlist.purchaseHold`.
    */
   markPurchased(at: Date): ItemPurchasedEvent {
     if (this._purchasedAt !== null || this._releasedAt !== null) throw new HoldNotActiveError(this.id.value);
