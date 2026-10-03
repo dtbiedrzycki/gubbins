@@ -19,7 +19,7 @@ async function columnsByTable(db: QueryExecutorProvider): Promise<Map<string, st
 
 /**
  * Until 1.0, 0001_init is amended in place rather than followed by new
- * migrations (holds-lifecycle D14), and its `createTable(...).ifNotExists()`
+ * migrations, and its `createTable(...).ifNotExists()`
  * skips any table that already exists. A database an older build created
  * therefore keeps its old shape without complaint, and the first write that
  * touches a changed column fails as a 500 in front of a guest. This compares

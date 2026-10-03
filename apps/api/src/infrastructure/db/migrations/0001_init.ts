@@ -39,15 +39,15 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     // Every instant below is written with toISOString(), so text comparison
     // is time order — findActiveForWishlist relies on it.
     .addColumn('expires_at', 'text', (col) => col.notNull())
-    // Hold state is timestamps only; statusAt(now) derives active/expired/
-    // released/purchased from them (holds-lifecycle D5).
+    // Hold state is timestamps only; statusAt(at) derives active/expired/
+    // released/purchased from them.
     .addColumn('extended_at', 'text')
     .addColumn('released_at', 'text')
     .addColumn('purchased_at', 'text')
     .addColumn('created_at', 'text', (col) => col.notNull())
     .addUniqueConstraint('holds_item_idempotency_key_unique', ['item_id', 'idempotency_key'])
     // A hold ends one way or the other, never both. A backstop: the domain
-    // already refuses it (holds-lifecycle §2, D9).
+    // already refuses it.
     .addCheckConstraint('holds_released_or_purchased', sql`released_at IS NULL OR purchased_at IS NULL`)
     .execute();
 
