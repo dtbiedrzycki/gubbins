@@ -23,8 +23,8 @@ export class ItemRepositoryKysely implements ItemRepository {
       .innerJoin('item_state', 'item_state.item_id', 'items.id')
       .selectAll('items')
       .select('item_state.seq as seq')
-      // The purchased count is computed from purchase entries, never stored
-      // (holds-lifecycle D21): in stack A, this item's holds with purchased_at set.
+      // The purchased count is computed from purchase entries, never stored:
+      // this item's holds with purchased_at set.
       .select((eb) => eb.selectFrom('holds')
         .select(eb.fn.countAll<number>().as('n'))
         .whereRef('holds.item_id', '=', 'items.id')
@@ -39,7 +39,7 @@ export class ItemRepositoryKysely implements ItemRepository {
     });
   }
 
-  /** Writes `seq` only: the purchased count is never stored (D21). */
+  /** Writes `seq` only: the purchased count is never stored. */
   async saveState(item: Item): Promise<void> {
     const result = await this.db.updateTable('item_state')
       .set({ seq: item.seq, updated_at: new Date().toISOString() })

@@ -38,12 +38,12 @@ function copyHold(hold: Hold): Hold {
  */
 export class InMemoryStore {
   readonly wishlists = new Map<string, Wishlist>();
-  /** Item rows. Their purchasedCount is always stored as 0 and ignored: loads compute it (D21). */
+  /** Item rows. Their purchasedCount is always stored as 0 and ignored: loads compute it. */
   readonly items = new Map<string, Item>();
   readonly holds = new Map<string, Hold>();
   readonly streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
 
-  /** Computed from purchase entries, never stored (holds-lifecycle D21): in stack A, the item's holds with purchasedAt set. */
+  /** Computed from purchase entries, never stored: the item's holds with purchasedAt set. */
   purchasedCount(itemId: string): number {
     return [...this.holds.values()].filter((h) => h.itemId.value === itemId && h.purchasedAt !== null).length;
   }
@@ -73,7 +73,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   async saveItemState(item: Item): Promise<void> {
     const stored = this.store.items.get(item.id.value);
     if (!stored || stored.wishlistId.value !== item.wishlistId.value) throw new ItemNotFoundError(item.id.value);
-    // seq only: the purchased count is never stored (D21).
+    // seq only: the purchased count is never stored.
     this.store.items.set(item.id.value, copyItem(item, 0));
   }
 

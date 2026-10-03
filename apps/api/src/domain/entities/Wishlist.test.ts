@@ -116,7 +116,7 @@ describe('Wishlist.addItem', () => {
     expect(wishlist.itemStatusAt(ITEM_ID, T0)).toBe('available');
   });
 
-  it('throws when a second item is added — single-item lists until stack B', () => {
+  it('throws when a second item is added — a list holds a single item', () => {
     const wishlist = Wishlist.create(validProps);
     wishlist.addItem({ title: 'Cot' }, { generateEntityId: () => ITEM_ID });
     expect(() => wishlist.addItem({ title: 'Pram' }, { generateEntityId: () => OTHER_ITEM_ID })).toThrow(DomainValidationError);
@@ -136,7 +136,7 @@ describe('Wishlist.getItem', () => {
 });
 
 describe('Wishlist.holdItem', () => {
-  const props = { itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', now: T0, durationMs: 3 * DAY };
+  const props = { itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', at: T0, durationMs: 3 * DAY };
 
   it('places a hold on a free item and returns everything the caller must persist', () => {
     const wishlist = loaded({ seq: 4 });
@@ -160,7 +160,7 @@ describe('Wishlist.holdItem', () => {
     expect(() => loaded({ activeHolds: [holdOn(ITEM_ID)] }).holdItem(props, tokens(), hasher)).toThrow(ItemUnavailableError);
   });
 
-  it('re-checks each loaded hold at now: one that lapsed since loading frees its unit (D8)', () => {
+  it('re-checks each loaded hold at the given instant: one that lapsed since loading frees its unit', () => {
     const lapsed = holdOn(ITEM_ID, { expiresAt: at(-1) });
     expect(() => loaded({ activeHolds: [lapsed] }).holdItem(props, tokens(), hasher)).not.toThrow();
   });
@@ -214,7 +214,7 @@ describe('Wishlist.extendHold and releaseHold', () => {
   });
 });
 
-describe('Wishlist.purchaseHold (D15)', () => {
+describe('Wishlist.purchaseHold', () => {
   it('purchases an active hold; the unit is gone for good', () => {
     const hold = holdOn(ITEM_ID);
     const wishlist = loaded({ activeHolds: [hold] });

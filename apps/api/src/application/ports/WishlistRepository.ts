@@ -11,16 +11,16 @@ export interface WishlistRepository {
   insert(wishlist: Wishlist): Promise<void>;
   /**
    * Loads the full aggregate as of `now` — its item and every hold on the
-   * list still active at `now` (D8) — or null if no such wishlist. The
+   * list still active at `now` — or null if no such wishlist. The
    * snapshot is only meaningful at an instant, hence `now`.
    */
   findBySlug(slug: string, now: Date): Promise<Wishlist | null>;
   findById(id: string, now: Date): Promise<Wishlist | null>;
   /**
    * Writes an item's `seq` exactly as the domain left it — no
-   * read-before-write, no arithmetic of its own (roadmap open item 2). The
-   * purchased count is not written: loads compute it from purchase entries
-   * (D21). Throws ItemNotFoundError unless the item exists on
+   * read-before-write, no arithmetic of its own. The
+   * purchased count is not written: loads compute it from purchase entries.
+   * Throws ItemNotFoundError unless the item exists on
    * `item.wishlistId`.
    */
   saveItemState(item: Item): Promise<void>;

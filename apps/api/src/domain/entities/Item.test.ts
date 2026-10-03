@@ -24,7 +24,7 @@ describe('Item.createSingle', () => {
   });
 });
 
-describe('Item availability — from hold state, never a stored counter (D4)', () => {
+describe('Item availability — from hold state, never a stored counter', () => {
   it('starts a new item at seq 0 with nothing purchased, and available', () => {
     const item = Item.createSingle({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Stroller' });
     expect(item.seq).toBe(0);
@@ -60,20 +60,20 @@ describe('Item availability — from hold state, never a stored counter (D4)', (
 });
 
 describe('Item.placeHold', () => {
-  const now = new Date('2026-01-01T00:00:00Z');
+  const at = new Date('2026-01-01T00:00:00Z');
   const GENERATED_HOLD_ID = '55555555-5555-7555-8555-555555555555';
   const GENERATED_SECRET = 'hold-secret';
-  const holdProps = { sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', now, durationMs: 3 * DAY };
+  const holdProps = { sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', at, durationMs: 3 * DAY };
   const available = () => Item.reconstitute({ ...base, seq: 4 });
   const fakeTokens = { generateEntityId: () => GENERATED_HOLD_ID, generateHoldSecret: () => GENERATED_SECRET };
   const fakeHasher = { hash: (value: string) => (value === GENERATED_SECRET ? 'f'.repeat(64) : 'e'.repeat(64)) };
 
-  it('mints a hold on this item that expires one duration from now', () => {
+  it('mints a hold on this item that expires one duration after the given instant', () => {
     const { hold } = available().placeHold(holdProps, 0, fakeTokens, fakeHasher);
     expect(hold.id.value).toBe(GENERATED_HOLD_ID);
     expect(hold.secret.value).toBe(GENERATED_SECRET);
     expect(hold.itemId.value).toBe(ITEM_ID);
-    expect(hold.expiresAt).toEqual(new Date(now.getTime() + 3 * DAY));
+    expect(hold.expiresAt).toEqual(new Date(at.getTime() + 3 * DAY));
   });
 
   it('returns the seq the caller must append against, and advances past it', () => {
@@ -87,7 +87,7 @@ describe('Item.placeHold', () => {
     expect(event).toEqual({
       type: 'ItemHeld', v: 1, itemId: ITEM_ID, holdId: GENERATED_HOLD_ID, secretHash: 'f'.repeat(64),
       sessionHash: holdProps.sessionHash, idempotencyKey: 'idem-1',
-      expiresAt: new Date(now.getTime() + 3 * DAY).toISOString(), occurredAt: now.toISOString(),
+      expiresAt: new Date(at.getTime() + 3 * DAY).toISOString(), occurredAt: at.toISOString(),
     });
     expect(event).not.toHaveProperty('secret');
   });

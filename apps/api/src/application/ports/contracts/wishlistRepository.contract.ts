@@ -27,7 +27,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(await fx.wishlists.findById('00000000-0000-7000-8000-999999999999', NOW)).toBeNull();
     });
 
-    it("loads the list's holds active at now, and no others (D8)", async () => {
+    it("loads the list's holds active at now, and no others", async () => {
       const active = holdFixture();
       const expired = holdFixture({ expiresAt: later(-1) });
       const released = holdFixture({ releasedAt: later(-5) });
@@ -62,7 +62,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect((await fx.wishlists.findById(LIST_A, NOW))?.item?.seq).toBe(2);
     });
 
-    it('computes the purchased count from purchased holds: a saved purchase counts (D21)', async () => {
+    it('computes the purchased count from purchased holds: a saved purchase counts', async () => {
       const hold = holdFixture();
       await fx.holds.insert(hold);
       hold.markPurchased(NOW);
@@ -74,7 +74,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(reloaded?.itemStatusAt(ITEM_A, NOW)).toBe('purchased');
     });
 
-    it('does not take the purchased count from item state: saveItemState alone changes nothing (D21)', async () => {
+    it('does not take the purchased count from item state: saveItemState alone changes nothing', async () => {
       const item = (await fx.wishlists.findById(LIST_A, NOW))!.getItem(ITEM_A);
       item.recordPurchase();
 
@@ -86,7 +86,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(reloaded?.itemStatusAt(ITEM_A, NOW)).toBe('available');
     });
 
-    it('counts neither a released nor an expired hold, nor a purchase on another list (D21)', async () => {
+    it('counts neither a released nor an expired hold, nor a purchase on another list', async () => {
       for (const hold of [
         holdFixture({ releasedAt: later(-5) }),
         holdFixture({ expiresAt: later(-1) }),

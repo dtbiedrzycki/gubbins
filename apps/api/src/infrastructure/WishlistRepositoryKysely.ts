@@ -44,7 +44,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     await this.items.saveState(item);
   }
 
-  /** Active holds only (D8), so the aggregate stays bounded however long the list has been in use. */
+  /** Active holds only, so the aggregate stays bounded however long the list has been in use. */
   private async hydrate(row: Selectable<WishlistsTable>, now: Date): Promise<Wishlist> {
     const item = await this.items.findByWishlistId(row.id);
     const activeHolds = await this.holds.findActiveForWishlist(row.id, now);

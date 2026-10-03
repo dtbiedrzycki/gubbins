@@ -8,7 +8,7 @@ import type { WishlistRepository } from '../WishlistRepository.js';
 
 /**
  * One adapter set under test, fresh per test. Every port contract suite
- * (holds-lifecycle D9) runs against both the in-memory fakes and the Kysely
+ * runs against both the in-memory fakes and the Kysely
  * adapters through this, so the fakes every use-case test relies on are held
  * to the same behaviour as the real thing.
  */

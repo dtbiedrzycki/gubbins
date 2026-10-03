@@ -62,7 +62,7 @@ export class Item {
     return this._seq;
   }
 
-  /** Units bought. Purchase is terminal, so this only grows — safe to store, unlike an active-hold count (D4). */
+  /** Units bought. Purchase is terminal, so this only grows — safe to store, unlike an active-hold count. */
   get purchasedCount(): number {
     return this._purchasedCount;
   }
@@ -71,7 +71,7 @@ export class Item {
    * Units no one holds or has bought, given how many holds on this item are
    * active right now. The count comes from the caller — the Wishlist, which
    * carries the list's active holds — because liveness belongs to hold rows,
-   * never to a counter here (D4). Never negative: quantity may drop below
+   * never to a counter here. Never negative: quantity may drop below
    * what is already committed (ADR-0019).
    */
   availableUnits(activeHolds: number): number {
@@ -95,7 +95,7 @@ export class Item {
    * Hasher already satisfy these shapes.
    */
   placeHold(
-    props: { sessionHash: string; idempotencyKey: string; now: Date; durationMs: number },
+    props: { sessionHash: string; idempotencyKey: string; at: Date; durationMs: number },
     activeHolds: number,
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
@@ -108,8 +108,8 @@ export class Item {
       secret: tokens.generateHoldSecret(),
       sessionHash: props.sessionHash,
       idempotencyKey: props.idempotencyKey,
-      expiresAt: new Date(props.now.getTime() + props.durationMs),
-      now: props.now,
+      expiresAt: new Date(props.at.getTime() + props.durationMs),
+      now: props.at,
     });
     const event: ItemHeldEvent = {
       type: 'ItemHeld',
@@ -120,7 +120,7 @@ export class Item {
       sessionHash: hold.sessionHash.value,
       idempotencyKey: hold.idempotencyKey.value,
       expiresAt: hold.expiresAt.toISOString(),
-      occurredAt: props.now.toISOString(),
+      occurredAt: props.at.toISOString(),
     };
     return { hold, event, expectedSeq: this.recordEvent() };
   }

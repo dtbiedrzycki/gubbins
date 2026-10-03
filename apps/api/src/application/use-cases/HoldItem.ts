@@ -50,7 +50,7 @@ export class HoldItem {
         itemId: input.itemId,
         sessionHash: this.hasher.hash(input.sessionId),
         idempotencyKey: input.idempotencyKey,
-        now,
+        at: now,
         durationMs: HOLD_DURATION_MS,
       }, this.tokenGenerator, this.hasher);
 
@@ -59,7 +59,7 @@ export class HoldItem {
       await ctx.eventStore.append(item.id.value, expectedSeq, [event], 'guest');
       await ctx.holds.insert(hold);
       // Persist exactly what the domain decided — the write path never
-      // decides availability itself (roadmap open item 2).
+      // decides availability itself.
       await ctx.wishlists.saveItemState(item);
 
       return { holdId: hold.id.value, itemId: hold.itemId.value, expiresAt: hold.expiresAt.toISOString() };

@@ -20,9 +20,9 @@ export interface HoldCommandResult<E> {
 
 /**
  * Aggregate root (ADR-0078). Items are reachable only through it, and it
- * carries the list's *active* holds as of the instant it was loaded
- * (holds-lifecycle D8), so every rule that needs to see other holds —
- * availability today, the session cap in stack C — is decided here. Holds
+ * carries the list's *active* holds as of the instant it was loaded,
+ * so every rule that needs to see other holds — availability today, a
+ * per-session cap later — is decided here. Holds
  * are their own aggregate: the wishlist authorizes and decides commands on
  * them; the use case persists the outcome.
  */
@@ -110,7 +110,7 @@ export class Wishlist {
     return this._item;
   }
 
-  /** The loaded instance of an active hold, or null — a hold not in the snapshot is expired or closed (D8). */
+  /** The loaded instance of an active hold, or null — a hold not in the snapshot is expired or closed. */
   findHold(holdId: string): Hold | null {
     return this._activeHolds.find((hold) => hold.id.value === holdId) ?? null;
   }
@@ -120,66 +120,66 @@ export class Wishlist {
     return this._item !== null && hold.itemId.value === this._item.id.value;
   }
 
-  itemStatusAt(itemId: string, now: Date): ItemStatus {
+  itemStatusAt(itemId: string, at: Date): ItemStatus {
     const item = this.getItem(itemId);
-    return item.statusGiven(this.activeHoldsOn(item, now));
+    return item.statusGiven(this.activeHoldsOn(item, at));
   }
 
   holdItem(
-    props: { itemId: string; sessionHash: string; idempotencyKey: string; now: Date; durationMs: number },
+    props: { itemId: string; sessionHash: string; idempotencyKey: string; at: Date; durationMs: number },
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): HoldCommandResult<ItemHeldEvent> {
     const item = this.getItem(props.itemId);
-    const { hold, event, expectedSeq } = item.placeHold(props, this.activeHoldsOn(item, props.now), tokens, hasher);
+    const { hold, event, expectedSeq } = item.placeHold(props, this.activeHoldsOn(item, props.at), tokens, hasher);
     this._activeHolds.push(hold);
     return { hold, item, event, expectedSeq };
   }
 
-  extendHold(hold: Hold, now: Date, durationMs: number): HoldCommandResult<HoldExtendedEvent> {
+  extendHold(hold: Hold, at: Date, durationMs: number): HoldCommandResult<HoldExtendedEvent> {
     const item = this.itemOf(hold);
-    const event = hold.extend(now, durationMs);
+    const event = hold.extend(at, durationMs);
     return { hold, item, event, expectedSeq: item.recordEvent() };
   }
 
-  releaseHold(hold: Hold, now: Date): HoldCommandResult<HoldReleasedEvent> {
+  releaseHold(hold: Hold, at: Date): HoldCommandResult<HoldReleasedEvent> {
     const item = this.itemOf(hold);
-    const event = hold.release(now);
+    const event = hold.release(at);
     return { hold, item, event, expectedSeq: item.recordEvent() };
   }
 
   /**
    * An active hold may always be purchased — its unit is already its own.
    * An expired one may be too, so a guest who bought the gift after their
-   * hold lapsed need not re-hold it (D15) — but only while a unit is still
+   * hold lapsed need not re-hold it — but only while a unit is still
    * free, or they would be buying one someone else now holds.
    */
-  purchaseHold(hold: Hold, now: Date): HoldCommandResult<ItemPurchasedEvent> {
+  purchaseHold(hold: Hold, at: Date): HoldCommandResult<ItemPurchasedEvent> {
     const item = this.itemOf(hold);
-    if (hold.statusAt(now) === 'expired' && item.availableUnits(this.activeHoldsOn(item, now)) === 0) {
+    if (hold.statusAt(at) === 'expired' && item.availableUnits(this.activeHoldsOn(item, at)) === 0) {
       throw new ItemUnavailableError(item.id.value);
     }
-    const event = hold.markPurchased(now);
+    const event = hold.markPurchased(at);
     return { hold, item, event, expectedSeq: item.recordPurchase() };
   }
 
   /** `purchaseHold`'s rule as a question, for views that offer the action only when it would succeed. */
-  canPurchaseHold(hold: Hold, now: Date): boolean {
+  canPurchaseHold(hold: Hold, at: Date): boolean {
     if (!this.owns(hold)) return false;
-    const status = hold.statusAt(now);
+    const status = hold.statusAt(at);
     if (status === 'active') return true;
     if (status !== 'expired') return false;
     const item = this.itemOf(hold);
-    return item.availableUnits(this.activeHoldsOn(item, now)) > 0;
+    return item.availableUnits(this.activeHoldsOn(item, at)) > 0;
   }
 
   /**
-   * Re-checked at `now` rather than trusted from the load: the repository
-   * returned holds active when it ran (D8), and only `statusAt` defines
+   * Re-checked at `at` rather than trusted from the load: the repository
+   * returned holds active when it ran, and only `statusAt` defines
    * active.
    */
-  private activeHoldsOn(item: Item, now: Date): number {
-    return this._activeHolds.filter((hold) => hold.itemId.value === item.id.value && hold.statusAt(now) === 'active').length;
+  private activeHoldsOn(item: Item, at: Date): number {
+    return this._activeHolds.filter((hold) => hold.itemId.value === item.id.value && hold.statusAt(at) === 'active').length;
   }
 
   private itemOf(hold: Hold): Item {

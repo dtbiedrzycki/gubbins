@@ -44,7 +44,7 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
       expect(await fx.holds.findById(hold.id.value)).toEqual(hold);
     });
 
-    describe('findActiveForWishlist — the D8 boundary', () => {
+    describe('findActiveForWishlist — the expiry boundary', () => {
       it.each([
         ['expired 1 ms ago', { expiresAt: later(-1) }, false],
         ['expiring at this very instant', { expiresAt: NOW }, true],
