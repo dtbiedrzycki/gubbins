@@ -10,7 +10,7 @@ const hold = Hold.reconstitute({
 });
 const commands = ['mayExtend', 'mayRelease', 'mayPurchase'] as const;
 
-describe('HoldPermissions — guest rows (holds-lifecycle §1, stack A)', () => {
+describe('HoldPermissions — guest rows', () => {
   it.each(commands)('%s: the session that placed the hold acts, as the guest', (command) => {
     expect(HoldPermissions[command](hold, { guestSession: { sessionHash: SESSION } })).toBe('guest');
   });

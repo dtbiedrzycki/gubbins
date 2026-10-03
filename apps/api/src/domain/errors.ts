@@ -4,7 +4,7 @@ export class ItemNotFoundError extends Error {
 }
 /**
  * `identifier` is whatever the caller looked the list up by — a slug or an
- * id. A lookup by slug has no id to report (roadmap open item 3).
+ * id. A lookup by slug has no id to report.
  */
 export class WishlistNotFoundError extends Error {
   constructor(identifier: string) { super(`Wishlist not found: ${identifier}`); }

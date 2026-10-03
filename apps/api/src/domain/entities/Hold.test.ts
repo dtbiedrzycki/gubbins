@@ -84,7 +84,7 @@ describe('Hold.reconstitute', () => {
   });
 });
 
-describe('Hold.statusAt — the one definition of hold state (D5)', () => {
+describe('Hold.statusAt — the one definition of hold state', () => {
   it.each([
     ['1 ms before expiresAt', -1, 'active'],
     ['at expiresAt exactly', 0, 'active'],
@@ -104,12 +104,12 @@ describe('Hold.statusAt — the one definition of hold state (D5)', () => {
   });
 
   it('starts a newly created hold active, with no lifecycle timestamps', () => {
-    const now = new Date('2026-01-01T00:00:00.000Z');
+    const at = new Date('2026-01-01T00:00:00.000Z');
     const hold = Hold.create({
       id: HOLD_ID, itemId: ITEM_ID, secret: 'hold-secret', sessionHash: 'a'.repeat(64),
-      idempotencyKey: 'idem-1', expiresAt: EXPIRES_AT, now,
+      idempotencyKey: 'idem-1', expiresAt: EXPIRES_AT, now: at,
     });
-    expect(hold.statusAt(now)).toBe('active');
+    expect(hold.statusAt(at)).toBe('active');
     expect([hold.extendedAt, hold.releasedAt, hold.purchasedAt]).toEqual([null, null, null]);
   });
 });
@@ -118,21 +118,21 @@ const DAY = 86_400_000;
 const CREATED = new Date(EXPIRES_AT.getTime() - 3 * DAY);
 
 describe('Hold.extend', () => {
-  it('adds the duration to the current expiresAt — not to now — and stamps extendedAt', () => {
+  it('adds the duration to the current expiresAt — not to the instant of the call — and stamps extendedAt', () => {
     const hold = persisted();
-    const now = new Date(CREATED.getTime() + DAY);
+    const at = new Date(CREATED.getTime() + DAY);
 
-    hold.extend(now, 3 * DAY);
+    hold.extend(at, 3 * DAY);
 
     expect(hold.expiresAt).toEqual(new Date(EXPIRES_AT.getTime() + 3 * DAY));
-    expect(hold.extendedAt).toEqual(now);
+    expect(hold.extendedAt).toEqual(at);
   });
 
   it('returns HoldExtended carrying the new expiry', () => {
-    const now = new Date(CREATED.getTime() + DAY);
-    expect(persisted().extend(now, 3 * DAY)).toEqual({
+    const at = new Date(CREATED.getTime() + DAY);
+    expect(persisted().extend(at, 3 * DAY)).toEqual({
       type: 'HoldExtended', v: 1, holdId: HOLD_ID,
-      expiresAt: new Date(EXPIRES_AT.getTime() + 3 * DAY).toISOString(), occurredAt: now.toISOString(),
+      expiresAt: new Date(EXPIRES_AT.getTime() + 3 * DAY).toISOString(), occurredAt: at.toISOString(),
     });
   });
 
@@ -153,8 +153,8 @@ describe('Hold.extend', () => {
     ['expired', persisted, msFromExpiry(1)],
     ['released', () => persisted({ releasedAt: CREATED }), CREATED],
     ['purchased', () => persisted({ purchasedAt: CREATED }), CREATED],
-  ] as const)('refuses a %s hold', (_state, make, now) => {
-    expect(() => make().extend(now, DAY)).toThrow(HoldNotActiveError);
+  ] as const)('refuses a %s hold', (_state, make, at) => {
+    expect(() => make().extend(at, DAY)).toThrow(HoldNotActiveError);
   });
 
   it('refuses a duration that is not a positive whole number of milliseconds', () => {
@@ -174,8 +174,8 @@ describe('Hold.release', () => {
     ['expired', persisted, msFromExpiry(1)],
     ['released', () => persisted({ releasedAt: CREATED }), CREATED],
     ['purchased', () => persisted({ purchasedAt: CREATED }), CREATED],
-  ] as const)('refuses a %s hold', (_state, make, now) => {
-    expect(() => make().release(now)).toThrow(HoldNotActiveError);
+  ] as const)('refuses a %s hold', (_state, make, at) => {
+    expect(() => make().release(at)).toThrow(HoldNotActiveError);
   });
 });
 
@@ -186,7 +186,7 @@ describe('Hold.markPurchased', () => {
     expect(hold.statusAt(CREATED)).toBe('purchased');
   });
 
-  it('accepts an expired hold — whether a unit is still free is the wishlist\'s call (D15)', () => {
+  it('accepts an expired hold — whether a unit is still free is the wishlist\'s call', () => {
     expect(() => persisted().markPurchased(msFromExpiry(1))).not.toThrow();
   });
 
