@@ -8,7 +8,7 @@ import type { Hasher } from '../ports/Hasher.js';
  * fake — hashing has no I/O or randomness to fake away in the first place.
  * Determinism (same input -> same output) is the only property
  * HoldItem.test.ts actually relies on, and real SHA-256 still gives you
- * that. Task 10's SecretComparerCrypto/HasherSha256 cover production hashing.
+ * that. The production hashing lives in SecretComparerCrypto and HasherSha256.
  */
 export class FakeHasher implements Hasher {
   hash(value: string): string {

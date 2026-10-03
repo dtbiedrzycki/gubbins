@@ -16,7 +16,7 @@ import { appVersion } from './appVersion.js';
 
 export interface BuildAppOptions {
   cookieSecret: string;
-  /** Directory to serve as static files (the built apps/web bundle). Omit to skip static serving — used by Task 11's own integration tests, which only exercise /api routes. */
+  /** Directory to serve as static files (the built apps/web bundle). Omit to skip static serving — used by the app's own integration tests, which only exercise /api routes. */
   webDist?: string;
 }
 
