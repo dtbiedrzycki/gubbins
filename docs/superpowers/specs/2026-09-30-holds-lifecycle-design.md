@@ -97,6 +97,9 @@ earlier ones where noted.
 `Wishlist`.
 - Fields: `id`, `itemId`, `publicKey`, `sessionHash`, `idempotencyKey`,
   `piiRef`, `expiresAt`, `extendedAt?`, `releasedAt?`, `purchasedAt?`.
+- The methods below that take an instant are called only by `Wishlist`,
+  with the instant it was loaded at (D22); application code goes through
+  `Wishlist`.
 - `statusAt(now)`: `purchased` if `purchasedAt`; `released` if
   `releasedAt`; `expired` if `now > expiresAt`; else `active`. The one
   definition of hold state; never stored.

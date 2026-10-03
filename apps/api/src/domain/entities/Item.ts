@@ -69,10 +69,10 @@ export class Item {
 
   /**
    * Units no one holds or has bought, given how many holds on this item are
-   * active at the wishlist's instant. The count comes from the caller — the Wishlist, which
-   * carries the list's active holds — because liveness belongs to hold rows,
-   * never to a counter here. Never negative: quantity may drop below
-   * what is already committed (ADR-0019).
+   * active at the wishlist's instant. The count comes from the caller — the
+   * Wishlist, which carries the list's active holds — because liveness
+   * belongs to hold rows, never to a counter here. Never negative: quantity
+   * may drop below what is already committed (ADR-0019).
    */
   availableUnits(activeHolds: number): number {
     return Math.max(0, this.quantity - activeHolds - this._purchasedCount);

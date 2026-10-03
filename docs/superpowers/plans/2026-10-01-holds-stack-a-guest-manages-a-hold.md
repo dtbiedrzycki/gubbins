@@ -93,7 +93,7 @@ These refine the spec where it is silent. Each is cheap to reverse before the PR
 9. **Release is confirmed inline** ("Release your hold on Stroller?" with **Yes, release it** / **Keep my hold**) rather than in a second `<dialog>`.
 10. **The hold dialog keeps its CTA "Yes, hold it".** The `HoldSheet` rename, "Confirm hold" and the name/message fields arrive with stack D. Stack A only adds the "Held for you for N days." line and the open-time key.
 11. **Following the PR #31 review (spec D21), an item's purchased count is computed from purchase entries** (holds with `purchased_at`) instead of an `item_state.purchased_count` column. Task 2.1 no longer adds the column; Tasks 4.1 and 7.1 compute it.
-12. **Following the PR #32 review (spec D22), `Wishlist` captures the instant it was loaded at; its commands and queries take no time argument.** `Wishlist.create` and `reconstitute` take `asOf`; repositories pass the `now` they load at, so `CreateList` gains a `Clock`. `Hold`'s instant-taking methods are the aggregate's internals.
+12. **Following the PR #32 review (spec D22), `Wishlist` captures the instant it was loaded at; its commands and queries take no time argument.** `Wishlist.create` and `reconstitute` take `asOf`; repositories pass the `now` they load at, so `CreateList` gains a `Clock`. `Hold`'s instant-taking methods are the aggregate's internals. Tasks 5.x and 6.3 are brought in line on their own branches.
 
 ## File map
 
@@ -2375,10 +2375,10 @@ export class Item {
 
   /**
    * Units no one holds or has bought, given how many holds on this item are
-   * active at the wishlist's instant. The count comes from the caller — the Wishlist, which
-   * carries the list's active holds — because liveness belongs to hold rows,
-   * never to a counter here. Never negative: quantity may drop below
-   * what is already committed (ADR-0019).
+   * active at the wishlist's instant. The count comes from the caller — the
+   * Wishlist, which carries the list's active holds — because liveness
+   * belongs to hold rows, never to a counter here. Never negative: quantity
+   * may drop below what is already committed (ADR-0019).
    */
   availableUnits(activeHolds: number): number {
     return Math.max(0, this.quantity - activeHolds - this._purchasedCount);
@@ -2785,14 +2785,20 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
     it('save writes the lifecycle exactly as the domain left it', async () => {
       const inserted = holdFixture();
       await fx.holds.insert(inserted);
-      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
-      const hold = wishlist.findHold(inserted.id.value)!;
-      wishlist.extendHold(hold, 3_600_000);
-      wishlist.purchaseHold(hold);
+      const atNow = (await fx.wishlists.findById(LIST_A, NOW))!;
+      const extended = atNow.findHold(inserted.id.value)!;
+      atNow.extendHold(extended, 3_600_000);
+      await fx.holds.save(extended);
 
+      const aMomentLater = (await fx.wishlists.findById(LIST_A, later(1)))!;
+      const hold = aMomentLater.findHold(inserted.id.value)!;
+      aMomentLater.purchaseHold(hold);
       await fx.holds.save(hold);
 
-      expect(await fx.holds.findById(hold.id.value)).toEqual(hold);
+      const reloaded = await fx.holds.findById(hold.id.value);
+      expect(reloaded?.extendedAt).toEqual(NOW);
+      expect(reloaded?.purchasedAt).toEqual(later(1));
+      expect(reloaded).toEqual(hold);
     });
 
     describe('findActiveForWishlist — the expiry boundary', () => {

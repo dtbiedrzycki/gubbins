@@ -36,14 +36,20 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
     it('save writes the lifecycle exactly as the domain left it', async () => {
       const inserted = holdFixture();
       await fx.holds.insert(inserted);
-      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
-      const hold = wishlist.findHold(inserted.id.value)!;
-      wishlist.extendHold(hold, 3_600_000);
-      wishlist.purchaseHold(hold);
+      const atNow = (await fx.wishlists.findById(LIST_A, NOW))!;
+      const extended = atNow.findHold(inserted.id.value)!;
+      atNow.extendHold(extended, 3_600_000);
+      await fx.holds.save(extended);
 
+      const aMomentLater = (await fx.wishlists.findById(LIST_A, later(1)))!;
+      const hold = aMomentLater.findHold(inserted.id.value)!;
+      aMomentLater.purchaseHold(hold);
       await fx.holds.save(hold);
 
-      expect(await fx.holds.findById(hold.id.value)).toEqual(hold);
+      const reloaded = await fx.holds.findById(hold.id.value);
+      expect(reloaded?.extendedAt).toEqual(NOW);
+      expect(reloaded?.purchasedAt).toEqual(later(1));
+      expect(reloaded).toEqual(hold);
     });
 
     describe('findActiveForWishlist — the expiry boundary', () => {
