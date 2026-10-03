@@ -3,7 +3,7 @@ import { Wishlist } from './Wishlist.js';
 import { Item } from './Item.js';
 import { Hold } from './Hold.js';
 import {
-  DomainValidationError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError,
+  DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError,
 } from '../errors.js';
 
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
@@ -301,7 +301,8 @@ describe('Wishlist.purchaseHold', () => {
   it('refuses an expired hold once someone else holds the last unit, and records nothing', () => {
     const expired = holdOn(ITEM_ID, { expiresAt: at(-1) });
     const wishlist = loaded({ holds: [holdOn(ITEM_ID, { sessionHash: OTHER_SESSION })] });
-    expect(() => wishlist.purchaseHold(expired)).toThrow(ItemUnavailableError);
+    expect(() => wishlist.purchaseHold(expired)).toThrow(HoldLapsedError);
+    expect(() => wishlist.purchaseHold(expired)).toThrow(ItemUnavailableError); // same 409 code, a clearer message
     expect(expired.purchasedAt).toBeNull();
     expect(wishlist.getItem(ITEM_ID).seq).toBe(0);
   });

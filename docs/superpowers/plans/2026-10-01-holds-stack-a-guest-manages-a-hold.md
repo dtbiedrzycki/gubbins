@@ -1971,7 +1971,7 @@ import { Wishlist } from './Wishlist.js';
 import { Item } from './Item.js';
 import { Hold } from './Hold.js';
 import {
-  DomainValidationError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError,
+  DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError,
 } from '../errors.js';
 
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
@@ -2269,7 +2269,8 @@ describe('Wishlist.purchaseHold', () => {
   it('refuses an expired hold once someone else holds the last unit, and records nothing', () => {
     const expired = holdOn(ITEM_ID, { expiresAt: at(-1) });
     const wishlist = loaded({ holds: [holdOn(ITEM_ID, { sessionHash: OTHER_SESSION })] });
-    expect(() => wishlist.purchaseHold(expired)).toThrow(ItemUnavailableError);
+    expect(() => wishlist.purchaseHold(expired)).toThrow(HoldLapsedError);
+    expect(() => wishlist.purchaseHold(expired)).toThrow(ItemUnavailableError); // same 409 code, a clearer message
     expect(expired.purchasedAt).toBeNull();
     expect(wishlist.getItem(ITEM_ID).seq).toBe(0);
   });
@@ -2492,7 +2493,7 @@ export class Item {
 Replace `apps/api/src/domain/entities/Wishlist.ts` with:
 
 ```ts
-import { DomainValidationError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError } from '../errors.js';
+import { DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError } from '../errors.js';
 import type { HoldExtendedEvent } from '../events/HoldExtendedEvent.js';
 import type { HoldReleasedEvent } from '../events/HoldReleasedEvent.js';
 import type { ItemHeldEvent } from '../events/ItemHeldEvent.js';
@@ -2685,7 +2686,7 @@ export class Wishlist {
     const item = this.itemOf(hold);
     const refusal = this.purchaseRefusal(hold);
     if (refusal === 'closed') throw new HoldNotActiveError(hold.id.value);
-    if (refusal === 'lapsed') throw new ItemUnavailableError(item.id.value);
+    if (refusal === 'lapsed') throw new HoldLapsedError(item.id.value);
     const event = hold.markPurchased(this.asOf);
     this.keep(hold);
     return { hold, item, event, expectedSeq: item.recordEvent() };
@@ -5817,7 +5818,7 @@ Create `apps/api/src/presentation/domainErrorResponse.test.ts`:
 import { describe, expect, it } from 'vitest';
 import { domainErrorResponse } from './domainErrorResponse.js';
 import {
-  ConcurrencyError, HoldAlreadyExtendedError, HoldNotActiveError, HoldNotFoundError,
+  ConcurrencyError, HoldAlreadyExtendedError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError,
   InvalidGuestKeyError, ItemNotFoundError, ItemUnavailableError, WishlistNotFoundError,
 } from '../domain/errors.js';
 
@@ -5832,6 +5833,7 @@ describe('domainErrorResponse', () => {
 
   it.each([
     ['ItemUnavailableError', new ItemUnavailableError('x'), 'item_unavailable', 'This item is no longer available.'],
+    ['HoldLapsedError', new HoldLapsedError('x'), 'item_unavailable', 'Your hold expired and this gift has since been held or bought by someone else.'],
     ['HoldNotActiveError', new HoldNotActiveError('x'), 'hold_not_active', 'This hold is no longer active.'],
     ['HoldAlreadyExtendedError', new HoldAlreadyExtendedError('x'), 'hold_already_extended', 'This hold has already been extended.'],
   ])('answers %s with 409 and a code the client can branch on', (_name, err, code, message) => {
@@ -5890,7 +5892,7 @@ Create `apps/api/src/presentation/domainErrorResponse.ts`:
 ```ts
 import type { ErrorResponse } from '@gubbins/shared-types';
 import {
-  ConcurrencyError, HoldAlreadyExtendedError, HoldNotActiveError, HoldNotFoundError,
+  ConcurrencyError, HoldAlreadyExtendedError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError,
   ItemNotFoundError, ItemUnavailableError, WishlistNotFoundError,
 } from '../domain/errors.js';
 
@@ -5906,6 +5908,10 @@ export const NOT_FOUND = { message: 'Not found' } as const;
 export function domainErrorResponse(err: unknown): { status: 404 | 409; body: ErrorResponse } | null {
   if (err instanceof WishlistNotFoundError || err instanceof ItemNotFoundError || err instanceof HoldNotFoundError) {
     return { status: 404, body: NOT_FOUND };
+  }
+  // Before its parent: an expired hold bought after its unit went elsewhere.
+  if (err instanceof HoldLapsedError) {
+    return { status: 409, body: { message: 'Your hold expired and this gift has since been held or bought by someone else.', code: 'item_unavailable' } };
   }
   if (err instanceof ItemUnavailableError) {
     return { status: 409, body: { message: 'This item is no longer available.', code: 'item_unavailable' } };
