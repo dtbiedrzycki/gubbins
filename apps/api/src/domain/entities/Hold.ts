@@ -14,6 +14,14 @@ import { UuidId } from '../value-objects/UuidId.js';
  */
 export type HoldStatus = 'active' | 'expired' | 'released' | 'purchased';
 
+/**
+ * A hold's own lifecycle rules. The methods that take an instant (`statusAt`,
+ * `canExtendAt`, `canReleaseAt`, `extend`, `release`, `markPurchased`) are the
+ * aggregate's internals: `Wishlist` calls them with the instant it was loaded
+ * at, and application code goes through `Wishlist`, never these. That keeps
+ * every decision on one instant, so no caller can decide on current data
+ * using an older date.
+ */
 export class Hold {
   /**
    * Enforces the one invariant between the timestamps, so neither factory
@@ -78,7 +86,8 @@ export class Hold {
 
   /**
    * The one definition of hold state. Strictly after: at the very instant
-   * `at === expiresAt` the hold is still active.
+   * `at === expiresAt` the hold is still active. Called by `Wishlist` (see
+   * the class note).
    */
   statusAt(at: Date): HoldStatus {
     if (this._purchasedAt !== null) return 'purchased';
@@ -96,10 +105,12 @@ export class Hold {
     return this.sessionHash.value === sessionHash;
   }
 
+  /** Called by `Wishlist` with its load instant, like `statusAt`. */
   canExtendAt(at: Date): boolean {
     return this.statusAt(at) === 'active' && this._extendedAt === null;
   }
 
+  /** Called by `Wishlist` with its load instant, like `statusAt`. */
   canReleaseAt(at: Date): boolean {
     return this.statusAt(at) === 'active';
   }
@@ -108,6 +119,7 @@ export class Hold {
    * The one self-service extension (ADR-0002): only while active, only
    * once. Adds `durationMs` to the *current* expiry rather than to `at`,
    * so the most a hold can ever last is twice the configured duration.
+   * Called by `Wishlist` with its load instant.
    */
   extend(at: Date, durationMs: number): HoldExtendedEvent {
     if (!Number.isInteger(durationMs) || durationMs <= 0) {
@@ -120,6 +132,7 @@ export class Hold {
     return { type: 'HoldExtended', v: 1, holdId: this.id.value, expiresAt: this._expiresAt.toISOString(), occurredAt: at.toISOString() };
   }
 
+  /** Called by `Wishlist` with its load instant, like `statusAt`. */
   release(at: Date): HoldReleasedEvent {
     if (this.statusAt(at) !== 'active') throw new HoldNotActiveError(this.id.value);
     this._releasedAt = at;
@@ -130,7 +143,7 @@ export class Hold {
    * Ends the hold in a purchase. Refuses only the terminal states: an
    * expired hold may still be purchased when its item has a free unit, and
    * only the wishlist — which sees the other holds — can tell, so reach this
-   * through `Wishlist.purchaseHold`.
+   * through `Wishlist.purchaseHold`, which passes its load instant.
    */
   markPurchased(at: Date): ItemPurchasedEvent {
     if (this._purchasedAt !== null || this._releasedAt !== null) throw new HoldNotActiveError(this.id.value);
