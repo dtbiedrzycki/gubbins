@@ -7,7 +7,7 @@ import { GuestKey } from '../value-objects/GuestKey.js';
 import { OwnerToken } from '../value-objects/OwnerToken.js';
 import { Slug } from '../value-objects/Slug.js';
 import { UuidId } from '../value-objects/UuidId.js';
-import type { Hold } from './Hold.js';
+import type { Hold, HoldStatus } from './Hold.js';
 import { Item, type ItemStatus } from './Item.js';
 
 /** What a hold command leaves for the use case to persist: the hold, the item whose state moved, and the event to append at `expectedSeq`. */
@@ -25,6 +25,11 @@ export interface HoldCommandResult<E> {
  * per-session cap later — is decided here. Holds
  * are their own aggregate: the wishlist authorizes and decides commands on
  * them; the use case persists the outcome.
+ *
+ * Time enters once, as `asOf` when the aggregate is built or loaded, and
+ * every command and status query decides at that instant. None takes a
+ * time argument, so no caller can decide on the loaded data using an
+ * older or newer date than the one it was loaded at.
  */
 export class Wishlist {
   private _item: Item | null = null;
@@ -43,25 +48,28 @@ export class Wishlist {
     readonly ownerToken: OwnerToken,
     readonly key: GuestKey,
     readonly keyGen: number,
+    private readonly asOf: Date,
   ) {
     if (title.trim().length === 0) throw new DomainValidationError('Wishlist title must not be empty');
     if (title.length > 120) throw new DomainValidationError('Wishlist title must be at most 120 characters');
   }
 
-  static create(props: { id: string; slug: string; title: string; ownerToken: string; key: string }): Wishlist {
+  /** A new list, deciding as of `asOf`: the instant it is created at. */
+  static create(props: { id: string; slug: string; title: string; ownerToken: string; key: string; asOf: Date }): Wishlist {
     return new Wishlist(
       UuidId.from(props.id), Slug.from(props.slug), props.title.trim(),
-      OwnerToken.from(props.ownerToken), GuestKey.from(props.key), 1,
+      OwnerToken.from(props.ownerToken), GuestKey.from(props.key), 1, new Date(props.asOf.getTime()),
     );
   }
 
   /**
    * Reconstructs a Wishlist from persisted fields — used by repositories,
-   * not by creation flows. `activeHolds` are the list's holds active at load
-   * time; each must be on one of this wishlist's items.
+   * not by creation flows. `asOf` is the instant it was loaded at, and the
+   * one every decision is taken at; `activeHolds` are the list's holds
+   * active at it, each on one of this wishlist's items.
    */
   static reconstitute(props: {
-    id: string; slug: string; title: string; ownerToken: string; key: string; keyGen: number;
+    id: string; slug: string; title: string; ownerToken: string; key: string; keyGen: number; asOf: Date;
     item?: Item; activeHolds?: readonly Hold[];
   }): Wishlist {
     if (props.item && props.item.wishlistId.value !== props.id) {
@@ -75,7 +83,7 @@ export class Wishlist {
     }
     const wishlist = new Wishlist(
       UuidId.from(props.id), Slug.from(props.slug), props.title,
-      OwnerToken.from(props.ownerToken), GuestKey.from(props.key), props.keyGen,
+      OwnerToken.from(props.ownerToken), GuestKey.from(props.key), props.keyGen, new Date(props.asOf.getTime()),
     );
     wishlist._item = props.item ?? null;
     wishlist._activeHolds = [...holds];
@@ -120,31 +128,50 @@ export class Wishlist {
     return this._item !== null && hold.itemId.value === this._item.id.value;
   }
 
-  itemStatusAt(itemId: string, at: Date): ItemStatus {
+  itemStatus(itemId: string): ItemStatus {
     const item = this.getItem(itemId);
-    return item.statusGiven(this.activeHoldsOn(item, at));
+    return item.statusGiven(this.activeHoldsOn(item));
+  }
+
+  /**
+   * The state of a hold on this list, as of the instant the aggregate was
+   * loaded at. Throws HoldNotFoundError for another list's hold.
+   */
+  holdStatus(hold: Hold): HoldStatus {
+    this.itemOf(hold);
+    return hold.statusAt(this.asOf);
+  }
+
+  /** `extendHold`'s rule as a question; false for another list's hold. */
+  canExtendHold(hold: Hold): boolean {
+    return this.owns(hold) && hold.canExtendAt(this.asOf);
+  }
+
+  /** `releaseHold`'s rule as a question; false for another list's hold. */
+  canReleaseHold(hold: Hold): boolean {
+    return this.owns(hold) && hold.canReleaseAt(this.asOf);
   }
 
   holdItem(
-    props: { itemId: string; sessionHash: string; idempotencyKey: string; at: Date; durationMs: number },
+    props: { itemId: string; sessionHash: string; idempotencyKey: string; durationMs: number },
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): HoldCommandResult<ItemHeldEvent> {
     const item = this.getItem(props.itemId);
-    const { hold, event, expectedSeq } = item.placeHold(props, this.activeHoldsOn(item, props.at), tokens, hasher);
+    const { hold, event, expectedSeq } = item.placeHold({ ...props, at: this.asOf }, this.activeHoldsOn(item), tokens, hasher);
     this._activeHolds.push(hold);
     return { hold, item, event, expectedSeq };
   }
 
-  extendHold(hold: Hold, at: Date, durationMs: number): HoldCommandResult<HoldExtendedEvent> {
+  extendHold(hold: Hold, durationMs: number): HoldCommandResult<HoldExtendedEvent> {
     const item = this.itemOf(hold);
-    const event = hold.extend(at, durationMs);
+    const event = hold.extend(this.asOf, durationMs);
     return { hold, item, event, expectedSeq: item.recordEvent() };
   }
 
-  releaseHold(hold: Hold, at: Date): HoldCommandResult<HoldReleasedEvent> {
+  releaseHold(hold: Hold): HoldCommandResult<HoldReleasedEvent> {
     const item = this.itemOf(hold);
-    const event = hold.release(at);
+    const event = hold.release(this.asOf);
     return { hold, item, event, expectedSeq: item.recordEvent() };
   }
 
@@ -154,32 +181,31 @@ export class Wishlist {
    * hold lapsed need not re-hold it — but only while a unit is still
    * free, or they would be buying one someone else now holds.
    */
-  purchaseHold(hold: Hold, at: Date): HoldCommandResult<ItemPurchasedEvent> {
+  purchaseHold(hold: Hold): HoldCommandResult<ItemPurchasedEvent> {
     const item = this.itemOf(hold);
-    if (hold.statusAt(at) === 'expired' && item.availableUnits(this.activeHoldsOn(item, at)) === 0) {
+    if (hold.statusAt(this.asOf) === 'expired' && item.availableUnits(this.activeHoldsOn(item)) === 0) {
       throw new ItemUnavailableError(item.id.value);
     }
-    const event = hold.markPurchased(at);
+    const event = hold.markPurchased(this.asOf);
     return { hold, item, event, expectedSeq: item.recordPurchase() };
   }
 
   /** `purchaseHold`'s rule as a question, for views that offer the action only when it would succeed. */
-  canPurchaseHold(hold: Hold, at: Date): boolean {
+  canPurchaseHold(hold: Hold): boolean {
     if (!this.owns(hold)) return false;
-    const status = hold.statusAt(at);
+    const status = hold.statusAt(this.asOf);
     if (status === 'active') return true;
     if (status !== 'expired') return false;
     const item = this.itemOf(hold);
-    return item.availableUnits(this.activeHoldsOn(item, at)) > 0;
+    return item.availableUnits(this.activeHoldsOn(item)) > 0;
   }
 
   /**
-   * Re-checked at `at` rather than trusted from the load: the repository
-   * returned holds active when it ran, and only `statusAt` defines
-   * active.
+   * Re-checked at `asOf` rather than trusted from the load: the repository
+   * filtered in its own terms, and only `statusAt` defines active.
    */
-  private activeHoldsOn(item: Item, at: Date): number {
-    return this._activeHolds.filter((hold) => hold.itemId.value === item.id.value && hold.statusAt(at) === 'active').length;
+  private activeHoldsOn(item: Item): number {
+    return this._activeHolds.filter((hold) => hold.itemId.value === item.id.value && hold.statusAt(this.asOf) === 'active').length;
   }
 
   private itemOf(hold: Hold): Item {

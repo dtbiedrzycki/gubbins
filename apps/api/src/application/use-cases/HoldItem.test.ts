@@ -28,7 +28,7 @@ describe('HoldItem', () => {
 
     expect(result.itemId).toBe(ITEM_ID);
     expect(result.expiresAt).toBe('2026-01-04T00:00:00.000Z');
-    expect((await wishlists.findById(WISHLIST_ID, NOW))?.itemStatusAt(ITEM_ID, NOW)).toBe('held');
+    expect((await wishlists.findById(WISHLIST_ID, NOW))?.itemStatus(ITEM_ID)).toBe('held');
     const recorded = await holds.findByIdempotencyKey(ITEM_ID, 'idem-1');
     expect(recorded?.sessionHash.value).toBe('df98a8544084cba1bfbcf00faea193bf73d10ae13eada8c8bacf2c7f1e1d92f4');
   });

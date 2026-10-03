@@ -25,7 +25,7 @@ describe('UnitOfWorkKysely', () => {
     const unitOfWork = new UnitOfWorkKysely(db);
 
     await unitOfWork.execute(async (ctx) => {
-      await ctx.wishlists.insert(Wishlist.create({ id: W1, slug: 'abc123', title: 'Baby Shower', ownerToken: 'tok', key: 'key' }));
+      await ctx.wishlists.insert(Wishlist.create({ id: W1, slug: 'abc123', title: 'Baby Shower', ownerToken: 'tok', key: 'key', asOf: NOW }));
     });
 
     expect(await new WishlistRepositoryKysely(db).findBySlug('abc123', NOW)).not.toBeNull();
@@ -36,7 +36,7 @@ describe('UnitOfWorkKysely', () => {
 
     await expect(
       unitOfWork.execute(async (ctx) => {
-        await ctx.wishlists.insert(Wishlist.create({ id: W1, slug: 'abc123', title: 'Baby Shower', ownerToken: 'tok', key: 'key' }));
+        await ctx.wishlists.insert(Wishlist.create({ id: W1, slug: 'abc123', title: 'Baby Shower', ownerToken: 'tok', key: 'key', asOf: NOW }));
         throw new Error('boom');
       }),
     ).rejects.toThrow('boom');

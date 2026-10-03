@@ -34,10 +34,12 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
     });
 
     it('save writes the lifecycle exactly as the domain left it', async () => {
-      const hold = holdFixture();
-      await fx.holds.insert(hold);
-      hold.extend(NOW, 3_600_000);
-      hold.markPurchased(later(1));
+      const inserted = holdFixture();
+      await fx.holds.insert(inserted);
+      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+      const hold = wishlist.findHold(inserted.id.value)!;
+      wishlist.extendHold(hold, 3_600_000);
+      wishlist.purchaseHold(hold);
 
       await fx.holds.save(hold);
 
@@ -65,13 +67,14 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
         expect(await fx.holds.findActiveForWishlist(LIST_A, NOW)).toEqual([]);
       });
 
-      it('agrees with Hold.statusAt for every hold it returns', async () => {
+      it('agrees with the aggregate loaded at the same instant on every hold it returns', async () => {
         for (const overrides of [{}, { expiresAt: later(-1) }, { releasedAt: later(-1) }, { expiresAt: NOW }]) {
           await fx.holds.insert(holdFixture(overrides));
         }
         const found = await fx.holds.findActiveForWishlist(LIST_A, NOW);
         expect(found).toHaveLength(2);
-        expect(found.every((h) => h.statusAt(NOW) === 'active')).toBe(true);
+        const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+        expect(found.every((h) => wishlist.holdStatus(h) === 'active')).toBe(true);
       });
     });
 

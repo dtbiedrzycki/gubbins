@@ -44,13 +44,17 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     await this.items.saveState(item);
   }
 
-  /** Active holds only, so the aggregate stays bounded however long the list has been in use. */
+  /**
+   * Active holds only, so the aggregate stays bounded however long the list
+   * has been in use. `now` is both the active-hold query's instant and the
+   * aggregate's `asOf`, so load and decision share it.
+   */
   private async hydrate(row: Selectable<WishlistsTable>, now: Date): Promise<Wishlist> {
     const item = await this.items.findByWishlistId(row.id);
     const activeHolds = await this.holds.findActiveForWishlist(row.id, now);
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
-      ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen,
+      ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now,
       item: item ?? undefined, activeHolds,
     });
   }

@@ -17,7 +17,7 @@ export interface HoldRepository {
    * The list's holds active at `now` — not released, not purchased, and
    * `now <= expiresAt` — and no others. Expired holds are never
    * closed under lazy expiry, so "every unclosed hold" would grow without
-   * bound; the domain re-checks each one with `statusAt(now)`.
+   * bound; the `Wishlist` loaded at `now` re-checks each one at that instant.
    */
   findActiveForWishlist(wishlistId: string, now: Date): Promise<Hold[]>;
   /** Every hold `sessionHash` placed on the list, whatever its state, for "Your holds" — expired ones included, since an expired hold can still be purchased. */

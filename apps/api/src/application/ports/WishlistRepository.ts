@@ -11,8 +11,9 @@ export interface WishlistRepository {
   insert(wishlist: Wishlist): Promise<void>;
   /**
    * Loads the full aggregate as of `now` — its item and every hold on the
-   * list still active at `now` — or null if no such wishlist. The
-   * snapshot is only meaningful at an instant, hence `now`.
+   * list still active at `now` — or null if no such wishlist. The returned
+   * aggregate decides as of that instant: its commands and status queries
+   * take no time argument, so load and decision share `now`.
    */
   findBySlug(slug: string, now: Date): Promise<Wishlist | null>;
   findById(id: string, now: Date): Promise<Wishlist | null>;

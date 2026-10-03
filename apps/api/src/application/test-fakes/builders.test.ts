@@ -18,7 +18,17 @@ describe('aWishlist', () => {
     expect(wishlist.item?.id.value).toBe('77777777-7777-7777-8777-777777777777');
     expect(wishlist.item?.title).toBe('Cot');
     expect(wishlist.item?.wishlistId.value).toBe(wishlist.id.value);
-    expect(wishlist.itemStatusAt('77777777-7777-7777-8777-777777777777', new Date('2026-01-01T00:00:00Z'))).toBe('available');
+    expect(wishlist.itemStatus('77777777-7777-7777-8777-777777777777')).toBe('available');
+  });
+
+  it('decides as of the instant given to asOf', () => {
+    const wishlist = aWishlist().withItem({ id: '77777777-7777-7777-8777-777777777777', title: 'Cot' }).asOf(new Date('2026-05-01T00:00:00Z')).build();
+    const { hold } = wishlist.holdItem(
+      { itemId: '77777777-7777-7777-8777-777777777777', sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', durationMs: 60_000 },
+      { generateEntityId: () => '44444444-4444-7444-8444-444444444444', generateHoldSecret: () => 'hold-secret' },
+      { hash: (value: string) => value },
+    );
+    expect(hold.expiresAt).toEqual(new Date('2026-05-01T00:01:00Z'));
   });
 });
 

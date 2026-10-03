@@ -4,16 +4,20 @@ import type { ItemHeldEvent } from '../../domain/events/ItemHeldEvent.js';
 
 const DEFAULT_WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
 const DEFAULT_ITEM_ID = '33333333-3333-7333-8333-333333333333';
+const DEFAULT_AS_OF = new Date('2026-01-01T00:00:00.000Z');
 
 export class WishlistBuilder {
   private props = { id: DEFAULT_WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' };
   private itemProps: { id: string; title: string } | null = null;
+  private instant = DEFAULT_AS_OF;
 
   withId(id: string): this { this.props.id = id; return this; }
   withSlug(slug: string): this { this.props.slug = slug; return this; }
   withTitle(title: string): this { this.props.title = title; return this; }
   withOwnerToken(ownerToken: string): this { this.props.ownerToken = ownerToken; return this; }
   withKey(key: string): this { this.props.key = key; return this; }
+  /** The instant the built aggregate decides at, as a load would set it. */
+  asOf(at: Date): this { this.instant = at; return this; }
   /**
    * Attaches an item to the built aggregate — the wishlist assigns its own
    * id, so only `id`/`title` are needed here. Omit to build an itemless
@@ -22,7 +26,7 @@ export class WishlistBuilder {
   withItem(props: { id: string; title: string }): this { this.itemProps = props; return this; }
 
   build(): Wishlist {
-    const wishlist = Wishlist.create({ ...this.props });
+    const wishlist = Wishlist.create({ ...this.props, asOf: this.instant });
     if (this.itemProps !== null) {
       const { id, title } = this.itemProps;
       wishlist.addItem({ title }, { generateEntityId: () => id });

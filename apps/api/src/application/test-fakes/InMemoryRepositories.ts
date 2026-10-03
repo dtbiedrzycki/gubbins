@@ -51,6 +51,17 @@ export class InMemoryStore {
   holdsOnList(wishlistId: string): Hold[] {
     return [...this.holds.values()].filter((hold) => this.items.get(hold.itemId.value)?.wishlistId.value === wishlistId);
   }
+
+  /**
+   * The list's holds active at `now`, by the same predicate as the SQL
+   * adapter's query: not released, not purchased, `now <= expiresAt`. The
+   * hold repository contract checks it agrees with the domain.
+   */
+  activeHoldsOnList(wishlistId: string, now: Date): Hold[] {
+    return this.holdsOnList(wishlistId).filter(
+      (h) => h.releasedAt === null && h.purchasedAt === null && now.getTime() <= h.expiresAt.getTime(),
+    );
+  }
 }
 
 export class InMemoryWishlistRepository implements WishlistRepository {
@@ -80,10 +91,10 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   private hydrate(wishlist: Wishlist | undefined, now: Date): Wishlist | null {
     if (wishlist === undefined) return null;
     const item = [...this.store.items.values()].find((i) => i.wishlistId.value === wishlist.id.value);
-    const activeHolds = this.store.holdsOnList(wishlist.id.value).filter((h) => h.statusAt(now) === 'active').map(copyHold);
+    const activeHolds = this.store.activeHoldsOnList(wishlist.id.value, now).map(copyHold);
     return Wishlist.reconstitute({
       id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
-      ownerToken: wishlist.ownerToken.value, key: wishlist.key.value, keyGen: wishlist.keyGen,
+      ownerToken: wishlist.ownerToken.value, key: wishlist.key.value, keyGen: wishlist.keyGen, asOf: now,
       item: item ? copyItem(item, this.store.purchasedCount(item.id.value)) : undefined, activeHolds,
     });
   }
@@ -117,7 +128,7 @@ export class InMemoryHoldRepository implements HoldRepository {
   }
 
   async findActiveForWishlist(wishlistId: string, now: Date): Promise<Hold[]> {
-    return this.store.holdsOnList(wishlistId).filter((h) => h.statusAt(now) === 'active').map(copyHold);
+    return this.store.activeHoldsOnList(wishlistId, now).map(copyHold);
   }
 
   async findForSession(wishlistId: string, sessionHash: string): Promise<Hold[]> {

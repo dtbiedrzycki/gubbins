@@ -16,7 +16,7 @@ const DAY = 86_400_000;
 const T0 = new Date('2026-01-01T00:00:00.000Z');
 const at = (ms: number) => new Date(T0.getTime() + ms);
 
-const validProps = { id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' };
+const validProps = { id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0 };
 const tokens = (holdId = '55555555-5555-7555-8555-555555555555') => ({ generateEntityId: () => holdId, generateHoldSecret: () => 'hold-secret' });
 const hasher = { hash: () => 'f'.repeat(64) };
 
@@ -34,9 +34,10 @@ function holdOn(itemId: string, overrides: Partial<Parameters<typeof Hold.recons
   });
 }
 
-function loaded(options: { quantity?: number; seq?: number; purchasedCount?: number; activeHolds?: Hold[] } = {}): Wishlist {
-  const { activeHolds = [], ...itemOverrides } = options;
-  return Wishlist.reconstitute({ ...validProps, keyGen: 1, item: itemOf(WISHLIST_ID, itemOverrides), activeHolds });
+/** A wishlist loaded at `asOf` (T0 unless given), with its one item and the given active holds. */
+function loaded(options: { quantity?: number; seq?: number; purchasedCount?: number; activeHolds?: Hold[]; asOf?: Date } = {}): Wishlist {
+  const { activeHolds = [], asOf = T0, ...itemOverrides } = options;
+  return Wishlist.reconstitute({ ...validProps, asOf, keyGen: 1, item: itemOf(WISHLIST_ID, itemOverrides), activeHolds });
 }
 
 describe('Wishlist.create', () => {
@@ -104,6 +105,13 @@ describe('Wishlist.reconstitute', () => {
   it('rejects a hold on an item outside this wishlist', () => {
     expect(() => loaded({ activeHolds: [holdOn(OTHER_ITEM_ID)] })).toThrow(DomainValidationError);
   });
+
+  it('keeps its own copy of the instant it was loaded at', () => {
+    const asOf = at(3 * DAY);
+    const wishlist = loaded({ activeHolds: [holdOn(ITEM_ID)], asOf });
+    asOf.setTime(at(3 * DAY + 1).getTime());
+    expect(wishlist.itemStatus(ITEM_ID)).toBe('held');
+  });
 });
 
 describe('Wishlist.addItem', () => {
@@ -113,7 +121,7 @@ describe('Wishlist.addItem', () => {
     expect(wishlist.item).toBe(item);
     expect(item.id.value).toBe(ITEM_ID);
     expect(item.wishlistId.value).toBe(WISHLIST_ID);
-    expect(wishlist.itemStatusAt(ITEM_ID, T0)).toBe('available');
+    expect(wishlist.itemStatus(ITEM_ID)).toBe('available');
   });
 
   it('throws when a second item is added — a list holds a single item', () => {
@@ -136,12 +144,13 @@ describe('Wishlist.getItem', () => {
 });
 
 describe('Wishlist.holdItem', () => {
-  const props = { itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', at: T0, durationMs: 3 * DAY };
+  const props = { itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', durationMs: 3 * DAY };
 
   it('places a hold on a free item and returns everything the caller must persist', () => {
     const wishlist = loaded({ seq: 4 });
     const { hold, item, event, expectedSeq } = wishlist.holdItem(props, tokens(), hasher);
     expect(hold.expiresAt).toEqual(at(3 * DAY));
+    expect(event.occurredAt).toBe(T0.toISOString());
     expect(item).toBe(wishlist.getItem(ITEM_ID));
     expect(event.type).toBe('ItemHeld');
     expect(expectedSeq).toBe(4);
@@ -151,7 +160,7 @@ describe('Wishlist.holdItem', () => {
   it('adds the hold to its snapshot, so the same aggregate refuses another hold on the last unit', () => {
     const wishlist = loaded();
     wishlist.holdItem(props, tokens(), hasher);
-    expect(wishlist.itemStatusAt(ITEM_ID, T0)).toBe('held');
+    expect(wishlist.itemStatus(ITEM_ID)).toBe('held');
     expect(() => wishlist.holdItem({ ...props, sessionHash: OTHER_SESSION, idempotencyKey: 'idem-2' }, tokens('66666666-6666-7666-8666-666666666666'), hasher))
       .toThrow(ItemUnavailableError);
   });
@@ -160,7 +169,7 @@ describe('Wishlist.holdItem', () => {
     expect(() => loaded({ activeHolds: [holdOn(ITEM_ID)] }).holdItem(props, tokens(), hasher)).toThrow(ItemUnavailableError);
   });
 
-  it('re-checks each loaded hold at the given instant: one that lapsed since loading frees its unit', () => {
+  it('re-checks each loaded hold at the instant it was loaded at: one already lapsed frees its unit', () => {
     const lapsed = holdOn(ITEM_ID, { expiresAt: at(-1) });
     expect(() => loaded({ activeHolds: [lapsed] }).holdItem(props, tokens(), hasher)).not.toThrow();
   });
@@ -187,9 +196,10 @@ describe('Wishlist.findHold and owns', () => {
 describe('Wishlist.extendHold and releaseHold', () => {
   it('extendHold extends the hold and records one event on the item stream', () => {
     const hold = holdOn(ITEM_ID);
-    const wishlist = loaded({ seq: 1, activeHolds: [hold] });
-    const { event, item, expectedSeq } = wishlist.extendHold(hold, at(DAY), 3 * DAY);
+    const wishlist = loaded({ seq: 1, activeHolds: [hold], asOf: at(DAY) });
+    const { event, item, expectedSeq } = wishlist.extendHold(hold, 3 * DAY);
     expect(event.type).toBe('HoldExtended');
+    expect(hold.extendedAt).toEqual(at(DAY));
     expect(expectedSeq).toBe(1);
     expect(item.seq).toBe(2);
     expect(hold.expiresAt).toEqual(at(6 * DAY));
@@ -197,19 +207,20 @@ describe('Wishlist.extendHold and releaseHold', () => {
 
   it('releaseHold frees the unit within the same aggregate', () => {
     const hold = holdOn(ITEM_ID);
-    const wishlist = loaded({ activeHolds: [hold] });
-    wishlist.releaseHold(hold, at(DAY));
-    expect(wishlist.itemStatusAt(ITEM_ID, at(DAY))).toBe('available');
+    const wishlist = loaded({ activeHolds: [hold], asOf: at(DAY) });
+    wishlist.releaseHold(hold);
+    expect(hold.releasedAt).toEqual(at(DAY));
+    expect(wishlist.itemStatus(ITEM_ID)).toBe('available');
   });
 
   it("refuses a hold on another list's item with HoldNotFoundError", () => {
-    expect(() => loaded().releaseHold(holdOn(OTHER_ITEM_ID), T0)).toThrow(HoldNotFoundError);
-    expect(() => loaded().extendHold(holdOn(OTHER_ITEM_ID), T0, DAY)).toThrow(HoldNotFoundError);
+    expect(() => loaded().releaseHold(holdOn(OTHER_ITEM_ID))).toThrow(HoldNotFoundError);
+    expect(() => loaded().extendHold(holdOn(OTHER_ITEM_ID), DAY)).toThrow(HoldNotFoundError);
   });
 
   it('does not advance seq when the hold refuses the command', () => {
     const wishlist = loaded();
-    expect(() => wishlist.extendHold(holdOn(ITEM_ID, { releasedAt: T0 }), T0, DAY)).toThrow(HoldNotActiveError);
+    expect(() => wishlist.extendHold(holdOn(ITEM_ID, { releasedAt: T0 }), DAY)).toThrow(HoldNotActiveError);
     expect(wishlist.getItem(ITEM_ID).seq).toBe(0);
   });
 });
@@ -217,57 +228,85 @@ describe('Wishlist.extendHold and releaseHold', () => {
 describe('Wishlist.purchaseHold', () => {
   it('purchases an active hold; the unit is gone for good', () => {
     const hold = holdOn(ITEM_ID);
-    const wishlist = loaded({ activeHolds: [hold] });
-    const { event, item } = wishlist.purchaseHold(hold, at(DAY));
+    const wishlist = loaded({ activeHolds: [hold], asOf: at(DAY) });
+    const { event, item } = wishlist.purchaseHold(hold);
     expect(event.type).toBe('ItemPurchased');
+    expect(hold.purchasedAt).toEqual(at(DAY));
     expect(item.purchasedCount).toBe(1);
-    expect(wishlist.itemStatusAt(ITEM_ID, at(DAY))).toBe('purchased');
+    expect(wishlist.itemStatus(ITEM_ID)).toBe('purchased');
   });
 
   it('purchases an expired hold while a unit is still free', () => {
     const expired = holdOn(ITEM_ID, { expiresAt: at(-1) });
-    expect(loaded().purchaseHold(expired, T0).event.type).toBe('ItemPurchased');
+    expect(loaded().purchaseHold(expired).event.type).toBe('ItemPurchased');
   });
 
   it('refuses an expired hold once someone else holds the last unit, and records nothing', () => {
     const expired = holdOn(ITEM_ID, { expiresAt: at(-1) });
     const wishlist = loaded({ activeHolds: [holdOn(ITEM_ID, { sessionHash: OTHER_SESSION })] });
-    expect(() => wishlist.purchaseHold(expired, T0)).toThrow(ItemUnavailableError);
+    expect(() => wishlist.purchaseHold(expired)).toThrow(ItemUnavailableError);
     expect(expired.purchasedAt).toBeNull();
     expect(wishlist.getItem(ITEM_ID).seq).toBe(0);
   });
 
   it('refuses a released hold', () => {
-    expect(() => loaded().purchaseHold(holdOn(ITEM_ID, { releasedAt: T0 }), T0)).toThrow(HoldNotActiveError);
+    expect(() => loaded().purchaseHold(holdOn(ITEM_ID, { releasedAt: T0 }))).toThrow(HoldNotActiveError);
   });
 });
 
 describe('Wishlist.canPurchaseHold', () => {
   it('is true for an active hold, and for an expired one while a unit is free', () => {
-    expect(loaded().canPurchaseHold(holdOn(ITEM_ID), T0)).toBe(true);
-    expect(loaded().canPurchaseHold(holdOn(ITEM_ID, { expiresAt: at(-1) }), T0)).toBe(true);
+    expect(loaded().canPurchaseHold(holdOn(ITEM_ID))).toBe(true);
+    expect(loaded().canPurchaseHold(holdOn(ITEM_ID, { expiresAt: at(-1) }))).toBe(true);
   });
 
   it('is false for an expired hold whose unit someone else now holds', () => {
     const wishlist = loaded({ activeHolds: [holdOn(ITEM_ID, { sessionHash: OTHER_SESSION })] });
-    expect(wishlist.canPurchaseHold(holdOn(ITEM_ID, { expiresAt: at(-1) }), T0)).toBe(false);
+    expect(wishlist.canPurchaseHold(holdOn(ITEM_ID, { expiresAt: at(-1) }))).toBe(false);
   });
 
   it("is false for a released or purchased hold, or another list's", () => {
-    expect(loaded().canPurchaseHold(holdOn(ITEM_ID, { releasedAt: T0 }), T0)).toBe(false);
-    expect(loaded().canPurchaseHold(holdOn(ITEM_ID, { purchasedAt: T0 }), T0)).toBe(false);
-    expect(loaded().canPurchaseHold(holdOn(OTHER_ITEM_ID), T0)).toBe(false);
+    expect(loaded().canPurchaseHold(holdOn(ITEM_ID, { releasedAt: T0 }))).toBe(false);
+    expect(loaded().canPurchaseHold(holdOn(ITEM_ID, { purchasedAt: T0 }))).toBe(false);
+    expect(loaded().canPurchaseHold(holdOn(OTHER_ITEM_ID))).toBe(false);
   });
 });
 
-describe('Wishlist.itemStatusAt — lazy expiry', () => {
+describe('Wishlist.holdStatus, canExtendHold and canReleaseHold', () => {
+  it('judges a hold at the instant the aggregate was loaded at', () => {
+    const hold = holdOn(ITEM_ID);
+    expect(loaded({ activeHolds: [hold], asOf: at(3 * DAY) }).holdStatus(hold)).toBe('active');
+    expect(loaded({ activeHolds: [hold], asOf: at(3 * DAY + 1) }).holdStatus(hold)).toBe('expired');
+  });
+
+  it('judges a hold loaded outside the snapshot too, as long as it is on this list', () => {
+    expect(loaded().holdStatus(holdOn(ITEM_ID, { releasedAt: T0 }))).toBe('released');
+    expect(() => loaded().holdStatus(holdOn(OTHER_ITEM_ID))).toThrow(HoldNotFoundError);
+  });
+
+  it('canExtendHold: active and never extended, on this list', () => {
+    expect(loaded().canExtendHold(holdOn(ITEM_ID))).toBe(true);
+    expect(loaded().canExtendHold(holdOn(ITEM_ID, { extendedAt: T0 }))).toBe(false);
+    expect(loaded({ asOf: at(3 * DAY + 1) }).canExtendHold(holdOn(ITEM_ID))).toBe(false);
+    expect(loaded().canExtendHold(holdOn(OTHER_ITEM_ID))).toBe(false);
+  });
+
+  it('canReleaseHold: active, extended or not, on this list', () => {
+    expect(loaded().canReleaseHold(holdOn(ITEM_ID, { extendedAt: T0 }))).toBe(true);
+    expect(loaded().canReleaseHold(holdOn(ITEM_ID, { purchasedAt: T0 }))).toBe(false);
+    expect(loaded({ asOf: at(3 * DAY + 1) }).canReleaseHold(holdOn(ITEM_ID))).toBe(false);
+    expect(loaded().canReleaseHold(holdOn(OTHER_ITEM_ID))).toBe(false);
+  });
+});
+
+describe('Wishlist.itemStatus — lazy expiry', () => {
   it('is held up to and including the instant the hold expires, available 1 ms later', () => {
-    const wishlist = loaded({ activeHolds: [holdOn(ITEM_ID)] });
-    expect(wishlist.itemStatusAt(ITEM_ID, at(3 * DAY))).toBe('held');
-    expect(wishlist.itemStatusAt(ITEM_ID, at(3 * DAY + 1))).toBe('available');
+    const hold = holdOn(ITEM_ID);
+    expect(loaded({ activeHolds: [hold], asOf: at(3 * DAY) }).itemStatus(ITEM_ID)).toBe('held');
+    expect(loaded({ activeHolds: [hold], asOf: at(3 * DAY + 1) }).itemStatus(ITEM_ID)).toBe('available');
   });
 
   it('is purchased once purchases cover the quantity', () => {
-    expect(loaded({ purchasedCount: 1 }).itemStatusAt(ITEM_ID, T0)).toBe('purchased');
+    expect(loaded({ purchasedCount: 1 }).itemStatus(ITEM_ID)).toBe('purchased');
   });
 });

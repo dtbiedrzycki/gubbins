@@ -48,8 +48,8 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       const atExpiry = await fx.wishlists.findById(LIST_A, later(60_000));
       const justAfter = await fx.wishlists.findById(LIST_A, later(60_001));
 
-      expect(atExpiry?.itemStatusAt(ITEM_A, later(60_000))).toBe('held');
-      expect(justAfter?.itemStatusAt(ITEM_A, later(60_001))).toBe('available');
+      expect(atExpiry?.itemStatus(ITEM_A)).toBe('held');
+      expect(justAfter?.itemStatus(ITEM_A)).toBe('available');
     });
 
     it('saveItemState writes seq exactly as the domain left it', async () => {
@@ -65,13 +65,15 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
     it('computes the purchased count from purchased holds: a saved purchase counts', async () => {
       const hold = holdFixture();
       await fx.holds.insert(hold);
-      hold.markPurchased(NOW);
-      await fx.holds.save(hold);
+      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+      const loaded = wishlist.findHold(hold.id.value)!;
+      wishlist.purchaseHold(loaded);
+      await fx.holds.save(loaded);
 
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
 
       expect(reloaded?.item?.purchasedCount).toBe(1);
-      expect(reloaded?.itemStatusAt(ITEM_A, NOW)).toBe('purchased');
+      expect(reloaded?.itemStatus(ITEM_A)).toBe('purchased');
     });
 
     it('does not take the purchased count from item state: saveItemState alone changes nothing', async () => {
@@ -83,7 +85,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
       expect(reloaded?.item?.seq).toBe(1);
       expect(reloaded?.item?.purchasedCount).toBe(0);
-      expect(reloaded?.itemStatusAt(ITEM_A, NOW)).toBe('available');
+      expect(reloaded?.itemStatus(ITEM_A)).toBe('available');
     });
 
     it('counts neither a released nor an expired hold, nor a purchase on another list', async () => {
@@ -96,7 +98,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
 
       expect(reloaded?.item?.purchasedCount).toBe(0);
-      expect(reloaded?.itemStatusAt(ITEM_A, NOW)).toBe('available');
+      expect(reloaded?.itemStatus(ITEM_A)).toBe('available');
     });
 
     it('saveItemState refuses an item claiming another list, and changes nothing', async () => {

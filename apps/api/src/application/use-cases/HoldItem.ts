@@ -29,8 +29,8 @@ export class HoldItem {
 
   async execute(input: HoldItemInput): Promise<HoldItemOutput> {
     return this.unitOfWork.execute(async (ctx) => {
-      // Read once: the aggregate's active holds are loaded as of this
-      // instant, and every decision below is taken at the same one.
+      // Read once: the aggregate is loaded as of this instant, its active
+      // holds included, and decides everything below at the same one.
       const now = this.clock.now();
       // An unknown wishlist and an item that isn't in it are the same
       // failure from this use case's contract: there is no such item to hold.
@@ -50,7 +50,6 @@ export class HoldItem {
         itemId: input.itemId,
         sessionHash: this.hasher.hash(input.sessionId),
         idempotencyKey: input.idempotencyKey,
-        at: now,
         durationMs: HOLD_DURATION_MS,
       }, this.tokenGenerator, this.hasher);
 

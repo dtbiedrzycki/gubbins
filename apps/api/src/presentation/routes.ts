@@ -108,8 +108,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       },
     },
   }, async (request, reply) => {
-    const now = deps.clock.now();
-    const wishlist = await deps.wishlists.findBySlug(request.params.slug, now);
+    const wishlist = await deps.wishlists.findBySlug(request.params.slug, deps.clock.now());
     if (!wishlist) return reply.code(404).send(NOT_FOUND);
     const session = readSession(request, wishlist);
     // Same generic 404 as an unknown slug — ADR-016/054: a caller must not be
@@ -127,7 +126,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
 
     return reply.code(200).send({
       title: wishlist.title,
-      item: { id: item.id.value, title: item.title, status: wishlist.itemStatusAt(item.id.value, now) },
+      item: { id: item.id.value, title: item.title, status: wishlist.itemStatus(item.id.value) },
     });
   });
 

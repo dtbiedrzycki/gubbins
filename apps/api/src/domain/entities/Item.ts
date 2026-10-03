@@ -69,7 +69,7 @@ export class Item {
 
   /**
    * Units no one holds or has bought, given how many holds on this item are
-   * active right now. The count comes from the caller — the Wishlist, which
+   * active at the wishlist's instant. The count comes from the caller — the Wishlist, which
    * carries the list's active holds — because liveness belongs to hold rows,
    * never to a counter here. Never negative: quantity may drop below
    * what is already committed (ADR-0019).
@@ -88,7 +88,8 @@ export class Item {
    * belong to a hold that does not exist yet, so they are not the caller's
    * to supply — and the event recording it, then advances this item's
    * stream. Reach it through `Wishlist.holdItem`, which supplies
-   * `activeHolds` and authorizes the caller.
+   * `activeHolds`, authorizes the caller and passes as `at` the instant it
+   * was loaded at; application code never calls this directly.
    *
    * Collaborators are structural types: domain/ may not import
    * application/ (ADR-0012), and the application layer's TokenGenerator and

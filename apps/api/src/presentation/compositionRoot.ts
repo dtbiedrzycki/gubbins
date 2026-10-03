@@ -32,7 +32,7 @@ export function buildDependencies(db: Kysely<Database>, logger: Logger = new Con
   const wishlists = new WishlistRepositoryKysely(db);
 
   return {
-    createList: new CreateList(unitOfWork, tokenGenerator),
+    createList: new CreateList(unitOfWork, tokenGenerator, clock),
     enterGuestKey: new EnterGuestKey(wishlists, secretComparer, tokenGenerator, clock),
     holdItem: new HoldItem(unitOfWork, tokenGenerator, clock, hasher),
     wishlists,

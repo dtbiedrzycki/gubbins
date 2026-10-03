@@ -1,6 +1,7 @@
 import { Wishlist } from '../../domain/entities/Wishlist.js';
 import type { UnitOfWork } from '../ports/UnitOfWork.js';
 import type { TokenGenerator } from '../ports/TokenGenerator.js';
+import type { Clock } from '../ports/Clock.js';
 
 export interface CreateListInput {
   listTitle: string;
@@ -18,6 +19,7 @@ export class CreateList {
   constructor(
     private unitOfWork: UnitOfWork,
     private tokenGenerator: TokenGenerator,
+    private clock: Clock,
   ) {}
 
   async execute(input: CreateListInput): Promise<CreateListOutput> {
@@ -28,6 +30,7 @@ export class CreateList {
         title: input.listTitle,
         ownerToken: this.tokenGenerator.generateOwnerToken(),
         key: this.tokenGenerator.generateGuestKey(),
+        asOf: this.clock.now(),
       });
       // Wishlist mints its own item id via the generator it's handed.
       const item = wishlist.addItem({ title: input.itemTitle }, this.tokenGenerator);

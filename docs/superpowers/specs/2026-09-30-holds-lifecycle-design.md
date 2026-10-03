@@ -87,6 +87,7 @@ earlier ones where noted.
 | D19 | **Delivered as seven vertical-slice stacks (A–G)**, each shipping end-to-end functionality with its own e2e coverage and merging to `main` before dependants start. ADRs and spec amendments land in the stack that first needs them. | Smaller reviewable units; each stack is a working feature; findings in one stack can reshape the next stack's plan. | One 11-PR horizontal stack (schema → domain → … → web). |
 | D20 | **Implementation plans are written just-in-time, one per stack**, each when its dependencies have merged. | Later plans reflect what was actually built. | All seven plans up front. |
 | D21 | **An item's purchased count is computed from purchase entries, never stored.** In stack A a purchase entry is a hold with `purchased_at` set; owner direct purchases (sub-project 4) add their own entries, and `PurchaseVoided` voids an entry rather than decrementing. `item_state` keeps only `seq`. | A stored count is a second source of truth beside the rows it counts; computing it cannot drift (D4's reasoning, applied to purchases). PR #31 review. | `item_state.purchased_count` maintained by each purchase (D4 as first written). |
+| D22 | **The `Wishlist` aggregate decides as of the instant it was loaded.** Its commands and status queries take no time argument. The use case reads the clock once and loads the aggregate at that instant, so load and decision share it, and no caller can decide on current data with an older date. `Hold`'s instant-taking methods are the aggregate's internals. | PR #32 review: a time parameter on domain commands is a leaky abstraction and invites time travel. | An injected `Clock` in the domain (separate reads drift from the load instant); explicit instant parameters (the earlier design). |
 
 ## Design
 
@@ -121,16 +122,20 @@ of the list's **active** holds (D8).
 - `holdItem(...)`: `getItem` (authorization), counts this session's
   active holds across the list → `HoldCapReachedError` at the cap,
   delegates to `item.placeHold`, adds the new hold to the snapshot.
-- `findHold(holdId)`, `purchaseHold(hold, now)`,
+- Decides as of `asOf`, the instant it was loaded at (D22): no command or
+  query below takes a time argument.
+- `findHold(holdId)`, `holdStatus(hold)`, `canExtendHold(hold)`,
+  `canReleaseHold(hold)`, `canPurchaseHold(hold)`, `itemStatus(itemId)`,
+  `extendHold(hold, duration)`, `releaseHold(hold)`, `purchaseHold(hold)`,
   `addItem({ title, quantity })` (single-item guard removed),
-  `claimStatusVisibleToOwner(now)`, `claimerIdentityVisibleToOwner(now)`.
+  `claimStatusVisibleToOwner()`, `claimerIdentityVisibleToOwner()`.
 
 **`HoldPermissions`** (domain policy, D7):
 
 | Command | Guest (session match or valid signature) | Owner |
 |---|---|---|
 | Extend | ✓ once | ✗ |
-| Release | ✓ | ✓ only when `claimStatusVisibleToOwner(now)` |
+| Release | ✓ | ✓ only when `claimStatusVisibleToOwner()` |
 | Mark purchased | ✓ | ✗ (deferred to 4) |
 
 Guest credentials are evaluated before owner; the actor recorded is the
