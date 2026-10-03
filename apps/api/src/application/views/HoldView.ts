@@ -11,7 +11,7 @@ export interface HoldView {
   /**
    * What the guest may do next, decided by the domain so the UI never
    * re-derives a rule: extend once while active, release while active,
-   * purchase while active or — D15 — while expired with a unit still free.
+   * purchase while active, or while expired with a unit still free.
    */
   actions: { extend: boolean; release: boolean; purchase: boolean };
 }

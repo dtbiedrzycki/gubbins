@@ -4410,7 +4410,7 @@ describe('toHoldView — the domain decides which actions the guest is offered',
     expect(view.actions).toEqual({ extend: false, release: true, purchase: true });
   });
 
-  it('offers only purchase on an expired hold while a unit is free (D15)', () => {
+  it('offers only purchase on an expired hold while a unit is free', () => {
     const hold = holdOn({ expiresAt: at(-1) });
     const view = toHoldView(wishlistAt(T0), hold);
     expect(view.status).toBe('expired');
@@ -4443,11 +4443,7 @@ Expected: FAIL. `./HoldView.js` cannot be resolved.
 Create `apps/api/src/application/HoldPolicy.ts`:
 
 ```ts
-/**
- * Operator-configured hold rules, validated into this shape at the
- * composition root (holds-lifecycle §3). Stack C adds
- * `maxActiveHoldsPerSession`.
- */
+/** Operator-configured hold rules, validated into this shape at the composition root. */
 export interface HoldPolicy {
   /** HOLD_DURATION_DAYS (ops, default 3). The one extension adds the same again (ADR-0002). */
   durationDays: number;
@@ -4466,16 +4462,14 @@ Create `apps/api/src/application/AccessContext.ts`:
 
 ```ts
 /**
- * The credentials a request presented for one wishlist, already verified
- * (holds-lifecycle §3, D7). Built only in presentation/accessContext.ts —
- * authentication is the edge's job — and passed to use cases beside, never
+ * The credentials a request presented for one wishlist, already verified. Built only in presentation/accessContext.ts
+ * (authentication is the edge's job) and passed to use cases beside, never
  * inside, the TransactionContext: the transaction is database-scoped, this
  * is request-scoped. The guest session arrives already hashed, so the raw
  * session id never crosses into application/.
  *
  * Structurally a `HoldCredentials` (domain/policies/HoldPermissions), which
- * is how the domain policy reads it. Stack B adds `owner`, stack E
- * `guestHoldSignature`.
+ * is how the domain policy reads it.
  */
 export interface AccessContext {
   guestSession: { sessionHash: string } | null;
@@ -4498,7 +4492,7 @@ export interface HoldView {
   /**
    * What the guest may do next, decided by the domain so the UI never
    * re-derives a rule: extend once while active, release while active,
-   * purchase while active or — D15 — while expired with a unit still free.
+   * purchase while active, or while expired with a unit still free.
    */
   actions: { extend: boolean; release: boolean; purchase: boolean };
 }
@@ -4624,7 +4618,7 @@ import { ConcurrencyError } from '../domain/errors.js';
 import type { TransactionContext, UnitOfWork } from './ports/UnitOfWork.js';
 
 export interface RetryOptions {
-  /** Retries after the first attempt. The data & persistence spec caps them at 3. */
+  /** Retries after the first attempt. Capped at 3. */
   retries: number;
   /** Waits before a retry; injected so tests need not sleep. */
   sleep(ms: number): Promise<void>;
@@ -4838,7 +4832,7 @@ function requestWith(cookie: string | undefined, unsigned: { valid: boolean; val
 const payload = (overrides: Record<string, unknown> = {}) =>
   JSON.stringify({ wishlistId: wishlist.id.value, keyGen: wishlist.keyGen, sessionId: 'session-abc', ...overrides });
 
-describe('buildAccessContext — the one place a request becomes credentials (D7)', () => {
+describe('buildAccessContext — the one place a request becomes credentials', () => {
   it('hashes a valid session for this list, so the raw session id goes no further', () => {
     const access = buildAccessContext(requestWith('signed', { valid: true, value: payload() }), wishlist, new HasherSha256());
 
@@ -4903,10 +4897,9 @@ export function readSession(request: FastifyRequest, wishlist: Wishlist): Sessio
 }
 
 /**
- * The one place a request's credentials become an AccessContext
- * (holds-lifecycle D7). The session id is hashed here, so application/
- * only ever sees the hash that `holds.session_hash` stores — never the raw
- * value (holds spec).
+ * The one place a request's credentials become an AccessContext.
+ * The session id is hashed here, so application/ only ever sees the hash
+ * that `holds.session_hash` stores — never the raw value.
  */
 export function buildAccessContext(request: FastifyRequest, wishlist: Wishlist, hasher: Hasher): AccessContext {
   const session = readSession(request, wishlist);
@@ -4939,16 +4932,16 @@ export class HoldItem {
     private unitOfWork: UnitOfWork,
     private tokenGenerator: TokenGenerator,
     private clock: Clock,
-    /** Only for the ItemHeld secret hash until stack E; session hashing happens in presentation now. */
+    /** Only for the ItemHeld secret hash; session hashing happens in presentation. */
     private hasher: Hasher,
     private policy: HoldPolicy,
   ) {}
 
   async execute(input: HoldItemInput, access: AccessContext): Promise<HoldView> {
     const guest = access.guestSession;
-    // Only a keyed-in guest may hold (holds-lifecycle §3). Presentation
-    // already answers a missing session with the generic 404; this keeps the
-    // use case safe on its own, failing the same way.
+    // Only a keyed-in guest may hold. Presentation already answers a missing
+    // session with the generic 404; this keeps the use case safe on its own,
+    // failing the same way.
     if (!guest) throw new ItemNotFoundError(input.itemId);
 
     return this.unitOfWork.execute(async (ctx) => {
@@ -4965,8 +4958,8 @@ export class HoldItem {
       const existing = await ctx.holds.findByIdempotencyKey(input.itemId, input.idempotencyKey);
       if (existing) {
         // Another session's key must not hand over that session's hold; refuse
-        // it as unavailable (stack E: idempotency_conflict). Never fall through
-        // to holdItem: UNIQUE (item_id, idempotency_key) would make it a 500.
+        // it as unavailable. Never fall through to holdItem: UNIQUE (item_id,
+        // idempotency_key) would make it a 500.
         if (!existing.belongsToSession(guest.sessionHash)) throw new ItemUnavailableError(input.itemId);
         return toHoldView(wishlist, existing);
       }
@@ -4981,7 +4974,8 @@ export class HoldItem {
       // Placing a hold is guest-only (ADR-0075), so the actor is fixed.
       await ctx.eventStore.append(item.id.value, expectedSeq, [event], 'guest');
       await ctx.holds.insert(hold);
-      // Persist exactly what the domain decided (roadmap open item 2).
+      // Persist exactly what the domain decided — the write path never
+      // decides availability itself.
       await ctx.wishlists.saveItemState(item);
 
       return toHoldView(wishlist, hold);
@@ -5428,8 +5422,6 @@ export class ReleaseHold implements HoldCommand {
   async execute(input: HoldCommandInput, access: AccessContext): Promise<HoldView> {
     return this.unitOfWork.execute((ctx) => {
       const now = this.clock.now();
-      // Guest row only in stack A; stack F adds the owner's, gated on
-      // claim-status visibility.
       return runHoldCommand(ctx, input, access, now, HoldPermissions.mayRelease, (wishlist, hold) => wishlist.releaseHold(hold));
     });
   }
@@ -5499,7 +5491,7 @@ describe('MarkHoldPurchased', () => {
     expect(reloaded?.itemStatus(ITEM_ID)).toBe('purchased');
   });
 
-  it('marks an expired hold purchased while the unit is still free (D15)', async () => {
+  it('marks an expired hold purchased while the unit is still free', async () => {
     const { placeHold, clock, purchase } = await setup();
     const { holdId } = await placeHold();
     clock.advance(3 * DAY + 1);
@@ -5752,7 +5744,7 @@ export class GetListView {
         title: wishlist.title,
         item: { id: item.id.value, title: item.title, status: wishlist.itemStatus(item.id.value) },
         // Released holds were the guest's own choice and need no follow-up;
-        // expired ones stay, since D15 may still let them be purchased.
+        // expired ones stay, since an expired hold can still be purchased while a unit is free.
         myHolds: mine
           .filter((hold) => wishlist.holdStatus(hold) !== 'released')
           .sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime())

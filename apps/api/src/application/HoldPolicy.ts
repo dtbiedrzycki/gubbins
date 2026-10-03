@@ -1,8 +1,4 @@
-/**
- * Operator-configured hold rules, validated into this shape at the
- * composition root (holds-lifecycle §3). Stack C adds
- * `maxActiveHoldsPerSession`.
- */
+/** Operator-configured hold rules, validated into this shape at the composition root. */
 export interface HoldPolicy {
   /** HOLD_DURATION_DAYS (ops, default 3). The one extension adds the same again (ADR-0002). */
   durationDays: number;

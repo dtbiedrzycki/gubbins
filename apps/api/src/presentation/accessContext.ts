@@ -32,10 +32,9 @@ export function readSession(request: FastifyRequest, wishlist: Wishlist): Sessio
 }
 
 /**
- * The one place a request's credentials become an AccessContext
- * (holds-lifecycle D7). The session id is hashed here, so application/
- * only ever sees the hash that `holds.session_hash` stores — never the raw
- * value (holds spec).
+ * The one place a request's credentials become an AccessContext.
+ * The session id is hashed here, so application/ only ever sees the hash
+ * that `holds.session_hash` stores — never the raw value.
  */
 export function buildAccessContext(request: FastifyRequest, wishlist: Wishlist, hasher: Hasher): AccessContext {
   const session = readSession(request, wishlist);

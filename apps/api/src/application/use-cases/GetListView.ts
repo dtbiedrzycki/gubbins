@@ -42,7 +42,7 @@ export class GetListView {
         title: wishlist.title,
         item: { id: item.id.value, title: item.title, status: wishlist.itemStatus(item.id.value) },
         // Released holds were the guest's own choice and need no follow-up;
-        // expired ones stay, since D15 may still let them be purchased.
+        // expired ones stay, since an expired hold can still be purchased while a unit is free.
         myHolds: mine
           .filter((hold) => wishlist.holdStatus(hold) !== 'released')
           .sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime())

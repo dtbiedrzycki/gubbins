@@ -42,7 +42,7 @@ describe('toHoldView — the domain decides which actions the guest is offered',
     expect(view.actions).toEqual({ extend: false, release: true, purchase: true });
   });
 
-  it('offers only purchase on an expired hold while a unit is free (D15)', () => {
+  it('offers only purchase on an expired hold while a unit is free', () => {
     const hold = holdOn({ expiresAt: at(-1) });
     const view = toHoldView(wishlistAt(T0), hold);
     expect(view.status).toBe('expired');

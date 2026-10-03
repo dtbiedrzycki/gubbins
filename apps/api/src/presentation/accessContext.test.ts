@@ -17,7 +17,7 @@ function requestWith(cookie: string | undefined, unsigned: { valid: boolean; val
 const payload = (overrides: Record<string, unknown> = {}) =>
   JSON.stringify({ wishlistId: wishlist.id.value, keyGen: wishlist.keyGen, sessionId: 'session-abc', ...overrides });
 
-describe('buildAccessContext — the one place a request becomes credentials (D7)', () => {
+describe('buildAccessContext — the one place a request becomes credentials', () => {
   it('hashes a valid session for this list, so the raw session id goes no further', () => {
     const access = buildAccessContext(requestWith('signed', { valid: true, value: payload() }), wishlist, new HasherSha256());
 

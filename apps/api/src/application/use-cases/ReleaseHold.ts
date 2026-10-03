@@ -14,8 +14,6 @@ export class ReleaseHold implements HoldCommand {
   async execute(input: HoldCommandInput, access: AccessContext): Promise<HoldView> {
     return this.unitOfWork.execute((ctx) => {
       const now = this.clock.now();
-      // Guest row only in stack A; stack F adds the owner's, gated on
-      // claim-status visibility.
       return runHoldCommand(ctx, input, access, now, HoldPermissions.mayRelease, (wishlist, hold) => wishlist.releaseHold(hold));
     });
   }

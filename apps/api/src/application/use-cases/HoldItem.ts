@@ -18,16 +18,16 @@ export class HoldItem {
     private unitOfWork: UnitOfWork,
     private tokenGenerator: TokenGenerator,
     private clock: Clock,
-    /** Only for the ItemHeld secret hash until stack E; session hashing happens in presentation now. */
+    /** Only for the ItemHeld secret hash; session hashing happens in presentation. */
     private hasher: Hasher,
     private policy: HoldPolicy,
   ) {}
 
   async execute(input: HoldItemInput, access: AccessContext): Promise<HoldView> {
     const guest = access.guestSession;
-    // Only a keyed-in guest may hold (holds-lifecycle §3). Presentation
-    // already answers a missing session with the generic 404; this keeps the
-    // use case safe on its own, failing the same way.
+    // Only a keyed-in guest may hold. Presentation already answers a missing
+    // session with the generic 404; this keeps the use case safe on its own,
+    // failing the same way.
     if (!guest) throw new ItemNotFoundError(input.itemId);
 
     return this.unitOfWork.execute(async (ctx) => {
@@ -44,8 +44,8 @@ export class HoldItem {
       const existing = await ctx.holds.findByIdempotencyKey(input.itemId, input.idempotencyKey);
       if (existing) {
         // Another session's key must not hand over that session's hold; refuse
-        // it as unavailable (stack E: idempotency_conflict). Never fall through
-        // to holdItem: UNIQUE (item_id, idempotency_key) would make it a 500.
+        // it as unavailable. Never fall through to holdItem: UNIQUE (item_id,
+        // idempotency_key) would make it a 500.
         if (!existing.belongsToSession(guest.sessionHash)) throw new ItemUnavailableError(input.itemId);
         return toHoldView(wishlist, existing);
       }

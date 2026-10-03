@@ -2,7 +2,7 @@ import { ConcurrencyError } from '../domain/errors.js';
 import type { TransactionContext, UnitOfWork } from './ports/UnitOfWork.js';
 
 export interface RetryOptions {
-  /** Retries after the first attempt. The data & persistence spec caps them at 3. */
+  /** Retries after the first attempt. Capped at 3. */
   retries: number;
   /** Waits before a retry; injected so tests need not sleep. */
   sleep(ms: number): Promise<void>;

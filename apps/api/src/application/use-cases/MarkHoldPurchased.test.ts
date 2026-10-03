@@ -34,7 +34,7 @@ describe('MarkHoldPurchased', () => {
     expect(reloaded?.itemStatus(ITEM_ID)).toBe('purchased');
   });
 
-  it('marks an expired hold purchased while the unit is still free (D15)', async () => {
+  it('marks an expired hold purchased while the unit is still free', async () => {
     const { placeHold, clock, purchase } = await setup();
     const { holdId } = await placeHold();
     clock.advance(3 * DAY + 1);
