@@ -27,16 +27,18 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(await fx.wishlists.findById('00000000-0000-7000-8000-999999999999', NOW)).toBeNull();
     });
 
-    it("loads the list's holds active at now, and no others", async () => {
+    it("loads the list's holds active or purchased at now, and no others", async () => {
       const active = holdFixture();
+      const purchased = holdFixture({ purchasedAt: later(-5), expiresAt: later(-1) });
       const expired = holdFixture({ expiresAt: later(-1) });
       const released = holdFixture({ releasedAt: later(-5) });
       const elsewhere = holdFixture({ itemId: ITEM_B });
-      for (const hold of [active, expired, released, elsewhere]) await fx.holds.insert(hold);
+      for (const hold of [active, purchased, expired, released, elsewhere]) await fx.holds.insert(hold);
 
       const loaded = await fx.wishlists.findById(LIST_A, NOW);
 
       expect(loaded?.findHold(active.id.value)?.id.value).toBe(active.id.value);
+      expect(loaded?.findHold(purchased.id.value)?.id.value).toBe(purchased.id.value);
       expect(loaded?.findHold(expired.id.value)).toBeNull();
       expect(loaded?.findHold(released.id.value)).toBeNull();
       expect(loaded?.findHold(elsewhere.id.value)).toBeNull();
@@ -62,7 +64,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect((await fx.wishlists.findById(LIST_A, NOW))?.item?.seq).toBe(2);
     });
 
-    it('computes the purchased count from purchased holds: a saved purchase counts', async () => {
+    it('counts the purchased holds it loads: a saved purchase counts', async () => {
       const hold = holdFixture();
       await fx.holds.insert(hold);
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;

@@ -3,7 +3,7 @@ import type { Wishlist } from '../../domain/entities/Wishlist.js';
 
 /**
  * The aggregate's repository (ADR-0078): it loads and stores a `Wishlist`
- * together with its item and the list's active holds, so callers never
+ * together with its item and the list's active or purchased holds, so callers never
  * assemble an aggregate from separate lookups.
  */
 export interface WishlistRepository {
@@ -11,7 +11,7 @@ export interface WishlistRepository {
   insert(wishlist: Wishlist): Promise<void>;
   /**
    * Loads the full aggregate as of `now` — its item and every hold on the
-   * list still active at `now` — or null if no such wishlist. The returned
+   * list active or purchased at `now` — or null if no such wishlist. The returned
    * aggregate decides as of that instant: its commands and status queries
    * take no time argument, so load and decision share `now`.
    */
@@ -20,7 +20,7 @@ export interface WishlistRepository {
   /**
    * Writes an item's `seq` exactly as the domain left it — no
    * read-before-write, no arithmetic of its own. The
-   * purchased count is not written: loads compute it from purchase entries.
+   * purchased count is not written: the aggregate counts it from the purchased holds it loads.
    * Throws ItemNotFoundError unless the item exists on
    * `item.wishlistId`.
    */

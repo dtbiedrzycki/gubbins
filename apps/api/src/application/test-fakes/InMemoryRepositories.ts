@@ -43,23 +43,19 @@ export class InMemoryStore {
   readonly holds = new Map<string, Hold>();
   readonly streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
 
-  /** Computed from purchase entries, never stored: the item's holds with purchasedAt set. */
-  purchasedCount(itemId: string): number {
-    return [...this.holds.values()].filter((h) => h.itemId.value === itemId && h.purchasedAt !== null).length;
-  }
-
   holdsOnList(wishlistId: string): Hold[] {
     return [...this.holds.values()].filter((hold) => this.items.get(hold.itemId.value)?.wishlistId.value === wishlistId);
   }
 
   /**
-   * The list's holds active at `now`, by the same predicate as the SQL
-   * adapter's query: not released, not purchased, `now <= expiresAt`. The
-   * hold repository contract checks it agrees with the domain.
+   * The list's holds active or purchased at `now`, by the same predicate as
+   * the SQL adapter's query: purchased, or not released with
+   * `now <= expiresAt`. The hold repository contract checks it agrees with
+   * the domain.
    */
-  activeHoldsOnList(wishlistId: string, now: Date): Hold[] {
+  activeOrPurchasedHoldsOnList(wishlistId: string, now: Date): Hold[] {
     return this.holdsOnList(wishlistId).filter(
-      (h) => h.releasedAt === null && h.purchasedAt === null && now.getTime() <= h.expiresAt.getTime(),
+      (h) => h.purchasedAt !== null || (h.releasedAt === null && now.getTime() <= h.expiresAt.getTime()),
     );
   }
 }
@@ -84,19 +80,18 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   async saveItemState(item: Item): Promise<void> {
     const stored = this.store.items.get(item.id.value);
     if (!stored || stored.wishlistId.value !== item.wishlistId.value) throw new ItemNotFoundError(item.id.value);
-    // seq only: the purchased count is computed, never stored.
+    // seq only: the purchased count is derived from holds, never stored.
     this.store.items.set(item.id.value, copyItem(item));
   }
 
   private hydrate(wishlist: Wishlist | undefined, now: Date): Wishlist | null {
     if (wishlist === undefined) return null;
     const item = [...this.store.items.values()].find((i) => i.wishlistId.value === wishlist.id.value);
-    const activeHolds = this.store.activeHoldsOnList(wishlist.id.value, now).map(copyHold);
+    const holds = this.store.activeOrPurchasedHoldsOnList(wishlist.id.value, now).map(copyHold);
     return Wishlist.reconstitute({
       id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
       ownerToken: wishlist.ownerToken.value, key: wishlist.key.value, keyGen: wishlist.keyGen, asOf: now,
-      item: item ? copyItem(item) : undefined, activeHolds,
-      purchasedCounts: item ? new Map([[item.id.value, this.store.purchasedCount(item.id.value)]]) : undefined,
+      item: item ? copyItem(item) : undefined, holds,
     });
   }
 }
@@ -128,8 +123,8 @@ export class InMemoryHoldRepository implements HoldRepository {
     return hold ? copyHold(hold) : null;
   }
 
-  async findActiveForWishlist(wishlistId: string, now: Date): Promise<Hold[]> {
-    return this.store.activeHoldsOnList(wishlistId, now).map(copyHold);
+  async findActiveOrPurchasedForWishlist(wishlistId: string, now: Date): Promise<Hold[]> {
+    return this.store.activeOrPurchasedHoldsOnList(wishlistId, now).map(copyHold);
   }
 
   async findForSession(wishlistId: string, sessionHash: string): Promise<Hold[]> {

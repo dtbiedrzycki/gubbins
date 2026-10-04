@@ -32,20 +32,7 @@ export class ItemRepositoryKysely implements ItemRepository {
     });
   }
 
-  /** Computed from purchase entries, never stored: each item's holds with purchased_at set. */
-  async purchasedCountsByItem(wishlistId: string): Promise<ReadonlyMap<string, number>> {
-    const rows = await this.db.selectFrom('holds')
-      .innerJoin('items', 'items.id', 'holds.item_id')
-      .select('holds.item_id as item_id')
-      .select((eb) => eb.fn.countAll<number>().as('n'))
-      .where('items.wishlist_id', '=', wishlistId)
-      .where('holds.purchased_at', 'is not', null)
-      .groupBy('holds.item_id')
-      .execute();
-    return new Map(rows.map((row) => [row.item_id, Number(row.n)]));
-  }
-
-  /** Writes `seq` only: the purchased count is computed, never stored. */
+  /** Writes `seq` only: the purchased count is derived from holds, never stored. */
   async saveState(item: Item): Promise<void> {
     const result = await this.db.updateTable('item_state')
       .set({ seq: item.seq, updated_at: new Date().toISOString() })

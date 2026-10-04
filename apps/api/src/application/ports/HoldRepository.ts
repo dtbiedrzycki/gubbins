@@ -14,12 +14,14 @@ export interface HoldRepository {
   findById(holdId: string): Promise<Hold | null>;
   findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<Hold | null>;
   /**
-   * The list's holds active at `now` — not released, not purchased, and
-   * `now <= expiresAt` — and no others. Expired holds are never
+   * The list's holds active or purchased at `now` — purchased, or not
+   * released and `now <= expiresAt` — and no others. Expired holds are never
    * closed under lazy expiry, so "every unclosed hold" would grow without
    * bound; the `Wishlist` loaded at `now` re-checks each one at that instant.
+   * Active and purchased holds on an item never exceed its quantity, so
+   * what this returns is bounded by the quantity.
    */
-  findActiveForWishlist(wishlistId: string, now: Date): Promise<Hold[]>;
+  findActiveOrPurchasedForWishlist(wishlistId: string, now: Date): Promise<Hold[]>;
   /** Every hold `sessionHash` placed on the list, whatever its state, for "Your holds" — expired ones included, since an expired hold can still be purchased. */
   findForSession(wishlistId: string, sessionHash: string): Promise<Hold[]>;
 }

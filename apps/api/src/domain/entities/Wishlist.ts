@@ -20,9 +20,10 @@ export interface HoldCommandResult<E> {
 
 /**
  * Aggregate root (ADR-0078). Items are reachable only through it, and it
- * carries the list's *active* holds as of the instant it was loaded,
- * so every rule that needs to see other holds — availability today, a
- * per-session cap later — is decided here. Holds
+ * carries the list's holds that were active or purchased as of the instant
+ * it was loaded, so every rule that needs to see other holds — availability
+ * today, a per-session cap later — is decided here, and the purchased count
+ * is the number of those holds marked purchased. Holds
  * are their own aggregate: the wishlist authorizes and decides commands on
  * them; the use case persists the outcome.
  *
@@ -33,9 +34,7 @@ export interface HoldCommandResult<E> {
  */
 export class Wishlist {
   private _item: Item | null = null;
-  private _activeHolds: Hold[] = [];
-  /** Purchased holds per item id, as loaded and since bumped by `purchaseHold`. */
-  private _purchasedCounts = new Map<string, number>();
+  private _holds: Hold[] = [];
 
   /**
    * Enforces the aggregate's own invariants, so neither `create` nor
@@ -67,30 +66,20 @@ export class Wishlist {
   /**
    * Reconstructs a Wishlist from persisted fields — used by repositories,
    * not by creation flows. `asOf` is the instant it was loaded at, and the
-   * one every decision is taken at; `activeHolds` are the list's holds
-   * active at it, each on one of this wishlist's items. `purchasedCounts`
-   * maps an item id to how many of its holds were purchased; an item with
-   * no entry has none.
+   * one every decision is taken at; `holds` are the list's holds active or
+   * purchased at it, each on one of this wishlist's items.
    */
   static reconstitute(props: {
     id: string; slug: string; title: string; ownerToken: string; key: string; keyGen: number; asOf: Date;
-    item?: Item; activeHolds?: readonly Hold[]; purchasedCounts?: ReadonlyMap<string, number>;
+    item?: Item; holds?: readonly Hold[];
   }): Wishlist {
     if (props.item && props.item.wishlistId.value !== props.id) {
       throw new DomainValidationError('Item belongs to a different wishlist');
     }
-    const holds = props.activeHolds ?? [];
+    const holds = props.holds ?? [];
     for (const hold of holds) {
       if (!props.item || hold.itemId.value !== props.item.id.value) {
         throw new DomainValidationError('Hold belongs to an item outside this wishlist');
-      }
-    }
-    for (const [itemId, count] of props.purchasedCounts ?? []) {
-      if (!props.item || itemId !== props.item.id.value) {
-        throw new DomainValidationError('Purchased count belongs to an item outside this wishlist');
-      }
-      if (!Number.isInteger(count) || count < 0) {
-        throw new DomainValidationError('Purchased count must be a non-negative integer');
       }
     }
     const wishlist = new Wishlist(
@@ -98,8 +87,7 @@ export class Wishlist {
       OwnerToken.from(props.ownerToken), GuestKey.from(props.key), props.keyGen, new Date(props.asOf.getTime()),
     );
     wishlist._item = props.item ?? null;
-    wishlist._activeHolds = [...holds];
-    wishlist._purchasedCounts = new Map(props.purchasedCounts);
+    wishlist._holds = [...holds];
     return wishlist;
   }
 
@@ -131,9 +119,9 @@ export class Wishlist {
     return this._item;
   }
 
-  /** The loaded instance of an active hold, or null — a hold not in the snapshot is expired or closed. */
+  /** The loaded instance of an active or purchased hold, or null — a hold not in the snapshot is released or expired. */
   findHold(holdId: string): Hold | null {
-    return this._activeHolds.find((hold) => hold.id.value === holdId) ?? null;
+    return this._holds.find((hold) => hold.id.value === holdId) ?? null;
   }
 
   /** Whether `hold` is on one of this wishlist's items: the authorization step for a hold loaded by id, as `getItem` is for items. */
@@ -146,9 +134,9 @@ export class Wishlist {
     return item.statusGiven(this.activeHoldsOn(item), this.purchasedCountOf(item.id.value));
   }
 
-  /** Units of the item bought, as loaded plus any purchase made through this aggregate since. */
+  /** Units of the item bought: its loaded holds that are purchased, including any purchased through this aggregate since. */
   purchasedCountOf(itemId: string): number {
-    return this._purchasedCounts.get(itemId) ?? 0;
+    return this._holds.filter((hold) => hold.itemId.value === itemId && hold.statusAt(this.asOf) === 'purchased').length;
   }
 
   /**
@@ -177,7 +165,7 @@ export class Wishlist {
   ): HoldCommandResult<ItemHeldEvent> {
     const item = this.getItem(props.itemId);
     const { hold, event, expectedSeq } = item.placeHold({ ...props, at: this.asOf }, this.activeHoldsOn(item), this.purchasedCountOf(item.id.value), tokens, hasher);
-    this._activeHolds.push(hold);
+    this._holds.push(hold);
     return { hold, item, event, expectedSeq };
   }
 
@@ -205,7 +193,7 @@ export class Wishlist {
     if (refusal === 'closed') throw new HoldNotActiveError(hold.id.value);
     if (refusal === 'lapsed') throw new ItemUnavailableError(item.id.value);
     const event = hold.markPurchased(this.asOf);
-    this._purchasedCounts.set(item.id.value, this.purchasedCountOf(item.id.value) + 1);
+    this.keep(hold);
     return { hold, item, event, expectedSeq: item.recordEvent() };
   }
 
@@ -231,7 +219,14 @@ export class Wishlist {
    * filtered in its own terms, and only `statusAt` defines active.
    */
   private activeHoldsOn(item: Item): number {
-    return this._activeHolds.filter((hold) => hold.itemId.value === item.id.value && hold.statusAt(this.asOf) === 'active').length;
+    return this._holds.filter((hold) => hold.itemId.value === item.id.value && hold.statusAt(this.asOf) === 'active').length;
+  }
+
+  /** Makes the aggregate's holds include `hold`, in place of any loaded copy of it: an expired hold arrives from outside the load. */
+  private keep(hold: Hold): void {
+    const index = this._holds.findIndex((loaded) => loaded.id.value === hold.id.value);
+    if (index === -1) this._holds.push(hold);
+    else this._holds[index] = hold;
   }
 
   private itemOf(hold: Hold): Item {

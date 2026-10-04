@@ -84,7 +84,7 @@ These refine the spec where it is silent. Each is cheap to reverse before the PR
 
 1. **Eight PRs instead of the spec's five.** Persistence is split in two: the `BEGIN IMMEDIATE`/concurrency work and the aggregate change stay in PR 4, and `rebuildProjections` moves after the use cases (PR 7), so its re-fold test drives the real write path. "Use cases, routes, web, e2e" becomes three PRs (application, API, web + e2e).
 2. **`HoldRepository.findForSession(wishlistId, sessionHash)`** is added beside the spec's port list. "Your holds" must show the session's expired holds (D15 lets them be purchased), and D8 keeps those out of the aggregate's snapshot.
-3. **`WishlistRepository.findBySlug/findById` take `now`**, because the aggregate's active-hold snapshot is defined only at an instant. `EnterGuestKey` gains a `Clock`.
+3. **`WishlistRepository.findBySlug/findById` take `now`**, because the aggregate's hold snapshot is defined only at an instant. `EnterGuestKey` gains a `Clock`.
 4. **The view's `actions: { extend, release, purchase }` are computed by the domain** (`Wishlist.canExtendHold`, `Wishlist.canReleaseHold`, `Wishlist.canPurchaseHold`). The web app shows exactly those buttons and never re-derives a rule.
 5. **Retry lives in a `RetryingUnitOfWork` decorator** (application layer), so every use case gets the 3× retry with jitter and none repeats it.
 6. **Until stack E, `rebuildProjections` carries each hold's `secret` over from the row it replaces.** The ledger has only its hash. A hold with no row to carry from fails the whole rebuild and rolls it back, rather than inventing a credential.
@@ -92,7 +92,7 @@ These refine the spec where it is silent. Each is cheap to reverse before the PR
 8. **`HOLD_DURATION_DAYS` must be a whole number ≥ 1**, with no upper cap, which the spec does not set. Unset or empty means 3.
 9. **Release is confirmed inline** ("Release your hold on Stroller?" with **Yes, release it** / **Keep my hold**) rather than in a second `<dialog>`.
 10. **The hold dialog keeps its CTA "Yes, hold it".** The `HoldSheet` rename, "Confirm hold" and the name/message fields arrive with stack D. Stack A only adds the "Held for you for N days." line and the open-time key.
-11. **Following the PR #31 review (spec D21), an item's purchased count is computed from purchase entries** (holds with `purchased_at`) instead of an `item_state.purchased_count` column. Task 2.1 no longer adds the column; Tasks 4.1 and 7.1 compute it.
+11. **Following the PR #31 review (spec D21), an item's purchased count is computed from purchase entries** (holds with `purchased_at`) instead of an `item_state.purchased_count` column. Task 2.1 no longer adds the column. Following the PR #33 review, the count is derived in the aggregate: the repository loads the list's active or purchased holds and `Wishlist.purchasedCountOf` counts those with status purchased, so there is no count query; Tasks 4.1 and 7.1 build on that.
 12. **Following the PR #32 review (spec D22), `Wishlist` captures the instant it was loaded at; its commands and queries take no time argument.** `Wishlist.create` and `reconstitute` take `asOf`; repositories pass the `now` they load at, so `CreateList` gains a `Clock`. `Hold`'s instant-taking methods are the aggregate's internals. Tasks 5.x and 6.3 are brought in line on their own branches.
 
 ## File map
@@ -108,14 +108,14 @@ Backend (`apps/api/src`):
 | `domain/errors.ts` | modify (PR 3) | `ItemUnavailableError` (renamed), `HoldNotFoundError`, `HoldNotActiveError`, `HoldAlreadyExtendedError` |
 | `domain/entities/Hold.ts` | modify (PR 3) | timestamps, `reconstitute`, `statusAt`, `extend`, `release`, `markPurchased`, predicates |
 | `domain/policies/HoldPermissions.ts` | create (PR 3) | guest rows of the permission table |
-| `domain/entities/Item.ts` | modify (PR 4) | availability from passed-in active and purchased counts (both supplied by `Wishlist`, which loads the purchased count from purchase entries — D21); `recordEvent` |
-| `domain/entities/Wishlist.ts` | modify (PR 4) | active-hold snapshot and the `asOf` instant it decides at; `holdItem`, `extendHold`, `releaseHold`, `purchaseHold`, `findHold`, `owns`, `holdStatus`, `canExtendHold`, `canReleaseHold`, `canPurchaseHold`, `itemStatus` |
+| `domain/entities/Item.ts` | modify (PR 4) | availability from passed-in active and purchased counts (both supplied by `Wishlist`, which counts the purchased holds it loads — D21); `recordEvent` |
+| `domain/entities/Wishlist.ts` | modify (PR 4) | active-or-purchased hold snapshot and the `asOf` instant it decides at; `holdItem`, `extendHold`, `releaseHold`, `purchaseHold`, `findHold`, `owns`, `holdStatus`, `canExtendHold`, `canReleaseHold`, `canPurchaseHold`, `itemStatus` |
 | `application/ports/EventStore.ts` | modify (PR 2) | `append(itemId, expectedSeq, events, actor)` |
-| `application/ports/HoldRepository.ts` | modify (PR 4) | speaks `Hold`; `insert`, `save`, `findById`, `findByIdempotencyKey`, `findActiveForWishlist`, `findForSession` |
+| `application/ports/HoldRepository.ts` | modify (PR 4) | speaks `Hold`; `insert`, `save`, `findById`, `findByIdempotencyKey`, `findActiveOrPurchasedForWishlist`, `findForSession` |
 | `application/ports/WishlistRepository.ts` | modify (PR 4) | `findBySlug(slug, now)`, `findById(id, now)`, `saveItemState(item)` |
 | `application/ports/ItemRepository.ts` | modify (PR 4) | internal collaborator: `saveState` replaces `markHeld` |
 | `application/ports/contracts/*.contract.ts` | create (PR 4) | port contract suites (D9) |
-| `application/test-fakes/InMemoryRepositories.ts` | rewrite (PR 4) | shared `InMemoryStore`, `inMemoryPersistence()`; purchased count computed from stored holds (D21) |
+| `application/test-fakes/InMemoryRepositories.ts` | rewrite (PR 4) | shared `InMemoryStore`, `inMemoryPersistence()`; purchased count derived from loaded holds (D21) |
 | `application/AccessContext.ts`, `HoldPolicy.ts`, `RetryingUnitOfWork.ts`, `views/HoldView.ts` | create (PR 5) | request credentials, hold config, conflict retry, view mapping |
 | `application/use-cases/holdCommand.ts` | create (PR 5) | `HoldCommand` shape, `findOwnedHold` |
 | `application/use-cases/ExtendHold.ts`, `ReleaseHold.ts`, `MarkHoldPurchased.ts`, `GetListView.ts` | create (PR 5) | use cases |
@@ -487,7 +487,7 @@ Replace the `holds` block with:
     .addColumn('session_hash', 'text', (col) => col.notNull())
     .addColumn('idempotency_key', 'text', (col) => col.notNull())
     // Every instant below is written with toISOString(), so text comparison
-    // is time order — findActiveForWishlist relies on it.
+    // is time order — findActiveOrPurchasedForWishlist relies on it.
     .addColumn('expires_at', 'text', (col) => col.notNull())
     // Hold state is timestamps only; statusAt(at) derives active/expired/
     // released/purchased from them.
@@ -1737,7 +1737,7 @@ git switch -c feat/holds-a/04-persistence feat/holds-a/03-domain-lifecycle
 
 ### Task 4.1: Availability from hold state — aggregate, ports, adapters, fakes and their contract suites
 
-One change, which no reviewer could approve in halves. `item_state.active_holds` goes, leaving `item_state` with `seq` only: an item's purchased count is computed at load from its holds with `purchased_at` set (D21). The `Wishlist` carries the list's active holds and decides availability from them. Every port, adapter and fake moves with it, and a contract suite holds both adapter sets to the same behaviour (D8, D9). External behaviour of the HTTP API is unchanged, apart from `status` gaining `'purchased'`.
+One change, which no reviewer could approve in halves. `item_state.active_holds` goes, leaving `item_state` with `seq` only: an item's purchased count is derived in the aggregate from the loaded holds with `purchased_at` set (D21). The `Wishlist` carries the list's active or purchased holds and decides availability from them. Every port, adapter and fake moves with it, and a contract suite holds both adapter sets to the same behaviour (D8, D9). External behaviour of the HTTP API is unchanged, apart from `status` gaining `'purchased'`.
 
 **Files:**
 - Modify: `apps/api/src/domain/entities/Item.ts`, `Item.test.ts`
@@ -1772,7 +1772,7 @@ One change, which no reviewer could approve in halves. `item_state.active_holds`
     - `recordEvent(): number`
   - **`Wishlist`** (decides as of `asOf`, the instant it was created or loaded at; nothing below takes a time argument — decision 12):
     - `create(props: { id; slug; title; ownerToken; key; asOf: Date })`
-    - `reconstitute(props: { …; asOf: Date; item?: Item; activeHolds?: readonly Hold[]; purchasedCounts?: ReadonlyMap<string, number> })`
+    - `reconstitute(props: { …; asOf: Date; item?: Item; holds?: readonly Hold[] })`
     - `holdItem(props: { itemId; sessionHash; idempotencyKey; durationMs: number }, tokens, hasher): HoldCommandResult<ItemHeldEvent>`
     - `extendHold(hold, durationMs): HoldCommandResult<HoldExtendedEvent>`
     - `releaseHold(hold): HoldCommandResult<HoldReleasedEvent>`
@@ -1795,7 +1795,7 @@ One change, which no reviewer could approve in halves. `item_state.active_holds`
     - `save(hold: Hold)`
     - `findById(holdId: string): Promise<Hold | null>`
     - `findByIdempotencyKey(itemId: string, key: string): Promise<Hold | null>`
-    - `findActiveForWishlist(wishlistId: string, now: Date): Promise<Hold[]>`
+    - `findActiveOrPurchasedForWishlist(wishlistId: string, now: Date): Promise<Hold[]>`
     - `findForSession(wishlistId: string, sessionHash: string): Promise<Hold[]>`
   - **Fakes:**
     - `inMemoryPersistence(): { store; wishlists; holds; eventStore; unitOfWork }`
@@ -2000,12 +2000,12 @@ function holdOn(itemId: string, overrides: Partial<Parameters<typeof Hold.recons
   });
 }
 
-/** A wishlist loaded at `asOf` (T0 unless given), with its one item and the given active holds. */
-function loaded(options: { quantity?: number; seq?: number; purchasedCount?: number; activeHolds?: Hold[]; asOf?: Date } = {}): Wishlist {
-  const { activeHolds = [], asOf = T0, purchasedCount = 0, ...itemOverrides } = options;
+/** A wishlist loaded at `asOf` (T0 unless given), with its one item, the given holds and `purchasedCount` purchased ones. */
+function loaded(options: { quantity?: number; seq?: number; purchasedCount?: number; holds?: Hold[]; asOf?: Date } = {}): Wishlist {
+  const { holds = [], asOf = T0, purchasedCount = 0, ...itemOverrides } = options;
+  const purchased = Array.from({ length: purchasedCount }, () => holdOn(ITEM_ID, { purchasedAt: T0 }));
   return Wishlist.reconstitute({
-    ...validProps, asOf, keyGen: 1, item: itemOf(WISHLIST_ID, itemOverrides), activeHolds,
-    purchasedCounts: new Map([[ITEM_ID, purchasedCount]]),
+    ...validProps, asOf, keyGen: 1, item: itemOf(WISHLIST_ID, itemOverrides), holds: [...holds, ...purchased],
   });
 }
 
@@ -2062,35 +2062,40 @@ describe('Wishlist.reconstitute', () => {
     expect(wishlist.item?.seq).toBe(7);
   });
 
-  it('carries the loaded purchased count per item, zero when none was given', () => {
+  it('counts the loaded holds that are purchased, zero when there are none', () => {
     const item = itemOf();
-    expect(Wishlist.reconstitute({ ...persisted, item, purchasedCounts: new Map([[ITEM_ID, 2]]) }).purchasedCountOf(ITEM_ID)).toBe(2);
+    const holds = [holdOn(ITEM_ID, { purchasedAt: T0 }), holdOn(ITEM_ID, { purchasedAt: T0 }), holdOn(ITEM_ID)];
+    expect(Wishlist.reconstitute({ ...persisted, item, holds }).purchasedCountOf(ITEM_ID)).toBe(2);
     expect(Wishlist.reconstitute({ ...persisted, item }).purchasedCountOf(ITEM_ID)).toBe(0);
   });
 
-  it('rejects a purchased count that is negative, fractional or for an item outside the list', () => {
-    const item = itemOf();
-    expect(() => Wishlist.reconstitute({ ...persisted, item, purchasedCounts: new Map([[ITEM_ID, -1]]) })).toThrow(DomainValidationError);
-    expect(() => Wishlist.reconstitute({ ...persisted, item, purchasedCounts: new Map([[ITEM_ID, 0.5]]) })).toThrow(DomainValidationError);
-    expect(() => Wishlist.reconstitute({ ...persisted, item, purchasedCounts: new Map([[OTHER_ITEM_ID, 1]]) })).toThrow(DomainValidationError);
+  it('does not count a purchased hold as active', () => {
+    const wishlist = loaded({ quantity: 2, holds: [holdOn(ITEM_ID, { purchasedAt: T0 })] });
+    expect(wishlist.purchasedCountOf(ITEM_ID)).toBe(1);
+    expect(wishlist.itemStatus(ITEM_ID)).toBe('available');
+  });
+
+  it('finds a purchased hold it loaded', () => {
+    const hold = holdOn(ITEM_ID, { purchasedAt: T0 });
+    expect(loaded({ holds: [hold] }).findHold(hold.id.value)).toBe(hold);
   });
 
   it('rejects an item that belongs to a different wishlist', () => {
     expect(() => Wishlist.reconstitute({ ...persisted, item: itemOf(OTHER_WISHLIST_ID) })).toThrow(DomainValidationError);
   });
 
-  it('carries the loaded active holds, each reachable by id', () => {
+  it('carries the loaded holds, each reachable by id', () => {
     const hold = holdOn(ITEM_ID);
-    expect(loaded({ activeHolds: [hold] }).findHold(hold.id.value)).toBe(hold);
+    expect(loaded({ holds: [hold] }).findHold(hold.id.value)).toBe(hold);
   });
 
   it('rejects a hold on an item outside this wishlist', () => {
-    expect(() => loaded({ activeHolds: [holdOn(OTHER_ITEM_ID)] })).toThrow(DomainValidationError);
+    expect(() => loaded({ holds: [holdOn(OTHER_ITEM_ID)] })).toThrow(DomainValidationError);
   });
 
   it('keeps its own copy of the instant it was loaded at', () => {
     const asOf = at(3 * DAY);
-    const wishlist = loaded({ activeHolds: [holdOn(ITEM_ID)], asOf });
+    const wishlist = loaded({ holds: [holdOn(ITEM_ID)], asOf });
     asOf.setTime(at(3 * DAY + 1).getTime());
     expect(wishlist.itemStatus(ITEM_ID)).toBe('held');
   });
@@ -2148,12 +2153,12 @@ describe('Wishlist.holdItem', () => {
   });
 
   it('refuses when a loaded active hold covers the unit', () => {
-    expect(() => loaded({ activeHolds: [holdOn(ITEM_ID)] }).holdItem(props, tokens(), hasher)).toThrow(ItemUnavailableError);
+    expect(() => loaded({ holds: [holdOn(ITEM_ID)] }).holdItem(props, tokens(), hasher)).toThrow(ItemUnavailableError);
   });
 
   it('re-checks each loaded hold at the instant it was loaded at: one already lapsed frees its unit', () => {
     const lapsed = holdOn(ITEM_ID, { expiresAt: at(-1) });
-    expect(() => loaded({ activeHolds: [lapsed] }).holdItem(props, tokens(), hasher)).not.toThrow();
+    expect(() => loaded({ holds: [lapsed] }).holdItem(props, tokens(), hasher)).not.toThrow();
   });
 
   it('throws ItemNotFoundError for an item not on this list', () => {
@@ -2164,7 +2169,7 @@ describe('Wishlist.holdItem', () => {
 describe('Wishlist.findHold and owns', () => {
   it('findHold returns the snapshot instance itself, or null', () => {
     const hold = holdOn(ITEM_ID);
-    const wishlist = loaded({ activeHolds: [hold] });
+    const wishlist = loaded({ holds: [hold] });
     expect(wishlist.findHold(hold.id.value)).toBe(hold);
     expect(wishlist.findHold('00000000-0000-7000-8000-999999999999')).toBeNull();
   });
@@ -2178,7 +2183,7 @@ describe('Wishlist.findHold and owns', () => {
 describe('Wishlist.extendHold and releaseHold', () => {
   it('extendHold extends the hold and records one event on the item stream', () => {
     const hold = holdOn(ITEM_ID);
-    const wishlist = loaded({ seq: 1, activeHolds: [hold], asOf: at(DAY) });
+    const wishlist = loaded({ seq: 1, holds: [hold], asOf: at(DAY) });
     const { event, item, expectedSeq } = wishlist.extendHold(hold, 3 * DAY);
     expect(event.type).toBe('HoldExtended');
     expect(hold.extendedAt).toEqual(at(DAY));
@@ -2189,7 +2194,7 @@ describe('Wishlist.extendHold and releaseHold', () => {
 
   it('releaseHold frees the unit within the same aggregate', () => {
     const hold = holdOn(ITEM_ID);
-    const wishlist = loaded({ activeHolds: [hold], asOf: at(DAY) });
+    const wishlist = loaded({ holds: [hold], asOf: at(DAY) });
     wishlist.releaseHold(hold);
     expect(hold.releasedAt).toEqual(at(DAY));
     expect(wishlist.itemStatus(ITEM_ID)).toBe('available');
@@ -2210,7 +2215,7 @@ describe('Wishlist.extendHold and releaseHold', () => {
 describe('Wishlist.purchaseHold', () => {
   it('purchases an active hold; the unit is gone for good', () => {
     const hold = holdOn(ITEM_ID);
-    const wishlist = loaded({ activeHolds: [hold], asOf: at(DAY) });
+    const wishlist = loaded({ holds: [hold], asOf: at(DAY) });
     const { event, item } = wishlist.purchaseHold(hold);
     expect(event.type).toBe('ItemPurchased');
     expect(hold.purchasedAt).toEqual(at(DAY));
@@ -2222,7 +2227,7 @@ describe('Wishlist.purchaseHold', () => {
   it('counts the purchase for the rest of the command: a later decision sees the unit as gone', () => {
     const first = holdOn(ITEM_ID);
     const lapsed = holdOn(ITEM_ID, { expiresAt: at(-1) });
-    const wishlist = loaded({ quantity: 2, activeHolds: [first] });
+    const wishlist = loaded({ quantity: 2, holds: [first] });
     wishlist.purchaseHold(first);
     expect(wishlist.purchasedCountOf(ITEM_ID)).toBe(1);
     expect(wishlist.canPurchaseHold(lapsed)).toBe(true);
@@ -2231,12 +2236,27 @@ describe('Wishlist.purchaseHold', () => {
     expect(wishlist.canPurchaseHold(holdOn(ITEM_ID, { expiresAt: at(-1) }))).toBe(false);
   });
 
-  it('adds to the count it was loaded with', () => {
+  it('adds to the purchased holds it was loaded with', () => {
     const hold = holdOn(ITEM_ID);
-    const wishlist = loaded({ quantity: 3, purchasedCount: 1, activeHolds: [hold] });
+    const wishlist = loaded({ quantity: 3, purchasedCount: 1, holds: [hold] });
     wishlist.purchaseHold(hold);
     expect(wishlist.purchasedCountOf(ITEM_ID)).toBe(2);
     expect(wishlist.itemStatus(ITEM_ID)).toBe('available');
+  });
+
+  it('counts an expired hold purchased from outside the load, once', () => {
+    const expired = holdOn(ITEM_ID, { expiresAt: at(-1) });
+    const wishlist = loaded({ quantity: 2 });
+    wishlist.purchaseHold(expired);
+    expect(wishlist.purchasedCountOf(ITEM_ID)).toBe(1);
+    expect(wishlist.findHold(expired.id.value)).toBe(expired);
+  });
+
+  it('does not count a hold twice when it was loaded and is then purchased', () => {
+    const hold = holdOn(ITEM_ID);
+    const wishlist = loaded({ holds: [hold] });
+    wishlist.purchaseHold(hold);
+    expect(wishlist.purchasedCountOf(ITEM_ID)).toBe(1);
   });
 
   it('purchases an expired hold while a unit is still free', () => {
@@ -2246,7 +2266,7 @@ describe('Wishlist.purchaseHold', () => {
 
   it('refuses an expired hold once someone else holds the last unit, and records nothing', () => {
     const expired = holdOn(ITEM_ID, { expiresAt: at(-1) });
-    const wishlist = loaded({ activeHolds: [holdOn(ITEM_ID, { sessionHash: OTHER_SESSION })] });
+    const wishlist = loaded({ holds: [holdOn(ITEM_ID, { sessionHash: OTHER_SESSION })] });
     expect(() => wishlist.purchaseHold(expired)).toThrow(ItemUnavailableError);
     expect(expired.purchasedAt).toBeNull();
     expect(wishlist.getItem(ITEM_ID).seq).toBe(0);
@@ -2268,7 +2288,7 @@ describe('Wishlist.canPurchaseHold', () => {
   });
 
   it('is false for an expired hold whose unit someone else now holds', () => {
-    const wishlist = loaded({ activeHolds: [holdOn(ITEM_ID, { sessionHash: OTHER_SESSION })] });
+    const wishlist = loaded({ holds: [holdOn(ITEM_ID, { sessionHash: OTHER_SESSION })] });
     expect(wishlist.canPurchaseHold(holdOn(ITEM_ID, { expiresAt: at(-1) }))).toBe(false);
   });
 
@@ -2282,8 +2302,8 @@ describe('Wishlist.canPurchaseHold', () => {
 describe('Wishlist.holdStatus, canExtendHold and canReleaseHold', () => {
   it('judges a hold at the instant the aggregate was loaded at', () => {
     const hold = holdOn(ITEM_ID);
-    expect(loaded({ activeHolds: [hold], asOf: at(3 * DAY) }).holdStatus(hold)).toBe('active');
-    expect(loaded({ activeHolds: [hold], asOf: at(3 * DAY + 1) }).holdStatus(hold)).toBe('expired');
+    expect(loaded({ holds: [hold], asOf: at(3 * DAY) }).holdStatus(hold)).toBe('active');
+    expect(loaded({ holds: [hold], asOf: at(3 * DAY + 1) }).holdStatus(hold)).toBe('expired');
   });
 
   it('judges a hold loaded outside the snapshot too, as long as it is on this list', () => {
@@ -2309,8 +2329,8 @@ describe('Wishlist.holdStatus, canExtendHold and canReleaseHold', () => {
 describe('Wishlist.itemStatus — lazy expiry', () => {
   it('is held up to and including the instant the hold expires, available 1 ms later', () => {
     const hold = holdOn(ITEM_ID);
-    expect(loaded({ activeHolds: [hold], asOf: at(3 * DAY) }).itemStatus(ITEM_ID)).toBe('held');
-    expect(loaded({ activeHolds: [hold], asOf: at(3 * DAY + 1) }).itemStatus(ITEM_ID)).toBe('available');
+    expect(loaded({ holds: [hold], asOf: at(3 * DAY) }).itemStatus(ITEM_ID)).toBe('held');
+    expect(loaded({ holds: [hold], asOf: at(3 * DAY + 1) }).itemStatus(ITEM_ID)).toBe('available');
   });
 
   it('is purchased once purchases cover the quantity', () => {
@@ -2322,7 +2342,7 @@ describe('Wishlist.itemStatus — lazy expiry', () => {
 - [ ] **Step 2: Run them to see them fail**
 
 Run: `npm run test --workspace=apps/api -- src/domain`
-Expected: FAIL. `purchasedCounts` is not accepted, and `availableUnits`, `holdItem`, `itemStatus` and the rest are not functions.
+Expected: FAIL. `holds` is not accepted, and `availableUnits`, `holdItem`, `itemStatus` and the rest are not functions.
 
 - [ ] **Step 3: Implement `Item`**
 
@@ -2492,9 +2512,10 @@ export interface HoldCommandResult<E> {
 
 /**
  * Aggregate root (ADR-0078). Items are reachable only through it, and it
- * carries the list's *active* holds as of the instant it was loaded,
- * so every rule that needs to see other holds — availability today, a
- * per-session cap later — is decided here. Holds
+ * carries the list's holds that were active or purchased as of the instant
+ * it was loaded, so every rule that needs to see other holds — availability
+ * today, a per-session cap later — is decided here, and the purchased count
+ * is the number of those holds marked purchased. Holds
  * are their own aggregate: the wishlist authorizes and decides commands on
  * them; the use case persists the outcome.
  *
@@ -2505,9 +2526,7 @@ export interface HoldCommandResult<E> {
  */
 export class Wishlist {
   private _item: Item | null = null;
-  private _activeHolds: Hold[] = [];
-  /** Purchased holds per item id, as loaded and since bumped by `purchaseHold`. */
-  private _purchasedCounts = new Map<string, number>();
+  private _holds: Hold[] = [];
 
   /**
    * Enforces the aggregate's own invariants, so neither `create` nor
@@ -2539,30 +2558,20 @@ export class Wishlist {
   /**
    * Reconstructs a Wishlist from persisted fields — used by repositories,
    * not by creation flows. `asOf` is the instant it was loaded at, and the
-   * one every decision is taken at; `activeHolds` are the list's holds
-   * active at it, each on one of this wishlist's items. `purchasedCounts`
-   * maps an item id to how many of its holds were purchased; an item with
-   * no entry has none.
+   * one every decision is taken at; `holds` are the list's holds active or
+   * purchased at it, each on one of this wishlist's items.
    */
   static reconstitute(props: {
     id: string; slug: string; title: string; ownerToken: string; key: string; keyGen: number; asOf: Date;
-    item?: Item; activeHolds?: readonly Hold[]; purchasedCounts?: ReadonlyMap<string, number>;
+    item?: Item; holds?: readonly Hold[];
   }): Wishlist {
     if (props.item && props.item.wishlistId.value !== props.id) {
       throw new DomainValidationError('Item belongs to a different wishlist');
     }
-    const holds = props.activeHolds ?? [];
+    const holds = props.holds ?? [];
     for (const hold of holds) {
       if (!props.item || hold.itemId.value !== props.item.id.value) {
         throw new DomainValidationError('Hold belongs to an item outside this wishlist');
-      }
-    }
-    for (const [itemId, count] of props.purchasedCounts ?? []) {
-      if (!props.item || itemId !== props.item.id.value) {
-        throw new DomainValidationError('Purchased count belongs to an item outside this wishlist');
-      }
-      if (!Number.isInteger(count) || count < 0) {
-        throw new DomainValidationError('Purchased count must be a non-negative integer');
       }
     }
     const wishlist = new Wishlist(
@@ -2570,8 +2579,7 @@ export class Wishlist {
       OwnerToken.from(props.ownerToken), GuestKey.from(props.key), props.keyGen, new Date(props.asOf.getTime()),
     );
     wishlist._item = props.item ?? null;
-    wishlist._activeHolds = [...holds];
-    wishlist._purchasedCounts = new Map(props.purchasedCounts);
+    wishlist._holds = [...holds];
     return wishlist;
   }
 
@@ -2603,9 +2611,9 @@ export class Wishlist {
     return this._item;
   }
 
-  /** The loaded instance of an active hold, or null — a hold not in the snapshot is expired or closed. */
+  /** The loaded instance of an active or purchased hold, or null — a hold not in the snapshot is released or expired. */
   findHold(holdId: string): Hold | null {
-    return this._activeHolds.find((hold) => hold.id.value === holdId) ?? null;
+    return this._holds.find((hold) => hold.id.value === holdId) ?? null;
   }
 
   /** Whether `hold` is on one of this wishlist's items: the authorization step for a hold loaded by id, as `getItem` is for items. */
@@ -2618,9 +2626,9 @@ export class Wishlist {
     return item.statusGiven(this.activeHoldsOn(item), this.purchasedCountOf(item.id.value));
   }
 
-  /** Units of the item bought, as loaded plus any purchase made through this aggregate since. */
+  /** Units of the item bought: its loaded holds that are purchased, including any purchased through this aggregate since. */
   purchasedCountOf(itemId: string): number {
-    return this._purchasedCounts.get(itemId) ?? 0;
+    return this._holds.filter((hold) => hold.itemId.value === itemId && hold.statusAt(this.asOf) === 'purchased').length;
   }
 
   /**
@@ -2649,7 +2657,7 @@ export class Wishlist {
   ): HoldCommandResult<ItemHeldEvent> {
     const item = this.getItem(props.itemId);
     const { hold, event, expectedSeq } = item.placeHold({ ...props, at: this.asOf }, this.activeHoldsOn(item), this.purchasedCountOf(item.id.value), tokens, hasher);
-    this._activeHolds.push(hold);
+    this._holds.push(hold);
     return { hold, item, event, expectedSeq };
   }
 
@@ -2677,7 +2685,7 @@ export class Wishlist {
     if (refusal === 'closed') throw new HoldNotActiveError(hold.id.value);
     if (refusal === 'lapsed') throw new ItemUnavailableError(item.id.value);
     const event = hold.markPurchased(this.asOf);
-    this._purchasedCounts.set(item.id.value, this.purchasedCountOf(item.id.value) + 1);
+    this.keep(hold);
     return { hold, item, event, expectedSeq: item.recordEvent() };
   }
 
@@ -2703,7 +2711,14 @@ export class Wishlist {
    * filtered in its own terms, and only `statusAt` defines active.
    */
   private activeHoldsOn(item: Item): number {
-    return this._activeHolds.filter((hold) => hold.itemId.value === item.id.value && hold.statusAt(this.asOf) === 'active').length;
+    return this._holds.filter((hold) => hold.itemId.value === item.id.value && hold.statusAt(this.asOf) === 'active').length;
+  }
+
+  /** Makes the aggregate's holds include `hold`, in place of any loaded copy of it: an expired hold arrives from outside the load. */
+  private keep(hold: Hold): void {
+    const index = this._holds.findIndex((loaded) => loaded.id.value === hold.id.value);
+    if (index === -1) this._holds.push(hold);
+    else this._holds[index] = hold;
   }
 
   private itemOf(hold: Hold): Item {
@@ -2841,35 +2856,37 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
       expect(reloaded).toEqual(hold);
     });
 
-    describe('findActiveForWishlist — the expiry boundary', () => {
+    describe('findActiveOrPurchasedForWishlist', () => {
       it.each([
         ['expired 1 ms ago', { expiresAt: later(-1) }, false],
         ['expiring at this very instant', { expiresAt: NOW }, true],
         ['expiring 1 ms from now', { expiresAt: later(1) }, true],
         ['released', { releasedAt: later(-10) }, false],
-        ['purchased', { purchasedAt: later(-10) }, false],
+        ['purchased', { purchasedAt: later(-10) }, true],
+        ['purchased and since expired', { purchasedAt: later(-10), expiresAt: later(-5) }, true],
+        ['released and since expired', { releasedAt: later(-10), expiresAt: later(-5) }, false],
       ] as const)('a hold %s is returned: %s', async (_name, overrides, returned) => {
         const hold = holdFixture(overrides);
         await fx.holds.insert(hold);
 
-        const found = await fx.holds.findActiveForWishlist(LIST_A, NOW);
+        const found = await fx.holds.findActiveOrPurchasedForWishlist(LIST_A, NOW);
 
         expect(found.map((h) => h.id.value)).toEqual(returned ? [hold.id.value] : []);
       });
 
       it("never returns another list's holds", async () => {
         await fx.holds.insert(holdFixture({ itemId: ITEM_B }));
-        expect(await fx.holds.findActiveForWishlist(LIST_A, NOW)).toEqual([]);
+        expect(await fx.holds.findActiveOrPurchasedForWishlist(LIST_A, NOW)).toEqual([]);
       });
 
       it('agrees with the aggregate loaded at the same instant on every hold it returns', async () => {
-        for (const overrides of [{}, { expiresAt: later(-1) }, { releasedAt: later(-1) }, { expiresAt: NOW }]) {
+        for (const overrides of [{}, { expiresAt: later(-1) }, { releasedAt: later(-1) }, { expiresAt: NOW }, { purchasedAt: later(-1), expiresAt: later(-1) }]) {
           await fx.holds.insert(holdFixture(overrides));
         }
-        const found = await fx.holds.findActiveForWishlist(LIST_A, NOW);
-        expect(found).toHaveLength(2);
+        const found = await fx.holds.findActiveOrPurchasedForWishlist(LIST_A, NOW);
+        expect(found).toHaveLength(3);
         const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
-        expect(found.every((h) => wishlist.holdStatus(h) === 'active')).toBe(true);
+        expect(found.map((h) => wishlist.holdStatus(h)).sort()).toEqual(['active', 'active', 'purchased']);
       });
     });
 
@@ -2926,16 +2943,18 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(await fx.wishlists.findById('00000000-0000-7000-8000-999999999999', NOW)).toBeNull();
     });
 
-    it("loads the list's holds active at now, and no others", async () => {
+    it("loads the list's holds active or purchased at now, and no others", async () => {
       const active = holdFixture();
+      const purchased = holdFixture({ purchasedAt: later(-5), expiresAt: later(-1) });
       const expired = holdFixture({ expiresAt: later(-1) });
       const released = holdFixture({ releasedAt: later(-5) });
       const elsewhere = holdFixture({ itemId: ITEM_B });
-      for (const hold of [active, expired, released, elsewhere]) await fx.holds.insert(hold);
+      for (const hold of [active, purchased, expired, released, elsewhere]) await fx.holds.insert(hold);
 
       const loaded = await fx.wishlists.findById(LIST_A, NOW);
 
       expect(loaded?.findHold(active.id.value)?.id.value).toBe(active.id.value);
+      expect(loaded?.findHold(purchased.id.value)?.id.value).toBe(purchased.id.value);
       expect(loaded?.findHold(expired.id.value)).toBeNull();
       expect(loaded?.findHold(released.id.value)).toBeNull();
       expect(loaded?.findHold(elsewhere.id.value)).toBeNull();
@@ -2961,7 +2980,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect((await fx.wishlists.findById(LIST_A, NOW))?.item?.seq).toBe(2);
     });
 
-    it('computes the purchased count from purchased holds: a saved purchase counts', async () => {
+    it('counts the purchased holds it loads: a saved purchase counts', async () => {
       const hold = holdFixture();
       await fx.holds.insert(hold);
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
@@ -3091,12 +3110,14 @@ export interface HoldRepository {
   findById(holdId: string): Promise<Hold | null>;
   findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<Hold | null>;
   /**
-   * The list's holds active at `now` — not released, not purchased, and
-   * `now <= expiresAt` — and no others. Expired holds are never
+   * The list's holds active or purchased at `now` — purchased, or not
+   * released and `now <= expiresAt` — and no others. Expired holds are never
    * closed under lazy expiry, so "every unclosed hold" would grow without
    * bound; the `Wishlist` loaded at `now` re-checks each one at that instant.
+   * Active and purchased holds on an item never exceed its quantity, so
+   * what this returns is bounded by the quantity.
    */
-  findActiveForWishlist(wishlistId: string, now: Date): Promise<Hold[]>;
+  findActiveOrPurchasedForWishlist(wishlistId: string, now: Date): Promise<Hold[]>;
   /** Every hold `sessionHash` placed on the list, whatever its state, for "Your holds" — expired ones included, since an expired hold can still be purchased. */
   findForSession(wishlistId: string, sessionHash: string): Promise<Hold[]>;
 }
@@ -3110,7 +3131,7 @@ import type { Wishlist } from '../../domain/entities/Wishlist.js';
 
 /**
  * The aggregate's repository (ADR-0078): it loads and stores a `Wishlist`
- * together with its item and the list's active holds, so callers never
+ * together with its item and the list's active or purchased holds, so callers never
  * assemble an aggregate from separate lookups.
  */
 export interface WishlistRepository {
@@ -3118,7 +3139,7 @@ export interface WishlistRepository {
   insert(wishlist: Wishlist): Promise<void>;
   /**
    * Loads the full aggregate as of `now` — its item and every hold on the
-   * list still active at `now` — or null if no such wishlist. The returned
+   * list active or purchased at `now` — or null if no such wishlist. The returned
    * aggregate decides as of that instant: its commands and status queries
    * take no time argument, so load and decision share `now`.
    */
@@ -3127,7 +3148,7 @@ export interface WishlistRepository {
   /**
    * Writes an item's `seq` exactly as the domain left it — no
    * read-before-write, no arithmetic of its own. The
-   * purchased count is not written: loads compute it from purchase entries.
+   * purchased count is not written: the aggregate counts it from the purchased holds it loads.
    * Throws ItemNotFoundError unless the item exists on
    * `item.wishlistId`.
    */
@@ -3149,11 +3170,6 @@ import type { Item } from '../../domain/entities/Item.js';
 export interface ItemRepository {
   insert(item: Item): Promise<void>;
   findByWishlistId(wishlistId: string): Promise<Item | null>;
-  /**
-   * Purchased holds per item id for the list's items, computed from the
-   * holds themselves and never stored; an item with none has no entry.
-   */
-  purchasedCountsByItem(wishlistId: string): Promise<ReadonlyMap<string, number>>;
   /** See `WishlistRepository.saveItemState`, which delegates here. */
   saveState(item: Item): Promise<void>;
 }
@@ -3209,23 +3225,19 @@ export class InMemoryStore {
   readonly holds = new Map<string, Hold>();
   readonly streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
 
-  /** Computed from purchase entries, never stored: the item's holds with purchasedAt set. */
-  purchasedCount(itemId: string): number {
-    return [...this.holds.values()].filter((h) => h.itemId.value === itemId && h.purchasedAt !== null).length;
-  }
-
   holdsOnList(wishlistId: string): Hold[] {
     return [...this.holds.values()].filter((hold) => this.items.get(hold.itemId.value)?.wishlistId.value === wishlistId);
   }
 
   /**
-   * The list's holds active at `now`, by the same predicate as the SQL
-   * adapter's query: not released, not purchased, `now <= expiresAt`. The
-   * hold repository contract checks it agrees with the domain.
+   * The list's holds active or purchased at `now`, by the same predicate as
+   * the SQL adapter's query: purchased, or not released with
+   * `now <= expiresAt`. The hold repository contract checks it agrees with
+   * the domain.
    */
-  activeHoldsOnList(wishlistId: string, now: Date): Hold[] {
+  activeOrPurchasedHoldsOnList(wishlistId: string, now: Date): Hold[] {
     return this.holdsOnList(wishlistId).filter(
-      (h) => h.releasedAt === null && h.purchasedAt === null && now.getTime() <= h.expiresAt.getTime(),
+      (h) => h.purchasedAt !== null || (h.releasedAt === null && now.getTime() <= h.expiresAt.getTime()),
     );
   }
 }
@@ -3250,19 +3262,18 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   async saveItemState(item: Item): Promise<void> {
     const stored = this.store.items.get(item.id.value);
     if (!stored || stored.wishlistId.value !== item.wishlistId.value) throw new ItemNotFoundError(item.id.value);
-    // seq only: the purchased count is computed, never stored.
+    // seq only: the purchased count is derived from holds, never stored.
     this.store.items.set(item.id.value, copyItem(item));
   }
 
   private hydrate(wishlist: Wishlist | undefined, now: Date): Wishlist | null {
     if (wishlist === undefined) return null;
     const item = [...this.store.items.values()].find((i) => i.wishlistId.value === wishlist.id.value);
-    const activeHolds = this.store.activeHoldsOnList(wishlist.id.value, now).map(copyHold);
+    const holds = this.store.activeOrPurchasedHoldsOnList(wishlist.id.value, now).map(copyHold);
     return Wishlist.reconstitute({
       id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
       ownerToken: wishlist.ownerToken.value, key: wishlist.key.value, keyGen: wishlist.keyGen, asOf: now,
-      item: item ? copyItem(item) : undefined, activeHolds,
-      purchasedCounts: item ? new Map([[item.id.value, this.store.purchasedCount(item.id.value)]]) : undefined,
+      item: item ? copyItem(item) : undefined, holds,
     });
   }
 }
@@ -3294,8 +3305,8 @@ export class InMemoryHoldRepository implements HoldRepository {
     return hold ? copyHold(hold) : null;
   }
 
-  async findActiveForWishlist(wishlistId: string, now: Date): Promise<Hold[]> {
-    return this.store.activeHoldsOnList(wishlistId, now).map(copyHold);
+  async findActiveOrPurchasedForWishlist(wishlistId: string, now: Date): Promise<Hold[]> {
+    return this.store.activeOrPurchasedHoldsOnList(wishlistId, now).map(copyHold);
   }
 
   async findForSession(wishlistId: string, sessionHash: string): Promise<Hold[]> {
@@ -3402,11 +3413,11 @@ describe('in-memory fakes never share instances with the store', () => {
 In `apps/api/src/application/test-fakes/builders.ts`, in `ItemBuilder`: drop `purchasedCount: 0` from the default props and delete `withPurchasedCount` (an item holds no count). In `WishlistBuilder`, add a field `private purchased = 0;` and, after `withItem`:
 
 ```ts
-  /** How many of the item's holds were purchased when the aggregate was loaded; needs `withItem`. */
+  /** Loads the aggregate with this many purchased holds on the item; needs `withItem`. */
   withPurchasedCount(purchasedCount: number): this { this.purchased = purchasedCount; return this; }
 ```
 
-and have `build()` throw if a count was set without `withItem`, and otherwise return the aggregate reconstituted with `purchasedCounts: new Map([[id, this.purchased]])` when an item and a non-zero count are set.
+and have `build()` throw if a count was set without `withItem`, and otherwise, when an item and a non-zero count are set, return the aggregate reconstituted with that many purchased holds on the item (`Hold.reconstitute` with `purchasedAt` set, distinct UUIDv7-shaped ids, `expiresAt` after the instant).
 
 Also in `WishlistBuilder`, add `const DEFAULT_AS_OF = new Date('2026-01-01T00:00:00.000Z');` beside the other defaults, a field `private instant = DEFAULT_AS_OF;`, pass `asOf: this.instant` to `Wishlist.create` in `build()`, and add:
 
@@ -3436,16 +3447,21 @@ In `apps/api/src/application/test-fakes/builders.test.ts`, replace line 21 with 
     expect(hold.expiresAt).toEqual(new Date('2026-05-01T00:01:00Z'));
   });
 
-  it('loads the wishlist with the purchased count it was given', () => {
+  it('loads the wishlist with as many purchased holds as it was given', () => {
     const wishlist = aWishlist().withItem({ id: '77777777-7777-7777-8777-777777777777', title: 'Cot' }).withPurchasedCount(1).build();
     expect(wishlist.purchasedCountOf('77777777-7777-7777-8777-777777777777')).toBe(1);
     expect(wishlist.itemStatus('77777777-7777-7777-8777-777777777777')).toBe('purchased');
+  });
+
+  it('gives each purchased hold its own id', () => {
+    const wishlist = aWishlist().withItem({ id: '77777777-7777-7777-8777-777777777777', title: 'Cot' }).withPurchasedCount(3).build();
+    expect(wishlist.purchasedCountOf('77777777-7777-7777-8777-777777777777')).toBe(3);
   });
 ```
 
 - [ ] **Step 9: Change the Kysely adapters and drop `active_holds`**
 
-In `0001_init.ts`, delete the line `.addColumn('active_holds', 'integer', (col) => col.notNull())` from `item_state`. In `schema.ts`, delete `active_holds: number;` from `ItemStateTable`. In `apps/api/src/infrastructure/db/schema.integration.test.ts`, delete `active_holds: 0, ` from both `item_state` inserts. `item_state` is left with `item_id`, `seq` and `updated_at`: there is no `purchased_count` column (Task 2.1, D21). `ItemRepositoryKysely` computes an item's purchased count in the load query, as a correlated `count(*)` of its holds with `purchased_at` set, and `saveState` writes `seq` only.
+In `0001_init.ts`, delete the line `.addColumn('active_holds', 'integer', (col) => col.notNull())` from `item_state`. In `schema.ts`, delete `active_holds: number;` from `ItemStateTable`. In `apps/api/src/infrastructure/db/schema.integration.test.ts`, delete `active_holds: 0, ` from both `item_state` inserts. `item_state` is left with `item_id`, `seq` and `updated_at`: there is no `purchased_count` column (Task 2.1, D21). `ItemRepositoryKysely` loads no count: the `Wishlist` derives it from the purchased holds the hold repository returns, and `saveState` writes `seq` only.
 
 Replace `apps/api/src/infrastructure/HoldRepositoryKysely.ts` with:
 
@@ -3470,7 +3486,7 @@ function toHold(row: Selectable<HoldsTable>): Hold {
 /**
  * The lifecycle columns as the domain left them. Every instant goes through
  * toISOString(), so the stored text has one fixed shape (UTC, milliseconds,
- * `Z`) and string comparison in SQL is time order — findActiveForWishlist
+ * `Z`) and string comparison in SQL is time order — findActiveOrPurchasedForWishlist
  * depends on that.
  */
 function lifecycleColumns(hold: Hold) {
@@ -3508,16 +3524,17 @@ export class HoldRepositoryKysely implements HoldRepository {
     return row ? toHold(row) : null;
   }
 
-  async findActiveForWishlist(wishlistId: string, now: Date): Promise<Hold[]> {
+  async findActiveOrPurchasedForWishlist(wishlistId: string, now: Date): Promise<Hold[]> {
     const rows = await this.db.selectFrom('holds')
       .innerJoin('items', 'items.id', 'holds.item_id')
       .selectAll('holds')
       .where('items.wishlist_id', '=', wishlistId)
-      .where('holds.released_at', 'is', null)
-      .where('holds.purchased_at', 'is', null)
-      // Active means now <= expiresAt — still active at the very instant it
-      // expires — so the boundary row is included.
-      .where('holds.expires_at', '>=', now.toISOString())
+      .where((eb) => eb.or([
+        eb('holds.purchased_at', 'is not', null),
+        // Active means now <= expiresAt — still active at the very instant it
+        // expires — so the boundary row is included.
+        eb.and([eb('holds.released_at', 'is', null), eb('holds.expires_at', '>=', now.toISOString())]),
+      ]))
       .orderBy('holds.expires_at')
       .execute();
     return rows.map(toHold);
@@ -3573,20 +3590,7 @@ export class ItemRepositoryKysely implements ItemRepository {
     });
   }
 
-  /** Computed from purchase entries, never stored: each item's holds with purchased_at set. */
-  async purchasedCountsByItem(wishlistId: string): Promise<ReadonlyMap<string, number>> {
-    const rows = await this.db.selectFrom('holds')
-      .innerJoin('items', 'items.id', 'holds.item_id')
-      .select('holds.item_id as item_id')
-      .select((eb) => eb.fn.countAll<number>().as('n'))
-      .where('items.wishlist_id', '=', wishlistId)
-      .where('holds.purchased_at', 'is not', null)
-      .groupBy('holds.item_id')
-      .execute();
-    return new Map(rows.map((row) => [row.item_id, Number(row.n)]));
-  }
-
-  /** Writes `seq` only: the purchased count is computed, never stored. */
+  /** Writes `seq` only: the purchased count is derived from holds, never stored. */
   async saveState(item: Item): Promise<void> {
     const result = await this.db.updateTable('item_state')
       .set({ seq: item.seq, updated_at: new Date().toISOString() })
@@ -3650,18 +3654,17 @@ export class WishlistRepositoryKysely implements WishlistRepository {
   }
 
   /**
-   * Active holds only, so the aggregate stays bounded however long the list
-   * has been in use. `now` is both the active-hold query's instant and the
-   * aggregate's `asOf`, so load and decision share it.
+   * Active and purchased holds only, so the aggregate stays bounded however
+   * long the list has been in use. `now` is both the hold query's instant and
+   * the aggregate's `asOf`, so load and decision share it.
    */
   private async hydrate(row: Selectable<WishlistsTable>, now: Date): Promise<Wishlist> {
     const item = await this.items.findByWishlistId(row.id);
-    const activeHolds = await this.holds.findActiveForWishlist(row.id, now);
-    const purchasedCounts = await this.items.purchasedCountsByItem(row.id);
+    const holds = await this.holds.findActiveOrPurchasedForWishlist(row.id, now);
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
       ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now,
-      item: item ?? undefined, activeHolds, purchasedCounts,
+      item: item ?? undefined, holds,
     });
   }
 }
@@ -4382,9 +4385,9 @@ function holdOn(overrides: Partial<Parameters<typeof Hold.reconstitute>[0]> = {}
   });
 }
 
-function wishlistWith(activeHolds: Hold[] = []): Wishlist {
+function wishlistWith(holds: Hold[] = []): Wishlist {
   const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0, purchasedCount: 0 });
-  return Wishlist.reconstitute({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'o', key: 'k', keyGen: 1, item, activeHolds });
+  return Wishlist.reconstitute({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'o', key: 'k', keyGen: 1, item, holds });
 }
 
 describe('toHoldView — the domain decides which actions the guest is offered', () => {
@@ -6876,8 +6879,8 @@ afterEach(async () => {
 /**
  * The event-derived projections, minus write-time bookkeeping (created_at /
  * updated_at record when a row was written, not a ledger fact), plus each
- * item's purchased count as the repository load computes it from purchased
- * holds — it is no column (D21).
+ * item's purchased count as the loaded aggregate derives it from its purchased
+ * holds — it is no column.
  */
 async function projections() {
   const wishlistIds = await db.selectFrom('wishlists').select('id').orderBy('id').execute();

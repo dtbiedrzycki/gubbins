@@ -18,7 +18,7 @@ function toHold(row: Selectable<HoldsTable>): Hold {
 /**
  * The lifecycle columns as the domain left them. Every instant goes through
  * toISOString(), so the stored text has one fixed shape (UTC, milliseconds,
- * `Z`) and string comparison in SQL is time order — findActiveForWishlist
+ * `Z`) and string comparison in SQL is time order — findActiveOrPurchasedForWishlist
  * depends on that.
  */
 function lifecycleColumns(hold: Hold) {
@@ -56,16 +56,17 @@ export class HoldRepositoryKysely implements HoldRepository {
     return row ? toHold(row) : null;
   }
 
-  async findActiveForWishlist(wishlistId: string, now: Date): Promise<Hold[]> {
+  async findActiveOrPurchasedForWishlist(wishlistId: string, now: Date): Promise<Hold[]> {
     const rows = await this.db.selectFrom('holds')
       .innerJoin('items', 'items.id', 'holds.item_id')
       .selectAll('holds')
       .where('items.wishlist_id', '=', wishlistId)
-      .where('holds.released_at', 'is', null)
-      .where('holds.purchased_at', 'is', null)
-      // Active means now <= expiresAt — still active at the very instant it
-      // expires — so the boundary row is included.
-      .where('holds.expires_at', '>=', now.toISOString())
+      .where((eb) => eb.or([
+        eb('holds.purchased_at', 'is not', null),
+        // Active means now <= expiresAt — still active at the very instant it
+        // expires — so the boundary row is included.
+        eb.and([eb('holds.released_at', 'is', null), eb('holds.expires_at', '>=', now.toISOString())]),
+      ]))
       .orderBy('holds.expires_at')
       .execute();
     return rows.map(toHold);

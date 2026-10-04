@@ -36,7 +36,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn('session_hash', 'text', (col) => col.notNull())
     .addColumn('idempotency_key', 'text', (col) => col.notNull())
     // Every instant below is written with toISOString(), so text comparison
-    // is time order — findActiveForWishlist relies on it.
+    // is time order — findActiveOrPurchasedForWishlist relies on it.
     .addColumn('expires_at', 'text', (col) => col.notNull())
     // Hold state is timestamps only; statusAt(at) derives active/expired/
     // released/purchased from them.

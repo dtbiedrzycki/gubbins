@@ -52,35 +52,37 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
       expect(reloaded).toEqual(hold);
     });
 
-    describe('findActiveForWishlist — the expiry boundary', () => {
+    describe('findActiveOrPurchasedForWishlist', () => {
       it.each([
         ['expired 1 ms ago', { expiresAt: later(-1) }, false],
         ['expiring at this very instant', { expiresAt: NOW }, true],
         ['expiring 1 ms from now', { expiresAt: later(1) }, true],
         ['released', { releasedAt: later(-10) }, false],
-        ['purchased', { purchasedAt: later(-10) }, false],
+        ['purchased', { purchasedAt: later(-10) }, true],
+        ['purchased and since expired', { purchasedAt: later(-10), expiresAt: later(-5) }, true],
+        ['released and since expired', { releasedAt: later(-10), expiresAt: later(-5) }, false],
       ] as const)('a hold %s is returned: %s', async (_name, overrides, returned) => {
         const hold = holdFixture(overrides);
         await fx.holds.insert(hold);
 
-        const found = await fx.holds.findActiveForWishlist(LIST_A, NOW);
+        const found = await fx.holds.findActiveOrPurchasedForWishlist(LIST_A, NOW);
 
         expect(found.map((h) => h.id.value)).toEqual(returned ? [hold.id.value] : []);
       });
 
       it("never returns another list's holds", async () => {
         await fx.holds.insert(holdFixture({ itemId: ITEM_B }));
-        expect(await fx.holds.findActiveForWishlist(LIST_A, NOW)).toEqual([]);
+        expect(await fx.holds.findActiveOrPurchasedForWishlist(LIST_A, NOW)).toEqual([]);
       });
 
       it('agrees with the aggregate loaded at the same instant on every hold it returns', async () => {
-        for (const overrides of [{}, { expiresAt: later(-1) }, { releasedAt: later(-1) }, { expiresAt: NOW }]) {
+        for (const overrides of [{}, { expiresAt: later(-1) }, { releasedAt: later(-1) }, { expiresAt: NOW }, { purchasedAt: later(-1), expiresAt: later(-1) }]) {
           await fx.holds.insert(holdFixture(overrides));
         }
-        const found = await fx.holds.findActiveForWishlist(LIST_A, NOW);
-        expect(found).toHaveLength(2);
+        const found = await fx.holds.findActiveOrPurchasedForWishlist(LIST_A, NOW);
+        expect(found).toHaveLength(3);
         const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
-        expect(found.every((h) => wishlist.holdStatus(h) === 'active')).toBe(true);
+        expect(found.map((h) => wishlist.holdStatus(h)).sort()).toEqual(['active', 'active', 'purchased']);
       });
     });
 

@@ -1,4 +1,5 @@
 import { Wishlist } from '../../domain/entities/Wishlist.js';
+import { Hold } from '../../domain/entities/Hold.js';
 import { Item } from '../../domain/entities/Item.js';
 import type { ItemHeldEvent } from '../../domain/events/ItemHeldEvent.js';
 
@@ -26,7 +27,7 @@ export class WishlistBuilder {
    */
   withItem(props: { id: string; title: string }): this { this.itemProps = props; return this; }
 
-  /** How many of the item's holds were purchased when the aggregate was loaded; needs `withItem`. */
+  /** Loads the aggregate with this many purchased holds on the item; needs `withItem`. */
   withPurchasedCount(purchasedCount: number): this { this.purchased = purchasedCount; return this; }
 
   build(): Wishlist {
@@ -36,10 +37,12 @@ export class WishlistBuilder {
     const { id, title } = this.itemProps;
     const item = wishlist.addItem({ title }, { generateEntityId: () => id });
     if (this.purchased === 0) return wishlist;
-    return Wishlist.reconstitute({
-      ...this.props, keyGen: wishlist.keyGen, asOf: this.instant, item,
-      purchasedCounts: new Map([[id, this.purchased]]),
-    });
+    const holds = Array.from({ length: this.purchased }, (_, i) => Hold.reconstitute({
+      id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, itemId: id, secret: `secret-${i + 1}`,
+      sessionHash: 'a'.repeat(64), idempotencyKey: `purchased-${i + 1}`,
+      expiresAt: new Date(this.instant.getTime() + 60_000), extendedAt: null, releasedAt: null, purchasedAt: this.instant,
+    }));
+    return Wishlist.reconstitute({ ...this.props, keyGen: wishlist.keyGen, asOf: this.instant, item, holds });
   }
 }
 
