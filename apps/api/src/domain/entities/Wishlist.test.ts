@@ -289,6 +289,10 @@ describe('Wishlist.purchaseHold', () => {
   it('refuses a released hold', () => {
     expect(() => loaded().purchaseHold(holdOn(ITEM_ID, { releasedAt: T0 }))).toThrow(HoldNotActiveError);
   });
+
+  it('refuses a hold that is already purchased', () => {
+    expect(() => loaded().purchaseHold(holdOn(ITEM_ID, { purchasedAt: T0 }))).toThrow(HoldNotActiveError);
+  });
 });
 
 describe('Wishlist.canPurchaseHold', () => {

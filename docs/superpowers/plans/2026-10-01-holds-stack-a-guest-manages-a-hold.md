@@ -2255,6 +2255,10 @@ describe('Wishlist.purchaseHold', () => {
   it('refuses a released hold', () => {
     expect(() => loaded().purchaseHold(holdOn(ITEM_ID, { releasedAt: T0 }))).toThrow(HoldNotActiveError);
   });
+
+  it('refuses a hold that is already purchased', () => {
+    expect(() => loaded().purchaseHold(holdOn(ITEM_ID, { purchasedAt: T0 }))).toThrow(HoldNotActiveError);
+  });
 });
 
 describe('Wishlist.canPurchaseHold', () => {
@@ -2466,7 +2470,7 @@ export class Item {
 Replace `apps/api/src/domain/entities/Wishlist.ts` with:
 
 ```ts
-import { DomainValidationError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError } from '../errors.js';
+import { DomainValidationError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError } from '../errors.js';
 import type { HoldExtendedEvent } from '../events/HoldExtendedEvent.js';
 import type { HoldReleasedEvent } from '../events/HoldReleasedEvent.js';
 import type { ItemHeldEvent } from '../events/ItemHeldEvent.js';
@@ -2669,9 +2673,9 @@ export class Wishlist {
    */
   purchaseHold(hold: Hold): HoldCommandResult<ItemPurchasedEvent> {
     const item = this.itemOf(hold);
-    if (hold.statusAt(this.asOf) === 'expired' && this.availableUnitsOf(item) === 0) {
-      throw new ItemUnavailableError(item.id.value);
-    }
+    const refusal = this.purchaseRefusal(hold);
+    if (refusal === 'closed') throw new HoldNotActiveError(hold.id.value);
+    if (refusal === 'lapsed') throw new ItemUnavailableError(item.id.value);
     const event = hold.markPurchased(this.asOf);
     this._purchasedCounts.set(item.id.value, this.purchasedCountOf(item.id.value) + 1);
     return { hold, item, event, expectedSeq: item.recordEvent() };
@@ -2679,12 +2683,15 @@ export class Wishlist {
 
   /** `purchaseHold`'s rule as a question, for views that offer the action only when it would succeed. */
   canPurchaseHold(hold: Hold): boolean {
-    if (!this.owns(hold)) return false;
+    return this.owns(hold) && this.purchaseRefusal(hold) === null;
+  }
+
+  /** Why `purchaseHold` would refuse `hold`, or null when it would succeed. Assumes the hold is on this list. */
+  private purchaseRefusal(hold: Hold): 'closed' | 'lapsed' | null {
     const status = hold.statusAt(this.asOf);
-    if (status === 'active') return true;
-    if (status !== 'expired') return false;
-    const item = this.itemOf(hold);
-    return this.availableUnitsOf(item) > 0;
+    if (status === 'active') return null;
+    if (status !== 'expired') return 'closed';
+    return this.availableUnitsOf(this.itemOf(hold)) === 0 ? 'lapsed' : null;
   }
 
   private availableUnitsOf(item: Item): number {
