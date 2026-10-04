@@ -21,6 +21,10 @@ describe('aWishlist', () => {
     expect(wishlist.itemStatus('77777777-7777-7777-8777-777777777777')).toBe('available');
   });
 
+  it('refuses a purchased count without an item', () => {
+    expect(() => aWishlist().withPurchasedCount(1).build()).toThrow('withPurchasedCount needs withItem');
+  });
+
   it('decides as of the instant given to asOf', () => {
     const wishlist = aWishlist().withItem({ id: '77777777-7777-7777-8777-777777777777', title: 'Cot' }).asOf(new Date('2026-05-01T00:00:00Z')).build();
     const { hold } = wishlist.holdItem(

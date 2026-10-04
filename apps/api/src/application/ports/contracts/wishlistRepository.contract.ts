@@ -76,7 +76,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(reloaded?.itemStatus(ITEM_A)).toBe('purchased');
     });
 
-    it('does not take the purchased count from item state: saveItemState alone changes nothing', async () => {
+    it('an unsaved purchase does not count: saveItemState alone persists only seq', async () => {
       const hold = holdFixture();
       await fx.holds.insert(hold);
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;

@@ -30,6 +30,7 @@ export class WishlistBuilder {
   withPurchasedCount(purchasedCount: number): this { this.purchased = purchasedCount; return this; }
 
   build(): Wishlist {
+    if (this.itemProps === null && this.purchased !== 0) throw new Error('withPurchasedCount needs withItem');
     const wishlist = Wishlist.create({ ...this.props, asOf: this.instant });
     if (this.itemProps === null) return wishlist;
     const { id, title } = this.itemProps;

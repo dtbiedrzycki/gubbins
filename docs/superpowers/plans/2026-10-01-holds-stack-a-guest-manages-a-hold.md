@@ -2968,7 +2968,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(reloaded?.itemStatus(ITEM_A)).toBe('purchased');
     });
 
-    it('does not take the purchased count from item state: saveItemState alone changes nothing', async () => {
+    it('an unsaved purchase does not count: saveItemState alone persists only seq', async () => {
       const hold = holdFixture();
       await fx.holds.insert(hold);
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
@@ -3399,7 +3399,7 @@ In `apps/api/src/application/test-fakes/builders.ts`, in `ItemBuilder`: drop `pu
   withPurchasedCount(purchasedCount: number): this { this.purchased = purchasedCount; return this; }
 ```
 
-and have `build()` return the aggregate reconstituted with `purchasedCounts: new Map([[id, this.purchased]])` when an item and a non-zero count are set.
+and have `build()` throw if a count was set without `withItem`, and otherwise return the aggregate reconstituted with `purchasedCounts: new Map([[id, this.purchased]])` when an item and a non-zero count are set.
 
 Also in `WishlistBuilder`, add `const DEFAULT_AS_OF = new Date('2026-01-01T00:00:00.000Z');` beside the other defaults, a field `private instant = DEFAULT_AS_OF;`, pass `asOf: this.instant` to `Wishlist.create` in `build()`, and add:
 
@@ -3415,6 +3415,10 @@ In `apps/api/src/application/test-fakes/builders.test.ts`, replace line 21 with 
 ```
 
 ```ts
+  it('refuses a purchased count without an item', () => {
+    expect(() => aWishlist().withPurchasedCount(1).build()).toThrow('withPurchasedCount needs withItem');
+  });
+
   it('decides as of the instant given to asOf', () => {
     const wishlist = aWishlist().withItem({ id: '77777777-7777-7777-8777-777777777777', title: 'Cot' }).asOf(new Date('2026-05-01T00:00:00Z')).build();
     const { hold } = wishlist.holdItem(
@@ -6876,7 +6880,10 @@ async function projections() {
       .orderBy('id').execute(),
     itemState: await db.selectFrom('item_state').select(['item_id', 'seq']).orderBy('item_id').execute(),
     purchasedCounts: await Promise.all(
-      wishlistIds.map(async ({ id }) => (await deps.wishlists.findById(id, clock.now()))?.item?.purchasedCount),
+      wishlistIds.map(async ({ id }) => {
+        const wishlist = await deps.wishlists.findById(id, clock.now());
+        return wishlist?.item ? wishlist.purchasedCountOf(wishlist.item.id.value) : undefined;
+      }),
     ),
   };
 }
