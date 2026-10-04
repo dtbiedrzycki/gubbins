@@ -52,10 +52,11 @@ export class WishlistRepositoryKysely implements WishlistRepository {
   private async hydrate(row: Selectable<WishlistsTable>, now: Date): Promise<Wishlist> {
     const item = await this.items.findByWishlistId(row.id);
     const activeHolds = await this.holds.findActiveForWishlist(row.id, now);
+    const purchasedCounts = await this.items.purchasedCountsByItem(row.id);
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
       ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now,
-      item: item ?? undefined, activeHolds,
+      item: item ?? undefined, activeHolds, purchasedCounts,
     });
   }
 }

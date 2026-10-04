@@ -9,6 +9,7 @@ const DEFAULT_AS_OF = new Date('2026-01-01T00:00:00.000Z');
 export class WishlistBuilder {
   private props = { id: DEFAULT_WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' };
   private itemProps: { id: string; title: string } | null = null;
+  private purchased = 0;
   private instant = DEFAULT_AS_OF;
 
   withId(id: string): this { this.props.id = id; return this; }
@@ -25,13 +26,19 @@ export class WishlistBuilder {
    */
   withItem(props: { id: string; title: string }): this { this.itemProps = props; return this; }
 
+  /** How many of the item's holds were purchased when the aggregate was loaded; needs `withItem`. */
+  withPurchasedCount(purchasedCount: number): this { this.purchased = purchasedCount; return this; }
+
   build(): Wishlist {
     const wishlist = Wishlist.create({ ...this.props, asOf: this.instant });
-    if (this.itemProps !== null) {
-      const { id, title } = this.itemProps;
-      wishlist.addItem({ title }, { generateEntityId: () => id });
-    }
-    return wishlist;
+    if (this.itemProps === null) return wishlist;
+    const { id, title } = this.itemProps;
+    const item = wishlist.addItem({ title }, { generateEntityId: () => id });
+    if (this.purchased === 0) return wishlist;
+    return Wishlist.reconstitute({
+      ...this.props, keyGen: wishlist.keyGen, asOf: this.instant, item,
+      purchasedCounts: new Map([[id, this.purchased]]),
+    });
   }
 }
 
@@ -41,7 +48,7 @@ export function aWishlist(): WishlistBuilder {
 
 export class ItemBuilder {
   private props = {
-    id: DEFAULT_ITEM_ID, wishlistId: DEFAULT_WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0, purchasedCount: 0,
+    id: DEFAULT_ITEM_ID, wishlistId: DEFAULT_WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0,
   };
 
   withId(id: string): this { this.props.id = id; return this; }
@@ -50,7 +57,6 @@ export class ItemBuilder {
   withType(type: string): this { this.props.type = type; return this; }
   withQuantity(quantity: number): this { this.props.quantity = quantity; return this; }
   withSeq(seq: number): this { this.props.seq = seq; return this; }
-  withPurchasedCount(purchasedCount: number): this { this.props.purchasedCount = purchasedCount; return this; }
 
   build(): Item {
     return Item.reconstitute({ ...this.props });

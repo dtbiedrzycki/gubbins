@@ -115,7 +115,8 @@ earlier ones where noted.
   `publicKey.verifies(message, signature, verifier)`.
 
 **`Item`** — `quantity ≥ 1`; `placeHold` enforces
-`active + purchased < quantity` from hold state, never a counter;
+`active + purchased < quantity` from hold state, never a counter
+(`Wishlist` supplies both counts);
 `recordEvent()` returns the seq-before and advances `seq` for every hold
 command on the item's stream.
 

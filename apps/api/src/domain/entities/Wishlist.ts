@@ -34,6 +34,8 @@ export interface HoldCommandResult<E> {
 export class Wishlist {
   private _item: Item | null = null;
   private _activeHolds: Hold[] = [];
+  /** Purchased holds per item id, as loaded and since bumped by `purchaseHold`. */
+  private _purchasedCounts = new Map<string, number>();
 
   /**
    * Enforces the aggregate's own invariants, so neither `create` nor
@@ -66,11 +68,13 @@ export class Wishlist {
    * Reconstructs a Wishlist from persisted fields — used by repositories,
    * not by creation flows. `asOf` is the instant it was loaded at, and the
    * one every decision is taken at; `activeHolds` are the list's holds
-   * active at it, each on one of this wishlist's items.
+   * active at it, each on one of this wishlist's items. `purchasedCounts`
+   * maps an item id to how many of its holds were purchased; an item with
+   * no entry has none.
    */
   static reconstitute(props: {
     id: string; slug: string; title: string; ownerToken: string; key: string; keyGen: number; asOf: Date;
-    item?: Item; activeHolds?: readonly Hold[];
+    item?: Item; activeHolds?: readonly Hold[]; purchasedCounts?: ReadonlyMap<string, number>;
   }): Wishlist {
     if (props.item && props.item.wishlistId.value !== props.id) {
       throw new DomainValidationError('Item belongs to a different wishlist');
@@ -81,12 +85,21 @@ export class Wishlist {
         throw new DomainValidationError('Hold belongs to an item outside this wishlist');
       }
     }
+    for (const [itemId, count] of props.purchasedCounts ?? []) {
+      if (!props.item || itemId !== props.item.id.value) {
+        throw new DomainValidationError('Purchased count belongs to an item outside this wishlist');
+      }
+      if (!Number.isInteger(count) || count < 0) {
+        throw new DomainValidationError('Purchased count must be a non-negative integer');
+      }
+    }
     const wishlist = new Wishlist(
       UuidId.from(props.id), Slug.from(props.slug), props.title,
       OwnerToken.from(props.ownerToken), GuestKey.from(props.key), props.keyGen, new Date(props.asOf.getTime()),
     );
     wishlist._item = props.item ?? null;
     wishlist._activeHolds = [...holds];
+    wishlist._purchasedCounts = new Map(props.purchasedCounts);
     return wishlist;
   }
 
@@ -130,7 +143,12 @@ export class Wishlist {
 
   itemStatus(itemId: string): ItemStatus {
     const item = this.getItem(itemId);
-    return item.statusGiven(this.activeHoldsOn(item));
+    return item.statusGiven(this.activeHoldsOn(item), this.purchasedCountOf(item.id.value));
+  }
+
+  /** Units of the item bought, as loaded plus any purchase made through this aggregate since. */
+  purchasedCountOf(itemId: string): number {
+    return this._purchasedCounts.get(itemId) ?? 0;
   }
 
   /**
@@ -158,7 +176,7 @@ export class Wishlist {
     hasher: { hash(value: string): string },
   ): HoldCommandResult<ItemHeldEvent> {
     const item = this.getItem(props.itemId);
-    const { hold, event, expectedSeq } = item.placeHold({ ...props, at: this.asOf }, this.activeHoldsOn(item), tokens, hasher);
+    const { hold, event, expectedSeq } = item.placeHold({ ...props, at: this.asOf }, this.activeHoldsOn(item), this.purchasedCountOf(item.id.value), tokens, hasher);
     this._activeHolds.push(hold);
     return { hold, item, event, expectedSeq };
   }
@@ -183,11 +201,12 @@ export class Wishlist {
    */
   purchaseHold(hold: Hold): HoldCommandResult<ItemPurchasedEvent> {
     const item = this.itemOf(hold);
-    if (hold.statusAt(this.asOf) === 'expired' && item.availableUnits(this.activeHoldsOn(item)) === 0) {
+    if (hold.statusAt(this.asOf) === 'expired' && this.availableUnitsOf(item) === 0) {
       throw new ItemUnavailableError(item.id.value);
     }
     const event = hold.markPurchased(this.asOf);
-    return { hold, item, event, expectedSeq: item.recordPurchase() };
+    this._purchasedCounts.set(item.id.value, this.purchasedCountOf(item.id.value) + 1);
+    return { hold, item, event, expectedSeq: item.recordEvent() };
   }
 
   /** `purchaseHold`'s rule as a question, for views that offer the action only when it would succeed. */
@@ -197,7 +216,11 @@ export class Wishlist {
     if (status === 'active') return true;
     if (status !== 'expired') return false;
     const item = this.itemOf(hold);
-    return item.availableUnits(this.activeHoldsOn(item)) > 0;
+    return this.availableUnitsOf(item) > 0;
+  }
+
+  private availableUnitsOf(item: Item): number {
+    return item.availableUnits(this.activeHoldsOn(item), this.purchasedCountOf(item.id.value));
   }
 
   /**

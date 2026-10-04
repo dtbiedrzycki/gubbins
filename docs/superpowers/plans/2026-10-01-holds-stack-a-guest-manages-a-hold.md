@@ -108,7 +108,7 @@ Backend (`apps/api/src`):
 | `domain/errors.ts` | modify (PR 3) | `ItemUnavailableError` (renamed), `HoldNotFoundError`, `HoldNotActiveError`, `HoldAlreadyExtendedError` |
 | `domain/entities/Hold.ts` | modify (PR 3) | timestamps, `reconstitute`, `statusAt`, `extend`, `release`, `markPurchased`, predicates |
 | `domain/policies/HoldPermissions.ts` | create (PR 3) | guest rows of the permission table |
-| `domain/entities/Item.ts` | modify (PR 4) | `purchasedCount` (handed in at load, computed from purchase entries — D21) replaces `activeHolds`; availability from a passed-in active count; `recordEvent`, `recordPurchase` |
+| `domain/entities/Item.ts` | modify (PR 4) | availability from passed-in active and purchased counts (both supplied by `Wishlist`, which loads the purchased count from purchase entries — D21); `recordEvent` |
 | `domain/entities/Wishlist.ts` | modify (PR 4) | active-hold snapshot and the `asOf` instant it decides at; `holdItem`, `extendHold`, `releaseHold`, `purchaseHold`, `findHold`, `owns`, `holdStatus`, `canExtendHold`, `canReleaseHold`, `canPurchaseHold`, `itemStatus` |
 | `application/ports/EventStore.ts` | modify (PR 2) | `append(itemId, expectedSeq, events, actor)` |
 | `application/ports/HoldRepository.ts` | modify (PR 4) | speaks `Hold`; `insert`, `save`, `findById`, `findByIdempotencyKey`, `findActiveForWishlist`, `findForSession` |
@@ -1765,19 +1765,18 @@ One change, which no reviewer could approve in halves. `item_state.active_holds`
     - `type ItemStatus = 'available' | 'held' | 'purchased'` (exported from `Item.ts`)
     - `interface HoldCommandResult<E> { hold: Hold; item: Item; event: E; expectedSeq: number }` (exported from `Wishlist.ts`)
   - **`Item`:**
-    - `reconstitute(props: { id; wishlistId; type: string; title; quantity; seq; purchasedCount })`
-    - `purchasedCount` getter
-    - `availableUnits(activeHolds: number): number`
-    - `statusGiven(activeHolds: number): ItemStatus`
-    - `placeHold(props: { sessionHash; idempotencyKey; at: Date; durationMs: number }, activeHolds: number, tokens, hasher)`
+    - `reconstitute(props: { id; wishlistId; type: string; title; quantity; seq })`
+    - `availableUnits(activeHolds: number, purchasedCount: number): number`
+    - `statusGiven(activeHolds: number, purchasedCount: number): ItemStatus`
+    - `placeHold(props: { sessionHash; idempotencyKey; at: Date; durationMs: number }, activeHolds: number, purchasedCount: number, tokens, hasher)`
     - `recordEvent(): number`
-    - `recordPurchase(): number`
   - **`Wishlist`** (decides as of `asOf`, the instant it was created or loaded at; nothing below takes a time argument — decision 12):
     - `create(props: { id; slug; title; ownerToken; key; asOf: Date })`
-    - `reconstitute(props: { …; asOf: Date; item?: Item; activeHolds?: readonly Hold[] })`
+    - `reconstitute(props: { …; asOf: Date; item?: Item; activeHolds?: readonly Hold[]; purchasedCounts?: ReadonlyMap<string, number> })`
     - `holdItem(props: { itemId; sessionHash; idempotencyKey; durationMs: number }, tokens, hasher): HoldCommandResult<ItemHeldEvent>`
     - `extendHold(hold, durationMs): HoldCommandResult<HoldExtendedEvent>`
     - `releaseHold(hold): HoldCommandResult<HoldReleasedEvent>`
+    - `purchasedCountOf(itemId: string): number`
     - `purchaseHold(hold): HoldCommandResult<ItemPurchasedEvent>`
     - `findHold(holdId: string): Hold | null`
     - `owns(hold: Hold): boolean`
@@ -1821,7 +1820,7 @@ import { DomainValidationError, ItemUnavailableError } from '../errors.js';
 const ITEM_ID = '33333333-3333-7333-8333-333333333333';
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
 const DAY = 86_400_000;
-const base = { id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0, purchasedCount: 0 };
+const base = { id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0 };
 
 describe('Item.createSingle', () => {
   it('creates a single-type item with quantity 1', () => {
@@ -1841,37 +1840,34 @@ describe('Item.createSingle', () => {
 });
 
 describe('Item availability — from hold state, never a stored counter', () => {
-  it('starts a new item at seq 0 with nothing purchased, and available', () => {
+  it('starts a new item at seq 0, and available', () => {
     const item = Item.createSingle({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Stroller' });
     expect(item.seq).toBe(0);
-    expect(item.purchasedCount).toBe(0);
-    expect(item.statusGiven(0)).toBe('available');
+    expect(item.statusGiven(0, 0)).toBe('available');
   });
 
-  it('restores the persisted seq and purchase count', () => {
-    const item = Item.reconstitute({ ...base, seq: 7, purchasedCount: 1 });
-    expect(item.seq).toBe(7);
-    expect(item.purchasedCount).toBe(1);
+  it('restores the persisted seq', () => {
+    expect(Item.reconstitute({ ...base, seq: 7 }).seq).toBe(7);
   });
 
   it('has a free unit while active holds plus purchases stay below quantity', () => {
-    const item = Item.reconstitute({ ...base, quantity: 3, purchasedCount: 1 });
-    expect(item.availableUnits(1)).toBe(1);
-    expect(item.statusGiven(1)).toBe('available');
+    const item = Item.reconstitute({ ...base, quantity: 3 });
+    expect(item.availableUnits(1, 1)).toBe(1);
+    expect(item.statusGiven(1, 1)).toBe('available');
   });
 
   it('is held once active holds take the last unit', () => {
     const item = Item.reconstitute(base);
-    expect(item.availableUnits(1)).toBe(0);
-    expect(item.statusGiven(1)).toBe('held');
+    expect(item.availableUnits(1, 0)).toBe(0);
+    expect(item.statusGiven(1, 0)).toBe('held');
   });
 
   it('is purchased once purchases alone cover the quantity', () => {
-    expect(Item.reconstitute({ ...base, purchasedCount: 1 }).statusGiven(0)).toBe('purchased');
+    expect(Item.reconstitute(base).statusGiven(0, 1)).toBe('purchased');
   });
 
   it('never reports negative availability when quantity is below what is committed (ADR-0019)', () => {
-    expect(Item.reconstitute({ ...base, purchasedCount: 1 }).availableUnits(2)).toBe(0);
+    expect(Item.reconstitute(base).availableUnits(2, 1)).toBe(0);
   });
 });
 
@@ -1885,7 +1881,7 @@ describe('Item.placeHold', () => {
   const fakeHasher = { hash: (value: string) => (value === GENERATED_SECRET ? 'f'.repeat(64) : 'e'.repeat(64)) };
 
   it('mints a hold on this item that expires one duration after the given instant', () => {
-    const { hold } = available().placeHold(holdProps, 0, fakeTokens, fakeHasher);
+    const { hold } = available().placeHold(holdProps, 0, 0, fakeTokens, fakeHasher);
     expect(hold.id.value).toBe(GENERATED_HOLD_ID);
     expect(hold.secret.value).toBe(GENERATED_SECRET);
     expect(hold.itemId.value).toBe(ITEM_ID);
@@ -1894,12 +1890,12 @@ describe('Item.placeHold', () => {
 
   it('returns the seq the caller must append against, and advances past it', () => {
     const item = available();
-    expect(item.placeHold(holdProps, 0, fakeTokens, fakeHasher).expectedSeq).toBe(4);
+    expect(item.placeHold(holdProps, 0, 0, fakeTokens, fakeHasher).expectedSeq).toBe(4);
     expect(item.seq).toBe(5);
   });
 
   it('emits an ItemHeld event carrying the hashed secret, not the raw one', () => {
-    const { event } = available().placeHold(holdProps, 0, fakeTokens, fakeHasher);
+    const { event } = available().placeHold(holdProps, 0, 0, fakeTokens, fakeHasher);
     expect(event).toEqual({
       type: 'ItemHeld', v: 1, itemId: ITEM_ID, holdId: GENERATED_HOLD_ID, secretHash: 'f'.repeat(64),
       sessionHash: holdProps.sessionHash, idempotencyKey: 'idem-1',
@@ -1910,31 +1906,24 @@ describe('Item.placeHold', () => {
 
   it('throws ItemUnavailableError when active holds cover the quantity, without advancing seq', () => {
     const item = available();
-    expect(() => item.placeHold(holdProps, 1, fakeTokens, fakeHasher)).toThrow(ItemUnavailableError);
+    expect(() => item.placeHold(holdProps, 1, 0, fakeTokens, fakeHasher)).toThrow(ItemUnavailableError);
     expect(item.seq).toBe(4);
   });
 
   it('throws ItemUnavailableError when purchases cover the quantity', () => {
-    const item = Item.reconstitute({ ...base, purchasedCount: 1 });
-    expect(() => item.placeHold(holdProps, 0, fakeTokens, fakeHasher)).toThrow(ItemUnavailableError);
+    const item = Item.reconstitute(base);
+    expect(() => item.placeHold(holdProps, 0, 1, fakeTokens, fakeHasher)).toThrow(ItemUnavailableError);
   });
 
   it('rejects a duration that does not put the expiry in the future', () => {
-    expect(() => available().placeHold({ ...holdProps, durationMs: 0 }, 0, fakeTokens, fakeHasher)).toThrow(DomainValidationError);
+    expect(() => available().placeHold({ ...holdProps, durationMs: 0 }, 0, 0, fakeTokens, fakeHasher)).toThrow(DomainValidationError);
   });
 });
 
-describe('Item.recordEvent and recordPurchase', () => {
+describe('Item.recordEvent', () => {
   it('recordEvent returns the seq before the event and advances by one', () => {
     const item = Item.reconstitute({ ...base, seq: 2 });
     expect(item.recordEvent()).toBe(2);
-    expect(item.seq).toBe(3);
-  });
-
-  it('recordPurchase counts the unit as gone for good and records one event', () => {
-    const item = Item.reconstitute({ ...base, seq: 2 });
-    expect(item.recordPurchase()).toBe(2);
-    expect(item.purchasedCount).toBe(1);
     expect(item.seq).toBe(3);
   });
 });
@@ -1969,11 +1958,6 @@ describe('Item.reconstitute', () => {
     expect(() => Item.reconstitute({ ...base, seq: -5 })).toThrow(DomainValidationError);
     expect(() => Item.reconstitute({ ...base, seq: 1.5 })).toThrow(DomainValidationError);
   });
-
-  it('rejects a negative or fractional purchasedCount', () => {
-    expect(() => Item.reconstitute({ ...base, purchasedCount: -1 })).toThrow(DomainValidationError);
-    expect(() => Item.reconstitute({ ...base, purchasedCount: 0.5 })).toThrow(DomainValidationError);
-  });
 });
 ```
 
@@ -2002,8 +1986,8 @@ const validProps = { id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', owne
 const tokens = (holdId = '55555555-5555-7555-8555-555555555555') => ({ generateEntityId: () => holdId, generateHoldSecret: () => 'hold-secret' });
 const hasher = { hash: () => 'f'.repeat(64) };
 
-function itemOf(wishlistId = WISHLIST_ID, overrides: { quantity?: number; seq?: number; purchasedCount?: number } = {}) {
-  return Item.reconstitute({ id: ITEM_ID, wishlistId, type: 'single', title: 'Cot', quantity: 1, seq: 0, purchasedCount: 0, ...overrides });
+function itemOf(wishlistId = WISHLIST_ID, overrides: { quantity?: number; seq?: number } = {}) {
+  return Item.reconstitute({ id: ITEM_ID, wishlistId, type: 'single', title: 'Cot', quantity: 1, seq: 0, ...overrides });
 }
 
 let holdCount = 0;
@@ -2018,8 +2002,11 @@ function holdOn(itemId: string, overrides: Partial<Parameters<typeof Hold.recons
 
 /** A wishlist loaded at `asOf` (T0 unless given), with its one item and the given active holds. */
 function loaded(options: { quantity?: number; seq?: number; purchasedCount?: number; activeHolds?: Hold[]; asOf?: Date } = {}): Wishlist {
-  const { activeHolds = [], asOf = T0, ...itemOverrides } = options;
-  return Wishlist.reconstitute({ ...validProps, asOf, keyGen: 1, item: itemOf(WISHLIST_ID, itemOverrides), activeHolds });
+  const { activeHolds = [], asOf = T0, purchasedCount = 0, ...itemOverrides } = options;
+  return Wishlist.reconstitute({
+    ...validProps, asOf, keyGen: 1, item: itemOf(WISHLIST_ID, itemOverrides), activeHolds,
+    purchasedCounts: new Map([[ITEM_ID, purchasedCount]]),
+  });
 }
 
 describe('Wishlist.create', () => {
@@ -2073,6 +2060,19 @@ describe('Wishlist.reconstitute', () => {
     const wishlist = Wishlist.reconstitute({ ...persisted, item });
     expect(wishlist.item).toBe(item);
     expect(wishlist.item?.seq).toBe(7);
+  });
+
+  it('carries the loaded purchased count per item, zero when none was given', () => {
+    const item = itemOf();
+    expect(Wishlist.reconstitute({ ...persisted, item, purchasedCounts: new Map([[ITEM_ID, 2]]) }).purchasedCountOf(ITEM_ID)).toBe(2);
+    expect(Wishlist.reconstitute({ ...persisted, item }).purchasedCountOf(ITEM_ID)).toBe(0);
+  });
+
+  it('rejects a purchased count that is negative, fractional or for an item outside the list', () => {
+    const item = itemOf();
+    expect(() => Wishlist.reconstitute({ ...persisted, item, purchasedCounts: new Map([[ITEM_ID, -1]]) })).toThrow(DomainValidationError);
+    expect(() => Wishlist.reconstitute({ ...persisted, item, purchasedCounts: new Map([[ITEM_ID, 0.5]]) })).toThrow(DomainValidationError);
+    expect(() => Wishlist.reconstitute({ ...persisted, item, purchasedCounts: new Map([[OTHER_ITEM_ID, 1]]) })).toThrow(DomainValidationError);
   });
 
   it('rejects an item that belongs to a different wishlist', () => {
@@ -2214,8 +2214,29 @@ describe('Wishlist.purchaseHold', () => {
     const { event, item } = wishlist.purchaseHold(hold);
     expect(event.type).toBe('ItemPurchased');
     expect(hold.purchasedAt).toEqual(at(DAY));
-    expect(item.purchasedCount).toBe(1);
+    expect(item.seq).toBe(1);
+    expect(wishlist.purchasedCountOf(ITEM_ID)).toBe(1);
     expect(wishlist.itemStatus(ITEM_ID)).toBe('purchased');
+  });
+
+  it('counts the purchase for the rest of the command: a later decision sees the unit as gone', () => {
+    const first = holdOn(ITEM_ID);
+    const lapsed = holdOn(ITEM_ID, { expiresAt: at(-1) });
+    const wishlist = loaded({ quantity: 2, activeHolds: [first] });
+    wishlist.purchaseHold(first);
+    expect(wishlist.purchasedCountOf(ITEM_ID)).toBe(1);
+    expect(wishlist.canPurchaseHold(lapsed)).toBe(true);
+    wishlist.purchaseHold(lapsed);
+    expect(wishlist.purchasedCountOf(ITEM_ID)).toBe(2);
+    expect(wishlist.canPurchaseHold(holdOn(ITEM_ID, { expiresAt: at(-1) }))).toBe(false);
+  });
+
+  it('adds to the count it was loaded with', () => {
+    const hold = holdOn(ITEM_ID);
+    const wishlist = loaded({ quantity: 3, purchasedCount: 1, activeHolds: [hold] });
+    wishlist.purchaseHold(hold);
+    expect(wishlist.purchasedCountOf(ITEM_ID)).toBe(2);
+    expect(wishlist.itemStatus(ITEM_ID)).toBe('available');
   });
 
   it('purchases an expired hold while a unit is still free', () => {
@@ -2297,7 +2318,7 @@ describe('Wishlist.itemStatus — lazy expiry', () => {
 - [ ] **Step 2: Run them to see them fail**
 
 Run: `npm run test --workspace=apps/api -- src/domain`
-Expected: FAIL. `purchasedCount` is not accepted, and `availableUnits`, `holdItem`, `itemStatus` and the rest are not functions.
+Expected: FAIL. `purchasedCounts` is not accepted, and `availableUnits`, `holdItem`, `itemStatus` and the rest are not functions.
 
 - [ ] **Step 3: Implement `Item`**
 
@@ -2331,18 +2352,16 @@ export class Item {
     readonly title: string,
     readonly quantity: number,
     private _seq: number,
-    private _purchasedCount: number,
   ) {
     if (title.trim().length === 0) throw new DomainValidationError('Item title must not be empty');
     if (title.length > 120) throw new DomainValidationError('Item title must be at most 120 characters');
     if (type !== 'single') throw new DomainValidationError('Item type must be "single"; this slice supports no other variant');
     if (!Number.isInteger(quantity) || quantity < 1) throw new DomainValidationError('Item quantity must be a positive integer');
     if (!isNonNegativeInteger(_seq)) throw new DomainValidationError('Item seq must be a non-negative integer');
-    if (!isNonNegativeInteger(_purchasedCount)) throw new DomainValidationError('Item purchasedCount must be a non-negative integer');
   }
 
   static createSingle(props: { id: string; wishlistId: string; title: string }): Item {
-    return new Item(UuidId.from(props.id), UuidId.from(props.wishlistId), 'single', props.title.trim(), 1, 0, 0);
+    return new Item(UuidId.from(props.id), UuidId.from(props.wishlistId), 'single', props.title.trim(), 1, 0);
   }
 
   /**
@@ -2351,11 +2370,11 @@ export class Item {
    * rejects anything but 'single', so the cast below weakens nothing.
    */
   static reconstitute(props: {
-    id: string; wishlistId: string; type: string; title: string; quantity: number; seq: number; purchasedCount: number;
+    id: string; wishlistId: string; type: string; title: string; quantity: number; seq: number;
   }): Item {
     return new Item(
       UuidId.from(props.id), UuidId.from(props.wishlistId), props.type as 'single',
-      props.title, props.quantity, props.seq, props.purchasedCount,
+      props.title, props.quantity, props.seq,
     );
   }
 
@@ -2368,25 +2387,21 @@ export class Item {
     return this._seq;
   }
 
-  /** Units bought. Purchase is terminal, so this only grows — safe to store, unlike an active-hold count. */
-  get purchasedCount(): number {
-    return this._purchasedCount;
-  }
-
   /**
    * Units no one holds or has bought, given how many holds on this item are
-   * active at the wishlist's instant. The count comes from the caller — the
-   * Wishlist, which carries the list's active holds — because liveness
-   * belongs to hold rows, never to a counter here. Never negative: quantity
-   * may drop below what is already committed (ADR-0019).
+   * active at the wishlist's instant and how many have been purchased. Both
+   * counts come from the caller — the Wishlist, which carries the list's
+   * holds — because they are facts about hold rows, never counters kept
+   * here. Never negative: quantity may drop below what is already committed
+   * (ADR-0019).
    */
-  availableUnits(activeHolds: number): number {
-    return Math.max(0, this.quantity - activeHolds - this._purchasedCount);
+  availableUnits(activeHolds: number, purchasedCount: number): number {
+    return Math.max(0, this.quantity - activeHolds - purchasedCount);
   }
 
-  statusGiven(activeHolds: number): ItemStatus {
-    if (this.availableUnits(activeHolds) > 0) return 'available';
-    return this._purchasedCount >= this.quantity ? 'purchased' : 'held';
+  statusGiven(activeHolds: number, purchasedCount: number): ItemStatus {
+    if (this.availableUnits(activeHolds, purchasedCount) > 0) return 'available';
+    return purchasedCount >= this.quantity ? 'purchased' : 'held';
   }
 
   /**
@@ -2394,7 +2409,7 @@ export class Item {
    * belong to a hold that does not exist yet, so they are not the caller's
    * to supply — and the event recording it, then advances this item's
    * stream. Reach it through `Wishlist.holdItem`, which supplies
-   * `activeHolds`, authorizes the caller and passes as `at` the instant it
+   * both hold counts, authorizes the caller and passes as `at` the instant it
    * was loaded at; application code never calls this directly.
    *
    * Collaborators are structural types: domain/ may not import
@@ -2404,10 +2419,11 @@ export class Item {
   placeHold(
     props: { sessionHash: string; idempotencyKey: string; at: Date; durationMs: number },
     activeHolds: number,
+    purchasedCount: number,
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): { hold: Hold; event: ItemHeldEvent; expectedSeq: number } {
-    if (this.availableUnits(activeHolds) === 0) throw new ItemUnavailableError(this.id.value);
+    if (this.availableUnits(activeHolds, purchasedCount) === 0) throw new ItemUnavailableError(this.id.value);
 
     const hold = Hold.create({
       id: tokens.generateEntityId(),
@@ -2441,12 +2457,6 @@ export class Item {
     const expectedSeq = this._seq;
     this._seq += 1;
     return expectedSeq;
-  }
-
-  /** One more unit gone for good, recorded as one more event. */
-  recordPurchase(): number {
-    this._purchasedCount += 1;
-    return this.recordEvent();
   }
 }
 ```
@@ -2492,6 +2502,8 @@ export interface HoldCommandResult<E> {
 export class Wishlist {
   private _item: Item | null = null;
   private _activeHolds: Hold[] = [];
+  /** Purchased holds per item id, as loaded and since bumped by `purchaseHold`. */
+  private _purchasedCounts = new Map<string, number>();
 
   /**
    * Enforces the aggregate's own invariants, so neither `create` nor
@@ -2524,11 +2536,13 @@ export class Wishlist {
    * Reconstructs a Wishlist from persisted fields — used by repositories,
    * not by creation flows. `asOf` is the instant it was loaded at, and the
    * one every decision is taken at; `activeHolds` are the list's holds
-   * active at it, each on one of this wishlist's items.
+   * active at it, each on one of this wishlist's items. `purchasedCounts`
+   * maps an item id to how many of its holds were purchased; an item with
+   * no entry has none.
    */
   static reconstitute(props: {
     id: string; slug: string; title: string; ownerToken: string; key: string; keyGen: number; asOf: Date;
-    item?: Item; activeHolds?: readonly Hold[];
+    item?: Item; activeHolds?: readonly Hold[]; purchasedCounts?: ReadonlyMap<string, number>;
   }): Wishlist {
     if (props.item && props.item.wishlistId.value !== props.id) {
       throw new DomainValidationError('Item belongs to a different wishlist');
@@ -2539,12 +2553,21 @@ export class Wishlist {
         throw new DomainValidationError('Hold belongs to an item outside this wishlist');
       }
     }
+    for (const [itemId, count] of props.purchasedCounts ?? []) {
+      if (!props.item || itemId !== props.item.id.value) {
+        throw new DomainValidationError('Purchased count belongs to an item outside this wishlist');
+      }
+      if (!Number.isInteger(count) || count < 0) {
+        throw new DomainValidationError('Purchased count must be a non-negative integer');
+      }
+    }
     const wishlist = new Wishlist(
       UuidId.from(props.id), Slug.from(props.slug), props.title,
       OwnerToken.from(props.ownerToken), GuestKey.from(props.key), props.keyGen, new Date(props.asOf.getTime()),
     );
     wishlist._item = props.item ?? null;
     wishlist._activeHolds = [...holds];
+    wishlist._purchasedCounts = new Map(props.purchasedCounts);
     return wishlist;
   }
 
@@ -2588,7 +2611,12 @@ export class Wishlist {
 
   itemStatus(itemId: string): ItemStatus {
     const item = this.getItem(itemId);
-    return item.statusGiven(this.activeHoldsOn(item));
+    return item.statusGiven(this.activeHoldsOn(item), this.purchasedCountOf(item.id.value));
+  }
+
+  /** Units of the item bought, as loaded plus any purchase made through this aggregate since. */
+  purchasedCountOf(itemId: string): number {
+    return this._purchasedCounts.get(itemId) ?? 0;
   }
 
   /**
@@ -2616,7 +2644,7 @@ export class Wishlist {
     hasher: { hash(value: string): string },
   ): HoldCommandResult<ItemHeldEvent> {
     const item = this.getItem(props.itemId);
-    const { hold, event, expectedSeq } = item.placeHold({ ...props, at: this.asOf }, this.activeHoldsOn(item), tokens, hasher);
+    const { hold, event, expectedSeq } = item.placeHold({ ...props, at: this.asOf }, this.activeHoldsOn(item), this.purchasedCountOf(item.id.value), tokens, hasher);
     this._activeHolds.push(hold);
     return { hold, item, event, expectedSeq };
   }
@@ -2641,11 +2669,12 @@ export class Wishlist {
    */
   purchaseHold(hold: Hold): HoldCommandResult<ItemPurchasedEvent> {
     const item = this.itemOf(hold);
-    if (hold.statusAt(this.asOf) === 'expired' && item.availableUnits(this.activeHoldsOn(item)) === 0) {
+    if (hold.statusAt(this.asOf) === 'expired' && this.availableUnitsOf(item) === 0) {
       throw new ItemUnavailableError(item.id.value);
     }
     const event = hold.markPurchased(this.asOf);
-    return { hold, item, event, expectedSeq: item.recordPurchase() };
+    this._purchasedCounts.set(item.id.value, this.purchasedCountOf(item.id.value) + 1);
+    return { hold, item, event, expectedSeq: item.recordEvent() };
   }
 
   /** `purchaseHold`'s rule as a question, for views that offer the action only when it would succeed. */
@@ -2655,7 +2684,11 @@ export class Wishlist {
     if (status === 'active') return true;
     if (status !== 'expired') return false;
     const item = this.itemOf(hold);
-    return item.availableUnits(this.activeHoldsOn(item)) > 0;
+    return this.availableUnitsOf(item) > 0;
+  }
+
+  private availableUnitsOf(item: Item): number {
+    return item.availableUnits(this.activeHoldsOn(item), this.purchasedCountOf(item.id.value));
   }
 
   /**
@@ -2877,7 +2910,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
         expect(loaded?.title).toBe('List A');
         expect(loaded?.item?.id.value).toBe(ITEM_A);
         expect(loaded?.item?.seq).toBe(0);
-        expect(loaded?.item?.purchasedCount).toBe(0);
+        expect(loaded?.purchasedCountOf(ITEM_A)).toBe(0);
       }
     });
 
@@ -2931,20 +2964,23 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
 
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
 
-      expect(reloaded?.item?.purchasedCount).toBe(1);
+      expect(reloaded?.purchasedCountOf(ITEM_A)).toBe(1);
       expect(reloaded?.itemStatus(ITEM_A)).toBe('purchased');
     });
 
     it('does not take the purchased count from item state: saveItemState alone changes nothing', async () => {
-      const item = (await fx.wishlists.findById(LIST_A, NOW))!.getItem(ITEM_A);
-      item.recordPurchase();
+      const hold = holdFixture();
+      await fx.holds.insert(hold);
+      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+      const { item } = wishlist.purchaseHold(wishlist.findHold(hold.id.value)!);
+      expect(wishlist.purchasedCountOf(ITEM_A)).toBe(1);
 
       await fx.wishlists.saveItemState(item);
 
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
       expect(reloaded?.item?.seq).toBe(1);
-      expect(reloaded?.item?.purchasedCount).toBe(0);
-      expect(reloaded?.itemStatus(ITEM_A)).toBe('available');
+      expect(reloaded?.purchasedCountOf(ITEM_A)).toBe(0);
+      expect(reloaded?.itemStatus(ITEM_A)).toBe('held');
     });
 
     it('counts neither a released nor an expired hold, nor a purchase on another list', async () => {
@@ -2956,18 +2992,18 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
 
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
 
-      expect(reloaded?.item?.purchasedCount).toBe(0);
+      expect(reloaded?.purchasedCountOf(ITEM_A)).toBe(0);
       expect(reloaded?.itemStatus(ITEM_A)).toBe('available');
     });
 
     it('saveItemState refuses an item claiming another list, and changes nothing', async () => {
-      const impostor = Item.reconstitute({ id: ITEM_A, wishlistId: LIST_B, type: 'single', title: 'Cot', quantity: 1, seq: 9, purchasedCount: 1 });
+      const impostor = Item.reconstitute({ id: ITEM_A, wishlistId: LIST_B, type: 'single', title: 'Cot', quantity: 1, seq: 9 });
       await expect(fx.wishlists.saveItemState(impostor)).rejects.toThrow(ItemNotFoundError);
       expect((await fx.wishlists.findById(LIST_A, NOW))?.item?.seq).toBe(0);
     });
 
     it('saveItemState refuses an item that does not exist', async () => {
-      const ghost = Item.reconstitute({ id: '00000000-0000-7000-8000-999999999999', wishlistId: LIST_A, type: 'single', title: 'Ghost', quantity: 1, seq: 1, purchasedCount: 0 });
+      const ghost = Item.reconstitute({ id: '00000000-0000-7000-8000-999999999999', wishlistId: LIST_A, type: 'single', title: 'Ghost', quantity: 1, seq: 1 });
       await expect(fx.wishlists.saveItemState(ghost)).rejects.toThrow(ItemNotFoundError);
     });
   });
@@ -3106,6 +3142,11 @@ import type { Item } from '../../domain/entities/Item.js';
 export interface ItemRepository {
   insert(item: Item): Promise<void>;
   findByWishlistId(wishlistId: string): Promise<Item | null>;
+  /**
+   * Purchased holds per item id for the list's items, computed from the
+   * holds themselves and never stored; an item with none has no entry.
+   */
+  purchasedCountsByItem(wishlistId: string): Promise<ReadonlyMap<string, number>>;
   /** See `WishlistRepository.saveItemState`, which delegates here. */
   saveState(item: Item): Promise<void>;
 }
@@ -3134,10 +3175,10 @@ import type { WishlistRepository } from '../ports/WishlistRepository.js';
  * an unpersisted decision show up on the next read — which a SELECT never
  * could.
  */
-function copyItem(item: Item, purchasedCount: number): Item {
+function copyItem(item: Item): Item {
   return Item.reconstitute({
     id: item.id.value, wishlistId: item.wishlistId.value, type: item.type, title: item.title,
-    quantity: item.quantity, seq: item.seq, purchasedCount,
+    quantity: item.quantity, seq: item.seq,
   });
 }
 
@@ -3156,7 +3197,7 @@ function copyHold(hold: Hold): Hold {
  */
 export class InMemoryStore {
   readonly wishlists = new Map<string, Wishlist>();
-  /** Item rows. Their purchasedCount is always stored as 0 and ignored: loads compute it. */
+  /** Item rows. */
   readonly items = new Map<string, Item>();
   readonly holds = new Map<string, Hold>();
   readonly streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
@@ -3188,7 +3229,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   async insert(wishlist: Wishlist): Promise<void> {
     this.store.wishlists.set(wishlist.id.value, wishlist);
     const item = wishlist.item;
-    if (item !== null) this.store.items.set(item.id.value, copyItem(item, 0));
+    if (item !== null) this.store.items.set(item.id.value, copyItem(item));
   }
 
   async findBySlug(slug: string, now: Date): Promise<Wishlist | null> {
@@ -3202,8 +3243,8 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   async saveItemState(item: Item): Promise<void> {
     const stored = this.store.items.get(item.id.value);
     if (!stored || stored.wishlistId.value !== item.wishlistId.value) throw new ItemNotFoundError(item.id.value);
-    // seq only: the purchased count is never stored.
-    this.store.items.set(item.id.value, copyItem(item, 0));
+    // seq only: the purchased count is computed, never stored.
+    this.store.items.set(item.id.value, copyItem(item));
   }
 
   private hydrate(wishlist: Wishlist | undefined, now: Date): Wishlist | null {
@@ -3213,7 +3254,8 @@ export class InMemoryWishlistRepository implements WishlistRepository {
     return Wishlist.reconstitute({
       id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
       ownerToken: wishlist.ownerToken.value, key: wishlist.key.value, keyGen: wishlist.keyGen, asOf: now,
-      item: item ? copyItem(item, this.store.purchasedCount(item.id.value)) : undefined, activeHolds,
+      item: item ? copyItem(item) : undefined, activeHolds,
+      purchasedCounts: item ? new Map([[item.id.value, this.store.purchasedCount(item.id.value)]]) : undefined,
     });
   }
 }
@@ -3350,13 +3392,16 @@ describe('in-memory fakes never share instances with the store', () => {
 });
 ```
 
-In `apps/api/src/application/test-fakes/builders.ts`, in `ItemBuilder`: change the default props' `activeHolds: 0` to `purchasedCount: 0`, and replace `withActiveHolds` with:
+In `apps/api/src/application/test-fakes/builders.ts`, in `ItemBuilder`: drop `purchasedCount: 0` from the default props and delete `withPurchasedCount` (an item holds no count). In `WishlistBuilder`, add a field `private purchased = 0;` and, after `withItem`:
 
 ```ts
-  withPurchasedCount(purchasedCount: number): this { this.props.purchasedCount = purchasedCount; return this; }
+  /** How many of the item's holds were purchased when the aggregate was loaded; needs `withItem`. */
+  withPurchasedCount(purchasedCount: number): this { this.purchased = purchasedCount; return this; }
 ```
 
-In `WishlistBuilder`, add `const DEFAULT_AS_OF = new Date('2026-01-01T00:00:00.000Z');` beside the other defaults, a field `private instant = DEFAULT_AS_OF;`, pass `asOf: this.instant` to `Wishlist.create` in `build()`, and add:
+and have `build()` return the aggregate reconstituted with `purchasedCounts: new Map([[id, this.purchased]])` when an item and a non-zero count are set.
+
+Also in `WishlistBuilder`, add `const DEFAULT_AS_OF = new Date('2026-01-01T00:00:00.000Z');` beside the other defaults, a field `private instant = DEFAULT_AS_OF;`, pass `asOf: this.instant` to `Wishlist.create` in `build()`, and add:
 
 ```ts
   /** The instant the built aggregate decides at, as a load would set it. */
@@ -3378,6 +3423,12 @@ In `apps/api/src/application/test-fakes/builders.test.ts`, replace line 21 with 
       { hash: (value: string) => value },
     );
     expect(hold.expiresAt).toEqual(new Date('2026-05-01T00:01:00Z'));
+  });
+
+  it('loads the wishlist with the purchased count it was given', () => {
+    const wishlist = aWishlist().withItem({ id: '77777777-7777-7777-8777-777777777777', title: 'Cot' }).withPurchasedCount(1).build();
+    expect(wishlist.purchasedCountOf('77777777-7777-7777-8777-777777777777')).toBe(1);
+    expect(wishlist.itemStatus('77777777-7777-7777-8777-777777777777')).toBe('purchased');
   });
 ```
 
@@ -3502,23 +3553,29 @@ export class ItemRepositoryKysely implements ItemRepository {
       .innerJoin('item_state', 'item_state.item_id', 'items.id')
       .selectAll('items')
       .select('item_state.seq as seq')
-      // The purchased count is computed from purchase entries, never stored:
-      // this item's holds with purchased_at set.
-      .select((eb) => eb.selectFrom('holds')
-        .select(eb.fn.countAll<number>().as('n'))
-        .whereRef('holds.item_id', '=', 'items.id')
-        .where('holds.purchased_at', 'is not', null)
-        .as('purchased_count'))
       .where('wishlist_id', '=', wishlistId)
       .executeTakeFirst();
     if (!row) return null;
     return Item.reconstitute({
       id: row.id, wishlistId: row.wishlist_id, type: row.type, title: row.title, quantity: row.quantity,
-      seq: row.seq, purchasedCount: Number(row.purchased_count),
+      seq: row.seq,
     });
   }
 
-  /** Writes `seq` only: the purchased count is never stored. */
+  /** Computed from purchase entries, never stored: each item's holds with purchased_at set. */
+  async purchasedCountsByItem(wishlistId: string): Promise<ReadonlyMap<string, number>> {
+    const rows = await this.db.selectFrom('holds')
+      .innerJoin('items', 'items.id', 'holds.item_id')
+      .select('holds.item_id as item_id')
+      .select((eb) => eb.fn.countAll<number>().as('n'))
+      .where('items.wishlist_id', '=', wishlistId)
+      .where('holds.purchased_at', 'is not', null)
+      .groupBy('holds.item_id')
+      .execute();
+    return new Map(rows.map((row) => [row.item_id, Number(row.n)]));
+  }
+
+  /** Writes `seq` only: the purchased count is computed, never stored. */
   async saveState(item: Item): Promise<void> {
     const result = await this.db.updateTable('item_state')
       .set({ seq: item.seq, updated_at: new Date().toISOString() })
@@ -3589,10 +3646,11 @@ export class WishlistRepositoryKysely implements WishlistRepository {
   private async hydrate(row: Selectable<WishlistsTable>, now: Date): Promise<Wishlist> {
     const item = await this.items.findByWishlistId(row.id);
     const activeHolds = await this.holds.findActiveForWishlist(row.id, now);
+    const purchasedCounts = await this.items.purchasedCountsByItem(row.id);
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
       ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now,
-      item: item ?? undefined, activeHolds,
+      item: item ?? undefined, activeHolds, purchasedCounts,
     });
   }
 }

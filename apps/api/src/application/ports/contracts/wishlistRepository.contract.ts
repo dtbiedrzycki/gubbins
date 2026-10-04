@@ -18,7 +18,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
         expect(loaded?.title).toBe('List A');
         expect(loaded?.item?.id.value).toBe(ITEM_A);
         expect(loaded?.item?.seq).toBe(0);
-        expect(loaded?.item?.purchasedCount).toBe(0);
+        expect(loaded?.purchasedCountOf(ITEM_A)).toBe(0);
       }
     });
 
@@ -72,20 +72,23 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
 
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
 
-      expect(reloaded?.item?.purchasedCount).toBe(1);
+      expect(reloaded?.purchasedCountOf(ITEM_A)).toBe(1);
       expect(reloaded?.itemStatus(ITEM_A)).toBe('purchased');
     });
 
     it('does not take the purchased count from item state: saveItemState alone changes nothing', async () => {
-      const item = (await fx.wishlists.findById(LIST_A, NOW))!.getItem(ITEM_A);
-      item.recordPurchase();
+      const hold = holdFixture();
+      await fx.holds.insert(hold);
+      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+      const { item } = wishlist.purchaseHold(wishlist.findHold(hold.id.value)!);
+      expect(wishlist.purchasedCountOf(ITEM_A)).toBe(1);
 
       await fx.wishlists.saveItemState(item);
 
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
       expect(reloaded?.item?.seq).toBe(1);
-      expect(reloaded?.item?.purchasedCount).toBe(0);
-      expect(reloaded?.itemStatus(ITEM_A)).toBe('available');
+      expect(reloaded?.purchasedCountOf(ITEM_A)).toBe(0);
+      expect(reloaded?.itemStatus(ITEM_A)).toBe('held');
     });
 
     it('counts neither a released nor an expired hold, nor a purchase on another list', async () => {
@@ -97,18 +100,18 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
 
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
 
-      expect(reloaded?.item?.purchasedCount).toBe(0);
+      expect(reloaded?.purchasedCountOf(ITEM_A)).toBe(0);
       expect(reloaded?.itemStatus(ITEM_A)).toBe('available');
     });
 
     it('saveItemState refuses an item claiming another list, and changes nothing', async () => {
-      const impostor = Item.reconstitute({ id: ITEM_A, wishlistId: LIST_B, type: 'single', title: 'Cot', quantity: 1, seq: 9, purchasedCount: 1 });
+      const impostor = Item.reconstitute({ id: ITEM_A, wishlistId: LIST_B, type: 'single', title: 'Cot', quantity: 1, seq: 9 });
       await expect(fx.wishlists.saveItemState(impostor)).rejects.toThrow(ItemNotFoundError);
       expect((await fx.wishlists.findById(LIST_A, NOW))?.item?.seq).toBe(0);
     });
 
     it('saveItemState refuses an item that does not exist', async () => {
-      const ghost = Item.reconstitute({ id: '00000000-0000-7000-8000-999999999999', wishlistId: LIST_A, type: 'single', title: 'Ghost', quantity: 1, seq: 1, purchasedCount: 0 });
+      const ghost = Item.reconstitute({ id: '00000000-0000-7000-8000-999999999999', wishlistId: LIST_A, type: 'single', title: 'Ghost', quantity: 1, seq: 1 });
       await expect(fx.wishlists.saveItemState(ghost)).rejects.toThrow(ItemNotFoundError);
     });
   });

@@ -23,23 +23,29 @@ export class ItemRepositoryKysely implements ItemRepository {
       .innerJoin('item_state', 'item_state.item_id', 'items.id')
       .selectAll('items')
       .select('item_state.seq as seq')
-      // The purchased count is computed from purchase entries, never stored:
-      // this item's holds with purchased_at set.
-      .select((eb) => eb.selectFrom('holds')
-        .select(eb.fn.countAll<number>().as('n'))
-        .whereRef('holds.item_id', '=', 'items.id')
-        .where('holds.purchased_at', 'is not', null)
-        .as('purchased_count'))
       .where('wishlist_id', '=', wishlistId)
       .executeTakeFirst();
     if (!row) return null;
     return Item.reconstitute({
       id: row.id, wishlistId: row.wishlist_id, type: row.type, title: row.title, quantity: row.quantity,
-      seq: row.seq, purchasedCount: Number(row.purchased_count),
+      seq: row.seq,
     });
   }
 
-  /** Writes `seq` only: the purchased count is never stored. */
+  /** Computed from purchase entries, never stored: each item's holds with purchased_at set. */
+  async purchasedCountsByItem(wishlistId: string): Promise<ReadonlyMap<string, number>> {
+    const rows = await this.db.selectFrom('holds')
+      .innerJoin('items', 'items.id', 'holds.item_id')
+      .select('holds.item_id as item_id')
+      .select((eb) => eb.fn.countAll<number>().as('n'))
+      .where('items.wishlist_id', '=', wishlistId)
+      .where('holds.purchased_at', 'is not', null)
+      .groupBy('holds.item_id')
+      .execute();
+    return new Map(rows.map((row) => [row.item_id, Number(row.n)]));
+  }
+
+  /** Writes `seq` only: the purchased count is computed, never stored. */
   async saveState(item: Item): Promise<void> {
     const result = await this.db.updateTable('item_state')
       .set({ seq: item.seq, updated_at: new Date().toISOString() })
