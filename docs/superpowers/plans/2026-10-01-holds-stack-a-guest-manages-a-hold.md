@@ -487,15 +487,15 @@ Replace the `holds` block with:
     // Every instant below is written with toISOString(), so text comparison
     // is time order — findActiveForWishlist relies on it.
     .addColumn('expires_at', 'text', (col) => col.notNull())
-    // Hold state is timestamps only; statusAt(now) derives active/expired/
-    // released/purchased from them (holds-lifecycle D5).
+    // Hold state is timestamps only; statusAt(at) derives active/expired/
+    // released/purchased from them.
     .addColumn('extended_at', 'text')
     .addColumn('released_at', 'text')
     .addColumn('purchased_at', 'text')
     .addColumn('created_at', 'text', (col) => col.notNull())
     .addUniqueConstraint('holds_item_idempotency_key_unique', ['item_id', 'idempotency_key'])
     // A hold ends one way or the other, never both. A backstop: the domain
-    // already refuses it (holds-lifecycle §2, D9).
+    // already refuses it.
     .addCheckConstraint('holds_released_or_purchased', sql`released_at IS NULL OR purchased_at IS NULL`)
     .execute();
 
@@ -725,7 +725,7 @@ In `apps/api/src/domain/events/ItemHeldEvent.ts`, add after `type: 'ItemHeld';`:
   /**
    * Payload version, carried from day one (data & persistence). Bumped only
    * with an upcaster once instances exist; before 1.0 shapes are amended in
-   * place at v1 (holds-lifecycle D14).
+   * place at v1.
    */
   v: 1;
 ```
@@ -962,7 +962,7 @@ async function columnsByTable(db: QueryExecutorProvider): Promise<Map<string, st
 
 /**
  * Until 1.0, 0001_init is amended in place rather than followed by new
- * migrations (holds-lifecycle D14), and its `createTable(...).ifNotExists()`
+ * migrations, and its `createTable(...).ifNotExists()`
  * skips any table that already exists. A database an older build created
  * therefore keeps its old shape without complaint, and the first write that
  * touches a changed column fails as a 500 in front of a guest. This compares
@@ -1054,7 +1054,7 @@ Everything here is additive to `Hold` plus one rename, so the adapters and use c
   - `HoldNotFoundError(holdId)`
   - `HoldNotActiveError(holdId)`
   - `HoldAlreadyExtendedError(holdId)`
-  - `WishlistNotFoundError(identifier)` (parameter renamed; roadmap open item 3)
+  - `WishlistNotFoundError(identifier)` (parameter renamed)
 
 - [ ] **Step 1: Rewrite `errors.ts`**
 
@@ -1067,7 +1067,7 @@ export class ItemNotFoundError extends Error {
 }
 /**
  * `identifier` is whatever the caller looked the list up by — a slug or an
- * id. A lookup by slug has no id to report (roadmap open item 3).
+ * id. A lookup by slug has no id to report.
  */
 export class WishlistNotFoundError extends Error {
   constructor(identifier: string) { super(`Wishlist not found: ${identifier}`); }
@@ -1129,7 +1129,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01RdJzbrWLV8Xvu5rEmGsgQn"
 ```
 
-### Task 3.2: Hold state is timestamps; `statusAt(now)` derives it
+### Task 3.2: Hold state is timestamps; `statusAt(at)` derives it
 
 **Files:**
 - Modify: `apps/api/src/domain/entities/Hold.ts`
@@ -1141,7 +1141,7 @@ Claude-Session: https://claude.ai/code/session_01RdJzbrWLV8Xvu5rEmGsgQn"
   - `type HoldStatus = 'active' | 'expired' | 'released' | 'purchased'`
   - `Hold.reconstitute(props: { id: string; itemId: string; secret: string; sessionHash: string; idempotencyKey: string; expiresAt: Date; extendedAt: Date | null; releasedAt: Date | null; purchasedAt: Date | null }): Hold`
   - getters `expiresAt: Date`, `extendedAt`, `releasedAt`, `purchasedAt` (each `Date | null`)
-  - `Hold.statusAt(now: Date): HoldStatus`
+  - `Hold.statusAt(at: Date): HoldStatus`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1183,7 +1183,7 @@ describe('Hold.reconstitute', () => {
   });
 });
 
-describe('Hold.statusAt — the one definition of hold state (D5)', () => {
+describe('Hold.statusAt — the one definition of hold state', () => {
   it.each([
     ['1 ms before expiresAt', -1, 'active'],
     ['at expiresAt exactly', 0, 'active'],
@@ -1203,12 +1203,12 @@ describe('Hold.statusAt — the one definition of hold state (D5)', () => {
   });
 
   it('starts a newly created hold active, with no lifecycle timestamps', () => {
-    const now = new Date('2026-01-01T00:00:00.000Z');
+    const at = new Date('2026-01-01T00:00:00.000Z');
     const hold = Hold.create({
       id: HOLD_ID, itemId: ITEM_ID, secret: 'hold-secret', sessionHash: 'a'.repeat(64),
-      idempotencyKey: 'idem-1', expiresAt: EXPIRES_AT, now,
+      idempotencyKey: 'idem-1', expiresAt: EXPIRES_AT, now: at,
     });
-    expect(hold.statusAt(now)).toBe('active');
+    expect(hold.statusAt(at)).toBe('active');
     expect([hold.extendedAt, hold.releasedAt, hold.purchasedAt]).toEqual([null, null, null]);
   });
 });
@@ -1233,10 +1233,18 @@ import { UuidId } from '../value-objects/UuidId.js';
 /**
  * A hold's state at some instant. Never stored: `statusAt` derives it from
  * the timestamps, so nothing has to be written when a hold expires
- * (holds-lifecycle D4, D5; ADR-0002's lazy expiry).
+ * (ADR-0002's lazy expiry).
  */
 export type HoldStatus = 'active' | 'expired' | 'released' | 'purchased';
 
+/**
+ * A hold's own lifecycle rules. The methods that take an instant (`statusAt`,
+ * `canExtendAt`, `canReleaseAt`, `extend`, `release`, `markPurchased`) are the
+ * aggregate's internals: `Wishlist` calls them with the instant it was loaded
+ * at, and application code goes through `Wishlist`, never these. That keeps
+ * every decision on one instant, so no caller can decide on current data
+ * using an older date.
+ */
 export class Hold {
   /**
    * Enforces the one invariant between the timestamps, so neither factory
@@ -1300,14 +1308,14 @@ export class Hold {
   get purchasedAt(): Date | null { return this._purchasedAt; }
 
   /**
-   * The one definition of hold state (holds-lifecycle §1). Strictly after:
-   * at the very instant `now === expiresAt` the hold is still active, as the
-   * holds spec's `now > expiresAt` says.
+   * The one definition of hold state. Strictly after: at the very instant
+   * `at === expiresAt` the hold is still active. Called by `Wishlist` (see
+   * the class note).
    */
-  statusAt(now: Date): HoldStatus {
+  statusAt(at: Date): HoldStatus {
     if (this._purchasedAt !== null) return 'purchased';
     if (this._releasedAt !== null) return 'released';
-    if (now.getTime() > this._expiresAt.getTime()) return 'expired';
+    if (at.getTime() > this._expiresAt.getTime()) return 'expired';
     return 'active';
   }
 }
@@ -1343,12 +1351,12 @@ Claude-Session: https://claude.ai/code/session_01RdJzbrWLV8Xvu5rEmGsgQn"
   - `HoldReleasedEvent { type: 'HoldReleased'; v: 1; holdId: string; occurredAt: string }`
   - `ItemPurchasedEvent { type: 'ItemPurchased'; v: 1; holdId: string; occurredAt: string }`
   - `LedgerEvent = ItemHeldEvent | HoldExtendedEvent | HoldReleasedEvent | ItemPurchasedEvent`
-  - `Hold.extend(now: Date, durationMs: number): HoldExtendedEvent`
-  - `Hold.release(now: Date): HoldReleasedEvent`
-  - `Hold.markPurchased(now: Date): ItemPurchasedEvent`
+  - `Hold.extend(at: Date, durationMs: number): HoldExtendedEvent`
+  - `Hold.release(at: Date): HoldReleasedEvent`
+  - `Hold.markPurchased(at: Date): ItemPurchasedEvent`
   - `Hold.belongsToSession(sessionHash: string): boolean`
-  - `Hold.canExtendAt(now: Date): boolean`
-  - `Hold.canReleaseAt(now: Date): boolean`
+  - `Hold.canExtendAt(at: Date): boolean`
+  - `Hold.canReleaseAt(at: Date): boolean`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1359,21 +1367,21 @@ const DAY = 86_400_000;
 const CREATED = new Date(EXPIRES_AT.getTime() - 3 * DAY);
 
 describe('Hold.extend', () => {
-  it('adds the duration to the current expiresAt — not to now — and stamps extendedAt', () => {
+  it('adds the duration to the current expiresAt — not to the instant of the call — and stamps extendedAt', () => {
     const hold = persisted();
-    const now = new Date(CREATED.getTime() + DAY);
+    const at = new Date(CREATED.getTime() + DAY);
 
-    hold.extend(now, 3 * DAY);
+    hold.extend(at, 3 * DAY);
 
     expect(hold.expiresAt).toEqual(new Date(EXPIRES_AT.getTime() + 3 * DAY));
-    expect(hold.extendedAt).toEqual(now);
+    expect(hold.extendedAt).toEqual(at);
   });
 
   it('returns HoldExtended carrying the new expiry', () => {
-    const now = new Date(CREATED.getTime() + DAY);
-    expect(persisted().extend(now, 3 * DAY)).toEqual({
+    const at = new Date(CREATED.getTime() + DAY);
+    expect(persisted().extend(at, 3 * DAY)).toEqual({
       type: 'HoldExtended', v: 1, holdId: HOLD_ID,
-      expiresAt: new Date(EXPIRES_AT.getTime() + 3 * DAY).toISOString(), occurredAt: now.toISOString(),
+      expiresAt: new Date(EXPIRES_AT.getTime() + 3 * DAY).toISOString(), occurredAt: at.toISOString(),
     });
   });
 
@@ -1394,8 +1402,8 @@ describe('Hold.extend', () => {
     ['expired', persisted, msFromExpiry(1)],
     ['released', () => persisted({ releasedAt: CREATED }), CREATED],
     ['purchased', () => persisted({ purchasedAt: CREATED }), CREATED],
-  ] as const)('refuses a %s hold', (_state, make, now) => {
-    expect(() => make().extend(now, DAY)).toThrow(HoldNotActiveError);
+  ] as const)('refuses a %s hold', (_state, make, at) => {
+    expect(() => make().extend(at, DAY)).toThrow(HoldNotActiveError);
   });
 
   it('refuses a duration that is not a positive whole number of milliseconds', () => {
@@ -1415,8 +1423,8 @@ describe('Hold.release', () => {
     ['expired', persisted, msFromExpiry(1)],
     ['released', () => persisted({ releasedAt: CREATED }), CREATED],
     ['purchased', () => persisted({ purchasedAt: CREATED }), CREATED],
-  ] as const)('refuses a %s hold', (_state, make, now) => {
-    expect(() => make().release(now)).toThrow(HoldNotActiveError);
+  ] as const)('refuses a %s hold', (_state, make, at) => {
+    expect(() => make().release(at)).toThrow(HoldNotActiveError);
   });
 });
 
@@ -1427,7 +1435,7 @@ describe('Hold.markPurchased', () => {
     expect(hold.statusAt(CREATED)).toBe('purchased');
   });
 
-  it('accepts an expired hold — whether a unit is still free is the wishlist\'s call (D15)', () => {
+  it('accepts an expired hold — whether a unit is still free is the wishlist\'s call', () => {
     expect(() => persisted().markPurchased(msFromExpiry(1))).not.toThrow();
   });
 
@@ -1542,46 +1550,50 @@ and add these methods after `statusAt`:
     return this.sessionHash.value === sessionHash;
   }
 
-  canExtendAt(now: Date): boolean {
-    return this.statusAt(now) === 'active' && this._extendedAt === null;
+  /** Called by `Wishlist` with its load instant, like `statusAt`. */
+  canExtendAt(at: Date): boolean {
+    return this.statusAt(at) === 'active' && this._extendedAt === null;
   }
 
-  canReleaseAt(now: Date): boolean {
-    return this.statusAt(now) === 'active';
+  /** Called by `Wishlist` with its load instant, like `statusAt`. */
+  canReleaseAt(at: Date): boolean {
+    return this.statusAt(at) === 'active';
   }
 
   /**
    * The one self-service extension (ADR-0002): only while active, only
-   * once. Adds `durationMs` to the *current* expiry rather than to `now`,
+   * once. Adds `durationMs` to the *current* expiry rather than to `at`,
    * so the most a hold can ever last is twice the configured duration.
+   * Called by `Wishlist` with its load instant.
    */
-  extend(now: Date, durationMs: number): HoldExtendedEvent {
+  extend(at: Date, durationMs: number): HoldExtendedEvent {
     if (!Number.isInteger(durationMs) || durationMs <= 0) {
       throw new DomainValidationError('Hold extension must be a positive whole number of milliseconds');
     }
-    if (this.statusAt(now) !== 'active') throw new HoldNotActiveError(this.id.value);
+    if (this.statusAt(at) !== 'active') throw new HoldNotActiveError(this.id.value);
     if (this._extendedAt !== null) throw new HoldAlreadyExtendedError(this.id.value);
-    this._extendedAt = now;
+    this._extendedAt = at;
     this._expiresAt = new Date(this._expiresAt.getTime() + durationMs);
-    return { type: 'HoldExtended', v: 1, holdId: this.id.value, expiresAt: this._expiresAt.toISOString(), occurredAt: now.toISOString() };
+    return { type: 'HoldExtended', v: 1, holdId: this.id.value, expiresAt: this._expiresAt.toISOString(), occurredAt: at.toISOString() };
   }
 
-  release(now: Date): HoldReleasedEvent {
-    if (this.statusAt(now) !== 'active') throw new HoldNotActiveError(this.id.value);
-    this._releasedAt = now;
-    return { type: 'HoldReleased', v: 1, holdId: this.id.value, occurredAt: now.toISOString() };
+  /** Called by `Wishlist` with its load instant, like `statusAt`. */
+  release(at: Date): HoldReleasedEvent {
+    if (this.statusAt(at) !== 'active') throw new HoldNotActiveError(this.id.value);
+    this._releasedAt = at;
+    return { type: 'HoldReleased', v: 1, holdId: this.id.value, occurredAt: at.toISOString() };
   }
 
   /**
    * Ends the hold in a purchase. Refuses only the terminal states: an
-   * expired hold may still be purchased when its item has a free unit
-   * (holds-lifecycle D15), and only the wishlist — which sees the other
-   * holds — can tell, so reach this through `Wishlist.purchaseHold`.
+   * expired hold may still be purchased when its item has a free unit, and
+   * only the wishlist — which sees the other holds — can tell, so reach this
+   * through `Wishlist.purchaseHold`, which passes its load instant.
    */
-  markPurchased(now: Date): ItemPurchasedEvent {
+  markPurchased(at: Date): ItemPurchasedEvent {
     if (this._purchasedAt !== null || this._releasedAt !== null) throw new HoldNotActiveError(this.id.value);
-    this._purchasedAt = now;
-    return { type: 'ItemPurchased', v: 1, holdId: this.id.value, occurredAt: now.toISOString() };
+    this._purchasedAt = at;
+    return { type: 'ItemPurchased', v: 1, holdId: this.id.value, occurredAt: at.toISOString() };
   }
 ```
 
@@ -1629,7 +1641,7 @@ const hold = Hold.reconstitute({
 });
 const commands = ['mayExtend', 'mayRelease', 'mayPurchase'] as const;
 
-describe('HoldPermissions — guest rows (holds-lifecycle §1, stack A)', () => {
+describe('HoldPermissions — guest rows', () => {
   it.each(commands)('%s: the session that placed the hold acts, as the guest', (command) => {
     expect(HoldPermissions[command](hold, { guestSession: { sessionHash: SESSION } })).toBe('guest');
   });
@@ -1660,8 +1672,7 @@ import type { Hold } from '../entities/Hold.js';
 /**
  * The credentials a caller presented, as the domain needs to see them.
  * Structural, so the application layer's AccessContext satisfies it without
- * domain/ importing application/ (ADR-0012). Stack B adds the owner, stack E
- * a hold signature.
+ * domain/ importing application/ (ADR-0012).
  */
 export interface HoldCredentials {
   guestSession: { sessionHash: string } | null;
@@ -1673,11 +1684,11 @@ function placedBy(hold: Hold, credentials: HoldCredentials): boolean {
 }
 
 /**
- * Who may do what to a hold (holds-lifecycle §1, D7). Each method answers
- * with the role whose credential authorises the command — which the use case
- * records as the event's actor (ADR-0075) — or null when no credential does.
- * Guest credentials are checked before owner ones (stack F adds the owner's
- * release row), so a guest acting on their own hold is recorded as the guest.
+ * Who may do what to a hold. Each method answers with the role whose
+ * credential authorises the command — which the use case records as the
+ * event's actor (ADR-0075) — or null when no credential does. Guest
+ * credentials are checked before owner ones, so a guest acting on their own
+ * hold is recorded as the guest.
  *
  * Permissions only: whether the hold's *state* allows the command (extend
  * at most once, nothing on a closed hold) is the hold's own rule.

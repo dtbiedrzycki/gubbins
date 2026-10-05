@@ -3,7 +3,7 @@ export interface ItemHeldEvent {
   /**
    * Payload version, carried from day one (data & persistence). Bumped only
    * with an upcaster once instances exist; before 1.0 shapes are amended in
-   * place at v1 (holds-lifecycle D14).
+   * place at v1.
    */
   v: 1;
   itemId: string;

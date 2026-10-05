@@ -8,7 +8,7 @@ import {
 import { SequentialTokenGenerator } from '../test-fakes/SequentialTokenGenerator.js';
 import { FixedClock } from '../test-fakes/FixedClock.js';
 import { FakeHasher } from '../test-fakes/FakeHasher.js';
-import { ItemNotFoundError, ItemAlreadyHeldError } from '../../domain/errors.js';
+import { ItemNotFoundError, ItemUnavailableError } from '../../domain/errors.js';
 
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
 const ITEM_ID = '33333333-3333-7333-8333-333333333333';
@@ -96,7 +96,7 @@ describe('HoldItem', () => {
     expect(reloaded?.item?.seq).toBe(1);
   });
 
-  it('throws ItemAlreadyHeldError for a second, different hold attempt on a held item', async () => {
+  it('throws ItemUnavailableError for a second, different hold attempt on a held item', async () => {
     const { useCase, wishlists } = makeUseCase();
     await seedWishlistWithItem(wishlists);
     await useCase.execute({
@@ -106,7 +106,7 @@ describe('HoldItem', () => {
       useCase.execute({
         wishlistId: WISHLIST_ID, itemId: ITEM_ID, sessionId: 'session-xyz', idempotencyKey: 'idem-2',
       }),
-    ).rejects.toThrow(ItemAlreadyHeldError);
+    ).rejects.toThrow(ItemUnavailableError);
   });
 
   it('throws ItemNotFoundError for an unknown item', async () => {

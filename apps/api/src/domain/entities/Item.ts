@@ -1,4 +1,4 @@
-import { DomainValidationError, ItemAlreadyHeldError } from '../errors.js';
+import { DomainValidationError, ItemUnavailableError } from '../errors.js';
 import type { ItemHeldEvent } from '../events/ItemHeldEvent.js';
 import { Hold } from './Hold.js';
 import { UuidId } from '../value-objects/UuidId.js';
@@ -120,7 +120,7 @@ export class Item {
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): { hold: Hold; event: ItemHeldEvent; expectedSeq: number } {
-    if (this.status === 'held') throw new ItemAlreadyHeldError(this.id.value);
+    if (this.status === 'held') throw new ItemUnavailableError(this.id.value);
 
     const hold = Hold.create({
       id: tokens.generateEntityId(),

@@ -38,7 +38,7 @@ export class HoldItem {
       const item = wishlist.getItem(input.itemId);
 
       // Deliberately before the availability check: a replayed idempotency key
-      // must return the original hold, not trip ItemAlreadyHeldError on the
+      // must return the original hold, not trip ItemUnavailableError on the
       // hold it created itself.
       const existing = await ctx.holds.findByIdempotencyKey(input.itemId, input.idempotencyKey);
       if (existing) {
