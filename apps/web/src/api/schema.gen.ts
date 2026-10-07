@@ -71,6 +71,8 @@ export interface components {
     schemas: {
         ErrorResponse: {
             message: string;
+            /** @enum {string} */
+            code?: "item_unavailable" | "hold_not_active" | "hold_already_extended";
             issues?: unknown[];
         };
     };
@@ -260,7 +262,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description The item is already held. */
+            /** @description No unit of the item is free (item_unavailable), or a concurrent change won (no code). */
             409: {
                 headers: {
                     [name: string]: unknown;

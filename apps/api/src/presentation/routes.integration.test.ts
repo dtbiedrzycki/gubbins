@@ -141,6 +141,7 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
     const second = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-2' } });
 
     expect(second.statusCode).toBe(409);
+    expect(second.json()).toEqual({ message: 'This item is no longer available.', code: 'item_unavailable' });
   });
 
   it('replays the original hold for a repeated idempotency key instead of creating a second hold', async () => {

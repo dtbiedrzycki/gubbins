@@ -12,6 +12,14 @@
           "message": {
             "type": "string"
           },
+          "code": {
+            "type": "string",
+            "enum": [
+              "item_unavailable",
+              "hold_not_active",
+              "hold_already_extended"
+            ]
+          },
           "issues": {
             "type": "array",
             "items": {}
@@ -338,7 +346,7 @@
             }
           },
           "409": {
-            "description": "The item is already held.",
+            "description": "No unit of the item is free (item_unavailable), or a concurrent change won (no code).",
             "content": {
               "application/json": {
                 "schema": {

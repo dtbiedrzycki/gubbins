@@ -8,17 +8,14 @@ import {
   errorResponseSchema,
 } from '@gubbins/shared-types';
 import type { AppDependencies } from './compositionRoot.js';
-import {
-  WishlistNotFoundError, InvalidGuestKeyError, ItemNotFoundError, ItemUnavailableError, ConcurrencyError,
-} from '../domain/errors.js';
+import { WishlistNotFoundError, InvalidGuestKeyError } from '../domain/errors.js';
 import { SESSION_COOKIE, buildAccessContext, type SessionPayload } from './accessContext.js';
+import { NOT_FOUND, domainErrorResponse } from './domainErrorResponse.js';
 
 // Path parameters are an HTTP concern, so their schemas live here rather than
 // in @gubbins/shared-types (which holds request/response bodies only).
 const slugParams = z.object({ slug: z.string() });
 const slugItemParams = z.object({ slug: z.string(), itemId: z.string() });
-
-const NOT_FOUND = { message: 'Not found' } as const;
 
 // One shared component in the OpenAPI document instead of the error body
 // inlined into every 4xx response.
@@ -117,7 +114,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
         201: json('The item is now held for this session.', holdItemResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
         404: json('No such list or item, or no valid session for the list. These are deliberately indistinguishable (ADR-016, ADR-054).', errorResponseSchema),
-        409: json('The item is already held.', errorResponseSchema),
+        409: json('No unit of the item is free (item_unavailable), or a concurrent change won (no code).', errorResponseSchema),
       },
     },
   }, async (request, reply) => {
@@ -140,10 +137,8 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       // PR 6 widens the response to the full hold view; until then, the skeleton's three fields.
       return reply.code(201).send({ holdId: view.holdId, itemId: view.itemId, expiresAt: view.expiresAt });
     } catch (err) {
-      if (err instanceof ItemNotFoundError) return reply.code(404).send(NOT_FOUND);
-      if (err instanceof ItemUnavailableError || err instanceof ConcurrencyError) {
-        return reply.code(409).send({ message: 'Item already held' });
-      }
+      const mapped = domainErrorResponse(err);
+      if (mapped) return reply.code(mapped.status).send(mapped.body);
       throw err;
     }
   });
