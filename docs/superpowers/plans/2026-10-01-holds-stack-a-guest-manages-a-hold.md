@@ -151,7 +151,7 @@ E2E: `e2e/guest-manages-a-hold.spec.ts` (create), `e2e/walking-skeleton.spec.ts`
 | 3 | `03-domain-lifecycle` | 3.1–3.4 | feat(api): hold lifecycle in the domain (statusAt, timestamps, guest permissions) |
 | 4 | `04-persistence` | 4.1–4.4 | feat(api): aggregate loads active holds; contract suites; BEGIN IMMEDIATE |
 | 5 | `05-use-cases` | 5.1–5.7 | feat(api): extend, release, mark purchased and list-view use cases |
-| 6 | `06-api` | 6.1–6.5 | feat(api): hold lifecycle routes, error codes and HOLD_DURATION_DAYS |
+| 6 | `06-api` | 6.1–6.4 | feat(api): hold lifecycle routes, error codes and HOLD_DURATION_DAYS |
 | 7 | `07-rebuild` | 7.1 | feat(api): minimal rebuildProjections (D18) |
 | 8 | `08-web-e2e` | 8.1–8.5 | feat(web): Your holds, dialog-open idempotency key, e2e |
 
@@ -6309,6 +6309,8 @@ In `apps/api/src/presentation/openApiDocument.test.ts`, change the expected stat
 ```
 
 and the counts: `toHaveLength(11)` becomes `toHaveLength(20)`; both `toHaveLength(7)` and `Array(7)` become `13`.
+
+In `openApiDocument.noDatabase.test.ts`, the path count `toHaveLength(4)` becomes `toHaveLength(7)`.
 
 - [ ] **Step 3: Run them to see them fail**
 
