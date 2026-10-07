@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, onTestFinished } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { createDb } from '../infrastructure/db/createDb.js';
 import { migrateToLatest } from '../infrastructure/db/migrate.js';
@@ -465,5 +465,36 @@ describe('lazy expiry and the configured duration over HTTP', () => {
 
     expect(view.capabilities).toEqual({ holdDurationDays: 1 });
     expect(response.json()).toMatchObject({ expiresAt: new Date(T0.getTime() + DAY).toISOString() });
+  });
+});
+
+describe('guest access is checked before any list is loaded', () => {
+  it('answers a request without a valid session cookie without reading any list, as for an unknown slug', async () => {
+    const db = createDb(':memory:');
+    await migrateToLatest(db);
+    const deps = buildDependencies(db);
+    const findBySlug = vi.spyOn(deps.wishlists, 'findBySlug');
+    const guarded = buildApp(deps, { cookieSecret: 'test-secret' });
+    disposeWithApp(guarded, db);
+    onTestFinished(() => guarded.close());
+    const list = (await guarded.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'L', itemTitle: 'I' } }))
+      .json() as { slug: string; itemId: string };
+    findBySlug.mockClear();
+
+    const forged = { cookie: 'gubbins_session=forged.signature' };
+    const requests = [
+      { method: 'GET', url: `/api/lists/${list.slug}` },
+      { method: 'GET', url: `/api/lists/${list.slug}`, headers: forged },
+      { method: 'GET', url: '/api/lists/no-such-list' },
+      { method: 'POST', url: `/api/lists/${list.slug}/holds/some-hold/extend`, headers: forged },
+      { method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: forged, payload: { idempotencyKey: 'k' } },
+    ] as const;
+    const responses = await Promise.all(requests.map((request) => guarded.inject(request)));
+
+    for (const response of responses) {
+      expect(response.statusCode).toBe(404);
+      expect(response.json()).toEqual({ message: 'Not found' });
+    }
+    expect(findBySlug).not.toHaveBeenCalled();
   });
 });

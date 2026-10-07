@@ -12,7 +12,7 @@ import type { AccessContext } from '../application/AccessContext.js';
 import type { HoldCommand } from '../application/use-cases/holdCommand.js';
 import type { Wishlist } from '../domain/entities/Wishlist.js';
 import { WishlistNotFoundError, InvalidGuestKeyError } from '../domain/errors.js';
-import { SESSION_COOKIE, buildAccessContext, type SessionPayload } from './accessContext.js';
+import { SESSION_COOKIE, accessContextFor, readSignedSession, type SessionPayload } from './accessContext.js';
 import { NOT_FOUND, domainErrorResponse } from './domainErrorResponse.js';
 
 // Path parameters are an HTTP concern, so their schemas live here rather than
@@ -40,12 +40,15 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
    * The URL's list and the guest session presented for it, or null — which
    * every guest route answers with the same generic 404 as an unknown slug:
    * a caller must not tell "no such list" from "list exists, you're not in
-   * it", or slugs could be enumerated (ADR-0016/0054).
+   * it", or slugs could be enumerated (ADR-0016/0054). A request without a
+   * validly signed session is refused before any list is loaded.
    */
   async function guestAccess(request: FastifyRequest, slug: string): Promise<{ wishlist: Wishlist; access: AccessContext } | null> {
+    const session = readSignedSession(request);
+    if (!session) return null;
     const wishlist = await deps.wishlists.findBySlug(slug, deps.clock.now());
     if (!wishlist) return null;
-    const access = buildAccessContext(request, wishlist, deps.hasher);
+    const access = accessContextFor(session, { id: wishlist.id.value, keyGen: wishlist.keyGen }, deps.hasher);
     return access.guestSession ? { wishlist, access } : null;
   }
 
