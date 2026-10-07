@@ -335,6 +335,19 @@ describe('root-level validation issues', () => {
 });
 
 describe('hold lifecycle over HTTP', () => {
+  it("answers the generic 404 when asked to hold another list's item", async () => {
+    const list = await createList();
+    const other = await createList();
+    const cookie = await guestOn(list);
+
+    const response = await app.inject({
+      method: 'POST', url: `/api/lists/${list.slug}/items/${other.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-x' },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ message: 'Not found' });
+  });
+
   it('answers a hold with the full hold view', async () => {
     const { response } = await heldByGuest();
     expect(response.statusCode).toBe(201);
