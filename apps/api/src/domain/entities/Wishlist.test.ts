@@ -335,14 +335,17 @@ describe('Wishlist.canPurchaseHold', () => {
 });
 
 describe('Wishlist.holdStatus, canExtendHold and canReleaseHold', () => {
-  it('judges a hold at the instant the aggregate was loaded at', () => {
+  it('reports a hold\'s status as of the instant the aggregate was loaded at', () => {
     const hold = holdOn(ITEM_ID);
     expect(loaded({ holds: [hold], asOf: at(3 * DAY) }).holdStatus(hold)).toBe('active');
     expect(loaded({ holds: [hold], asOf: at(3 * DAY + 1) }).holdStatus(hold)).toBe('expired');
   });
 
-  it('judges a hold loaded outside the snapshot too, as long as it is on this list', () => {
+  it('reports the status of a hold that was not loaded, as long as it is on this list', () => {
     expect(loaded().holdStatus(holdOn(ITEM_ID, { releasedAt: T0 }))).toBe('released');
+  });
+
+  it("refuses to report the status of a hold on another list's item", () => {
     expect(() => loaded().holdStatus(holdOn(OTHER_ITEM_ID))).toThrow(HoldNotFoundError);
   });
 
