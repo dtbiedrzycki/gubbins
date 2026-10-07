@@ -2,9 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, onTestFinished } from 'vit
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { createDb } from '../infrastructure/db/createDb.js';
 import { migrateToLatest } from '../infrastructure/db/migrate.js';
+import { FixedClock } from '../application/test-fakes/FixedClock.js';
 import { ConcurrencyError } from '../domain/errors.js';
 import type { Logger } from '../application/ports/Logger.js';
-import { buildDependencies } from './compositionRoot.js';
+import { buildDependencies, type BuildDependenciesOptions } from './compositionRoot.js';
 import { buildApp } from './app.js';
 import { disposeWithApp } from './lifecycle.js';
 
@@ -74,6 +75,37 @@ async function createList() {
   return response.json() as { slug: string; ownerToken: string; key: string; itemId: string };
 }
 
+const DAY = 24 * 60 * 60 * 1000;
+
+async function guestOn(list: { slug: string; key: string }, on: FastifyInstance = app): Promise<string> {
+  return extractCookieHeader(await on.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } }));
+}
+
+function holdAction(slug: string, holdId: string, action: 'extend' | 'release' | 'purchase', cookie?: string, on: FastifyInstance = app) {
+  return on.inject({ method: 'POST', url: `/api/lists/${slug}/holds/${holdId}/${action}`, headers: cookie ? { cookie } : {} });
+}
+
+async function heldByGuest(on: FastifyInstance = app) {
+  const list = (await on.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller' } }))
+    .json() as { slug: string; key: string; itemId: string };
+  const cookie = await guestOn(list, on);
+  const response = await on.inject({
+    method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1' },
+  });
+  return { list, cookie, response, holdId: (response.json() as { holdId: string }).holdId };
+}
+
+/** An app on its own database whose clock the test steps, for expiry. */
+async function appAt(start: Date, options: Omit<BuildDependenciesOptions, 'clock'> = {}) {
+  const db = createDb(':memory:');
+  await migrateToLatest(db);
+  const clock = new FixedClock(start);
+  const timed = buildApp(buildDependencies(db, undefined, { ...options, clock }), { cookieSecret: 'test-secret' });
+  disposeWithApp(timed, db);
+  onTestFinished(() => timed.close());
+  return { timed, clock };
+}
+
 describe('POST /api/lists/:slug/session', () => {
   it('sets a session cookie for the correct key', async () => {
     const list = await createList();
@@ -111,7 +143,12 @@ describe('GET /api/lists/:slug', () => {
     const response = await app.inject({ method: 'GET', url: `/api/lists/${list.slug}`, headers: { cookie } });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ title: 'Baby Shower', item: { id: list.itemId, title: 'Stroller', status: 'available' } });
+    expect(response.json()).toEqual({
+      title: 'Baby Shower',
+      item: { id: list.itemId, title: 'Stroller', status: 'available' },
+      myHolds: [],
+      capabilities: { holdDurationDays: 3 },
+    });
   });
 });
 
@@ -294,5 +331,109 @@ describe('root-level validation issues', () => {
       message: 'Invalid request',
       issues: [{ code: 'invalid_type', path: [], message: expect.any(String) }],
     });
+  });
+});
+
+describe('hold lifecycle over HTTP', () => {
+  it('answers a hold with the full hold view', async () => {
+    const { response } = await heldByGuest();
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({ status: 'active', extendedAt: null, actions: { extend: true, release: true, purchase: true } });
+  });
+
+  it('extends once, then answers 409 hold_already_extended', async () => {
+    const { list, cookie, holdId } = await heldByGuest();
+
+    const first = await holdAction(list.slug, holdId, 'extend', cookie);
+    const second = await holdAction(list.slug, holdId, 'extend', cookie);
+
+    expect(first.statusCode).toBe(200);
+    expect(first.json()).toMatchObject({ holdId, status: 'active', actions: { extend: false, release: true, purchase: true } });
+    expect(second.statusCode).toBe(409);
+    expect(second.json()).toEqual({ message: 'This hold has already been extended.', code: 'hold_already_extended' });
+  });
+
+  it('marks purchased; the list then shows the item purchased and the hold closed', async () => {
+    const { list, cookie, holdId } = await heldByGuest();
+
+    const purchased = await holdAction(list.slug, holdId, 'purchase', cookie);
+    const view = (await app.inject({ method: 'GET', url: `/api/lists/${list.slug}`, headers: { cookie } })).json();
+    const release = await holdAction(list.slug, holdId, 'release', cookie);
+
+    expect(purchased.statusCode).toBe(200);
+    expect(purchased.json()).toMatchObject({ status: 'purchased' });
+    expect(view.item.status).toBe('purchased');
+    expect(view.myHolds).toMatchObject([{ holdId, status: 'purchased', actions: { extend: false, release: false, purchase: false } }]);
+    expect(release.statusCode).toBe(409);
+    expect(release.json()).toMatchObject({ code: 'hold_not_active' });
+  });
+
+  it('releases; the hold leaves "my holds" and another guest can hold the item', async () => {
+    const { list, cookie, holdId } = await heldByGuest();
+
+    const released = await holdAction(list.slug, holdId, 'release', cookie);
+    const view = (await app.inject({ method: 'GET', url: `/api/lists/${list.slug}`, headers: { cookie } })).json();
+    const other = await guestOn(list);
+    const retry = await app.inject({
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie: other }, payload: { idempotencyKey: 'idem-2' },
+    });
+
+    expect(released.json()).toMatchObject({ status: 'released' });
+    expect(view).toMatchObject({ item: { status: 'available' }, myHolds: [] });
+    expect(retry.statusCode).toBe(201);
+  });
+
+  it.each(['extend', 'release', 'purchase'] as const)(
+    '%s answers the generic 404 for anything but this session\'s hold on this list',
+    async (action) => {
+      const { list, cookie, holdId } = await heldByGuest();
+      const otherGuest = await guestOn(list);
+      const listB = await createList();
+      const guestOnB = await guestOn(listB);
+
+      const responses = await Promise.all([
+        holdAction(list.slug, holdId, action, otherGuest),
+        holdAction(listB.slug, holdId, action, guestOnB),
+        holdAction(list.slug, 'not-a-uuid', action, cookie),
+        holdAction(list.slug, '00000000-0000-7000-8000-999999999999', action, cookie),
+        holdAction(list.slug, holdId, action),
+        holdAction('no-such-list', holdId, action, cookie),
+      ]);
+
+      for (const response of responses) {
+        expect(response.statusCode).toBe(404);
+        expect(response.json()).toEqual({ message: 'Not found' });
+      }
+    },
+  );
+});
+
+describe('lazy expiry and the configured duration over HTTP', () => {
+  const T0 = new Date('2026-01-01T00:00:00.000Z');
+
+  it('frees the item the moment a hold lapses, and still lets its guest mark it purchased', async () => {
+    const { timed, clock } = await appAt(T0);
+    const { list, cookie, holdId } = await heldByGuest(timed);
+
+    clock.advance(3 * DAY + 1);
+    const view = (await timed.inject({ method: 'GET', url: `/api/lists/${list.slug}`, headers: { cookie } })).json();
+    const extend = await holdAction(list.slug, holdId, 'extend', cookie, timed);
+    const purchase = await holdAction(list.slug, holdId, 'purchase', cookie, timed);
+
+    expect(view.item.status).toBe('available');
+    expect(view.myHolds).toMatchObject([{ holdId, status: 'expired', actions: { extend: false, release: false, purchase: true } }]);
+    expect(extend.statusCode).toBe(409);
+    expect(extend.json()).toMatchObject({ code: 'hold_not_active' });
+    expect(purchase.json()).toMatchObject({ status: 'purchased' });
+  });
+
+  it('advertises the configured HOLD_DURATION_DAYS and holds for exactly that long', async () => {
+    const { timed } = await appAt(T0, { holdPolicy: { durationDays: 1 } });
+    const { list, cookie, response } = await heldByGuest(timed);
+
+    const view = (await timed.inject({ method: 'GET', url: `/api/lists/${list.slug}`, headers: { cookie } })).json();
+
+    expect(view.capabilities).toEqual({ holdDurationDays: 1 });
+    expect(response.json()).toMatchObject({ expiresAt: new Date(T0.getTime() + DAY).toISOString() });
   });
 });

@@ -1,13 +1,16 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import {
   createListRequestSchema, createListResponseSchema,
   enterGuestKeyRequestSchema, enterGuestKeyResponseSchema,
-  holdItemRequestSchema, holdItemResponseSchema, listViewResponseSchema,
+  holdItemRequestSchema, holdItemResponseSchema, holdViewSchema, listViewResponseSchema,
   errorResponseSchema,
 } from '@gubbins/shared-types';
 import type { AppDependencies } from './compositionRoot.js';
+import type { AccessContext } from '../application/AccessContext.js';
+import type { HoldCommand } from '../application/use-cases/holdCommand.js';
+import type { Wishlist } from '../domain/entities/Wishlist.js';
 import { WishlistNotFoundError, InvalidGuestKeyError } from '../domain/errors.js';
 import { SESSION_COOKIE, buildAccessContext, type SessionPayload } from './accessContext.js';
 import { NOT_FOUND, domainErrorResponse } from './domainErrorResponse.js';
@@ -16,6 +19,7 @@ import { NOT_FOUND, domainErrorResponse } from './domainErrorResponse.js';
 // in @gubbins/shared-types (which holds request/response bodies only).
 const slugParams = z.object({ slug: z.string() });
 const slugItemParams = z.object({ slug: z.string(), itemId: z.string() });
+const slugHoldParams = z.object({ slug: z.string(), holdId: z.string() });
 
 // One shared component in the OpenAPI document instead of the error body
 // inlined into every 4xx response.
@@ -27,9 +31,30 @@ function json<T extends z.ZodType>(description: string, schema: T) {
 }
 
 const INVALID_REQUEST = 'The request did not match the schema.';
+const HOLD_NOT_FOUND = "No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable (ADR-016, ADR-054).";
 
 export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies): void {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
+
+  /**
+   * The URL's list and the guest session presented for it, or null — which
+   * every guest route answers with the same generic 404 as an unknown slug:
+   * a caller must not tell "no such list" from "list exists, you're not in
+   * it", or slugs could be enumerated (ADR-016/054).
+   */
+  async function guestAccess(request: FastifyRequest, slug: string): Promise<{ wishlist: Wishlist; access: AccessContext } | null> {
+    const wishlist = await deps.wishlists.findBySlug(slug, deps.clock.now());
+    if (!wishlist) return null;
+    const access = buildAccessContext(request, wishlist, deps.hasher);
+    return access.guestSession ? { wishlist, access } : null;
+  }
+
+  /** Answers a domain error with its mapped status, or rethrows it for the generic 500 handler. */
+  function sendDomainError(reply: FastifyReply, err: unknown) {
+    const mapped = domainErrorResponse(err);
+    if (!mapped) throw err;
+    return reply.code(mapped.status).send(mapped.body);
+  }
 
   app.post('/api/lists', {
     schema: {
@@ -78,31 +103,19 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       operationId: 'getListView',
       params: slugParams,
       response: {
-        200: json('The list and its item.', listViewResponseSchema),
+        200: json("The list, its item, this session's holds, and what this server does for guests.", listViewResponseSchema),
         404: json('No such list, or no valid session for it. The two are deliberately indistinguishable (ADR-016, ADR-054).', errorResponseSchema),
       },
     },
   }, async (request, reply) => {
-    const wishlist = await deps.wishlists.findBySlug(request.params.slug, deps.clock.now());
-    if (!wishlist) return reply.code(404).send(NOT_FOUND);
-    const access = buildAccessContext(request, wishlist, deps.hasher);
-    // Same generic 404 as an unknown slug — ADR-016/054: a caller must not be
-    // able to tell "no such list" apart from "list exists, you're just not in
-    // it" by status code alone (that would let an unauthenticated prober
-    // enumerate valid slugs).
-    if (!access.guestSession) return reply.code(404).send(NOT_FOUND);
-
-    // Read through the aggregate: findBySlug already loaded the item and its
-    // availability status, so there is no second repository round-trip and no
-    // way to render an item that isn't this wishlist's. Shaping the response
-    // is presentation's job — the domain no longer owns a view of itself.
-    const item = wishlist.item;
-    if (!item) return reply.code(404).send(NOT_FOUND);
-
-    return reply.code(200).send({
-      title: wishlist.title,
-      item: { id: item.id.value, title: item.title, status: wishlist.itemStatus(item.id.value) },
-    });
+    const guest = await guestAccess(request, request.params.slug);
+    if (!guest) return reply.code(404).send(NOT_FOUND);
+    try {
+      const view = await deps.getListView.execute({ wishlistId: guest.wishlist.id.value }, guest.access);
+      return reply.code(200).send(view);
+    } catch (err) {
+      return sendDomainError(reply, err);
+    }
   });
 
   app.post('/api/lists/:slug/items/:itemId/hold', {
@@ -111,7 +124,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       params: slugItemParams,
       body: holdItemRequestSchema,
       response: {
-        201: json('The item is now held for this session.', holdItemResponseSchema),
+        201: json('The item is now held for this session; a replayed idempotency key returns the same hold.', holdItemResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
         404: json('No such list or item, or no valid session for the list. These are deliberately indistinguishable (ADR-016, ADR-054).', errorResponseSchema),
         409: json('No unit of the item is free (item_unavailable), or a concurrent change won (no code).', errorResponseSchema),
@@ -119,27 +132,57 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     },
   }, async (request, reply) => {
     const { slug, itemId } = request.params;
-    const wishlist = await deps.wishlists.findBySlug(slug, deps.clock.now());
-    if (!wishlist) return reply.code(404).send(NOT_FOUND);
-    const access = buildAccessContext(request, wishlist, deps.hasher);
-    // Same generic 404 as an unknown slug — see the GET route above.
-    if (!access.guestSession) return reply.code(404).send(NOT_FOUND);
-
-    // `wishlist` was loaded scoped to this URL's slug, so `wishlist.item` can
-    // only ever be *this* wishlist's item or null. There is no query parameter
-    // that could make it yield another list's item, which is what makes the
-    // cross-wishlist bug class structurally unreachable here rather than
-    // merely patched.
-    if (wishlist.item?.id.value !== itemId) return reply.code(404).send(NOT_FOUND);
-
+    const guest = await guestAccess(request, slug);
+    if (!guest) return reply.code(404).send(NOT_FOUND);
     try {
-      const view = await deps.holdItem.execute({ wishlistId: wishlist.id.value, itemId, idempotencyKey: request.body.idempotencyKey }, access);
-      // PR 6 widens the response to the full hold view; until then, the skeleton's three fields.
-      return reply.code(201).send({ holdId: view.holdId, itemId: view.itemId, expiresAt: view.expiresAt });
+      // The use case loads the wishlist this slug resolved to and asks it for
+      // the item, so another list's item id is ItemNotFoundError — a 404.
+      const view = await deps.holdItem.execute({ wishlistId: guest.wishlist.id.value, itemId, idempotencyKey: request.body.idempotencyKey }, guest.access);
+      return reply.code(201).send(view);
     } catch (err) {
-      const mapped = domainErrorResponse(err);
-      if (mapped) return reply.code(mapped.status).send(mapped.body);
-      throw err;
+      return sendDomainError(reply, err);
     }
   });
+
+  const holdCommands: { action: 'extend' | 'release' | 'purchase'; operationId: string; command: HoldCommand; done: string; conflict: string }[] = [
+    {
+      action: 'extend', operationId: 'extendHold', command: deps.extendHold,
+      done: 'The hold was extended once, by the configured duration, from its current expiry.',
+      conflict: 'The hold is not active (hold_not_active) or was already extended (hold_already_extended).',
+    },
+    {
+      action: 'release', operationId: 'releaseHold', command: deps.releaseHold,
+      done: 'The hold was released; its unit is free for others.',
+      conflict: 'The hold is not active (hold_not_active).',
+    },
+    {
+      action: 'purchase', operationId: 'markHoldPurchased', command: deps.markHoldPurchased,
+      done: 'The hold was marked purchased.',
+      conflict: 'The hold was already released or purchased (hold_not_active), or it expired and no unit is free any more (item_unavailable).',
+    },
+  ];
+
+  // No request body: the session cookie is the only credential for now.
+  for (const { action, operationId, command, done, conflict } of holdCommands) {
+    app.post(`/api/lists/:slug/holds/:holdId/${action}`, {
+      schema: {
+        operationId,
+        params: slugHoldParams,
+        response: {
+          200: json(done, holdViewSchema),
+          404: json(HOLD_NOT_FOUND, errorResponseSchema),
+          409: json(conflict, errorResponseSchema),
+        },
+      },
+    }, async (request, reply) => {
+      const guest = await guestAccess(request, request.params.slug);
+      if (!guest) return reply.code(404).send(NOT_FOUND);
+      try {
+        const view = await command.execute({ wishlistId: guest.wishlist.id.value, holdId: request.params.holdId }, guest.access);
+        return reply.code(200).send(view);
+      } catch (err) {
+        return sendDomainError(reply, err);
+      }
+    });
+  }
 }

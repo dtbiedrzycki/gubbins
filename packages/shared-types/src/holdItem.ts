@@ -1,13 +1,11 @@
 import { z } from 'zod';
+import { holdViewSchema, type HoldView } from './holdView.js';
 
 export const holdItemRequestSchema = z.object({
   idempotencyKey: z.string().trim().min(1),
 });
 export type HoldItemRequest = z.infer<typeof holdItemRequestSchema>;
 
-export const holdItemResponseSchema = z.object({
-  holdId: z.string(),
-  itemId: z.string(),
-  expiresAt: z.string(),
-});
-export type HoldItemResponse = z.infer<typeof holdItemResponseSchema>;
+/** The hold just placed — or, for a replayed idempotency key, the original hold as it is now (ADR-0048). */
+export const holdItemResponseSchema = holdViewSchema;
+export type HoldItemResponse = HoldView;

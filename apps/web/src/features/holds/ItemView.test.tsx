@@ -13,7 +13,7 @@ function renderWithQueryClient(ui: ReactElement) {
 
 describe('ItemView', () => {
   it('shows a Hold button for an available item, then confirms and holds it', async () => {
-    server.use(mock('post', '/api/lists/{slug}/items/{itemId}/hold', 201, { holdId: 'hold-1', itemId: 'item-1', expiresAt: '2026-01-04T00:00:00.000Z' }));
+    server.use(mock('post', '/api/lists/{slug}/items/{itemId}/hold', 201, { holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: '2026-01-04T00:00:00.000Z', extendedAt: null, actions: { extend: true, release: true, purchase: true } }));
     const user = userEvent.setup();
     renderWithQueryClient(
       <ItemView slug="abc123" listTitle="Baby Shower" item={{ id: 'item-1', title: 'Stroller', status: 'available' }} />,

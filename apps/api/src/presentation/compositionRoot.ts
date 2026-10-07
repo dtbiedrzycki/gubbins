@@ -11,7 +11,11 @@ import { ConsoleLogger } from '../infrastructure/ConsoleLogger.js';
 import { LoggingEventStore } from '../infrastructure/LoggingEventStore.js';
 import { CreateList } from '../application/use-cases/CreateList.js';
 import { EnterGuestKey } from '../application/use-cases/EnterGuestKey.js';
+import { GetListView } from '../application/use-cases/GetListView.js';
 import { HoldItem } from '../application/use-cases/HoldItem.js';
+import { ExtendHold } from '../application/use-cases/ExtendHold.js';
+import { ReleaseHold } from '../application/use-cases/ReleaseHold.js';
+import { MarkHoldPurchased } from '../application/use-cases/MarkHoldPurchased.js';
 import type { Logger } from '../application/ports/Logger.js';
 import type { Clock } from '../application/ports/Clock.js';
 import type { Hasher } from '../application/ports/Hasher.js';
@@ -27,7 +31,12 @@ export interface BuildDependenciesOptions {
 export interface AppDependencies {
   createList: CreateList;
   enterGuestKey: EnterGuestKey;
+  getListView: GetListView;
   holdItem: HoldItem;
+  extendHold: ExtendHold;
+  releaseHold: ReleaseHold;
+  markHoldPurchased: MarkHoldPurchased;
+  /** For resolving a URL's slug before access is checked; use cases load their own aggregate. */
   wishlists: WishlistRepositoryKysely;
   logger: Logger;
   clock: Clock;
@@ -46,7 +55,11 @@ export function buildDependencies(db: Kysely<Database>, logger: Logger = new Con
   return {
     createList: new CreateList(unitOfWork, tokenGenerator, clock),
     enterGuestKey: new EnterGuestKey(wishlists, secretComparer, tokenGenerator, clock),
+    getListView: new GetListView(unitOfWork, clock, holdPolicy),
     holdItem: new HoldItem(unitOfWork, tokenGenerator, clock, hasher, holdPolicy),
+    extendHold: new ExtendHold(unitOfWork, clock, holdPolicy),
+    releaseHold: new ReleaseHold(unitOfWork, clock),
+    markHoldPurchased: new MarkHoldPurchased(unitOfWork, clock),
     wishlists,
     logger,
     clock,
