@@ -128,7 +128,7 @@ describe('POST /api/lists/:slug/session', () => {
 });
 
 describe('GET /api/lists/:slug', () => {
-  it('returns the same generic 404 without a session cookie as for an unknown slug (ADR-016/054 anti-enumeration)', async () => {
+  it('returns the same generic 404 without a session cookie as for an unknown slug (ADR-0016/0054 anti-enumeration)', async () => {
     const list = await createList();
     const response = await app.inject({ method: 'GET', url: `/api/lists/${list.slug}` });
     expect(response.statusCode).toBe(404);
@@ -200,7 +200,7 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
     expect(second.json()).toEqual(first.json());
   });
 
-  it('returns the same generic 404 without a session cookie as for an unknown slug (ADR-016/054 anti-enumeration)', async () => {
+  it('returns the same generic 404 without a session cookie as for an unknown slug (ADR-0016/0054 anti-enumeration)', async () => {
     const list = await createList();
     const response = await app.inject({
       method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, payload: { idempotencyKey: 'idem-1' },
@@ -423,6 +423,23 @@ describe('hold lifecycle over HTTP', () => {
 
 describe('lazy expiry and the configured duration over HTTP', () => {
   const T0 = new Date('2026-01-01T00:00:00.000Z');
+
+  it.each(['release', 'purchase', 'lapse'] as const)(
+    "answers the generic 404, not a state-revealing 409, when another session acts on a hold that was closed by %s",
+    async (closing) => {
+      const { timed, clock } = await appAt(T0);
+      const { list, cookie, holdId } = await heldByGuest(timed);
+      if (closing === 'lapse') clock.advance(3 * DAY + 1);
+      else expect((await holdAction(list.slug, holdId, closing, cookie, timed)).statusCode).toBe(200);
+      const otherGuest = await guestOn(list, timed);
+
+      for (const action of ['extend', 'release', 'purchase'] as const) {
+        const response = await holdAction(list.slug, holdId, action, otherGuest, timed);
+        expect(response.statusCode).toBe(404);
+        expect(response.json()).toEqual({ message: 'Not found' });
+      }
+    },
+  );
 
   it('frees the item the moment a hold lapses, and still lets its guest mark it purchased', async () => {
     const { timed, clock } = await appAt(T0);

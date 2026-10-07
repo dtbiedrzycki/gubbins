@@ -7162,6 +7162,8 @@ git switch -c feat/holds-a/08-web-e2e feat/holds-a/07-rebuild
 
 Run web tests from `apps/web` as `npx vitest run --testTimeout=30000 <path>` in the dev container (see Global Constraints). `npm test` at the root is unchanged.
 
+The three hold-action routes take no body, so the client must send them with no JSON `Content-Type`: with that header and an empty or malformed body the API answers the app-wide 400 `Invalid request`, which those routes do not document. Task 8.1's client calls pass no `body`, and its tests should assert the request carries no JSON content type.
+
 ### Task 8.1: API client — the three hold actions, and the 409 `code` on `ApiError`
 
 **Files:**

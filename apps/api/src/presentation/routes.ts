@@ -31,7 +31,7 @@ function json<T extends z.ZodType>(description: string, schema: T) {
 }
 
 const INVALID_REQUEST = 'The request did not match the schema.';
-const HOLD_NOT_FOUND = "No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable (ADR-016, ADR-054).";
+const HOLD_NOT_FOUND = "No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable (ADR-0016, ADR-0054).";
 
 export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies): void {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
@@ -40,7 +40,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
    * The URL's list and the guest session presented for it, or null — which
    * every guest route answers with the same generic 404 as an unknown slug:
    * a caller must not tell "no such list" from "list exists, you're not in
-   * it", or slugs could be enumerated (ADR-016/054).
+   * it", or slugs could be enumerated (ADR-0016/0054).
    */
   async function guestAccess(request: FastifyRequest, slug: string): Promise<{ wishlist: Wishlist; access: AccessContext } | null> {
     const wishlist = await deps.wishlists.findBySlug(slug, deps.clock.now());
@@ -78,7 +78,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       response: {
         200: json('The key was accepted and a session cookie was set.', enterGuestKeyResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
-        404: json('No such list, or the key is wrong. The two are deliberately indistinguishable (ADR-016, ADR-054).', errorResponseSchema),
+        404: json('No such list, or the key is wrong. The two are deliberately indistinguishable (ADR-0016, ADR-0054).', errorResponseSchema),
       },
     },
   }, async (request, reply) => {
@@ -90,7 +90,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       return reply.code(200).send({ ok: true });
     } catch (err) {
       // Same generic response for "no such list" and "wrong key" —
-      // access-identity.md / ADR-016 / ADR-054 forbid distinguishing them.
+      // access-identity.md / ADR-0016 / ADR-0054 forbid distinguishing them.
       if (err instanceof WishlistNotFoundError || err instanceof InvalidGuestKeyError) {
         return reply.code(404).send(NOT_FOUND);
       }
@@ -104,7 +104,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       params: slugParams,
       response: {
         200: json("The list, its item, this session's holds, and what this server does for guests.", listViewResponseSchema),
-        404: json('No such list, or no valid session for it. The two are deliberately indistinguishable (ADR-016, ADR-054).', errorResponseSchema),
+        404: json('No such list, or no valid session for it. The two are deliberately indistinguishable (ADR-0016, ADR-0054).', errorResponseSchema),
       },
     },
   }, async (request, reply) => {
@@ -126,7 +126,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       response: {
         201: json('The item is now held for this session; a replayed idempotency key returns the same hold.', holdItemResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
-        404: json('No such list or item, or no valid session for the list. These are deliberately indistinguishable (ADR-016, ADR-054).', errorResponseSchema),
+        404: json('No such list or item, or no valid session for the list. These are deliberately indistinguishable (ADR-0016, ADR-0054).', errorResponseSchema),
         409: json('No unit of the item is free (item_unavailable), or a concurrent change won (no code).', errorResponseSchema),
       },
     },
