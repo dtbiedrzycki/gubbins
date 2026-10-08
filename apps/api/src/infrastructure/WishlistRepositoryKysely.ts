@@ -1,22 +1,23 @@
 import type { Kysely, Selectable } from 'kysely';
 import type { Database, WishlistsTable } from './db/schema.js';
 import type { WishlistRepository } from '../application/ports/WishlistRepository.js';
+import type { Item } from '../domain/entities/Item.js';
 import { Wishlist } from '../domain/entities/Wishlist.js';
-import { ItemNotFoundError } from '../domain/errors.js';
+import { HoldRepositoryKysely } from './HoldRepositoryKysely.js';
 import { ItemRepositoryKysely } from './ItemRepositoryKysely.js';
 
 /**
- * The aggregate's SQLite adapter. It owns an `ItemRepositoryKysely` built on
- * the *same* `Kysely`/transaction instance, so the item and item_state rows it
- * reads and writes take part in the caller's transaction. That collaborator is
- * private: `ItemRepository` is an implementation detail of this repository,
- * never a use-case-facing port.
+ * The aggregate's SQLite adapter (ADR-0078). Its item and hold
+ * collaborators are built on the *same* Kysely/transaction instance, so
+ * everything it reads and writes takes part in the caller's transaction.
  */
 export class WishlistRepositoryKysely implements WishlistRepository {
   private items: ItemRepositoryKysely;
+  private holds: HoldRepositoryKysely;
 
   constructor(private db: Kysely<Database>) {
     this.items = new ItemRepositoryKysely(db);
+    this.holds = new HoldRepositoryKysely(db);
   }
 
   async insert(wishlist: Wishlist): Promise<void> {
@@ -29,29 +30,32 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     if (item !== null) await this.items.insert(item);
   }
 
-  async findBySlug(slug: string): Promise<Wishlist | null> {
+  async findBySlug(slug: string, now: Date): Promise<Wishlist | null> {
     const row = await this.db.selectFrom('wishlists').selectAll().where('slug', '=', slug).executeTakeFirst();
-    return row ? this.hydrate(row) : null;
+    return row ? this.hydrate(row, now) : null;
   }
 
-  async findById(id: string): Promise<Wishlist | null> {
+  async findById(id: string, now: Date): Promise<Wishlist | null> {
     const row = await this.db.selectFrom('wishlists').selectAll().where('id', '=', id).executeTakeFirst();
-    return row ? this.hydrate(row) : null;
+    return row ? this.hydrate(row, now) : null;
   }
 
-  async markItemHeld(wishlistId: string, itemId: string, newSeq: number): Promise<void> {
-    const item = await this.items.findInWishlist(wishlistId, itemId);
-    if (!item) throw new ItemNotFoundError(itemId);
-    await this.items.markHeld(itemId, newSeq);
+  async saveItemState(item: Item): Promise<void> {
+    await this.items.saveState(item);
   }
 
-  /** Loads the whole aggregate for an already-fetched wishlist row. */
-  private async hydrate(row: Selectable<WishlistsTable>): Promise<Wishlist> {
+  /**
+   * Active and purchased holds only, so the aggregate stays bounded however
+   * long the list has been in use. `now` is both the hold query's instant and
+   * the aggregate's `asOf`, so load and decision share it.
+   */
+  private async hydrate(row: Selectable<WishlistsTable>, now: Date): Promise<Wishlist> {
     const item = await this.items.findByWishlistId(row.id);
+    const holds = await this.holds.findActiveOrPurchasedForWishlist(row.id, now);
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
-      ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen,
-      item: item ?? undefined,
+      ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now,
+      item: item ?? undefined, holds,
     });
   }
 }

@@ -2,6 +2,7 @@ import type { Kysely } from 'kysely';
 import type { Database } from './db/schema.js';
 import type { ItemRepository } from '../application/ports/ItemRepository.js';
 import { Item } from '../domain/entities/Item.js';
+import { ItemNotFoundError } from '../domain/errors.js';
 
 export class ItemRepositoryKysely implements ItemRepository {
   constructor(private db: Kysely<Database>) {}
@@ -13,7 +14,7 @@ export class ItemRepositoryKysely implements ItemRepository {
       quantity: item.quantity, created_at: now,
     }).execute();
     await this.db.insertInto('item_state').values({
-      item_id: item.id.value, seq: item.seq, active_holds: item.activeHolds, updated_at: now,
+      item_id: item.id.value, seq: item.seq, updated_at: now,
     }).execute();
   }
 
@@ -21,42 +22,25 @@ export class ItemRepositoryKysely implements ItemRepository {
     const row = await this.db.selectFrom('items')
       .innerJoin('item_state', 'item_state.item_id', 'items.id')
       .selectAll('items')
-      .select(['item_state.seq as seq', 'item_state.active_holds as active_holds'])
+      .select('item_state.seq as seq')
       .where('wishlist_id', '=', wishlistId)
       .executeTakeFirst();
     if (!row) return null;
     return Item.reconstitute({
       id: row.id, wishlistId: row.wishlist_id, type: row.type, title: row.title, quantity: row.quantity,
-      seq: row.seq, activeHolds: row.active_holds,
+      seq: row.seq,
     });
   }
 
-  async findInWishlist(wishlistId: string, itemId: string): Promise<Item | null> {
-    const row = await this.db.selectFrom('items')
-      .innerJoin('item_state', 'item_state.item_id', 'items.id')
-      .selectAll('items')
-      .select(['item_state.seq as seq', 'item_state.active_holds as active_holds'])
-      .where('items.id', '=', itemId)
-      .where('wishlist_id', '=', wishlistId)
+  /** Writes `seq` only: the purchased count is derived from holds, never stored. */
+  async saveState(item: Item): Promise<void> {
+    const result = await this.db.updateTable('item_state')
+      .set({ seq: item.seq, updated_at: new Date().toISOString() })
+      .where('item_id', '=', item.id.value)
+      // Scoped by wishlist as well as id: a write lands only on an item of
+      // the list the aggregate was loaded for.
+      .where('item_id', 'in', this.db.selectFrom('items').select('items.id').where('items.wishlist_id', '=', item.wishlistId.value))
       .executeTakeFirst();
-    if (!row) return null;
-    return Item.reconstitute({
-      id: row.id, wishlistId: row.wishlist_id, type: row.type, title: row.title, quantity: row.quantity,
-      seq: row.seq, activeHolds: row.active_holds,
-    });
-  }
-
-  async markHeld(itemId: string, newSeq: number): Promise<void> {
-    // The port only gives us newSeq: activeHolds isn't part of the port's
-    // contract (it lives on the domain Item, not this write), so we read the
-    // current row to bump it. This stays private to the Kysely adapter — the
-    // port itself has no read-before-write step.
-    const current = await this.db.selectFrom('item_state').select('active_holds')
-      .where('item_id', '=', itemId).executeTakeFirst();
-    if (!current) throw new Error(`No state for item ${itemId}`);
-    await this.db.updateTable('item_state')
-      .set({ seq: newSeq, active_holds: current.active_holds + 1, updated_at: new Date().toISOString() })
-      .where('item_id', '=', itemId)
-      .execute();
+    if (result.numUpdatedRows === 0n) throw new ItemNotFoundError(item.id.value);
   }
 }

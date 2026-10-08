@@ -5,6 +5,7 @@ import type { EventStore } from '../application/ports/EventStore.js';
 import { WishlistRepositoryKysely } from './WishlistRepositoryKysely.js';
 import { HoldRepositoryKysely } from './HoldRepositoryKysely.js';
 import { EventStoreKysely } from './EventStoreKysely.js';
+import { inImmediateTransaction } from './db/immediateTransaction.js';
 
 export class UnitOfWorkKysely implements UnitOfWork {
   constructor(
@@ -23,7 +24,7 @@ export class UnitOfWorkKysely implements UnitOfWork {
   ) {}
 
   async execute<T>(fn: (ctx: TransactionContext) => Promise<T>): Promise<T> {
-    return this.db.transaction().execute((trx) => fn({
+    return inImmediateTransaction(this.db, (trx) => fn({
       wishlists: new WishlistRepositoryKysely(trx),
       holds: new HoldRepositoryKysely(trx),
       eventStore: this.wrapEventStore(new EventStoreKysely(trx)),

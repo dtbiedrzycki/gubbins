@@ -1,18 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { CreateList } from './CreateList.js';
 import { SequentialTokenGenerator } from '../test-fakes/SequentialTokenGenerator.js';
-import {
-  InMemoryWishlistRepository, InMemoryHoldRepository,
-  InMemoryEventStore, InMemoryUnitOfWork,
-} from '../test-fakes/InMemoryRepositories.js';
+import { FixedClock } from '../test-fakes/FixedClock.js';
+import { inMemoryPersistence } from '../test-fakes/InMemoryRepositories.js';
+
+const NOW = new Date('2026-01-01T00:00:00Z');
 
 function makeUseCase() {
-  const wishlists = new InMemoryWishlistRepository();
-  const holds = new InMemoryHoldRepository();
-  const eventStore = new InMemoryEventStore();
-  const unitOfWork = new InMemoryUnitOfWork({ wishlists, holds, eventStore });
-  const tokenGenerator = new SequentialTokenGenerator();
-  const useCase = new CreateList(unitOfWork, tokenGenerator);
+  const { wishlists, unitOfWork } = inMemoryPersistence();
+  const useCase = new CreateList(unitOfWork, new SequentialTokenGenerator(), new FixedClock(NOW));
   return { useCase, wishlists };
 }
 
@@ -28,7 +24,7 @@ describe('CreateList', () => {
       slug: 'slug-1', ownerToken: 'owner-token-1', key: 'guest-key-1',
       itemId: '00000000-0000-7000-8000-000000000002',
     });
-    const persistedWishlist = await wishlists.findBySlug('slug-1');
+    const persistedWishlist = await wishlists.findBySlug('slug-1', NOW);
     expect(persistedWishlist?.title).toBe('Baby Shower');
     // The item is reachable only through the aggregate that owns it.
     const persistedItem = persistedWishlist?.item;

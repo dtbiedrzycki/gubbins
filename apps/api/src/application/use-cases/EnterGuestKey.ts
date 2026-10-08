@@ -1,6 +1,7 @@
 import type { WishlistRepository } from '../ports/WishlistRepository.js';
 import type { SecretComparer } from '../ports/SecretComparer.js';
 import type { TokenGenerator } from '../ports/TokenGenerator.js';
+import type { Clock } from '../ports/Clock.js';
 import { WishlistNotFoundError, InvalidGuestKeyError } from '../../domain/errors.js';
 
 export interface EnterGuestKeyInput {
@@ -19,10 +20,11 @@ export class EnterGuestKey {
     private wishlists: WishlistRepository,
     private secretComparer: SecretComparer,
     private tokenGenerator: TokenGenerator,
+    private clock: Clock,
   ) {}
 
   async execute(input: EnterGuestKeyInput): Promise<EnterGuestKeyOutput> {
-    const wishlist = await this.wishlists.findBySlug(input.slug);
+    const wishlist = await this.wishlists.findBySlug(input.slug, this.clock.now());
     // Looked up by slug, so no wishlist id exists yet when this fails.
     if (!wishlist) throw new WishlistNotFoundError(input.slug);
     if (!wishlist.key.matches(input.key, this.secretComparer)) {

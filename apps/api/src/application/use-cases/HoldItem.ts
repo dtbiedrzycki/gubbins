@@ -29,43 +29,37 @@ export class HoldItem {
 
   async execute(input: HoldItemInput): Promise<HoldItemOutput> {
     return this.unitOfWork.execute(async (ctx) => {
-      // An unknown wishlist and an item that isn't in it are the same failure
-      // from this use case's contract: there is no such item to hold.
-      // getItem is the aggregate's one authorization step for reaching an
-      // item at all, so this is the only place that check needs to live.
-      const wishlist = await ctx.wishlists.findById(input.wishlistId);
+      // Read once: the aggregate is loaded as of this instant, its active
+      // holds included, and decides everything below at the same one.
+      const now = this.clock.now();
+      // An unknown wishlist and an item that isn't in it are the same
+      // failure from this use case's contract: there is no such item to hold.
+      const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
       if (!wishlist) throw new ItemNotFoundError(input.itemId);
-      const item = wishlist.getItem(input.itemId);
+      wishlist.getItem(input.itemId);
 
-      // Deliberately before the availability check: a replayed idempotency key
-      // must return the original hold, not trip ItemUnavailableError on the
-      // hold it created itself.
+      // Deliberately before the availability check: a replayed idempotency
+      // key must return the original hold, not trip ItemUnavailableError on
+      // the hold it created itself.
       const existing = await ctx.holds.findByIdempotencyKey(input.itemId, input.idempotencyKey);
       if (existing) {
-        return { holdId: existing.id, itemId: existing.itemId, expiresAt: existing.expiresAt.toISOString() };
+        return { holdId: existing.id.value, itemId: existing.itemId.value, expiresAt: existing.expiresAt.toISOString() };
       }
 
-      const now = this.clock.now();
-      const expiresAt = new Date(now.getTime() + HOLD_DURATION_MS);
-      const { hold, event, expectedSeq } = item.placeHold({
+      const { hold, item, event, expectedSeq } = wishlist.holdItem({
+        itemId: input.itemId,
         sessionHash: this.hasher.hash(input.sessionId),
         idempotencyKey: input.idempotencyKey,
-        expiresAt,
-        now,
+        durationMs: HOLD_DURATION_MS,
       }, this.tokenGenerator, this.hasher);
 
       // Placing a hold is guest-only (ADR-0075), and HoldItem is only ever
       // reached with a guest session, so the actor is fixed here.
-      await ctx.eventStore.append(input.itemId, expectedSeq, [event], 'guest');
-
-      await ctx.holds.recordHold({
-        id: hold.id.value, itemId: hold.itemId.value, secret: hold.secret.value,
-        sessionHash: hold.sessionHash.value, idempotencyKey: hold.idempotencyKey.value, expiresAt: hold.expiresAt,
-      });
-      // placeHold has already advanced the in-memory item's seq past
-      // expectedSeq, so the persisted row must record that next value, not
-      // whatever item.seq happens to read after further calls.
-      await ctx.wishlists.markItemHeld(input.wishlistId, input.itemId, expectedSeq + 1);
+      await ctx.eventStore.append(item.id.value, expectedSeq, [event], 'guest');
+      await ctx.holds.insert(hold);
+      // Persist exactly what the domain decided — the write path never
+      // decides availability itself.
+      await ctx.wishlists.saveItemState(item);
 
       return { holdId: hold.id.value, itemId: hold.itemId.value, expiresAt: hold.expiresAt.toISOString() };
     });

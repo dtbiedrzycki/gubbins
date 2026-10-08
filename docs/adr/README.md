@@ -112,6 +112,7 @@ one-time renumbering documented in the restructuring history.
 | [076](0076-uuidv7-for-domain-entity-identifiers.md) | UUIDv7 for domain entity identifiers | Accepted |
 | [077](0077-openapi-document-generated-from-route-schemas-is-the-api-contract.md) | The OpenAPI document generated from route schemas is the API contract | Accepted |
 | [078](0078-wishlist-is-the-aggregate-root.md) | Wishlist is the aggregate root for its items and holds | Accepted |
+| [079](0079-domain-methods-are-named-by-what-they-do-to-state.md) | Domain methods are named by what they do to state | Accepted |
 
 ## Imported ADRs (0001–0070)
 

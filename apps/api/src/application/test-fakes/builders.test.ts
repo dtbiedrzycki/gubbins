@@ -18,7 +18,32 @@ describe('aWishlist', () => {
     expect(wishlist.item?.id.value).toBe('77777777-7777-7777-8777-777777777777');
     expect(wishlist.item?.title).toBe('Cot');
     expect(wishlist.item?.wishlistId.value).toBe(wishlist.id.value);
-    expect(wishlist.item?.status).toBe('available');
+    expect(wishlist.itemStatus('77777777-7777-7777-8777-777777777777')).toBe('available');
+  });
+
+  it('refuses a purchased count without an item', () => {
+    expect(() => aWishlist().withPurchasedCount(1).build()).toThrow('withPurchasedCount needs withItem');
+  });
+
+  it('decides as of the instant given to asOf', () => {
+    const wishlist = aWishlist().withItem({ id: '77777777-7777-7777-8777-777777777777', title: 'Cot' }).asOf(new Date('2026-05-01T00:00:00Z')).build();
+    const { hold } = wishlist.holdItem(
+      { itemId: '77777777-7777-7777-8777-777777777777', sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', durationMs: 60_000 },
+      { generateEntityId: () => '44444444-4444-7444-8444-444444444444', generateHoldSecret: () => 'hold-secret' },
+      { hash: (value: string) => value },
+    );
+    expect(hold.expiresAt).toEqual(new Date('2026-05-01T00:01:00Z'));
+  });
+
+  it('loads the wishlist with as many purchased holds as it was given', () => {
+    const wishlist = aWishlist().withItem({ id: '77777777-7777-7777-8777-777777777777', title: 'Cot' }).withPurchasedCount(1).build();
+    expect(wishlist.purchasedCountOf('77777777-7777-7777-8777-777777777777')).toBe(1);
+    expect(wishlist.itemStatus('77777777-7777-7777-8777-777777777777')).toBe('purchased');
+  });
+
+  it('gives each purchased hold its own id', () => {
+    const wishlist = aWishlist().withItem({ id: '77777777-7777-7777-8777-777777777777', title: 'Cot' }).withPurchasedCount(3).build();
+    expect(wishlist.purchasedCountOf('77777777-7777-7777-8777-777777777777')).toBe(3);
   });
 });
 

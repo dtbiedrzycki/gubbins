@@ -12,6 +12,7 @@ import { CreateList } from '../application/use-cases/CreateList.js';
 import { EnterGuestKey } from '../application/use-cases/EnterGuestKey.js';
 import { HoldItem } from '../application/use-cases/HoldItem.js';
 import type { Logger } from '../application/ports/Logger.js';
+import type { Clock } from '../application/ports/Clock.js';
 
 export interface AppDependencies {
   createList: CreateList;
@@ -19,6 +20,7 @@ export interface AppDependencies {
   holdItem: HoldItem;
   wishlists: WishlistRepositoryKysely;
   logger: Logger;
+  clock: Clock;
 }
 
 export function buildDependencies(db: Kysely<Database>, logger: Logger = new ConsoleLogger()): AppDependencies {
@@ -30,10 +32,11 @@ export function buildDependencies(db: Kysely<Database>, logger: Logger = new Con
   const wishlists = new WishlistRepositoryKysely(db);
 
   return {
-    createList: new CreateList(unitOfWork, tokenGenerator),
-    enterGuestKey: new EnterGuestKey(wishlists, secretComparer, tokenGenerator),
+    createList: new CreateList(unitOfWork, tokenGenerator, clock),
+    enterGuestKey: new EnterGuestKey(wishlists, secretComparer, tokenGenerator, clock),
     holdItem: new HoldItem(unitOfWork, tokenGenerator, clock, hasher),
     wishlists,
     logger,
+    clock,
   };
 }

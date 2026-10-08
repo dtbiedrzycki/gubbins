@@ -1,158 +1,169 @@
-import { Wishlist } from '../../domain/entities/Wishlist.js';
+import { Hold } from '../../domain/entities/Hold.js';
 import { Item } from '../../domain/entities/Item.js';
-import type { WishlistRepository } from '../ports/WishlistRepository.js';
-import type { ItemRepository } from '../ports/ItemRepository.js';
-import type { HoldRepository, HoldRecord } from '../ports/HoldRepository.js';
-import type { EventStore } from '../ports/EventStore.js';
+import { Wishlist } from '../../domain/entities/Wishlist.js';
 import type { Actor } from '../../domain/Actor.js';
 import type { LedgerEvent } from '../../domain/events/LedgerEvent.js';
-import type { UnitOfWork, TransactionContext } from '../ports/UnitOfWork.js';
 import { ConcurrencyError, ItemNotFoundError } from '../../domain/errors.js';
+import type { EventStore } from '../ports/EventStore.js';
+import type { HoldRepository } from '../ports/HoldRepository.js';
+import type { TransactionContext, UnitOfWork } from '../ports/UnitOfWork.js';
+import type { WishlistRepository } from '../ports/WishlistRepository.js';
 
 /**
- * Copies an Item through `Item.reconstitute`, the way a real repository
- * rebuilds one from its row. Reads must not hand back the stored instance:
- * `Item.placeHold` mutates in place, so a shared instance would let an
- * uncommitted decision — or a second one counted on top of an already
- * persisted hold — show up on the next read, which a real SELECT could
- * never do.
+ * Copies through `reconstitute`, the way a real repository rebuilds rows.
+ * Neither reads nor writes may share an instance with the store: the
+ * domain mutates items and holds in place, so a shared instance would let
+ * an unpersisted decision show up on the next read — which a SELECT never
+ * could.
  */
-function reconstituteFrom(item: Item, overrides: { seq?: number; activeHolds?: number } = {}): Item {
+function copyItem(item: Item): Item {
   return Item.reconstitute({
-    id: item.id.value,
-    wishlistId: item.wishlistId.value,
-    type: item.type,
-    title: item.title,
-    quantity: item.quantity,
-    seq: overrides.seq ?? item.seq,
-    activeHolds: overrides.activeHolds ?? item.activeHolds,
+    id: item.id.value, wishlistId: item.wishlistId.value, type: item.type, title: item.title,
+    quantity: item.quantity, seq: item.seq,
+  });
+}
+
+function copyHold(hold: Hold): Hold {
+  return Hold.reconstitute({
+    id: hold.id.value, itemId: hold.itemId.value, secret: hold.secret.value, sessionHash: hold.sessionHash.value,
+    idempotencyKey: hold.idempotencyKey.value, expiresAt: hold.expiresAt,
+    extendedAt: hold.extendedAt, releasedAt: hold.releasedAt, purchasedAt: hold.purchasedAt,
   });
 }
 
 /**
- * Not exported: `ItemRepository` is no longer use-case-facing, so this fake
- * exists only as the collaborator `InMemoryWishlistRepository` assembles the
- * aggregate from — the same role the item/item_state tables will play for the
- * Kysely implementation.
+ * The fakes' tables. One store per test, shared by every fake built on it,
+ * so a hold inserted through the hold repository shows up in the wishlist
+ * repository's next load — as rows in one database would.
  */
-class InMemoryItemRepository implements ItemRepository {
-  private byId = new Map<string, Item>();
+export class InMemoryStore {
+  readonly wishlists = new Map<string, Wishlist>();
+  /** Item rows. */
+  readonly items = new Map<string, Item>();
+  readonly holds = new Map<string, Hold>();
+  readonly streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
 
-  /** Copies on write too, so a caller that keeps mutating its own instance after inserting cannot reach into the store. */
-  async insert(item: Item): Promise<void> {
-    this.byId.set(item.id.value, reconstituteFrom(item));
-  }
-
-  async findByWishlistId(wishlistId: string): Promise<Item | null> {
-    for (const item of this.byId.values()) {
-      if (item.wishlistId.value === wishlistId) return reconstituteFrom(item);
-    }
-    return null;
-  }
-
-  async findInWishlist(wishlistId: string, itemId: string): Promise<Item | null> {
-    const item = this.byId.get(itemId);
-    return item && item.wishlistId.value === wishlistId ? reconstituteFrom(item) : null;
+  holdsOnList(wishlistId: string): Hold[] {
+    return [...this.holds.values()].filter((hold) => this.items.get(hold.itemId.value)?.wishlistId.value === wishlistId);
   }
 
   /**
-   * `Item` has no public setter for its concurrency fields, so marking held
-   * means storing a fresh instance built from the stored one plus the new
-   * seq and hold count — mirroring how a real UPDATE overwrites the row.
+   * The list's holds active or purchased at `now`, by the same predicate as
+   * the SQL adapter's query: purchased, or not released with
+   * `now <= expiresAt`. The hold repository contract checks it agrees with
+   * the domain.
    */
-  async markHeld(itemId: string, newSeq: number): Promise<void> {
-    const item = this.byId.get(itemId);
-    if (!item) throw new Error(`No item ${itemId}`);
-    this.byId.set(itemId, reconstituteFrom(item, { seq: newSeq, activeHolds: item.activeHolds + 1 }));
+  activeOrPurchasedHoldsOnList(wishlistId: string, now: Date): Hold[] {
+    return this.holdsOnList(wishlistId).filter(
+      (h) => h.purchasedAt !== null || (h.releasedAt === null && now.getTime() <= h.expiresAt.getTime()),
+    );
   }
 }
 
-/**
- * Stores whole aggregates: an inserted wishlist brings its item with it, and
- * every read hands back a `Wishlist` with that item (and its current state)
- * already attached, so callers never need a second lookup.
- */
 export class InMemoryWishlistRepository implements WishlistRepository {
-  private bySlug = new Map<string, Wishlist>();
-  private byId = new Map<string, Wishlist>();
-  private items = new InMemoryItemRepository();
+  constructor(private store: InMemoryStore) {}
 
   async insert(wishlist: Wishlist): Promise<void> {
-    this.bySlug.set(wishlist.slug.value, wishlist);
-    this.byId.set(wishlist.id.value, wishlist);
+    this.store.wishlists.set(wishlist.id.value, wishlist);
     const item = wishlist.item;
-    if (item !== null) await this.items.insert(item);
+    if (item !== null) this.store.items.set(item.id.value, copyItem(item));
   }
 
-  async findBySlug(slug: string): Promise<Wishlist | null> {
-    return this.hydrate(this.bySlug.get(slug));
+  async findBySlug(slug: string, now: Date): Promise<Wishlist | null> {
+    return this.hydrate([...this.store.wishlists.values()].find((w) => w.slug.value === slug), now);
   }
 
-  async findById(id: string): Promise<Wishlist | null> {
-    return this.hydrate(this.byId.get(id));
+  async findById(id: string, now: Date): Promise<Wishlist | null> {
+    return this.hydrate(this.store.wishlists.get(id), now);
   }
 
-  async markItemHeld(wishlistId: string, itemId: string, newSeq: number): Promise<void> {
-    const item = await this.items.findInWishlist(wishlistId, itemId);
-    if (item === null) throw new ItemNotFoundError(itemId);
-    await this.items.markHeld(itemId, newSeq);
+  async saveItemState(item: Item): Promise<void> {
+    const stored = this.store.items.get(item.id.value);
+    if (!stored || stored.wishlistId.value !== item.wishlistId.value) throw new ItemNotFoundError(item.id.value);
+    // seq only: the purchased count is derived from holds, never stored.
+    this.store.items.set(item.id.value, copyItem(item));
   }
 
-  /**
-   * Rebuilds the aggregate from the stored wishlist plus its item, which
-   * already carries its own concurrency state. Every read path
-   * reconstitutes — never hands back the stored instance — so the fake's
-   * read identity matches the real repository's.
-   */
-  private async hydrate(wishlist: Wishlist | undefined): Promise<Wishlist | null> {
+  private hydrate(wishlist: Wishlist | undefined, now: Date): Wishlist | null {
     if (wishlist === undefined) return null;
-    const item = await this.items.findByWishlistId(wishlist.id.value);
+    const item = [...this.store.items.values()].find((i) => i.wishlistId.value === wishlist.id.value);
+    const holds = this.store.activeOrPurchasedHoldsOnList(wishlist.id.value, now).map(copyHold);
     return Wishlist.reconstitute({
-      id: wishlist.id.value,
-      slug: wishlist.slug.value,
-      title: wishlist.title,
-      ownerToken: wishlist.ownerToken.value,
-      key: wishlist.key.value,
-      keyGen: wishlist.keyGen,
-      item: item ?? undefined,
+      id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
+      ownerToken: wishlist.ownerToken.value, key: wishlist.key.value, keyGen: wishlist.keyGen, asOf: now,
+      item: item ? copyItem(item) : undefined, holds,
     });
   }
 }
 
 export class InMemoryHoldRepository implements HoldRepository {
-  private holds: HoldRecord[] = [];
+  constructor(private store: InMemoryStore) {}
 
-  async recordHold(hold: HoldRecord): Promise<void> {
-    this.holds.push(hold);
+  /** Mirrors the table's primary key and UNIQUE (item_id, idempotency_key). */
+  async insert(hold: Hold): Promise<void> {
+    const clash = this.store.holds.has(hold.id.value) || [...this.store.holds.values()].some(
+      (h) => h.itemId.value === hold.itemId.value && h.idempotencyKey.value === hold.idempotencyKey.value,
+    );
+    if (clash) throw new Error(`UNIQUE constraint failed: holds (${hold.id.value})`);
+    this.store.holds.set(hold.id.value, copyHold(hold));
   }
 
-  async findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<HoldRecord | null> {
-    return this.holds.find((h) => h.itemId === itemId && h.idempotencyKey === idempotencyKey) ?? null;
+  async save(hold: Hold): Promise<void> {
+    if (!this.store.holds.has(hold.id.value)) throw new Error(`No hold ${hold.id.value} to save`);
+    this.store.holds.set(hold.id.value, copyHold(hold));
+  }
+
+  async findById(holdId: string): Promise<Hold | null> {
+    const hold = this.store.holds.get(holdId);
+    return hold ? copyHold(hold) : null;
+  }
+
+  async findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<Hold | null> {
+    const hold = [...this.store.holds.values()].find((h) => h.itemId.value === itemId && h.idempotencyKey.value === idempotencyKey);
+    return hold ? copyHold(hold) : null;
+  }
+
+  async findActiveOrPurchasedForWishlist(wishlistId: string, now: Date): Promise<Hold[]> {
+    return this.store.activeOrPurchasedHoldsOnList(wishlistId, now).map(copyHold);
+  }
+
+  async findForSession(wishlistId: string, sessionHash: string): Promise<Hold[]> {
+    return this.store.holdsOnList(wishlistId).filter((h) => h.belongsToSession(sessionHash)).map(copyHold);
   }
 }
 
 export class InMemoryEventStore implements EventStore {
-  private streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
+  constructor(private store: InMemoryStore) {}
 
   async append(itemId: string, expectedSeq: number, events: readonly LedgerEvent[], actor: Actor): Promise<void> {
-    const stream = this.streams.get(itemId) ?? [];
+    const stream = this.store.streams.get(itemId) ?? [];
     if (stream.length !== expectedSeq) {
       throw new ConcurrencyError(itemId, expectedSeq, stream.length);
     }
-    this.streams.set(itemId, [...stream, ...events.map((event) => ({ event, actor }))]);
+    this.store.streams.set(itemId, [...stream, ...events.map((event) => ({ event, actor }))]);
   }
 
   /** What a stream holds, envelope included — tests read it to check what a use case appended and as whom. */
   recorded(itemId: string): readonly { event: LedgerEvent; actor: Actor }[] {
-    return this.streams.get(itemId) ?? [];
+    return this.store.streams.get(itemId) ?? [];
   }
 }
 
-/** No real transactionality — fine for use-case unit tests, which never assert rollback behavior; Task 9's integration tests cover that against real SQLite. */
+/** No real transactionality — fine for use-case unit tests, which never assert rollback; the Kysely integration tests cover that. */
 export class InMemoryUnitOfWork implements UnitOfWork {
   constructor(private ctx: TransactionContext) {}
 
   async execute<T>(fn: (ctx: TransactionContext) => Promise<T>): Promise<T> {
     return fn(this.ctx);
   }
+}
+
+/** One store and every fake on it, wired as a use case expects. */
+export function inMemoryPersistence() {
+  const store = new InMemoryStore();
+  const wishlists = new InMemoryWishlistRepository(store);
+  const holds = new InMemoryHoldRepository(store);
+  const eventStore = new InMemoryEventStore(store);
+  const unitOfWork = new InMemoryUnitOfWork({ wishlists, holds, eventStore });
+  return { store, wishlists, holds, eventStore, unitOfWork };
 }

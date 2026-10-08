@@ -73,7 +73,7 @@ earlier ones where noted.
 | D5 | Hold state is **timestamps only**: nullable `releasedAt` / `purchasedAt` (at most one set) and `extendedAt` (set at most once), plus `expiresAt`; derived `statusAt(now)` → `active \| expired \| released \| purchased`. | "Active" is the spec's word (`MAX_ACTIVE_HOLDS_PER_SESSION`, `activeHolds`), so it names the derived state; no stored enum competes with it. Matches the spec's timestamp convention (`archivedAt`, `revealedAt`, `confirmedAt`). | Stored `resolution` enum; nullable `closedAs`. |
 | D6 | **`actor` is event-envelope metadata**, supplied by the use case to `EventStore.append(itemId, expectedSeq, events, actor)`. Domain command methods take no caller; payloads carry no actor. | ADR-0075 says exactly this. | `actor` parameter on domain methods / in payloads (an early draft of this design). |
 | D7 | **Authorization:** use cases call a domain policy, `HoldPermissions` (`mayExtend` / `mayRelease` / `mayPurchase`), over domain predicates. `AccessContext` is grown from the existing `SessionPayload`, built only in `presentation/`, and passed to use cases **beside** `TransactionContext`, never inside it. | DDD practice: authentication at the edge; rules a domain expert would state (spoiler gating, "only the holder may extend") live in the domain as a policy; entity methods stay free of caller parameters. `TransactionContext` is database-scoped, access is request-scoped. Also stops the raw session id crossing into `application/`. | `Accessor` parameter on entity methods; ambient AsyncLocalStorage; access inside `TransactionContext`. |
-| D8 | Load **only active holds**: `HoldRepository.findActiveForWishlist(wishlistId, now)`; the domain re-checks each with `statusAt(now)`; paths that need an expired hold load it by id or public key; a port contract suite pins the boundary. | Expired-but-unclosed holds are never closed under lazy expiry, so "all unclosed" grows without bound. Chooses purity + performance over completeness (the domain-model trilemma) with a contract test as the guard rail. | Load all unclosed holds. |
+| D8 | Load **only active or purchased holds**: `HoldRepository.findActiveOrPurchasedForWishlist(wishlistId, now)`; the domain re-checks each with `statusAt(now)`; expired-unpurchased and released holds are never loaded, and paths that need an expired hold load it by id or public key; a port contract suite pins the boundary. | Expired-but-unclosed holds are never closed under lazy expiry, so "all unclosed" grows without bound. Active plus purchased holds on an item never exceed its quantity (placing a hold needs a free unit, and so does buying an expired one), so the extra purchased rows are bounded by quantity. Chooses purity + performance over completeness (the domain-model trilemma) with a contract test as the guard rail. | Load all unclosed holds. |
 | D9 | **Backend portability is a design principle**, not a requirement: ports speak domain terms only; each port has an adapter contract suite; DB `CHECK`s are backstops. SQLite-specific mechanics stay in `infrastructure/`. | Keeps the door open to another SQL server cheaply. NoSQL would need ADR-0009 (cross-record atomicity), ADR-0031 and ADR-0072 revisited — its own ADR if ever wanted. | Hard NoSQL requirement; SQL-family requirement with Postgres in CI. |
 | D10 | **Hold credential: a client-generated Ed25519 seed.** The client generates a 32-byte seed at sheet open, derives the public key (`@noble/ed25519`, used unconditionally), and signs `gubbins-hold-v1\n{subjectId}\n{action}\n{timestamp}`. The server stores only the public key, verifies with `node:crypto`, and accepts timestamps within ±5 min (client corrects via the `Date` header). The seed never reaches the server. | Supersedes, in order: server-generated plaintext secret in a side table (for rebuild and replay); hash-only server secret (replay could not return it); client random secret (bearer, sent on every action). A portable credential is required for lost-session recovery, and a portable credential is necessarily a bearer credential; signing adds that the credential never crosses the network, so captured requests cannot be reused. No nonce store: every mutating action is single-use under the domain rules, so the timestamp window suffices. Hashing/securing hold secrets does **not** meaningfully protect against DB theft, since `owner_token` and the guest key are plaintext beside them (ADR-0052). | HMAC-derived secret (key loss silently breaks every link); P-256 (long links, no seed derivation in WebCrypto); dropping per-hold credentials (lost session = unmanageable hold). |
 | D11 | **Hold link is a fragment:** `/{slug}/hold#k=<seed>`; the page strips it with `history.replaceState` after reading. | ADR-0067's reasoning: fragments never reach servers, proxies or logs; the SPA is served by the backend, so a path segment would. | Path-based `/{slug}/hold/{secret}` as the spec currently says. |
@@ -86,7 +86,8 @@ earlier ones where noted.
 | D18 | **Minimal `rebuildProjections` ships in this sub-project:** re-fold `item_state` and `holds` from `event_log`; `guest_pii` and `hold_reminders` untouched. | D10 and D13 are justified by rebuild-safety, and the testing spec requires a rebuild test; without the command those claims are untested. | Deferring rebuild to a later sub-project. |
 | D19 | **Delivered as seven vertical-slice stacks (A–G)**, each shipping end-to-end functionality with its own e2e coverage and merging to `main` before dependants start. ADRs and spec amendments land in the stack that first needs them. | Smaller reviewable units; each stack is a working feature; findings in one stack can reshape the next stack's plan. | One 11-PR horizontal stack (schema → domain → … → web). |
 | D20 | **Implementation plans are written just-in-time, one per stack**, each when its dependencies have merged. | Later plans reflect what was actually built. | All seven plans up front. |
-| D21 | **An item's purchased count is computed from purchase entries, never stored.** In stack A a purchase entry is a hold with `purchased_at` set; owner direct purchases (sub-project 4) add their own entries, and `PurchaseVoided` voids an entry rather than decrementing. `item_state` keeps only `seq`. | A stored count is a second source of truth beside the rows it counts; computing it cannot drift (D4's reasoning, applied to purchases). PR #31 review. | `item_state.purchased_count` maintained by each purchase (D4 as first written). |
+| D21 | **An item's purchased count is computed from purchase entries, never stored.** In stack A a purchase entry is a hold with `purchased_at` set, and the count is the number of loaded holds with status purchased, counted in the aggregate (`Wishlist.purchasedCountOf`): no count query, no column; owner direct purchases (sub-project 4) add their own entries, and `PurchaseVoided` voids an entry rather than decrementing. `item_state` keeps only `seq`. | A stored count is a second source of truth beside the rows it counts; computing it cannot drift (D4's reasoning, applied to purchases). PR #31 review. | `item_state.purchased_count` maintained by each purchase (D4 as first written). |
+| D22 | **The `Wishlist` aggregate decides as of the instant it was loaded.** Its commands and status queries take no time argument. The use case reads the clock once and loads the aggregate at that instant, so load and decision share it, and no caller can decide on current data with an older date. `Hold`'s instant-taking methods are the aggregate's internals. | PR #32 review: a time parameter on domain commands is a leaky abstraction and invites time travel. | An injected `Clock` in the domain (separate reads drift from the load instant); explicit instant parameters (the earlier design). |
 
 ## Design
 
@@ -96,6 +97,9 @@ earlier ones where noted.
 `Wishlist`.
 - Fields: `id`, `itemId`, `publicKey`, `sessionHash`, `idempotencyKey`,
   `piiRef`, `expiresAt`, `extendedAt?`, `releasedAt?`, `purchasedAt?`.
+- The methods below that take an instant are called only by `Wishlist`,
+  with the instant it was loaded at (D22); application code goes through
+  `Wishlist`.
 - `statusAt(now)`: `purchased` if `purchasedAt`; `released` if
   `releasedAt`; `expired` if `now > expiresAt`; else `active`. The one
   definition of hold state; never stored.
@@ -111,26 +115,31 @@ earlier ones where noted.
   `publicKey.verifies(message, signature, verifier)`.
 
 **`Item`** — `quantity ≥ 1`; `placeHold` enforces
-`active + purchased < quantity` from hold state, never a counter;
+`active + purchased < quantity` from hold state, never a counter
+(`Wishlist` supplies both counts);
 `recordEvent()` returns the seq-before and advances `seq` for every hold
 command on the item's stream.
 
 **`Wishlist`** (aggregate root) — owns `items[]`, `ClaimVisibility`
 (two toggles, sticky `revealedAt`, nullable `revealAfter`) and a snapshot
-of the list's **active** holds (D8).
+of the list's **active or purchased** holds (D8).
 - `holdItem(...)`: `getItem` (authorization), counts this session's
   active holds across the list → `HoldCapReachedError` at the cap,
   delegates to `item.placeHold`, adds the new hold to the snapshot.
-- `findHold(holdId)`, `purchaseHold(hold, now)`,
+- Decides as of `asOf`, the instant it was loaded at (D22): no command or
+  query below takes a time argument.
+- `findHold(holdId)`, `holdStatus(hold)`, `canExtendHold(hold)`,
+  `canReleaseHold(hold)`, `canPurchaseHold(hold)`, `itemStatus(itemId)`,
+  `extendHold(hold, duration)`, `releaseHold(hold)`, `purchaseHold(hold)`,
   `addItem({ title, quantity })` (single-item guard removed),
-  `claimStatusVisibleToOwner(now)`, `claimerIdentityVisibleToOwner(now)`.
+  `claimStatusVisibleToOwner()`, `claimerIdentityVisibleToOwner()`.
 
 **`HoldPermissions`** (domain policy, D7):
 
 | Command | Guest (session match or valid signature) | Owner |
 |---|---|---|
 | Extend | ✓ once | ✗ |
-| Release | ✓ | ✓ only when `claimStatusVisibleToOwner(now)` |
+| Release | ✓ | ✓ only when `claimStatusVisibleToOwner()` |
 | Mark purchased | ✓ | ✗ (deferred to 4) |
 
 Guest credentials are evaluated before owner; the actor recorded is the
@@ -156,7 +165,7 @@ wishlists   + owner_token_lookup text not null unique   -- sha256(owner_token), 
             + CHECK (owner_sees_claimer_identity = 0 OR owner_sees_claim_status = 1)
 items       + CHECK (quantity >= 1), index (wishlist_id)
 item_state  - active_holds
-            - purchased_count never added: computed from purchase entries (D21)
+            - purchased_count never added: counted from the loaded purchased holds (D21)
 holds       - secret
             + public_key text not null unique
             + pii_ref text not null references guest_pii(id)
@@ -174,12 +183,12 @@ event_log   + actor text not null CHECK (actor IN ('guest','owner'))
 ```
 
 **Ports** (domain terms only, D9):
-- `WishlistRepository.findById` → aggregate with items and active holds;
+- `WishlistRepository.findById` → aggregate with items and active or purchased holds;
   `saveItemState(item)` writes `seq` as the domain
   left them, with no read-before-write (roadmap open item 2); the purchased
-  count is read from purchase entries when the aggregate loads (D21).
+  count is the number of loaded holds with status purchased (D21).
 - `HoldRepository`: `insert`, `save`, `findById`, `findByPublicKey`,
-  `findByIdempotencyKey`, `findActiveForWishlist(wishlistId, now)`.
+  `findByIdempotencyKey`, `findActiveOrPurchasedForWishlist(wishlistId, now)`.
 - `GuestPiiRepository.insert` (on `TransactionContext`).
 - `EventStore.append(itemId, expectedSeq, events, actor)`.
 - Each port gets an adapter contract suite; expiry boundary fixtures

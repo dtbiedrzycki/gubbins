@@ -17,6 +17,7 @@ const noDependencies: AppDependencies = {
   enterGuestKey: unusedDependency('enterGuestKey'),
   holdItem: unusedDependency('holdItem'),
   wishlists: unusedDependency('wishlists'),
+  clock: unusedDependency('clock'),
   logger: { logInfo: () => {}, logWarn: () => {}, logError: () => {} },
 };
 
