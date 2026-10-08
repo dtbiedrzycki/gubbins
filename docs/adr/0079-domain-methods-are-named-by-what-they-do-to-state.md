@@ -1,6 +1,6 @@
 # 0079. Domain methods are named by what they do to state
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-08
 - **Deciders:** dtbiedrzycki
 
