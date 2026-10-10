@@ -52,7 +52,7 @@ describe('GetListView', () => {
     expect(shown.myHolds).toMatchObject([{ status: 'expired', actions: { extend: false, release: false, purchase: true } }]);
   });
 
-  it('leaves released holds out and keeps purchased ones', async () => {
+  it('lists purchased holds but not released ones', async () => {
     const { placeHold, clock, view, release, purchase } = await setup();
     const released = await placeHold();
     await release(released.holdId);

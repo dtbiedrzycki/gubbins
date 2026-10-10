@@ -25,41 +25,15 @@ function wishlistAt(asOf: Date, holds: Hold[] = []): Wishlist {
   return Wishlist.reconstitute({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'o', key: 'k', keyGen: 1, asOf, item, holds });
 }
 
-describe('toHoldView — the domain decides which actions the guest is offered', () => {
-  it('shows an active, never-extended hold with every action open', () => {
-    const hold = holdOn();
-    expect(toHoldView(wishlistAt(T0, [hold]), hold)).toEqual({
-      holdId: hold.id.value, itemId: ITEM_ID, status: 'active',
-      expiresAt: at(3 * DAY).toISOString(), extendedAt: null,
-      actions: { extend: true, release: true, purchase: true },
-    });
-  });
-
-  it('closes extend once the hold has used its one extension', () => {
+// The rules behind status and actions are the wishlist's, tested in Wishlist.test.ts;
+// this only checks that the view carries what the wishlist answers.
+describe('toHoldView', () => {
+  it("maps the hold's fields and the wishlist's answers into the view", () => {
     const hold = holdOn({ extendedAt: at(DAY) });
-    const view = toHoldView(wishlistAt(at(DAY), [hold]), hold);
-    expect(view.extendedAt).toBe(at(DAY).toISOString());
-    expect(view.actions).toEqual({ extend: false, release: true, purchase: true });
-  });
-
-  it('offers only purchase on an expired hold while a unit is free', () => {
-    const hold = holdOn({ expiresAt: at(-1) });
-    const view = toHoldView(wishlistAt(T0), hold);
-    expect(view.status).toBe('expired');
-    expect(view.actions).toEqual({ extend: false, release: false, purchase: true });
-  });
-
-  it('offers nothing on an expired hold whose unit someone else now holds', () => {
-    const view = toHoldView(wishlistAt(T0, [holdOn({ sessionHash: 'b'.repeat(64) })]), holdOn({ expiresAt: at(-1) }));
-    expect(view.actions).toEqual({ extend: false, release: false, purchase: false });
-  });
-
-  it.each([
-    ['released', { releasedAt: T0 }],
-    ['purchased', { purchasedAt: T0 }],
-  ] as const)('offers nothing on a %s hold', (status, overrides) => {
-    const view = toHoldView(wishlistAt(T0), holdOn(overrides));
-    expect(view.status).toBe(status);
-    expect(view.actions).toEqual({ extend: false, release: false, purchase: false });
+    expect(toHoldView(wishlistAt(at(DAY), [hold]), hold)).toEqual({
+      holdId: hold.id.value, itemId: ITEM_ID, status: 'active',
+      expiresAt: at(3 * DAY).toISOString(), extendedAt: at(DAY).toISOString(),
+      actions: { extend: false, release: true, purchase: true },
+    });
   });
 });
