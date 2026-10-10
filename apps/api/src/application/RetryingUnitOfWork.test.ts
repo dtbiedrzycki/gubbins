@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RetryingUnitOfWork, type RetryOptions } from './RetryingUnitOfWork.js';
+import type { Logger } from './ports/Logger.js';
 import type { TransactionContext, UnitOfWork } from './ports/UnitOfWork.js';
 import { ConcurrencyError } from '../domain/errors.js';
 
@@ -19,6 +20,11 @@ function failingThen(errors: Error[]) {
 
 const conflict = () => new ConcurrencyError('item-1', 0, 1);
 
+/** A logger that keeps each warning it is given. */
+function warningsLogger(warnings: unknown[][] = []): Logger {
+  return { logInfo: () => {}, logWarn: (...args) => { warnings.push(args); }, logError: () => {} };
+}
+
 function instant(sleeps: number[]): RetryOptions {
   return { retries: 3, sleep: async (ms) => { sleeps.push(ms); }, random: () => 0.5 };
 }
@@ -26,7 +32,7 @@ function instant(sleeps: number[]): RetryOptions {
 describe('RetryingUnitOfWork (data & persistence: retry cap 3 with jitter)', () => {
   it('runs the unit of work once when it succeeds', async () => {
     const { unitOfWork, calls } = failingThen([]);
-    await expect(new RetryingUnitOfWork(unitOfWork, instant([])).execute(async () => 'done')).resolves.toBe('done');
+    await expect(new RetryingUnitOfWork(unitOfWork, warningsLogger(), instant([])).execute(async () => 'done')).resolves.toBe('done');
     expect(calls()).toBe(1);
   });
 
@@ -34,7 +40,7 @@ describe('RetryingUnitOfWork (data & persistence: retry cap 3 with jitter)', () 
     const sleeps: number[] = [];
     const { unitOfWork, calls } = failingThen([conflict(), conflict()]);
 
-    await expect(new RetryingUnitOfWork(unitOfWork, instant(sleeps)).execute(async () => 'done')).resolves.toBe('done');
+    await expect(new RetryingUnitOfWork(unitOfWork, warningsLogger(), instant(sleeps)).execute(async () => 'done')).resolves.toBe('done');
 
     expect(calls()).toBe(3);
     expect(sleeps).toEqual([5, 10]);
@@ -44,15 +50,27 @@ describe('RetryingUnitOfWork (data & persistence: retry cap 3 with jitter)', () 
     const sleeps: number[] = [];
     const { unitOfWork, calls } = failingThen([conflict(), conflict(), conflict(), conflict()]);
 
-    await expect(new RetryingUnitOfWork(unitOfWork, instant(sleeps)).execute(async () => 'done')).rejects.toThrow(ConcurrencyError);
+    await expect(new RetryingUnitOfWork(unitOfWork, warningsLogger(), instant(sleeps)).execute(async () => 'done')).rejects.toThrow(ConcurrencyError);
 
     expect(calls()).toBe(4);
     expect(sleeps).toEqual([5, 10, 20]);
   });
 
-  it('never retries any other failure', async () => {
+  it('logs a warning for each retry', async () => {
+    const warnings: unknown[][] = [];
+    const { unitOfWork } = failingThen([conflict(), conflict()]);
+
+    await new RetryingUnitOfWork(unitOfWork, warningsLogger(warnings), instant([])).execute(async () => 'done');
+
+    expect(warnings).toEqual([
+      ['unit_of_work.retry', { retry: 1, delayMs: 5, reason: conflict().message }],
+      ['unit_of_work.retry', { retry: 2, delayMs: 10, reason: conflict().message }],
+    ]);
+  });
+
+  it('rethrows an error other than a conflict without retrying', async () => {
     const { unitOfWork, calls } = failingThen([new Error('boom')]);
-    await expect(new RetryingUnitOfWork(unitOfWork, instant([])).execute(async () => 'done')).rejects.toThrow('boom');
+    await expect(new RetryingUnitOfWork(unitOfWork, warningsLogger(), instant([])).execute(async () => 'done')).rejects.toThrow('boom');
     expect(calls()).toBe(1);
   });
 });

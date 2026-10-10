@@ -95,6 +95,7 @@ describe('HoldItem', () => {
     };
     const unitOfWork = new RetryingUnitOfWork(
       new InMemoryUnitOfWork({ wishlists: persistence.wishlists, holds: persistence.holds, eventStore: flaky }),
+      { logInfo: () => {}, logWarn: () => {}, logError: () => {} },
       { retries: 3, sleep: async () => {}, random: () => 0 },
     );
     const useCase = new HoldItem(unitOfWork, new SequentialTokenGenerator(), new FixedClock(NOW), new FakeHasher(), DEFAULT_HOLD_POLICY);

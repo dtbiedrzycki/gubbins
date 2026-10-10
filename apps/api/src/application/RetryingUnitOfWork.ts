@@ -1,4 +1,5 @@
 import { ConcurrencyError } from '../domain/errors.js';
+import type { Logger } from './ports/Logger.js';
 import type { TransactionContext, UnitOfWork } from './ports/UnitOfWork.js';
 
 export interface RetryOptions {
@@ -22,7 +23,7 @@ const DEFAULT_OPTIONS: RetryOptions = {
  * re-evaluates the policy. Retry cap 3 with jitter."). The callback runs
  * again from the top, so it reloads the aggregate and decides afresh — a
  * retry never replays a stale decision. Any other failure passes straight
- * through.
+ * through. Each retry is logged as a warning, since a lost race should leave a trace.
  *
  * Under BEGIN IMMEDIATE on one connection a conflict should not arise at
  * all; this guards the case where one does (another process on the file).
@@ -30,6 +31,7 @@ const DEFAULT_OPTIONS: RetryOptions = {
 export class RetryingUnitOfWork implements UnitOfWork {
   constructor(
     private inner: UnitOfWork,
+    private logger: Logger,
     private options: RetryOptions = DEFAULT_OPTIONS,
   ) {}
 
@@ -40,7 +42,9 @@ export class RetryingUnitOfWork implements UnitOfWork {
       } catch (err) {
         if (!(err instanceof ConcurrencyError) || attempt >= this.options.retries) throw err;
         // Full jitter over a doubling window: up to 10, 20, then 40 ms.
-        await this.options.sleep(Math.floor(this.options.random() * 10 * 2 ** attempt));
+        const delayMs = Math.floor(this.options.random() * 10 * 2 ** attempt);
+        this.logger.logWarn('unit_of_work.retry', { retry: attempt + 1, delayMs, reason: err.message });
+        await this.options.sleep(delayMs);
       }
     }
   }

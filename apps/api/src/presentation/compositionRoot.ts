@@ -35,7 +35,7 @@ export interface AppDependencies {
 }
 
 export function buildDependencies(db: Kysely<Database>, logger: Logger = new ConsoleLogger(), options: BuildDependenciesOptions = {}): AppDependencies {
-  const unitOfWork = new RetryingUnitOfWork(new UnitOfWorkKysely(db, (base) => new LoggingEventStore(base, logger)));
+  const unitOfWork = new RetryingUnitOfWork(new UnitOfWorkKysely(db, (base) => new LoggingEventStore(base, logger)), logger);
   const tokenGenerator = new TokenGeneratorCrypto();
   const clock = options.clock ?? new ClockSystem();
   const holdPolicy = options.holdPolicy ?? DEFAULT_HOLD_POLICY;
