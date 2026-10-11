@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useListView } from '../features/holds/useListView';
 import { GuestKeyGate } from '../features/guest-key/GuestKeyGate';
 import { ItemView } from '../features/holds/ItemView';
+import { YourHolds } from '../features/holds/YourHolds';
 
 export default function ListPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -29,7 +30,15 @@ export default function ListPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 p-6">
-      <ItemView slug={slug} listTitle={query.data.title} item={query.data.item} holdDurationDays={query.data.capabilities.holdDurationDays} />
+      <div className="max-w-sm space-y-8">
+        <ItemView
+          slug={slug}
+          listTitle={query.data.title}
+          item={query.data.item}
+          holdDurationDays={query.data.capabilities.holdDurationDays}
+        />
+        <YourHolds slug={slug} holds={query.data.myHolds} itemTitles={{ [query.data.item.id]: query.data.item.title }} />
+      </div>
     </main>
   );
 }
