@@ -1,7 +1,7 @@
 import createClient from 'openapi-fetch';
 import type {
   CreateListRequest, CreateListResponse, EnterGuestKeyRequest, EnterGuestKeyResponse,
-  HoldItemRequest, HoldItemResponse, ListViewResponse,
+  HoldItemRequest, HoldItemResponse, HoldView, ListViewResponse,
 } from '@gubbins/shared-types';
 import type { paths } from './schema.gen';
 
@@ -9,6 +9,8 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    /** The server's machine-readable reason for a 409 (`item_unavailable`, `hold_not_active`, …), when it sent one. */
+    readonly code?: string,
   ) {
     super(message);
   }
@@ -40,10 +42,10 @@ function unwrap<T>({ data, error, response }: FetchResult<T>): T {
   if (!response.ok || data === undefined) {
     // openapi-fetch parses an error body as JSON when it can and leaves it as
     // text otherwise (e.g. a reverse proxy's HTML error page).
-    const message = typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string'
-      ? error.message
-      : 'Request failed';
-    throw new ApiError(response.status, message);
+    const body = typeof error === 'object' && error !== null ? (error as { message?: unknown; code?: unknown }) : {};
+    const message = typeof body.message === 'string' ? body.message : 'Request failed';
+    const code = typeof body.code === 'string' ? body.code : undefined;
+    throw new ApiError(response.status, message, code);
   }
   return data;
 }
@@ -60,4 +62,15 @@ export const api = {
 
   holdItem: (slug: string, itemId: string, input: HoldItemRequest): Promise<HoldItemResponse> =>
     http.POST('/api/lists/{slug}/items/{itemId}/hold', { params: { path: { slug, itemId } }, body: input }).then(unwrap),
+
+  // No body: the session cookie is the credential in stack A. openapi-fetch
+  // sets no Content-Type when there is no body, which Fastify requires.
+  extendHold: (slug: string, holdId: string): Promise<HoldView> =>
+    http.POST('/api/lists/{slug}/holds/{holdId}/extend', { params: { path: { slug, holdId } } }).then(unwrap),
+
+  releaseHold: (slug: string, holdId: string): Promise<HoldView> =>
+    http.POST('/api/lists/{slug}/holds/{holdId}/release', { params: { path: { slug, holdId } } }).then(unwrap),
+
+  markHoldPurchased: (slug: string, holdId: string): Promise<HoldView> =>
+    http.POST('/api/lists/{slug}/holds/{holdId}/purchase', { params: { path: { slug, holdId } } }).then(unwrap),
 };

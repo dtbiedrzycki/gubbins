@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../test/msw/server';
 import { mock } from '../test/msw/mock';
 import { api, ApiError } from './client';
+import type { HoldView } from '@gubbins/shared-types';
 
 describe('api.createList', () => {
   it('returns the response body on success', async () => {
@@ -58,5 +59,43 @@ describe('path parameters', () => {
     await api.holdItem('abc123', 'item-1', { idempotencyKey: 'k' });
 
     expect(requested).toBe('/api/lists/abc123/items/item-1/hold');
+  });
+});
+
+describe('hold actions', () => {
+  const view: HoldView = {
+    holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: '2026-01-07T00:00:00.000Z',
+    extendedAt: '2026-01-02T00:00:00.000Z', actions: { extend: false, release: true, purchase: true },
+  };
+
+  it.each([
+    ['extendHold', 'extend'],
+    ['releaseHold', 'release'],
+    ['markHoldPurchased', 'purchase'],
+  ] as const)('%s posts to the %s route with no body and returns the hold view', async (method, action) => {
+    let path = '';
+    let body = 'unset';
+    let contentType: string | null = 'unset';
+    server.use(http.post(`/api/lists/:slug/holds/:holdId/${action}`, async ({ request }) => {
+      path = new URL(request.url).pathname;
+      body = await request.text();
+      contentType = request.headers.get('content-type');
+      return HttpResponse.json(view);
+    }));
+
+    await expect(api[method]('abc123', 'hold-1')).resolves.toEqual(view);
+
+    expect(path).toBe(`/api/lists/abc123/holds/hold-1/${action}`);
+    expect(body).toBe('');
+    // A JSON content type on an empty body is a 400 from Fastify
+    // (FST_ERR_CTP_EMPTY_JSON_BODY), so none may be sent.
+    expect(contentType).toBeNull();
+  });
+
+  it('carries the 409 code on ApiError, beside the message', async () => {
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }));
+
+    await expect(api.extendHold('abc123', 'hold-1'))
+      .rejects.toMatchObject({ status: 409, code: 'hold_not_active', message: 'This hold is no longer active.' });
   });
 });
