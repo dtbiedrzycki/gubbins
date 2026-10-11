@@ -29,7 +29,7 @@ export default function ListPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 p-6">
-      <ItemView slug={slug} listTitle={query.data.title} item={query.data.item} />
+      <ItemView slug={slug} listTitle={query.data.title} item={query.data.item} holdDurationDays={query.data.capabilities.holdDurationDays} />
     </main>
   );
 }
