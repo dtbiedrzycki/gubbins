@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { HoldView } from '@gubbins/shared-types';
 import { useHoldAction } from './useHoldAction';
 import { formatExpiry } from './formatExpiry';
@@ -24,6 +24,21 @@ export function HoldActions({ slug, hold, itemTitle, onAnnounce }: HoldActionsPr
   const release = useHoldAction(slug, 'release', () => onAnnounce(`Your hold on ${itemTitle} is released.`));
   const purchase = useHoldAction(slug, 'purchase', () => onAnnounce(`${itemTitle} is marked as purchased. Thank you!`));
   const [confirmingRelease, setConfirmingRelease] = useState(false);
+  const releaseButton = useRef<HTMLButtonElement>(null);
+  const keepButton = useRef<HTMLButtonElement>(null);
+  const confirmToggled = useRef(false);
+
+  // The button the guest pressed is replaced, so focus would fall to <body>:
+  // move it into the question, and back to Release when they keep the hold.
+  useEffect(() => {
+    if (!confirmToggled.current) return;
+    (confirmingRelease ? keepButton : releaseButton).current?.focus();
+  }, [confirmingRelease]);
+
+  function toggleConfirmRelease(next: boolean) {
+    confirmToggled.current = true;
+    setConfirmingRelease(next);
+  }
 
   const mutations = [extend, release, purchase];
   const pending = mutations.some((m) => m.isPending);
@@ -44,17 +59,17 @@ export function HoldActions({ slug, hold, itemTitle, onAnnounce }: HoldActionsPr
           <button type="button" disabled={pending} onClick={() => run(extend)} className={secondary}>Extend hold</button>
         )}
         {hold.actions.release && !confirmingRelease && (
-          <button type="button" disabled={pending} onClick={() => setConfirmingRelease(true)} className={secondary}>Release hold</button>
+          <button ref={releaseButton} type="button" disabled={pending} onClick={() => toggleConfirmRelease(true)} className={secondary}>Release hold</button>
         )}
       </div>
       {hold.actions.release && confirmingRelease && (
         <div role="group" aria-labelledby={`release-${hold.holdId}`} className="space-y-2 rounded border border-slate-300 p-3">
           <p id={`release-${hold.holdId}`}>Release your hold on {itemTitle}? Someone else will be able to hold it.</p>
           <div className="flex gap-2">
-            <button type="button" disabled={pending} onClick={() => { setConfirmingRelease(false); run(release); }} className={primary}>
+            <button type="button" disabled={pending} onClick={() => { toggleConfirmRelease(false); run(release); }} className={primary}>
               Yes, release it
             </button>
-            <button type="button" disabled={pending} onClick={() => setConfirmingRelease(false)} className={secondary}>Keep my hold</button>
+            <button ref={keepButton} type="button" disabled={pending} onClick={() => toggleConfirmRelease(false)} className={secondary}>Keep my hold</button>
           </div>
         </div>
       )}

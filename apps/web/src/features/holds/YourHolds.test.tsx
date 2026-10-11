@@ -102,6 +102,17 @@ describe('YourHolds', () => {
     expect(within(region).getByRole('status')).toHaveTextContent('Your hold on Stroller is released.');
   });
 
+  it('moves focus into the release question, and back to the Release button when the guest keeps the hold', async () => {
+    listViews(list([active]));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+
+    await user.click(within(region).getByRole('button', { name: 'Release hold' }));
+    expect(within(region).getByRole('button', { name: 'Keep my hold' })).toHaveFocus();
+    await user.click(within(region).getByRole('button', { name: 'Keep my hold' }));
+    expect(within(region).getByRole('button', { name: 'Release hold' })).toHaveFocus();
+  });
+
   it('explains a refusal and refetches, so the card shows the hold as it really is', async () => {
     listViews(list([active]), list([expiredBuyable]));
     server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }));
