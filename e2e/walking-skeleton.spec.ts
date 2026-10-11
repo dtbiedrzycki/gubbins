@@ -23,14 +23,12 @@ test('owner creates a list, guest enters the key, and holds the item', async ({ 
   await guestPage.getByLabel('Enter the guest key').fill(guestKey!);
   await guestPage.getByRole('button', { name: 'View list' }).click();
 
-  // exact: true — the hold confirmation <dialog> is always in the DOM (closed,
-  // so display:none), and its "Hold “Stroller” for yourself?" prompt would
-  // otherwise make a substring match ambiguous under Playwright strict mode,
-  // which counts DOM matches regardless of visibility.
+  // exact: true — once the item is held, "Your holds" repeats the title in
+  // its card, and a substring match would be ambiguous under strict mode.
   await expect(guestPage.getByText('Stroller', { exact: true })).toBeVisible();
   await guestPage.getByRole('button', { name: 'Hold this item' }).click();
   await guestPage.getByRole('button', { name: 'Yes, hold it' }).click();
-  await expect(guestPage.getByRole('status')).toHaveText('Stroller is held.');
+  await expect(guestPage.getByText('Stroller is held.')).toBeVisible();
 
   const guestPageScan = await new AxeBuilder({ page: guestPage }).analyze();
   const guestPageSerious = guestPageScan.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
