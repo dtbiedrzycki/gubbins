@@ -20,7 +20,7 @@ const view = (held: boolean): ListViewResponse => ({
 });
 
 function renderListPage() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, retryDelay: 0 }, mutations: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={['/abc123']}>
@@ -67,7 +67,8 @@ describe('ListPage', () => {
     for (const status of statuses) expect(status).toBeEmptyDOMElement();
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
-    await waitFor(() => expect(gets).toBe(2));
+    // The refetch, then its one retry.
+    await waitFor(() => expect(gets).toBe(3));
     const yourHolds = screen.getByRole('region', { name: 'Your holds' });
     expect(await within(yourHolds).findByRole('button', { name: 'Extend hold' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Enter the guest key')).not.toBeInTheDocument();
@@ -130,7 +131,7 @@ describe('ListPage', () => {
 
   it('shows the list once the server answers after "Try again"', async () => {
     let gets = 0;
-    server.use(http.get('/api/lists/abc123', () => (++gets === 1 ? HttpResponse.error() : HttpResponse.json(view(false)))));
+    server.use(http.get('/api/lists/abc123', () => (++gets <= 2 ? HttpResponse.error() : HttpResponse.json(view(false)))));
     const user = userEvent.setup();
     renderListPage();
 
