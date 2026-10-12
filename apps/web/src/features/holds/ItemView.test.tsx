@@ -112,8 +112,9 @@ describe('ItemView', () => {
   });
 
   it('announces the item held through the status region already on the page', () => {
+    const client = new QueryClient();
     const view = (status: ListViewResponse['item']['status']) => (
-      <QueryClientProvider client={new QueryClient()}>
+      <QueryClientProvider client={client}>
         <ItemView slug="abc123" listTitle="Baby Shower" holdDurationDays={3} item={{ id: 'item-1', title: 'Stroller', status }} />
       </QueryClientProvider>
     );
