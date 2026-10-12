@@ -211,6 +211,27 @@ describe('YourHolds', () => {
     await waitFor(() => expect(within(region).getByRole('heading', { name: 'Your holds' })).toHaveFocus());
   });
 
+  it('keeps focus on the release question, not a disabled button, while the release is in flight', async () => {
+    listViews(list([active]), list([]));
+    let respond!: () => void;
+    const responded = new Promise<void>((resolve) => { respond = resolve; });
+    server.use(http.post('/api/lists/abc123/holds/hold-1/release', async () => {
+      await responded;
+      return HttpResponse.json({ ...active, status: 'released', actions: { extend: false, release: false, purchase: false } });
+    }));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+
+    await user.click(within(region).getByRole('button', { name: 'Release hold' }));
+    await user.click(within(region).getByRole('button', { name: 'Yes, release it' }));
+
+    await waitFor(() => expect(within(region).getByRole('button', { name: 'Yes, release it' })).toBeDisabled());
+    expect(within(region).getByText('Release your hold on Stroller? Someone else will be able to hold it.')).toHaveFocus();
+
+    respond();
+    await waitFor(() => expect(within(region).getByRole('heading', { name: 'Your holds' })).toHaveFocus());
+  });
+
   it('after a refusal, moves focus to the Your holds heading, beside the explanation', async () => {
     listViews(list([active]), list([]));
     server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }));

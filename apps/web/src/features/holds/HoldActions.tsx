@@ -54,6 +54,7 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
   const [confirmingRelease, setConfirmingRelease] = useState(false);
   const releaseButton = useRef<HTMLButtonElement>(null);
   const keepButton = useRef<HTMLButtonElement>(null);
+  const releaseQuestion = useRef<HTMLParagraphElement>(null);
   const confirmToggled = useRef(false);
 
   // The button the guest pressed is replaced, so focus would fall to <body>:
@@ -91,9 +92,14 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
       </div>
       {hold.actions.release && confirmingRelease && (
         <div role="group" aria-labelledby={`release-${hold.holdId}`} className="space-y-2 rounded border border-slate-300 p-3">
-          <p id={`release-${hold.holdId}`}>Release your hold on {itemTitle}? Someone else will be able to hold it.</p>
+          <p ref={releaseQuestion} id={`release-${hold.holdId}`} tabIndex={-1}>Release your hold on {itemTitle}? Someone else will be able to hold it.</p>
           <div className="flex gap-2">
-            <button type="button" disabled={pending} onClick={() => { toggleConfirmRelease(false); run(release); }} className={primary}>
+            <button type="button" disabled={pending} onClick={() => {
+              // The question stays up, its buttons disabled, until the outcome
+              // moves focus on; the question is what can hold focus till then.
+              releaseQuestion.current?.focus();
+              run(release);
+            }} className={primary}>
               Yes, release it
             </button>
             <button ref={keepButton} type="button" disabled={pending} onClick={() => toggleConfirmRelease(false)} className={secondary}>Keep my hold</button>
