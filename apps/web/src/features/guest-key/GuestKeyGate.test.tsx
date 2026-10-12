@@ -29,9 +29,14 @@ describe('GuestKeyGate', () => {
     const user = userEvent.setup();
     renderWithQueryClient(<GuestKeyGate slug="abc123" onSuccess={() => {}} />);
 
+    // Screen readers miss a live region that arrives already holding its text.
+    const alert = screen.getByRole('alert');
+    expect(alert).toBeEmptyDOMElement();
+
     await user.type(screen.getByLabelText('Enter the guest key'), 'wrong-key');
     await user.click(screen.getByRole('button', { name: 'View list' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('This list could not be found.');
+    await waitFor(() => expect(alert).toHaveTextContent('This list could not be found.'));
+    expect(screen.getByRole('alert')).toBe(alert);
   });
 });

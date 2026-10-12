@@ -52,7 +52,7 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
     <dialog ref={dialogRef} onCancel={handleCancel} onClose={handleClose} aria-labelledby="hold-dialog-title" className="rounded-lg p-6 backdrop:bg-black/50">
       <p id="hold-dialog-title" className="mb-2">Hold &ldquo;{itemTitle}&rdquo; for yourself?</p>
       <p className="mb-4 text-slate-700">Held for you for {duration}.</p>
-      {error && <p role="alert" className="mb-4 text-red-600">{error.message}</p>}
+      <p role="alert" className="mb-4 text-red-600 empty:mb-0">{error?.message}</p>
       <div className="flex gap-2">
         <button type="button" onClick={() => onConfirm(credential)} disabled={isPending} className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50">
           {isPending ? 'Holding…' : 'Yes, hold it'}

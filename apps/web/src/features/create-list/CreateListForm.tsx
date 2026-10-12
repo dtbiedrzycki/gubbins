@@ -51,7 +51,7 @@ export function CreateListForm() {
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>
-      {error && <p role="alert" className="text-red-600">{error.message}</p>}
+      <p role="alert" className="text-red-600">{error?.message}</p>
       <button
         type="submit" disabled={isPending}
         className="rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50"

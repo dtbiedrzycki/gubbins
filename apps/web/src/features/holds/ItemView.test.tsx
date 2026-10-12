@@ -51,7 +51,7 @@ describe('ItemView', () => {
 
     await user.click(screen.getByRole('button', { name: 'Hold this item' }));
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
-    await screen.findByRole('alert');
+    await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     await vi.waitFor(() => expect(keys).toHaveLength(2));
@@ -65,10 +65,10 @@ describe('ItemView', () => {
 
     await user.click(screen.getByRole('button', { name: 'Hold this item' }));
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
-    await screen.findByRole('alert');
+    await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     await user.click(screen.getByRole('button', { name: 'Hold this item' }));
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeEmptyDOMElement();
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     await vi.waitFor(() => expect(keys).toHaveLength(2));
@@ -93,7 +93,7 @@ describe('ItemView', () => {
     await user.click(screen.getByRole('button', { name: 'Hold this item' }));
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't reach the server. Check your connection and try again.");
+    await vi.waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent("Couldn't reach the server. Check your connection and try again."));
   });
 
   it.each([

@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mock } from '../../test/msw/mock';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -11,9 +11,10 @@ function renderWithQueryClient(ui: ReactElement) {
   return render(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>);
 }
 
-async function fillAndSubmit() {
+async function fillAndSubmit(beforeSubmit = () => {}) {
   const user = userEvent.setup();
   renderWithQueryClient(<CreateListForm />);
+  beforeSubmit();
   await user.type(screen.getByLabelText('List title'), 'Baby Shower');
   await user.type(screen.getByLabelText('First item'), 'Stroller');
   await user.click(screen.getByRole('button', { name: 'Create list' }));
@@ -40,8 +41,14 @@ describe('CreateListForm', () => {
 
   it('shows the server error message when the request fails', async () => {
     server.use(mock('post', '/api/lists', 400, { message: 'Invalid request' }));
-    await fillAndSubmit();
+    // Screen readers miss a live region that arrives already holding its text.
+    let alert: HTMLElement | undefined;
+    await fillAndSubmit(() => {
+      alert = screen.getByRole('alert');
+      expect(alert).toBeEmptyDOMElement();
+    });
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid request');
+    await waitFor(() => expect(alert).toHaveTextContent('Invalid request'));
+    expect(screen.getByRole('alert')).toBe(alert);
   });
 });

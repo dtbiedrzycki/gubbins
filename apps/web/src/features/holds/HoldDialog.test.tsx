@@ -62,8 +62,15 @@ describe('HoldDialog', () => {
     expect(escape.defaultPrevented).toBe(false);
   });
 
-  it('shows a failed hold in an alert', () => {
-    renderDialog({ error: new Error('This item is no longer available.') });
-    expect(screen.getByRole('alert')).toHaveTextContent('This item is no longer available.');
+  it('shows a failed hold in the alert region already in the dialog', () => {
+    const { props, rerender } = renderDialog();
+    // Screen readers miss a live region that arrives already holding its text.
+    const alert = screen.getByRole('alert');
+    expect(alert).toBeEmptyDOMElement();
+
+    rerender(<HoldDialog {...props} error={new Error('This item is no longer available.')} />);
+
+    expect(screen.getByRole('alert')).toBe(alert);
+    expect(alert).toHaveTextContent('This item is no longer available.');
   });
 });
