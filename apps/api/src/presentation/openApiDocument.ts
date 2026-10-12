@@ -15,9 +15,14 @@ function unusedDependency(name: string): never {
 const noDependencies: AppDependencies = {
   createList: unusedDependency('createList'),
   enterGuestKey: unusedDependency('enterGuestKey'),
+  getListView: unusedDependency('getListView'),
   holdItem: unusedDependency('holdItem'),
+  extendHold: unusedDependency('extendHold'),
+  releaseHold: unusedDependency('releaseHold'),
+  markHoldPurchased: unusedDependency('markHoldPurchased'),
   wishlists: unusedDependency('wishlists'),
   clock: unusedDependency('clock'),
+  hasher: unusedDependency('hasher'),
   logger: { logInfo: () => {}, logWarn: () => {}, logError: () => {} },
 };
 

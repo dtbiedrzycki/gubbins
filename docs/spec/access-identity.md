@@ -42,6 +42,12 @@
   do: they resolve by secret to the pre-rotation row, so a guest's
   subject-access and erasure route is never revoked by an owner rotating
   the key.
+- **Open item for the rotation change:** the API checks a session's list
+  and `keyGen` at the edge, against the list as read for that request,
+  before the use case runs. While nothing changes `keyGen` that is
+  exact. When rotation exists, the check moves into the use case's
+  transaction, so the key generation it validates is the one the command
+  acts on.
 - **Known limitation, accepted:** a guest who acts both before and after
   a rotation ends up holding two data-access links, each covering only
   the records from its own session, and neither showing everything. This

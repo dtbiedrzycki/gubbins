@@ -16,6 +16,12 @@ export class WishlistNotFoundError extends Error {
 export class ItemUnavailableError extends Error {
   constructor(itemId: string) { super(`Item unavailable: ${itemId}`); }
 }
+/**
+ * An expired hold was marked purchased after its unit went to someone else.
+ * Still an `ItemUnavailableError`, so it keeps the 409 `item_unavailable`
+ * code; the subtype lets presentation tell the guest their hold lapsed.
+ */
+export class HoldLapsedError extends ItemUnavailableError {}
 export class InvalidGuestKeyError extends Error {
   constructor(wishlistId: string) { super(`Invalid guest key for wishlist: ${wishlistId}`); }
 }

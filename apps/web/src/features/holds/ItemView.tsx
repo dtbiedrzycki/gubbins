@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ListViewResponse } from '@gubbins/shared-types';
 import { useHoldItem } from './useHoldItem';
 import { HoldDialog } from './HoldDialog';
@@ -8,41 +8,59 @@ export interface ItemViewProps {
   slug: string;
   listTitle: string;
   item: ListViewResponse['item'];
+  holdDurationDays: number;
+  /** Moves focus once the dialog has gone and the Hold button has too: the hold landed, or someone else's did. */
+  focusElsewhere?: () => void;
 }
 
-export function ItemView({ slug, listTitle, item }: ItemViewProps) {
+export function ItemView({ slug, listTitle, item, holdDurationDays, focusElsewhere }: ItemViewProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { mutate, isPending, error, isSuccess } = useHoldItem(slug, item.id);
+  const { mutate, isPending, error, reset } = useHoldItem(slug, item.id);
+  const holdButton = useRef<HTMLButtonElement>(null);
 
-  function handleConfirm() {
-    // Client-generated idempotency key — ADR-048.
-    mutate({ idempotencyKey: crypto.randomUUID() }, { onSuccess: () => setDialogOpen(false) });
+  // Unmounting the dialog skips the browser's own focus return, and the page
+  // is inert until the modal has gone, so move focus after the commit.
+  // After a hold the button is about to go even if this render still has it.
+  const closedBy = useRef<'cancel' | 'hold' | null>(null);
+  useEffect(() => {
+    if (dialogOpen || !closedBy.current) return;
+    const button = closedBy.current === 'cancel' ? holdButton.current : null;
+    closedBy.current = null;
+    if (button) button.focus();
+    else focusElsewhere?.();
+  }, [dialogOpen, focusElsewhere]);
+
+  function closeDialog() {
+    closedBy.current = 'cancel';
+    setDialogOpen(false);
+    // The next opening starts clean: no stale error from this one.
+    reset();
   }
 
-  // useHoldItem stays pending until the refetched list view lands, so by the
-  // time isSuccess is true, `item` is normally already fresh. isSuccess only
-  // covers a refetch that failed, where the hold did succeed.
-  const isHeld = item.status === 'held' || isSuccess;
-
+  // Status comes from the server alone. useHoldItem stays pending until the
+  // refetched list view lands, and a remembered local success would go stale
+  // the moment the guest releases or buys from "Your holds".
   return (
-    <div className="max-w-sm space-y-4">
+    <div className="space-y-4">
       <h1 className="text-2xl font-semibold">{listTitle}</h1>
       <p>{item.title}</p>
-      {isHeld ? (
-        <HeldAnnouncement message={`${item.title} is held.`} />
-      ) : (
-        <button type="button" onClick={() => setDialogOpen(true)} className="rounded bg-slate-900 px-4 py-2 text-white">
+      {/* Mounted while available too: screen readers miss a live region that arrives already filled. */}
+      <HeldAnnouncement message={item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is held.` : `${item.title} has been purchased.`} />
+      {item.status === 'available' && (
+        <button ref={holdButton} type="button" onClick={() => setDialogOpen(true)} className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white">
           Hold this item
         </button>
       )}
-      <HoldDialog
-        itemTitle={item.title}
-        isOpen={dialogOpen}
-        isPending={isPending}
-        error={error}
-        onConfirm={handleConfirm}
-        onClose={() => setDialogOpen(false)}
-      />
+      {dialogOpen && (
+        <HoldDialog
+          itemTitle={item.title}
+          holdDurationDays={holdDurationDays}
+          isPending={isPending}
+          error={error}
+          onConfirm={(credential) => mutate({ idempotencyKey: credential.idempotencyKey }, { onSuccess: () => { closedBy.current = 'hold'; setDialogOpen(false); } })}
+          onClose={closeDialog}
+        />
+      )}
     </div>
   );
 }

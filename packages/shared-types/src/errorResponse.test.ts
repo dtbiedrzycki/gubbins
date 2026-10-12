@@ -16,4 +16,12 @@ describe('errorResponseSchema', () => {
     const result = errorResponseSchema.safeParse({});
     expect(result.success).toBe(false);
   });
+
+  it('accepts a 409 code', () => {
+    expect(errorResponseSchema.safeParse({ message: 'This hold is no longer active.', code: 'hold_not_active' }).success).toBe(true);
+  });
+
+  it('rejects a code outside the documented set', () => {
+    expect(errorResponseSchema.safeParse({ message: 'x', code: 'teapot' }).success).toBe(false);
+  });
 });

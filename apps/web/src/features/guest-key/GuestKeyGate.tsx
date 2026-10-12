@@ -26,7 +26,7 @@ export function GuestKeyGate({ slug, onSuccess }: GuestKeyGateProps) {
         />
       </div>
       {/* Deliberately generic regardless of the underlying reason — ADR-016/054: no distinguishing "wrong key" from "no such list." */}
-      {error && <p role="alert" className="text-red-600">This list could not be found.</p>}
+      <p role="alert" className="text-red-600 empty:mb-0">{error ? 'This list could not be found.' : ''}</p>
       <button
         type="submit" disabled={isPending}
         className="rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50"

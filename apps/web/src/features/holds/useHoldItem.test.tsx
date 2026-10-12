@@ -10,13 +10,16 @@ import { useHoldItem } from './useHoldItem';
 import { useListView } from './useListView';
 
 function wrapper({ children }: { children: ReactNode }) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // useListView's own retry wins over these defaults; retryDelay: 0 keeps its one retry instant.
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
 
 const listView = (status: ListViewResponse['item']['status']): ListViewResponse => ({
   title: 'Baby Shower',
   item: { id: 'item-1', title: 'Stroller', status },
+  myHolds: [],
+  capabilities: { holdDurationDays: 3 },
 });
 
 /** Mounts the list view query alongside the hold mutation, as the page does. */
@@ -59,7 +62,7 @@ describe('useHoldItem', () => {
       }),
       http.post('/api/lists/abc123/items/item-1/hold', () => {
         holdRequested = true;
-        return HttpResponse.json({ holdId: 'hold-1', itemId: 'item-1', expiresAt: '2026-01-04T00:00:00.000Z' }, { status: 201 });
+        return HttpResponse.json({ holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: '2026-01-04T00:00:00.000Z', extendedAt: null, actions: { extend: true, release: true, purchase: true } }, { status: 201 });
       }),
     );
     const { result } = renderListAndHold();

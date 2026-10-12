@@ -3,7 +3,7 @@ import { Wishlist } from './Wishlist.js';
 import { Item } from './Item.js';
 import { Hold } from './Hold.js';
 import {
-  DomainValidationError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError,
+  DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError,
 } from '../errors.js';
 
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
@@ -301,7 +301,8 @@ describe('Wishlist.purchaseHold', () => {
   it('refuses an expired hold once someone else holds the last unit, and records nothing', () => {
     const expired = holdOn(ITEM_ID, { expiresAt: at(-1) });
     const wishlist = loaded({ holds: [holdOn(ITEM_ID, { sessionHash: OTHER_SESSION })] });
-    expect(() => wishlist.purchaseHold(expired)).toThrow(ItemUnavailableError);
+    expect(() => wishlist.purchaseHold(expired)).toThrow(HoldLapsedError);
+    expect(() => wishlist.purchaseHold(expired)).toThrow(ItemUnavailableError); // same 409 code, a clearer message
     expect(expired.purchasedAt).toBeNull();
     expect(wishlist.getItem(ITEM_ID).seq).toBe(0);
   });
@@ -334,14 +335,17 @@ describe('Wishlist.canPurchaseHold', () => {
 });
 
 describe('Wishlist.holdStatus, canExtendHold and canReleaseHold', () => {
-  it('judges a hold at the instant the aggregate was loaded at', () => {
+  it('reports a hold\'s status as of the instant the aggregate was loaded at', () => {
     const hold = holdOn(ITEM_ID);
     expect(loaded({ holds: [hold], asOf: at(3 * DAY) }).holdStatus(hold)).toBe('active');
     expect(loaded({ holds: [hold], asOf: at(3 * DAY + 1) }).holdStatus(hold)).toBe('expired');
   });
 
-  it('judges a hold loaded outside the snapshot too, as long as it is on this list', () => {
+  it('reports the status of a hold that was not loaded, as long as it is on this list', () => {
     expect(loaded().holdStatus(holdOn(ITEM_ID, { releasedAt: T0 }))).toBe('released');
+  });
+
+  it("refuses to report the status of a hold on another list's item", () => {
     expect(() => loaded().holdStatus(holdOn(OTHER_ITEM_ID))).toThrow(HoldNotFoundError);
   });
 

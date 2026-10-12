@@ -1,4 +1,4 @@
-import { DomainValidationError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError } from '../errors.js';
+import { DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError } from '../errors.js';
 import type { HoldExtendedEvent } from '../events/HoldExtendedEvent.js';
 import type { HoldReleasedEvent } from '../events/HoldReleasedEvent.js';
 import type { ItemHeldEvent } from '../events/ItemHeldEvent.js';
@@ -191,7 +191,7 @@ export class Wishlist {
     const item = this.itemOf(hold);
     const refusal = this.purchaseRefusal(hold);
     if (refusal === 'closed') throw new HoldNotActiveError(hold.id.value);
-    if (refusal === 'lapsed') throw new ItemUnavailableError(item.id.value);
+    if (refusal === 'lapsed') throw new HoldLapsedError(item.id.value);
     const event = hold.markPurchased(this.asOf);
     this.keep(hold);
     return { hold, item, event, expectedSeq: item.recordEvent() };

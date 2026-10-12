@@ -35,6 +35,9 @@
   - `contributions` (per-row ledger for reconciliation, and the
     idempotency constraint)
 - `rebuildProjections` command: truncate and re-fold. Events are the source of truth. **`thank_you_status` is explicitly outside this scope** — it is owner bookkeeping, not derived from events, and must survive a rebuild untouched. **`guest_pii` is likewise outside this scope**, for the same reason — plain bookkeeping, not folded from events. **`manual_gift_entries` is likewise outside this scope** — same category again: owner-authored, no ledger event, nothing to fold.
+  Run it with `npm run rebuild-projections --workspace=apps/api` against
+  `DATABASE_PATH`; it folds `holds` and `item_state` in one transaction
+  and leaves every other table untouched.
 - **`ItemHeld`, `ContributionPledged`, and `ManualContributionRecorded`
   payloads carry `piiRef` (a `GuestPii` row id) rather than embedding
   `holderName`/`contributorName`/email/message directly.** This keeps

@@ -94,6 +94,8 @@ These refine the spec where it is silent. Each is cheap to reverse before the PR
 10. **The hold dialog keeps its CTA "Yes, hold it".** The `HoldSheet` rename, "Confirm hold" and the name/message fields arrive with stack D. Stack A only adds the "Held for you for N days." line and the open-time key.
 11. **Following the PR #31 review (spec D21), an item's purchased count is computed from purchase entries** (holds with `purchased_at`) instead of an `item_state.purchased_count` column. Task 2.1 no longer adds the column. Following the PR #33 review, the count is derived in the aggregate: the repository loads the list's active or purchased holds and `Wishlist.purchasedCountOf` counts those with status purchased, so there is no count query; Tasks 4.1 and 7.1 build on that.
 12. **Following the PR #32 review (spec D22), `Wishlist` captures the instant it was loaded at; its commands and queries take no time argument.** `Wishlist.create` and `reconstitute` take `asOf`; repositories pass the `now` they load at, so `CreateList` gains a `Clock`. `Hold`'s instant-taking methods are the aggregate's internals. Tasks 5.x and 6.3 are brought in line on their own branches.
+13. **A hold replay from a different session is refused as `item_unavailable` (409)** rather than returning the other session's hold; stack E replaces this with `idempotency_conflict`.
+14. **The extend/release/purchase use cases share one body, `runHoldCommand` in `holdCommand.ts`; each passes its permission and its wishlist command.**
 
 ## File map
 
@@ -149,7 +151,7 @@ E2E: `e2e/guest-manages-a-hold.spec.ts` (create), `e2e/walking-skeleton.spec.ts`
 | 3 | `03-domain-lifecycle` | 3.1–3.4 | feat(api): hold lifecycle in the domain (statusAt, timestamps, guest permissions) |
 | 4 | `04-persistence` | 4.1–4.4 | feat(api): aggregate loads active holds; contract suites; BEGIN IMMEDIATE |
 | 5 | `05-use-cases` | 5.1–5.7 | feat(api): extend, release, mark purchased and list-view use cases |
-| 6 | `06-api` | 6.1–6.5 | feat(api): hold lifecycle routes, error codes and HOLD_DURATION_DAYS |
+| 6 | `06-api` | 6.1–6.4 | feat(api): hold lifecycle routes, error codes and HOLD_DURATION_DAYS |
 | 7 | `07-rebuild` | 7.1 | feat(api): minimal rebuildProjections (D18) |
 | 8 | `08-web-e2e` | 8.1–8.5 | feat(web): Your holds, dialog-open idempotency key, e2e |
 
@@ -1969,7 +1971,7 @@ import { Wishlist } from './Wishlist.js';
 import { Item } from './Item.js';
 import { Hold } from './Hold.js';
 import {
-  DomainValidationError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError,
+  DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError,
 } from '../errors.js';
 
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
@@ -2267,7 +2269,8 @@ describe('Wishlist.purchaseHold', () => {
   it('refuses an expired hold once someone else holds the last unit, and records nothing', () => {
     const expired = holdOn(ITEM_ID, { expiresAt: at(-1) });
     const wishlist = loaded({ holds: [holdOn(ITEM_ID, { sessionHash: OTHER_SESSION })] });
-    expect(() => wishlist.purchaseHold(expired)).toThrow(ItemUnavailableError);
+    expect(() => wishlist.purchaseHold(expired)).toThrow(HoldLapsedError);
+    expect(() => wishlist.purchaseHold(expired)).toThrow(ItemUnavailableError); // same 409 code, a clearer message
     expect(expired.purchasedAt).toBeNull();
     expect(wishlist.getItem(ITEM_ID).seq).toBe(0);
   });
@@ -2490,7 +2493,7 @@ export class Item {
 Replace `apps/api/src/domain/entities/Wishlist.ts` with:
 
 ```ts
-import { DomainValidationError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError } from '../errors.js';
+import { DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError } from '../errors.js';
 import type { HoldExtendedEvent } from '../events/HoldExtendedEvent.js';
 import type { HoldReleasedEvent } from '../events/HoldReleasedEvent.js';
 import type { ItemHeldEvent } from '../events/ItemHeldEvent.js';
@@ -2683,7 +2686,7 @@ export class Wishlist {
     const item = this.itemOf(hold);
     const refusal = this.purchaseRefusal(hold);
     if (refusal === 'closed') throw new HoldNotActiveError(hold.id.value);
-    if (refusal === 'lapsed') throw new ItemUnavailableError(item.id.value);
+    if (refusal === 'lapsed') throw new HoldLapsedError(item.id.value);
     const event = hold.markPurchased(this.asOf);
     this.keep(hold);
     return { hold, item, event, expectedSeq: item.recordEvent() };
@@ -4350,14 +4353,14 @@ The new use cases are tested here with the in-memory fakes; PR 6 wires them to r
 - Test: `apps/api/src/application/views/HoldView.test.ts`
 
 **Interfaces:**
-- Consumes: `Hold.statusAt/canExtendAt/canReleaseAt`, `Wishlist.canPurchaseHold`.
+- Consumes: `Wishlist.holdStatus/canExtendHold/canReleaseHold/canPurchaseHold`.
 - Produces:
   - `interface HoldPolicy { durationDays: number }`
   - `DEFAULT_HOLD_POLICY: HoldPolicy` (`durationDays: 3`)
   - `holdDurationMs(policy: HoldPolicy): number`
   - `interface AccessContext { guestSession: { sessionHash: string } | null }`
   - `interface HoldView { holdId: string; itemId: string; status: HoldStatus; expiresAt: string; extendedAt: string | null; actions: { extend: boolean; release: boolean; purchase: boolean } }`
-  - `toHoldView(wishlist: Wishlist, hold: Hold, now: Date): HoldView`
+  - `toHoldView(wishlist: Wishlist, hold: Hold): HoldView` (as of the instant `wishlist` was loaded at)
 
 - [ ] **Step 1: Write the failing test**
 
@@ -4385,15 +4388,16 @@ function holdOn(overrides: Partial<Parameters<typeof Hold.reconstitute>[0]> = {}
   });
 }
 
-function wishlistWith(holds: Hold[] = []): Wishlist {
-  const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0, purchasedCount: 0 });
-  return Wishlist.reconstitute({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'o', key: 'k', keyGen: 1, item, holds });
+/** The list as loaded at `asOf`, carrying `holds`. */
+function wishlistAt(asOf: Date, holds: Hold[] = []): Wishlist {
+  const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0 });
+  return Wishlist.reconstitute({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'o', key: 'k', keyGen: 1, asOf, item, holds });
 }
 
 describe('toHoldView — the domain decides which actions the guest is offered', () => {
   it('shows an active, never-extended hold with every action open', () => {
     const hold = holdOn();
-    expect(toHoldView(wishlistWith([hold]), hold, T0)).toEqual({
+    expect(toHoldView(wishlistAt(T0, [hold]), hold)).toEqual({
       holdId: hold.id.value, itemId: ITEM_ID, status: 'active',
       expiresAt: at(3 * DAY).toISOString(), extendedAt: null,
       actions: { extend: true, release: true, purchase: true },
@@ -4402,20 +4406,20 @@ describe('toHoldView — the domain decides which actions the guest is offered',
 
   it('closes extend once the hold has used its one extension', () => {
     const hold = holdOn({ extendedAt: at(DAY) });
-    const view = toHoldView(wishlistWith([hold]), hold, at(DAY));
+    const view = toHoldView(wishlistAt(at(DAY), [hold]), hold);
     expect(view.extendedAt).toBe(at(DAY).toISOString());
     expect(view.actions).toEqual({ extend: false, release: true, purchase: true });
   });
 
-  it('offers only purchase on an expired hold while a unit is free (D15)', () => {
+  it('offers only purchase on an expired hold while a unit is free', () => {
     const hold = holdOn({ expiresAt: at(-1) });
-    const view = toHoldView(wishlistWith(), hold, T0);
+    const view = toHoldView(wishlistAt(T0), hold);
     expect(view.status).toBe('expired');
     expect(view.actions).toEqual({ extend: false, release: false, purchase: true });
   });
 
   it('offers nothing on an expired hold whose unit someone else now holds', () => {
-    const view = toHoldView(wishlistWith([holdOn({ sessionHash: 'b'.repeat(64) })]), holdOn({ expiresAt: at(-1) }), T0);
+    const view = toHoldView(wishlistAt(T0, [holdOn({ sessionHash: 'b'.repeat(64) })]), holdOn({ expiresAt: at(-1) }));
     expect(view.actions).toEqual({ extend: false, release: false, purchase: false });
   });
 
@@ -4423,7 +4427,7 @@ describe('toHoldView — the domain decides which actions the guest is offered',
     ['released', { releasedAt: T0 }],
     ['purchased', { purchasedAt: T0 }],
   ] as const)('offers nothing on a %s hold', (status, overrides) => {
-    const view = toHoldView(wishlistWith(), holdOn(overrides), T0);
+    const view = toHoldView(wishlistAt(T0), holdOn(overrides));
     expect(view.status).toBe(status);
     expect(view.actions).toEqual({ extend: false, release: false, purchase: false });
   });
@@ -4440,11 +4444,7 @@ Expected: FAIL. `./HoldView.js` cannot be resolved.
 Create `apps/api/src/application/HoldPolicy.ts`:
 
 ```ts
-/**
- * Operator-configured hold rules, validated into this shape at the
- * composition root (holds-lifecycle §3). Stack C adds
- * `maxActiveHoldsPerSession`.
- */
+/** Operator-configured hold rules, validated into this shape at the composition root. */
 export interface HoldPolicy {
   /** HOLD_DURATION_DAYS (ops, default 3). The one extension adds the same again (ADR-0002). */
   durationDays: number;
@@ -4463,16 +4463,15 @@ Create `apps/api/src/application/AccessContext.ts`:
 
 ```ts
 /**
- * The credentials a request presented for one wishlist, already verified
- * (holds-lifecycle §3, D7). Built only in presentation/accessContext.ts —
- * authentication is the edge's job — and passed to use cases beside, never
- * inside, the TransactionContext: the transaction is database-scoped, this
- * is request-scoped. The guest session arrives already hashed, so the raw
+ * The credentials a request presented for one wishlist, already
+ * verified. Built only in presentation/accessContext.ts (authentication is
+ * the edge's job) and passed to use cases beside, never inside, the
+ * TransactionContext: the transaction is database-scoped, this is
+ * request-scoped. The guest session arrives already hashed, so the raw
  * session id never crosses into application/.
  *
  * Structurally a `HoldCredentials` (domain/policies/HoldPermissions), which
- * is how the domain policy reads it. Stack B adds `owner`, stack E
- * `guestHoldSignature`.
+ * is how the domain policy reads it.
  */
 export interface AccessContext {
   guestSession: { sessionHash: string } | null;
@@ -4495,22 +4494,23 @@ export interface HoldView {
   /**
    * What the guest may do next, decided by the domain so the UI never
    * re-derives a rule: extend once while active, release while active,
-   * purchase while active or — D15 — while expired with a unit still free.
+   * purchase while active, or while expired with a unit still free.
    */
   actions: { extend: boolean; release: boolean; purchase: boolean };
 }
 
-export function toHoldView(wishlist: Wishlist, hold: Hold, now: Date): HoldView {
+/** `hold` as of the instant `wishlist` was loaded at; the wishlist answers every rule. */
+export function toHoldView(wishlist: Wishlist, hold: Hold): HoldView {
   return {
     holdId: hold.id.value,
     itemId: hold.itemId.value,
-    status: hold.statusAt(now),
+    status: wishlist.holdStatus(hold),
     expiresAt: hold.expiresAt.toISOString(),
     extendedAt: hold.extendedAt?.toISOString() ?? null,
     actions: {
-      extend: hold.canExtendAt(now),
-      release: hold.canReleaseAt(now),
-      purchase: wishlist.canPurchaseHold(hold, now),
+      extend: wishlist.canExtendHold(hold),
+      release: wishlist.canReleaseHold(hold),
+      purchase: wishlist.canPurchaseHold(hold),
     },
   };
 }
@@ -4620,7 +4620,7 @@ import { ConcurrencyError } from '../domain/errors.js';
 import type { TransactionContext, UnitOfWork } from './ports/UnitOfWork.js';
 
 export interface RetryOptions {
-  /** Retries after the first attempt. The data & persistence spec caps them at 3. */
+  /** Retries after the first attempt. Capped at 3. */
   retries: number;
   /** Waits before a retry; injected so tests need not sleep. */
   sleep(ms: number): Promise<void>;
@@ -4774,6 +4774,15 @@ describe('HoldItem', () => {
     await expect(useCase.execute(input('idem-2'), OTHER_GUEST)).rejects.toThrow(ItemUnavailableError);
   });
 
+  it("refuses another session's idempotency key as ItemUnavailableError and writes nothing", async () => {
+    const { useCase, eventStore, holds } = await makeUseCase();
+    await useCase.execute(input(), GUEST);
+
+    await expect(useCase.execute(input(), OTHER_GUEST)).rejects.toThrow(ItemUnavailableError);
+    expect(eventStore.recorded(ITEM_ID)).toHaveLength(1);
+    expect((await holds.findByIdempotencyKey(ITEM_ID, 'idem-1'))?.sessionHash.value).toBe('a'.repeat(64));
+  });
+
   it('throws ItemNotFoundError without a guest session, for an unknown wishlist, or an item not on it', async () => {
     const { useCase } = await makeUseCase();
     await expect(useCase.execute(input(), { guestSession: null })).rejects.toThrow(ItemNotFoundError);
@@ -4825,7 +4834,7 @@ function requestWith(cookie: string | undefined, unsigned: { valid: boolean; val
 const payload = (overrides: Record<string, unknown> = {}) =>
   JSON.stringify({ wishlistId: wishlist.id.value, keyGen: wishlist.keyGen, sessionId: 'session-abc', ...overrides });
 
-describe('buildAccessContext — the one place a request becomes credentials (D7)', () => {
+describe('buildAccessContext — the one place a request becomes credentials', () => {
   it('hashes a valid session for this list, so the raw session id goes no further', () => {
     const access = buildAccessContext(requestWith('signed', { valid: true, value: payload() }), wishlist, new HasherSha256());
 
@@ -4890,10 +4899,9 @@ export function readSession(request: FastifyRequest, wishlist: Wishlist): Sessio
 }
 
 /**
- * The one place a request's credentials become an AccessContext
- * (holds-lifecycle D7). The session id is hashed here, so application/
- * only ever sees the hash that `holds.session_hash` stores — never the raw
- * value (holds spec).
+ * The one place a request's credentials become an AccessContext.
+ * The session id is hashed here, so application/ only ever sees the hash
+ * that `holds.session_hash` stores — never the raw value.
  */
 export function buildAccessContext(request: FastifyRequest, wishlist: Wishlist, hasher: Hasher): AccessContext {
   const session = readSession(request, wishlist);
@@ -4913,7 +4921,7 @@ import type { Hasher } from '../ports/Hasher.js';
 import type { AccessContext } from '../AccessContext.js';
 import { holdDurationMs, type HoldPolicy } from '../HoldPolicy.js';
 import { toHoldView, type HoldView } from '../views/HoldView.js';
-import { ItemNotFoundError } from '../../domain/errors.js';
+import { ItemNotFoundError, ItemUnavailableError } from '../../domain/errors.js';
 
 export interface HoldItemInput {
   wishlistId: string;
@@ -4926,21 +4934,21 @@ export class HoldItem {
     private unitOfWork: UnitOfWork,
     private tokenGenerator: TokenGenerator,
     private clock: Clock,
-    /** Only for the ItemHeld secret hash until stack E; session hashing happens in presentation now. */
+    /** Only for the ItemHeld secret hash; session hashing happens in presentation. */
     private hasher: Hasher,
     private policy: HoldPolicy,
   ) {}
 
   async execute(input: HoldItemInput, access: AccessContext): Promise<HoldView> {
     const guest = access.guestSession;
-    // Only a keyed-in guest may hold (holds-lifecycle §3). Presentation
-    // already answers a missing session with the generic 404; this keeps the
-    // use case safe on its own, failing the same way.
+    // Only a keyed-in guest may hold. Presentation already answers a missing
+    // session with the generic 404; this keeps the use case safe on its own,
+    // failing the same way.
     if (!guest) throw new ItemNotFoundError(input.itemId);
 
     return this.unitOfWork.execute(async (ctx) => {
-      // Read once: the aggregate's active holds are loaded as of this
-      // instant, and every decision below is taken at the same one.
+      // Read once: the aggregate is loaded as of this instant, its active
+      // holds included, and decides everything below at the same one.
       const now = this.clock.now();
       const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
       if (!wishlist) throw new ItemNotFoundError(input.itemId);
@@ -4950,23 +4958,29 @@ export class HoldItem {
       // key must return the original hold (its current view), not trip
       // ItemUnavailableError on the hold it created itself.
       const existing = await ctx.holds.findByIdempotencyKey(input.itemId, input.idempotencyKey);
-      if (existing) return toHoldView(wishlist, existing, now);
+      if (existing) {
+        // Another session's key must not hand over that session's hold; refuse
+        // it as unavailable. Never fall through to holdItem: UNIQUE (item_id,
+        // idempotency_key) would make it a 500.
+        if (!existing.belongsToSession(guest.sessionHash)) throw new ItemUnavailableError(input.itemId);
+        return toHoldView(wishlist, existing);
+      }
 
       const { hold, item, event, expectedSeq } = wishlist.holdItem({
         itemId: input.itemId,
         sessionHash: guest.sessionHash,
         idempotencyKey: input.idempotencyKey,
-        now,
         durationMs: holdDurationMs(this.policy),
       }, this.tokenGenerator, this.hasher);
 
       // Placing a hold is guest-only (ADR-0075), so the actor is fixed.
       await ctx.eventStore.append(item.id.value, expectedSeq, [event], 'guest');
       await ctx.holds.insert(hold);
-      // Persist exactly what the domain decided (roadmap open item 2).
+      // Persist exactly what the domain decided — the write path never
+      // decides availability itself.
       await ctx.wishlists.saveItemState(item);
 
-      return toHoldView(wishlist, hold, now);
+      return toHoldView(wishlist, hold);
     });
   }
 }
@@ -5200,12 +5214,14 @@ Expected: FAIL. `./ExtendHold.js` cannot be resolved.
 Create `apps/api/src/application/use-cases/holdCommand.ts`:
 
 ```ts
+import type { Actor } from '../../domain/Actor.js';
 import type { Hold } from '../../domain/entities/Hold.js';
-import type { Wishlist } from '../../domain/entities/Wishlist.js';
+import type { HoldCommandResult, Wishlist } from '../../domain/entities/Wishlist.js';
 import { HoldNotFoundError } from '../../domain/errors.js';
+import type { LedgerEvent } from '../../domain/events/LedgerEvent.js';
 import type { AccessContext } from '../AccessContext.js';
 import type { TransactionContext } from '../ports/UnitOfWork.js';
-import type { HoldView } from '../views/HoldView.js';
+import { toHoldView, type HoldView } from '../views/HoldView.js';
 
 export interface HoldCommandInput {
   wishlistId: string;
@@ -5219,10 +5235,10 @@ export interface HoldCommand {
 
 /**
  * Resolves `holdId` to a hold on this wishlist, or throws HoldNotFoundError.
- * An active hold comes from the aggregate's own snapshot, so the command
- * mutates the very instance the wishlist counts. A hold the snapshot leaves
- * out — expired, released or purchased (D8) — is loaded by id, and then must
- * be on this wishlist's item. Unknown, foreign and malformed ids all fail
+ * An active or purchased hold comes from the aggregate's own snapshot, so
+ * the command mutates the very instance the wishlist counts. A hold outside
+ * it — released or expired — is loaded by id, and then must be on this
+ * wishlist's item. Unknown, foreign and malformed ids all fail
  * alike: another list's hold id is a 404 like any other (IDOR).
  */
 export async function findOwnedHold(ctx: TransactionContext, wishlist: Wishlist, holdId: string): Promise<Hold> {
@@ -5230,19 +5246,49 @@ export async function findOwnedHold(ctx: TransactionContext, wishlist: Wishlist,
   if (!hold || !wishlist.owns(hold)) throw new HoldNotFoundError(holdId);
   return hold;
 }
+
+/**
+ * The body every hold command shares, run inside a unit of work: load the
+ * list, find the caller's hold, check permission, let the wishlist decide,
+ * then persist the outcome and answer with the hold's view. A command supplies
+ * only its permission check and its wishlist call. `now` is the clock reading
+ * the list is loaded at; the wishlist then decides everything as of it.
+ */
+export async function runHoldCommand<E extends LedgerEvent>(
+  ctx: TransactionContext,
+  input: HoldCommandInput,
+  access: AccessContext,
+  now: Date,
+  permit: (hold: Hold, access: AccessContext) => Actor | null,
+  decide: (wishlist: Wishlist, hold: Hold) => HoldCommandResult<E>,
+): Promise<HoldView> {
+  const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
+  if (!wishlist) throw new HoldNotFoundError(input.holdId);
+  const hold = await findOwnedHold(ctx, wishlist, input.holdId);
+  // Not permitted looks exactly like not found: a guest learns nothing
+  // about holds that are not theirs.
+  const actor = permit(hold, access);
+  if (!actor) throw new HoldNotFoundError(input.holdId);
+
+  const { item, event, expectedSeq } = decide(wishlist, hold);
+
+  await ctx.eventStore.append(item.id.value, expectedSeq, [event], actor);
+  await ctx.holds.save(hold);
+  await ctx.wishlists.saveItemState(item);
+  return toHoldView(wishlist, hold);
+}
 ```
 
 Create `apps/api/src/application/use-cases/ExtendHold.ts`:
 
 ```ts
-import { HoldNotFoundError } from '../../domain/errors.js';
 import { HoldPermissions } from '../../domain/policies/HoldPermissions.js';
 import type { AccessContext } from '../AccessContext.js';
 import { holdDurationMs, type HoldPolicy } from '../HoldPolicy.js';
 import type { Clock } from '../ports/Clock.js';
 import type { UnitOfWork } from '../ports/UnitOfWork.js';
-import { toHoldView, type HoldView } from '../views/HoldView.js';
-import { findOwnedHold, type HoldCommand, type HoldCommandInput } from './holdCommand.js';
+import type { HoldView } from '../views/HoldView.js';
+import { runHoldCommand, type HoldCommand, type HoldCommandInput } from './holdCommand.js';
 
 export class ExtendHold implements HoldCommand {
   constructor(
@@ -5252,22 +5298,11 @@ export class ExtendHold implements HoldCommand {
   ) {}
 
   async execute(input: HoldCommandInput, access: AccessContext): Promise<HoldView> {
-    return this.unitOfWork.execute(async (ctx) => {
+    return this.unitOfWork.execute((ctx) => {
       const now = this.clock.now();
-      const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
-      if (!wishlist) throw new HoldNotFoundError(input.holdId);
-      const hold = await findOwnedHold(ctx, wishlist, input.holdId);
-      // Not permitted looks exactly like not found: a guest learns nothing
-      // about holds that are not theirs.
-      const actor = HoldPermissions.mayExtend(hold, access);
-      if (!actor) throw new HoldNotFoundError(input.holdId);
-
-      const { item, event, expectedSeq } = wishlist.extendHold(hold, now, holdDurationMs(this.policy));
-
-      await ctx.eventStore.append(item.id.value, expectedSeq, [event], actor);
-      await ctx.holds.save(hold);
-      await ctx.wishlists.saveItemState(item);
-      return toHoldView(wishlist, hold, now);
+      return runHoldCommand(ctx, input, access, now, HoldPermissions.mayExtend, (wishlist, hold) =>
+        wishlist.extendHold(hold, holdDurationMs(this.policy)),
+      );
     });
   }
 }
@@ -5328,7 +5363,7 @@ describe('ReleaseHold', () => {
     await release(holdId);
 
     expect(eventStore.recorded(ITEM_ID).map(({ event, actor }) => [event.type, actor])).toEqual([['ItemHeld', 'guest'], ['HoldReleased', 'guest']]);
-    expect((await wishlists.findById(WISHLIST_ID, T0))?.itemStatusAt(ITEM_ID, T0)).toBe('available');
+    expect((await wishlists.findById(WISHLIST_ID, T0))?.itemStatus(ITEM_ID)).toBe('available');
     await expect(placeHold(OTHER_GUEST)).resolves.toMatchObject({ status: 'active' });
   });
 
@@ -5373,13 +5408,12 @@ Expected: FAIL. The module cannot be resolved.
 Create `apps/api/src/application/use-cases/ReleaseHold.ts`:
 
 ```ts
-import { HoldNotFoundError } from '../../domain/errors.js';
 import { HoldPermissions } from '../../domain/policies/HoldPermissions.js';
 import type { AccessContext } from '../AccessContext.js';
 import type { Clock } from '../ports/Clock.js';
 import type { UnitOfWork } from '../ports/UnitOfWork.js';
-import { toHoldView, type HoldView } from '../views/HoldView.js';
-import { findOwnedHold, type HoldCommand, type HoldCommandInput } from './holdCommand.js';
+import type { HoldView } from '../views/HoldView.js';
+import { runHoldCommand, type HoldCommand, type HoldCommandInput } from './holdCommand.js';
 
 export class ReleaseHold implements HoldCommand {
   constructor(
@@ -5388,22 +5422,9 @@ export class ReleaseHold implements HoldCommand {
   ) {}
 
   async execute(input: HoldCommandInput, access: AccessContext): Promise<HoldView> {
-    return this.unitOfWork.execute(async (ctx) => {
+    return this.unitOfWork.execute((ctx) => {
       const now = this.clock.now();
-      const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
-      if (!wishlist) throw new HoldNotFoundError(input.holdId);
-      const hold = await findOwnedHold(ctx, wishlist, input.holdId);
-      // Guest row only in stack A; stack F adds the owner's, gated on
-      // claim-status visibility.
-      const actor = HoldPermissions.mayRelease(hold, access);
-      if (!actor) throw new HoldNotFoundError(input.holdId);
-
-      const { item, event, expectedSeq } = wishlist.releaseHold(hold, now);
-
-      await ctx.eventStore.append(item.id.value, expectedSeq, [event], actor);
-      await ctx.holds.save(hold);
-      await ctx.wishlists.saveItemState(item);
-      return toHoldView(wishlist, hold, now);
+      return runHoldCommand(ctx, input, access, now, HoldPermissions.mayRelease, (wishlist, hold) => wishlist.releaseHold(hold));
     });
   }
 }
@@ -5468,11 +5489,11 @@ describe('MarkHoldPurchased', () => {
 
     expect(eventStore.recorded(ITEM_ID).map(({ event, actor }) => [event.type, actor])).toEqual([['ItemHeld', 'guest'], ['ItemPurchased', 'guest']]);
     const reloaded = await wishlists.findById(WISHLIST_ID, clock.now());
-    expect(reloaded?.item?.purchasedCount).toBe(1);
-    expect(reloaded?.itemStatusAt(ITEM_ID, clock.now())).toBe('purchased');
+    expect(reloaded?.purchasedCountOf(ITEM_ID)).toBe(1);
+    expect(reloaded?.itemStatus(ITEM_ID)).toBe('purchased');
   });
 
-  it('marks an expired hold purchased while the unit is still free (D15)', async () => {
+  it('marks an expired hold purchased while the unit is still free', async () => {
     const { placeHold, clock, purchase } = await setup();
     const { holdId } = await placeHold();
     clock.advance(3 * DAY + 1);
@@ -5528,13 +5549,12 @@ Expected: FAIL. The module cannot be resolved.
 Create `apps/api/src/application/use-cases/MarkHoldPurchased.ts`:
 
 ```ts
-import { HoldNotFoundError } from '../../domain/errors.js';
 import { HoldPermissions } from '../../domain/policies/HoldPermissions.js';
 import type { AccessContext } from '../AccessContext.js';
 import type { Clock } from '../ports/Clock.js';
 import type { UnitOfWork } from '../ports/UnitOfWork.js';
-import { toHoldView, type HoldView } from '../views/HoldView.js';
-import { findOwnedHold, type HoldCommand, type HoldCommandInput } from './holdCommand.js';
+import type { HoldView } from '../views/HoldView.js';
+import { runHoldCommand, type HoldCommand, type HoldCommandInput } from './holdCommand.js';
 
 export class MarkHoldPurchased implements HoldCommand {
   constructor(
@@ -5543,21 +5563,10 @@ export class MarkHoldPurchased implements HoldCommand {
   ) {}
 
   async execute(input: HoldCommandInput, access: AccessContext): Promise<HoldView> {
-    return this.unitOfWork.execute(async (ctx) => {
+    return this.unitOfWork.execute((ctx) => {
       const now = this.clock.now();
-      const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
-      if (!wishlist) throw new HoldNotFoundError(input.holdId);
-      const hold = await findOwnedHold(ctx, wishlist, input.holdId);
       // Guest row only; the owner's direct purchase is sub-project 4.
-      const actor = HoldPermissions.mayPurchase(hold, access);
-      if (!actor) throw new HoldNotFoundError(input.holdId);
-
-      const { item, event, expectedSeq } = wishlist.purchaseHold(hold, now);
-
-      await ctx.eventStore.append(item.id.value, expectedSeq, [event], actor);
-      await ctx.holds.save(hold);
-      await ctx.wishlists.saveItemState(item);
-      return toHoldView(wishlist, hold, now);
+      return runHoldCommand(ctx, input, access, now, HoldPermissions.mayPurchase, (wishlist, hold) => wishlist.purchaseHold(hold));
     });
   }
 }
@@ -5582,7 +5591,7 @@ Claude-Session: https://claude.ai/code/session_01RdJzbrWLV8Xvu5rEmGsgQn"
 - Create: `apps/api/src/application/use-cases/GetListView.ts`, `GetListView.test.ts`
 
 **Interfaces:**
-- Consumes: `HoldRepository.findForSession`, `Wishlist.itemStatusAt`, `toHoldView`, `HoldPolicy`.
+- Consumes: `HoldRepository.findForSession`, `Wishlist.itemStatus/holdStatus`, `toHoldView`, `HoldPolicy`.
 - Produces:
   - `interface ListView { title: string; item: { id: string; title: string; status: ItemStatus }; myHolds: HoldView[]; capabilities: { holdDurationDays: number } }`
   - `class GetListView`, constructor `(unitOfWork: UnitOfWork, clock: Clock, policy: HoldPolicy)`, with `execute(input: { wishlistId: string }, access: AccessContext): Promise<ListView>`
@@ -5735,13 +5744,13 @@ export class GetListView {
 
       return {
         title: wishlist.title,
-        item: { id: item.id.value, title: item.title, status: wishlist.itemStatusAt(item.id.value, now) },
+        item: { id: item.id.value, title: item.title, status: wishlist.itemStatus(item.id.value) },
         // Released holds were the guest's own choice and need no follow-up;
-        // expired ones stay, since D15 may still let them be purchased.
+        // expired ones stay, since an expired hold can still be purchased while a unit is free.
         myHolds: mine
-          .filter((hold) => hold.statusAt(now) !== 'released')
+          .filter((hold) => wishlist.holdStatus(hold) !== 'released')
           .sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime())
-          .map((hold) => toHoldView(wishlist, hold, now)),
+          .map((hold) => toHoldView(wishlist, hold)),
         capabilities: { holdDurationDays: this.policy.durationDays },
       };
     });
@@ -5809,7 +5818,7 @@ Create `apps/api/src/presentation/domainErrorResponse.test.ts`:
 import { describe, expect, it } from 'vitest';
 import { domainErrorResponse } from './domainErrorResponse.js';
 import {
-  ConcurrencyError, HoldAlreadyExtendedError, HoldNotActiveError, HoldNotFoundError,
+  ConcurrencyError, HoldAlreadyExtendedError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError,
   InvalidGuestKeyError, ItemNotFoundError, ItemUnavailableError, WishlistNotFoundError,
 } from '../domain/errors.js';
 
@@ -5824,6 +5833,7 @@ describe('domainErrorResponse', () => {
 
   it.each([
     ['ItemUnavailableError', new ItemUnavailableError('x'), 'item_unavailable', 'This item is no longer available.'],
+    ['HoldLapsedError', new HoldLapsedError('x'), 'item_unavailable', 'Your hold expired and this gift has since been held or bought by someone else.'],
     ['HoldNotActiveError', new HoldNotActiveError('x'), 'hold_not_active', 'This hold is no longer active.'],
     ['HoldAlreadyExtendedError', new HoldAlreadyExtendedError('x'), 'hold_already_extended', 'This hold has already been extended.'],
   ])('answers %s with 409 and a code the client can branch on', (_name, err, code, message) => {
@@ -5882,7 +5892,7 @@ Create `apps/api/src/presentation/domainErrorResponse.ts`:
 ```ts
 import type { ErrorResponse } from '@gubbins/shared-types';
 import {
-  ConcurrencyError, HoldAlreadyExtendedError, HoldNotActiveError, HoldNotFoundError,
+  ConcurrencyError, HoldAlreadyExtendedError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError,
   ItemNotFoundError, ItemUnavailableError, WishlistNotFoundError,
 } from '../domain/errors.js';
 
@@ -5898,6 +5908,10 @@ export const NOT_FOUND = { message: 'Not found' } as const;
 export function domainErrorResponse(err: unknown): { status: 404 | 409; body: ErrorResponse } | null {
   if (err instanceof WishlistNotFoundError || err instanceof ItemNotFoundError || err instanceof HoldNotFoundError) {
     return { status: 404, body: NOT_FOUND };
+  }
+  // Before its parent: an expired hold bought after its unit went elsewhere.
+  if (err instanceof HoldLapsedError) {
+    return { status: 409, body: { message: 'Your hold expired and this gift has since been held or bought by someone else.', code: 'item_unavailable' } };
   }
   if (err instanceof ItemUnavailableError) {
     return { status: 409, body: { message: 'This item is no longer available.', code: 'item_unavailable' } };
@@ -6296,6 +6310,8 @@ In `apps/api/src/presentation/openApiDocument.test.ts`, change the expected stat
 
 and the counts: `toHaveLength(11)` becomes `toHaveLength(20)`; both `toHaveLength(7)` and `Array(7)` become `13`.
 
+In `openApiDocument.noDatabase.test.ts`, the path count `toHaveLength(4)` becomes `toHaveLength(7)`.
+
 - [ ] **Step 3: Run them to see them fail**
 
 Run: `npm run build --workspace=packages/shared-types; npm run test --workspace=packages/shared-types; npm run test --workspace=apps/api -- routes.integration openApiDocument`
@@ -6432,7 +6448,7 @@ export function buildDependencies(
   const wishlists = new WishlistRepositoryKysely(db);
 
   return {
-    createList: new CreateList(unitOfWork, tokenGenerator),
+    createList: new CreateList(unitOfWork, tokenGenerator, clock),
     enterGuestKey: new EnterGuestKey(wishlists, secretComparer, tokenGenerator, clock),
     getListView: new GetListView(unitOfWork, clock, holdPolicy),
     holdItem: new HoldItem(unitOfWork, tokenGenerator, clock, hasher, holdPolicy),
@@ -7145,6 +7161,8 @@ git switch -c feat/holds-a/08-web-e2e feat/holds-a/07-rebuild
 ```
 
 Run web tests from `apps/web` as `npx vitest run --testTimeout=30000 <path>` in the dev container (see Global Constraints). `npm test` at the root is unchanged.
+
+The three hold-action routes take no body, so the client must send them with no JSON `Content-Type`: with that header and an empty or malformed body the API answers the app-wide 400 `Invalid request`, which those routes do not document. Task 8.1's client calls pass no `body`, and its tests should assert the request carries no JSON content type.
 
 ### Task 8.1: API client — the three hold actions, and the 409 `code` on `ApiError`
 

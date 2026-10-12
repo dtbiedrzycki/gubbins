@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../../api/client';
+import { ApiError, api } from '../../api/client';
 
 /**
  * The list view's query key. Anything that invalidates the list view must
@@ -16,5 +16,8 @@ export function useListView(slug: string | undefined) {
     // though the caller has nothing valid to pass — it doesn't know a
     // missing slug means "don't run this," only that `enabled` says so.
     enabled: Boolean(slug),
+    // A 4xx won't change on retry, and three backed-off retries kept a new
+    // guest (401) or a pending hold on screen for ~7 s; one retry covers a blip.
+    retry: (failures, error) => !(error instanceof ApiError && error.status >= 400 && error.status < 500) && failures < 1,
   });
 }

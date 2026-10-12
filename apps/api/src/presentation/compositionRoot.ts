@@ -1,5 +1,6 @@
 import type { Kysely } from 'kysely';
 import type { Database } from '../infrastructure/db/schema.js';
+import { RetryingUnitOfWork } from '../application/RetryingUnitOfWork.js';
 import { UnitOfWorkKysely } from '../infrastructure/UnitOfWorkKysely.js';
 import { WishlistRepositoryKysely } from '../infrastructure/WishlistRepositoryKysely.js';
 import { ClockSystem } from '../infrastructure/ClockSystem.js';
@@ -10,23 +11,43 @@ import { ConsoleLogger } from '../infrastructure/ConsoleLogger.js';
 import { LoggingEventStore } from '../infrastructure/LoggingEventStore.js';
 import { CreateList } from '../application/use-cases/CreateList.js';
 import { EnterGuestKey } from '../application/use-cases/EnterGuestKey.js';
+import { GetListView } from '../application/use-cases/GetListView.js';
 import { HoldItem } from '../application/use-cases/HoldItem.js';
+import { ExtendHold } from '../application/use-cases/ExtendHold.js';
+import { ReleaseHold } from '../application/use-cases/ReleaseHold.js';
+import { MarkHoldPurchased } from '../application/use-cases/MarkHoldPurchased.js';
 import type { Logger } from '../application/ports/Logger.js';
 import type { Clock } from '../application/ports/Clock.js';
+import type { Hasher } from '../application/ports/Hasher.js';
+import { DEFAULT_HOLD_POLICY, type HoldPolicy } from '../application/HoldPolicy.js';
+
+export interface BuildDependenciesOptions {
+  /** Defaults to the system clock; integration tests pass a FixedClock to step through expiry. */
+  clock?: Clock;
+  /** Validated from HOLD_DURATION_DAYS by the server (holdPolicyConfig.ts); defaults to 3 days. */
+  holdPolicy?: HoldPolicy;
+}
 
 export interface AppDependencies {
   createList: CreateList;
   enterGuestKey: EnterGuestKey;
+  getListView: GetListView;
   holdItem: HoldItem;
+  extendHold: ExtendHold;
+  releaseHold: ReleaseHold;
+  markHoldPurchased: MarkHoldPurchased;
+  /** For resolving a URL's slug before access is checked; use cases load their own aggregate. */
   wishlists: WishlistRepositoryKysely;
   logger: Logger;
   clock: Clock;
+  hasher: Hasher;
 }
 
-export function buildDependencies(db: Kysely<Database>, logger: Logger = new ConsoleLogger()): AppDependencies {
-  const unitOfWork = new UnitOfWorkKysely(db, (base) => new LoggingEventStore(base, logger));
+export function buildDependencies(db: Kysely<Database>, logger: Logger = new ConsoleLogger(), options: BuildDependenciesOptions = {}): AppDependencies {
+  const unitOfWork = new RetryingUnitOfWork(new UnitOfWorkKysely(db, (base) => new LoggingEventStore(base, logger)), logger);
   const tokenGenerator = new TokenGeneratorCrypto();
-  const clock = new ClockSystem();
+  const clock = options.clock ?? new ClockSystem();
+  const holdPolicy = options.holdPolicy ?? DEFAULT_HOLD_POLICY;
   const hasher = new HasherSha256();
   const secretComparer = new SecretComparerCrypto();
   const wishlists = new WishlistRepositoryKysely(db);
@@ -34,9 +55,14 @@ export function buildDependencies(db: Kysely<Database>, logger: Logger = new Con
   return {
     createList: new CreateList(unitOfWork, tokenGenerator, clock),
     enterGuestKey: new EnterGuestKey(wishlists, secretComparer, tokenGenerator, clock),
-    holdItem: new HoldItem(unitOfWork, tokenGenerator, clock, hasher),
+    getListView: new GetListView(unitOfWork, clock, holdPolicy),
+    holdItem: new HoldItem(unitOfWork, tokenGenerator, clock, hasher, holdPolicy),
+    extendHold: new ExtendHold(unitOfWork, clock, holdPolicy),
+    releaseHold: new ReleaseHold(unitOfWork, clock),
+    markHoldPurchased: new MarkHoldPurchased(unitOfWork, clock),
     wishlists,
     logger,
     clock,
+    hasher,
   };
 }
