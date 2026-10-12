@@ -75,6 +75,16 @@ describe('ItemView', () => {
     expect(keys[1]).not.toBe(keys[0]);
   });
 
+  it('returns focus to the Hold button when the dialog is cancelled', async () => {
+    const user = userEvent.setup();
+    renderItem('available');
+
+    await user.click(screen.getByRole('button', { name: 'Hold this item' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByRole('button', { name: 'Hold this item' })).toHaveFocus();
+  });
+
   it.each([
     ['held', 'Stroller is held.'],
     ['purchased', 'Stroller has been purchased.'],

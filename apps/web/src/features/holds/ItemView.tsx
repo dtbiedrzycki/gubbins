@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ListViewResponse } from '@gubbins/shared-types';
 import { useHoldItem } from './useHoldItem';
 import { HoldDialog } from './HoldDialog';
@@ -14,8 +14,19 @@ export interface ItemViewProps {
 export function ItemView({ slug, listTitle, item, holdDurationDays }: ItemViewProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { mutate, isPending, error, reset } = useHoldItem(slug, item.id);
+  const holdButton = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef(false);
+
+  // Unmounting the dialog skips the browser's own focus return, and the Hold
+  // button is inert until the modal has gone, so focus it after the commit.
+  useEffect(() => {
+    if (dialogOpen || !returnFocus.current) return;
+    returnFocus.current = false;
+    holdButton.current?.focus();
+  }, [dialogOpen]);
 
   function closeDialog() {
+    returnFocus.current = true;
     setDialogOpen(false);
     // The next opening starts clean: no stale error from this one.
     reset();
@@ -29,7 +40,7 @@ export function ItemView({ slug, listTitle, item, holdDurationDays }: ItemViewPr
       <h1 className="text-2xl font-semibold">{listTitle}</h1>
       <p>{item.title}</p>
       {item.status === 'available' ? (
-        <button type="button" onClick={() => setDialogOpen(true)} className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white">
+        <button ref={holdButton} type="button" onClick={() => setDialogOpen(true)} className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white">
           Hold this item
         </button>
       ) : (
