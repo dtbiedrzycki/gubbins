@@ -63,7 +63,7 @@ export const api = {
   holdItem: (slug: string, itemId: string, input: HoldItemRequest): Promise<HoldItemResponse> =>
     http.POST('/api/lists/{slug}/items/{itemId}/hold', { params: { path: { slug, itemId } }, body: input }).then(unwrap),
 
-  // No body: the session cookie is the credential in stack A. openapi-fetch
+  // No body: the session cookie is the credential for now. openapi-fetch
   // sets no Content-Type when there is no body, which Fastify requires.
   extendHold: (slug: string, holdId: string): Promise<HoldView> =>
     http.POST('/api/lists/{slug}/holds/{holdId}/extend', { params: { path: { slug, holdId } } }).then(unwrap),
