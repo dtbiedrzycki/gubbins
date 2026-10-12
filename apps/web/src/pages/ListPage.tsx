@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useListView } from '../features/holds/useListView';
 import { GuestKeyGate } from '../features/guest-key/GuestKeyGate';
+import { ApiError } from '../api/client';
 import { ItemView } from '../features/holds/ItemView';
 import { YourHolds } from '../features/holds/YourHolds';
 
@@ -16,11 +17,13 @@ export default function ListPage() {
     return <main className="min-h-screen bg-slate-50 p-6">Loading…</main>;
   }
 
-  if (query.status === 'error') {
-    // Any error here — 401 (no session yet) or 404 (unknown slug) — means
-    // "not authenticated yet"; the backend already collapses both into
-    // the same generic shape (ADR-016/054), so this branch doesn't need
-    // to (and mustn't) distinguish further.
+  // With no list yet, any error — 401 (no session yet) or 404 (unknown slug)
+  // — means "not authenticated yet"; the backend already collapses both into
+  // the same generic shape (ADR-016/054), so this doesn't (and mustn't)
+  // distinguish further. Once the list has loaded, only those two send the
+  // guest back to the key: a failed background refetch keeps the page.
+  const sessionGone = query.error instanceof ApiError && (query.error.status === 401 || query.error.status === 404);
+  if (!query.data || sessionGone) {
     return (
       <main className="min-h-screen bg-slate-50 p-6">
         <GuestKeyGate slug={slug} onSuccess={() => query.refetch()} />

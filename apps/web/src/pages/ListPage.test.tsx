@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -50,5 +50,38 @@ describe('ListPage', () => {
     expect(screen.queryByRole('dialog', { hidden: true })).not.toBeInTheDocument();
     // The Hold button is gone; focus goes where the new hold's actions are.
     expect(within(yourHolds).getByRole('heading', { name: 'Your holds' })).toHaveFocus();
+  });
+
+  it('keeps the list, with the new hold under "Your holds", when the refetch after a hold fails', async () => {
+    let gets = 0;
+    server.use(
+      http.get('/api/lists/abc123', () => (++gets === 1 ? HttpResponse.json(view(false)) : HttpResponse.json({ message: 'Unavailable' }, { status: 503 }))),
+      http.post('/api/lists/abc123/items/item-1/hold', () => HttpResponse.json(hold, { status: 201 })),
+    );
+    const user = userEvent.setup();
+    renderListPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Hold this item' }));
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+    await waitFor(() => expect(gets).toBe(2));
+    const yourHolds = screen.getByRole('region', { name: 'Your holds' });
+    expect(await within(yourHolds).findByRole('button', { name: 'Extend hold' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Enter the guest key')).not.toBeInTheDocument();
+  });
+
+  it('goes back to the guest key when a refetch says the session is gone', async () => {
+    let gets = 0;
+    server.use(
+      http.get('/api/lists/abc123', () => (++gets === 1 ? HttpResponse.json(view(false)) : HttpResponse.json({ message: 'Not found' }, { status: 404 }))),
+      http.post('/api/lists/abc123/items/item-1/hold', () => HttpResponse.json(hold, { status: 201 })),
+    );
+    const user = userEvent.setup();
+    renderListPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Hold this item' }));
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+    expect(await screen.findByLabelText('Enter the guest key')).toBeInTheDocument();
   });
 });
