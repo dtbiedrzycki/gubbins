@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { HoldView } from '@gubbins/shared-types';
 import { HoldActions, type HoldOutcome } from './HoldActions';
 import { formatExpiry } from './formatExpiry';
@@ -35,6 +35,8 @@ function statusLine(hold: HoldView): string {
  */
 export function YourHolds({ slug, holds, itemTitles }: YourHoldsProps) {
   const [outcome, setOutcome] = useState<HoldOutcome | null>(null);
+  const sectionHeading = useRef<HTMLHeadingElement>(null);
+  const cardHeadings = useRef(new Map<string, HTMLHeadingElement>());
   const holdIds = holds.map((hold) => hold.holdId);
   const [knownHoldIds, setKnownHoldIds] = useState(holdIds);
   if (holdIds.some((id) => !knownHoldIds.includes(id))) {
@@ -42,9 +44,18 @@ export function YourHolds({ slug, holds, itemTitles }: YourHoldsProps) {
     setOutcome(null);
   }
 
+  // The pressed button is disabled in flight and often gone after, so focus
+  // moves to something that outlives the refetch: the hold's own heading if
+  // its card stays, otherwise the section heading beside the feedback.
+  function showOutcome(holdId: string, next: HoldOutcome) {
+    setOutcome(next);
+    const card = next.ok && next.action !== 'release' ? cardHeadings.current.get(holdId) : undefined;
+    (card ?? sectionHeading.current)?.focus();
+  }
+
   return (
     <section aria-labelledby="your-holds-heading" className="space-y-3">
-      <h2 id="your-holds-heading" className="text-lg font-semibold">Your holds</h2>
+      <h2 ref={sectionHeading} id="your-holds-heading" tabIndex={-1} className="text-lg font-semibold">Your holds</h2>
       <p role="status" aria-live="polite" className="font-medium text-green-700">{outcome?.ok ? outcome.message : ''}</p>
       <p role="alert" className="text-red-600">{outcome && !outcome.ok ? outcome.message : ''}</p>
       {holds.length === 0 ? (
@@ -55,9 +66,18 @@ export function YourHolds({ slug, holds, itemTitles }: YourHoldsProps) {
             const itemTitle = itemTitles[hold.itemId] ?? 'This item';
             return (
               <li key={hold.holdId} className="space-y-2 rounded border border-slate-200 bg-white p-4">
-                <h3 className="font-medium">{itemTitle}</h3>
+                <h3
+                  ref={(el) => {
+                    if (el) cardHeadings.current.set(hold.holdId, el);
+                    return () => { cardHeadings.current.delete(hold.holdId); };
+                  }}
+                  tabIndex={-1}
+                  className="font-medium"
+                >
+                  {itemTitle}
+                </h3>
                 <p>{statusLine(hold)}</p>
-                <HoldActions slug={slug} hold={hold} itemTitle={itemTitle} onStart={() => setOutcome(null)} onOutcome={setOutcome} />
+                <HoldActions slug={slug} hold={hold} itemTitle={itemTitle} onStart={() => setOutcome(null)} onOutcome={(next) => showOutcome(hold.holdId, next)} />
               </li>
             );
           })}

@@ -48,5 +48,7 @@ describe('ListPage', () => {
     expect(await within(yourHolds).findByRole('button', { name: 'Extend hold' })).toBeInTheDocument();
     expect(screen.getByText('Stroller is held.')).toBeInTheDocument();
     expect(screen.queryByRole('dialog', { hidden: true })).not.toBeInTheDocument();
+    // The Hold button is gone; focus goes where the new hold's actions are.
+    expect(within(yourHolds).getByRole('heading', { name: 'Your holds' })).toHaveFocus();
   });
 });

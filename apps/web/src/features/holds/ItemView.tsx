@@ -9,24 +9,27 @@ export interface ItemViewProps {
   listTitle: string;
   item: ListViewResponse['item'];
   holdDurationDays: number;
+  /** Called once a hold has landed and the dialog has gone; the Hold button has gone with it. */
+  onHeld?: () => void;
 }
 
-export function ItemView({ slug, listTitle, item, holdDurationDays }: ItemViewProps) {
+export function ItemView({ slug, listTitle, item, holdDurationDays, onHeld }: ItemViewProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { mutate, isPending, error, reset } = useHoldItem(slug, item.id);
   const holdButton = useRef<HTMLButtonElement>(null);
-  const returnFocus = useRef(false);
+  const closedBy = useRef<'cancel' | 'hold' | null>(null);
 
-  // Unmounting the dialog skips the browser's own focus return, and the Hold
-  // button is inert until the modal has gone, so focus it after the commit.
+  // Unmounting the dialog skips the browser's own focus return, and the page
+  // is inert until the modal has gone, so move focus after the commit.
   useEffect(() => {
-    if (dialogOpen || !returnFocus.current) return;
-    returnFocus.current = false;
-    holdButton.current?.focus();
-  }, [dialogOpen]);
+    if (dialogOpen || !closedBy.current) return;
+    if (closedBy.current === 'cancel') holdButton.current?.focus();
+    else onHeld?.();
+    closedBy.current = null;
+  }, [dialogOpen, onHeld]);
 
   function closeDialog() {
-    returnFocus.current = true;
+    closedBy.current = 'cancel';
     setDialogOpen(false);
     // The next opening starts clean: no stale error from this one.
     reset();
@@ -52,7 +55,7 @@ export function ItemView({ slug, listTitle, item, holdDurationDays }: ItemViewPr
           holdDurationDays={holdDurationDays}
           isPending={isPending}
           error={error}
-          onConfirm={(credential) => mutate({ idempotencyKey: credential.idempotencyKey }, { onSuccess: () => setDialogOpen(false) })}
+          onConfirm={(credential) => mutate({ idempotencyKey: credential.idempotencyKey }, { onSuccess: () => { closedBy.current = 'hold'; setDialogOpen(false); } })}
           onClose={closeDialog}
         />
       )}

@@ -173,6 +173,43 @@ describe('YourHolds', () => {
     expect(within(region).getByRole('status')).toBeEmptyDOMElement();
   });
 
+  it.each([
+    ['extend', 'Extend hold', extended, 'Stroller'],
+    ['purchase', 'Mark as purchased', purchased, 'Stroller'],
+] as const)('after %s, moves focus to the hold\'s heading, since the pressed button is gone', async (action, button, after, heading) => {
+    listViews(list([active]), list([after]));
+    server.use(mock('post', `/api/lists/{slug}/holds/{holdId}/${action}`, 200, after));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+
+    await user.click(within(region).getByRole('button', { name: button }));
+
+    await waitFor(() => expect(within(region).getByRole('heading', { name: heading })).toHaveFocus());
+  });
+
+  it('after a release, moves focus to the Your holds heading, since the card is gone', async () => {
+    listViews(list([active]), list([]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false } }));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+
+    await user.click(within(region).getByRole('button', { name: 'Release hold' }));
+    await user.click(within(region).getByRole('button', { name: 'Yes, release it' }));
+
+    await waitFor(() => expect(within(region).getByRole('heading', { name: 'Your holds' })).toHaveFocus());
+  });
+
+  it('after a refusal, moves focus to the Your holds heading, beside the explanation', async () => {
+    listViews(list([active]), list([]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+
+    await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
+
+    await waitFor(() => expect(within(region).getByRole('heading', { name: 'Your holds' })).toHaveFocus());
+  });
+
   it('disables every action on the hold while one is in flight, so a double tap sends one request', async () => {
     listViews(list([active]));
     let requests = 0;
