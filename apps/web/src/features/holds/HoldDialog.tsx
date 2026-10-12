@@ -21,7 +21,7 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
   const dialogRef = useRef<HTMLDialogElement>(null);
   const credential = useHoldCredential();
 
-  useEffect(() => {
+  function show() {
     const dialog = dialogRef.current;
     if (!dialog || dialog.open) return;
     if (typeof dialog.showModal === 'function') {
@@ -29,7 +29,9 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
     } else {
       dialog.open = true; // jsdom test environment only — showModal isn't implemented there
     }
-  }, []);
+  }
+
+  useEffect(show, []);
 
   // Escape fires `cancel` before the dialog closes; refusing it keeps the
   // dialog up until the request settles.
@@ -37,10 +39,17 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
     if (isPending) event.preventDefault();
   }
 
+  // Chrome won't let a page refuse a second Escape in a row, so a close can
+  // still arrive mid-flight: reopen, so the outcome is not lost.
+  function handleClose() {
+    if (isPending) show();
+    else onClose();
+  }
+
   const duration = `${holdDurationDays} ${holdDurationDays === 1 ? 'day' : 'days'}`;
 
   return (
-    <dialog ref={dialogRef} onCancel={handleCancel} onClose={onClose} aria-labelledby="hold-dialog-title" className="rounded-lg p-6 backdrop:bg-black/50">
+    <dialog ref={dialogRef} onCancel={handleCancel} onClose={handleClose} aria-labelledby="hold-dialog-title" className="rounded-lg p-6 backdrop:bg-black/50">
       <p id="hold-dialog-title" className="mb-2">Hold &ldquo;{itemTitle}&rdquo; for yourself?</p>
       <p className="mb-4 text-slate-700">Held for you for {duration}.</p>
       {error && <p role="alert" className="mb-4 text-red-600">{error.message}</p>}

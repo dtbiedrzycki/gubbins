@@ -43,6 +43,18 @@ describe('HoldDialog', () => {
     expect(escape.defaultPrevented).toBe(true);
   });
 
+  it('reopens rather than closes if the browser closes it anyway while the hold is in flight', () => {
+    // Chrome does not let a page refuse a second Escape in a row.
+    const { props } = renderDialog({ isPending: true });
+    const dialog = screen.getByRole('dialog', { hidden: true }) as HTMLDialogElement;
+
+    dialog.open = false;
+    dialog.dispatchEvent(new Event('close'));
+
+    expect(props.onClose).not.toHaveBeenCalled();
+    expect(dialog.open).toBe(true);
+  });
+
   it('can be escaped when nothing is in flight', () => {
     renderDialog();
     const escape = new Event('cancel', { cancelable: true });
