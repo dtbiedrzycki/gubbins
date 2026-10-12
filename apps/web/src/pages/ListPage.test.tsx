@@ -62,13 +62,16 @@ describe('ListPage', () => {
     renderListPage();
 
     await user.click(await screen.findByRole('button', { name: 'Hold this item' }));
+    // Screen readers miss a live region that arrives already holding its text.
+    const statuses = screen.getAllByRole('status');
+    for (const status of statuses) expect(status).toBeEmptyDOMElement();
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     await waitFor(() => expect(gets).toBe(2));
     const yourHolds = screen.getByRole('region', { name: 'Your holds' });
     expect(await within(yourHolds).findByRole('button', { name: 'Extend hold' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Enter the guest key')).not.toBeInTheDocument();
-    expect(screen.getByText("Couldn't refresh the list, so it may be out of date.")).toBeInTheDocument();
+    expect(statuses).toContain(screen.getByText("Couldn't refresh the list, so it may be out of date."));
   });
 
   it('goes back to the guest key when a refetch says the session is gone', async () => {
