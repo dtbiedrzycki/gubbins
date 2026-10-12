@@ -68,6 +68,7 @@ describe('ListPage', () => {
     const yourHolds = screen.getByRole('region', { name: 'Your holds' });
     expect(await within(yourHolds).findByRole('button', { name: 'Extend hold' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Enter the guest key')).not.toBeInTheDocument();
+    expect(screen.getByText("Couldn't refresh the list, so it may be out of date.")).toBeInTheDocument();
   });
 
   it('goes back to the guest key when a refetch says the session is gone', async () => {
