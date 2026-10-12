@@ -108,4 +108,35 @@ describe('ListPage', () => {
 
     expect(screen.getByRole('heading', { name: 'Your holds' })).toHaveFocus();
   });
+
+  it.each([401, 404])('asks for the guest key when the first load answers %i', async (status) => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ message: 'Not found' }, { status })));
+    renderListPage();
+
+    expect(await screen.findByLabelText('Enter the guest key')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['cannot reach the server', () => HttpResponse.error(), "Couldn't reach the server. Check your connection and try again."],
+    ['gets a 503', () => HttpResponse.json({ message: 'Service unavailable' }, { status: 503 }), 'Service unavailable'],
+  ])('shows the error, not the guest key, when the first load %s', async (_, respond, message) => {
+    server.use(http.get('/api/lists/abc123', respond));
+    renderListPage();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(screen.queryByLabelText('Enter the guest key')).not.toBeInTheDocument();
+  });
+
+  it('shows the list once the server answers after "Try again"', async () => {
+    let gets = 0;
+    server.use(http.get('/api/lists/abc123', () => (++gets === 1 ? HttpResponse.error() : HttpResponse.json(view(false)))));
+    const user = userEvent.setup();
+    renderListPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByRole('button', { name: 'Hold this item' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
+  });
 });
