@@ -99,3 +99,12 @@ describe('hold actions', () => {
       .rejects.toMatchObject({ status: 409, code: 'hold_not_active', message: 'This hold is no longer active.' });
   });
 });
+
+describe('network failures', () => {
+  it('become an ApiError a guest can read, not the browser\'s fetch error', async () => {
+    server.use(http.get('/api/lists/:slug', () => HttpResponse.error()));
+
+    await expect(api.getListView('abc123'))
+      .rejects.toMatchObject({ status: 0, message: "Couldn't reach the server. Check your connection and try again." });
+  });
+});

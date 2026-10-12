@@ -152,6 +152,18 @@ describe('YourHolds', () => {
       .toHaveTextContent("We couldn't find this hold. Reload the page to see your holds."));
   });
 
+  it('explains a network failure in plain words, not the browser\'s fetch error', async () => {
+    listViews(list([active]));
+    server.use(http.post('/api/lists/abc123/holds/hold-1/extend', () => HttpResponse.error()));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+
+    await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
+
+    await waitFor(() => expect(within(region).getByRole('alert'))
+      .toHaveTextContent("Couldn't reach the server. Check your connection and try again."));
+  });
+
   it('clears the last announcement when the guest starts another action', async () => {
     listViews(list([active]), list([extended]));
     server.use(

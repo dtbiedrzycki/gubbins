@@ -26,10 +26,15 @@ export class ApiError extends Error {
 // `fetch` is resolved per call rather than captured at import: openapi-fetch
 // defaults to the `globalThis.fetch` of the moment createClient runs, which
 // would bypass MSW (and any other later patch of fetch) in tests.
+//
+// fetch rejects only when no response arrived at all, with browser-specific
+// text ("Failed to fetch", "NetworkError when…"); status 0 marks that case.
 const http = createClient<paths>({
   baseUrl: globalThis.location.origin,
   credentials: 'same-origin',
-  fetch: (request) => globalThis.fetch(request),
+  fetch: (request) => globalThis.fetch(request).catch(() => {
+    throw new ApiError(0, "Couldn't reach the server. Check your connection and try again.");
+  }),
 });
 
 interface FetchResult<T> {
