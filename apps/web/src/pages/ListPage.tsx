@@ -34,7 +34,7 @@ export default function ListPage() {
   return (
     <main className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-sm space-y-8">
-        <p role="status" aria-live="polite" className="text-amber-800">{query.isRefetchError ? "Couldn't refresh the list, so it may be out of date." : ''}</p>
+        <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn't refresh the list, so it may be out of date." : ''}</p>
         <ItemView
           slug={slug}
           listTitle={query.data.title}
