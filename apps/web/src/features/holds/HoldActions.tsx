@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { HoldView } from '@gubbins/shared-types';
 import { useHoldAction, type HoldAction } from './useHoldAction';
 import { formatExpiry } from './formatExpiry';
+import { ApiError } from '../../api/client';
 
 export interface HoldActionsProps {
   slug: string;
@@ -21,6 +22,14 @@ export interface HoldOutcome {
 const primary = 'min-h-11 rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50';
 const secondary = 'min-h-11 rounded border px-4 py-2 disabled:opacity-50';
 
+// The API answers a generic 404 for an unknown hold, another session's hold
+// or a lapsed session alike; a reload shows which (the key gate, or the list).
+function failureMessage(error: Error): string {
+  return error instanceof ApiError && error.status === 404
+    ? "We couldn't find this hold. Reload the page to see your holds."
+    : error.message;
+}
+
 /**
  * The buttons one hold offers — exactly the server's `actions`, never
  * re-derived here, so the client cannot disagree with the rules it enforces.
@@ -29,7 +38,7 @@ const secondary = 'min-h-11 rounded border px-4 py-2 disabled:opacity-50';
  * because a refetch can remove this hold, and these buttons with it.
  */
 export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldActionsProps) {
-  const failed = (action: HoldAction) => (error: Error) => onOutcome({ action, ok: false, message: error.message });
+  const failed = (action: HoldAction) => (error: Error) => onOutcome({ action, ok: false, message: failureMessage(error) });
   const extend = useHoldAction(slug, 'extend', {
     onSuccess: (view) => onOutcome({ action: 'extend', ok: true, message: `Hold extended until ${formatExpiry(view.expiresAt)}.` }),
     onError: failed('extend'),

@@ -140,6 +140,18 @@ describe('YourHolds', () => {
     expect(within(region).getByRole('alert')).toHaveTextContent('This hold is no longer active.');
   });
 
+  it('explains a not-found hold in words a guest can act on, not the bare "Not found"', async () => {
+    listViews(list([active]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 404, { message: 'Not found' }));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+
+    await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
+
+    await waitFor(() => expect(within(region).getByRole('alert'))
+      .toHaveTextContent("We couldn't find this hold. Reload the page to see your holds."));
+  });
+
   it('clears the last announcement when the guest starts another action', async () => {
     listViews(list([active]), list([extended]));
     server.use(
