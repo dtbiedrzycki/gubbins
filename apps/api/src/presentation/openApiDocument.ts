@@ -12,19 +12,12 @@ function unusedDependency(name: string): never {
   }) as never;
 }
 
-const noDependencies: AppDependencies = {
-  createList: unusedDependency('createList'),
-  enterGuestKey: unusedDependency('enterGuestKey'),
-  getListView: unusedDependency('getListView'),
-  holdItem: unusedDependency('holdItem'),
-  extendHold: unusedDependency('extendHold'),
-  releaseHold: unusedDependency('releaseHold'),
-  markHoldPurchased: unusedDependency('markHoldPurchased'),
-  wishlists: unusedDependency('wishlists'),
-  clock: unusedDependency('clock'),
-  hasher: unusedDependency('hasher'),
-  logger: { logInfo: () => {}, logWarn: () => {}, logError: () => {} },
-};
+const silentLogger: AppDependencies['logger'] = { logInfo: () => {}, logWarn: () => {}, logError: () => {} };
+
+// Any dependency name resolves to a stand-in, so a new use case needs no edit here.
+const noDependencies = new Proxy({} as AppDependencies, {
+  get(_, name) { return name === 'logger' ? silentLogger : unusedDependency(String(name)); },
+});
 
 /**
  * The API contract (ADR-0077): the OpenAPI document @fastify/swagger derives
