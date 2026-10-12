@@ -165,10 +165,15 @@ describe('YourHolds', () => {
   });
 
   it('clears the last announcement when the guest starts another action', async () => {
-    listViews(list([active]), list([extended]));
+    listViews(list([active]), list([extended]), list([purchased]));
+    let respond!: () => void;
+    const responded = new Promise<void>((resolve) => { respond = resolve; });
     server.use(
       mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 200, extended),
-      http.post('/api/lists/abc123/holds/hold-1/purchase', () => new Promise<never>(() => {})),
+      http.post('/api/lists/abc123/holds/hold-1/purchase', async () => {
+        await responded;
+        return HttpResponse.json(purchased);
+      }),
     );
     const user = userEvent.setup();
     const region = await renderYourHolds();
@@ -178,6 +183,10 @@ describe('YourHolds', () => {
     await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
 
     expect(within(region).getByRole('status')).toBeEmptyDOMElement();
+
+    // Let the request finish inside the test, so nothing settles after teardown.
+    respond();
+    await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Stroller is marked as purchased. Thank you!'));
   });
 
   it('clears the last announcement when a new hold appears', async () => {
