@@ -9,24 +9,26 @@ export interface ItemViewProps {
   listTitle: string;
   item: ListViewResponse['item'];
   holdDurationDays: number;
-  /** Called once a hold has landed and the dialog has gone; the Hold button has gone with it. */
-  onHeld?: () => void;
+  /** Moves focus once the dialog has gone and the Hold button has too: the hold landed, or someone else's did. */
+  focusElsewhere?: () => void;
 }
 
-export function ItemView({ slug, listTitle, item, holdDurationDays, onHeld }: ItemViewProps) {
+export function ItemView({ slug, listTitle, item, holdDurationDays, focusElsewhere }: ItemViewProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { mutate, isPending, error, reset } = useHoldItem(slug, item.id);
   const holdButton = useRef<HTMLButtonElement>(null);
-  const closedBy = useRef<'cancel' | 'hold' | null>(null);
 
   // Unmounting the dialog skips the browser's own focus return, and the page
   // is inert until the modal has gone, so move focus after the commit.
+  // After a hold the button is about to go even if this render still has it.
+  const closedBy = useRef<'cancel' | 'hold' | null>(null);
   useEffect(() => {
     if (dialogOpen || !closedBy.current) return;
-    if (closedBy.current === 'cancel') holdButton.current?.focus();
-    else onHeld?.();
+    const button = closedBy.current === 'cancel' ? holdButton.current : null;
     closedBy.current = null;
-  }, [dialogOpen, onHeld]);
+    if (button) button.focus();
+    else focusElsewhere?.();
+  }, [dialogOpen, focusElsewhere]);
 
   function closeDialog() {
     closedBy.current = 'cancel';

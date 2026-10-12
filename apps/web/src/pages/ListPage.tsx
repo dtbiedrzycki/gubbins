@@ -40,7 +40,7 @@ export default function ListPage() {
           item={query.data.item}
           holdDurationDays={query.data.capabilities.holdDurationDays}
           // The Hold button has gone; the new hold's actions are under Your holds.
-          onHeld={() => document.getElementById('your-holds-heading')?.focus()}
+          focusElsewhere={() => document.getElementById('your-holds-heading')?.focus()}
         />
         <YourHolds slug={slug} holds={query.data.myHolds} itemTitles={{ [query.data.item.id]: query.data.item.title }} />
       </div>

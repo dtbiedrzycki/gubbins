@@ -84,4 +84,24 @@ describe('ListPage', () => {
 
     expect(await screen.findByLabelText('Enter the guest key')).toBeInTheDocument();
   });
+
+  it('moves focus to Your holds when the guest cancels after losing the item to someone else', async () => {
+    let gets = 0;
+    server.use(
+      http.get('/api/lists/abc123', () => {
+        const lost: ListViewResponse = { ...view(false), item: { id: 'item-1', title: 'Stroller', status: 'held' } };
+        return HttpResponse.json(++gets === 1 ? view(false) : lost);
+      }),
+      http.post('/api/lists/abc123/items/item-1/hold', () => HttpResponse.json({ message: 'This item is no longer available.', code: 'item_unavailable' }, { status: 409 })),
+    );
+    const user = userEvent.setup();
+    renderListPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Hold this item' }));
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+    await waitFor(() => expect(screen.getByText('Stroller is held.')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByRole('heading', { name: 'Your holds' })).toHaveFocus();
+  });
 });
