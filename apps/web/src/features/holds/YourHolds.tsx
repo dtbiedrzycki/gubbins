@@ -30,8 +30,8 @@ function statusLine(hold: HoldView): string {
  * an action can remove the card (a release, or a hold already released in
  * another tab). Both live regions stay mounted, even when the list empties
  * (ADR-0025). Feedback clears when the next action starts, so a repeated
- * message is announced again, and when a new hold appears, so it can't
- * contradict the new hold.
+ * message is announced again. A "released" message also clears when a new
+ * hold appears, which it would contradict; other messages stay to be read.
  */
 export function YourHolds({ slug, holds, itemTitles }: YourHoldsProps) {
   const [outcome, setOutcome] = useState<HoldOutcome | null>(null);
@@ -41,7 +41,7 @@ export function YourHolds({ slug, holds, itemTitles }: YourHoldsProps) {
   const [knownHoldIds, setKnownHoldIds] = useState(holdIds);
   if (holdIds.some((id) => !knownHoldIds.includes(id))) {
     setKnownHoldIds(holdIds);
-    setOutcome(null);
+    if (outcome?.ok && outcome.action === 'release') setOutcome(null);
   }
 
   // The pressed button is disabled in flight and often gone after, so focus

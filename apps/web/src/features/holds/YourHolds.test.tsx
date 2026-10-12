@@ -255,6 +255,22 @@ describe('YourHolds', () => {
     await waitFor(() => expect(within(region).getByRole('heading', { name: 'Your holds' })).toHaveFocus());
   });
 
+  it('keeps an announcement a new hold doesn\'t contradict', async () => {
+    const second: HoldView = { ...active, holdId: 'hold-2' };
+    listViews(list([active]), list([extended]), list([extended, second]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 200, extended));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+    await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
+    await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Hold extended until'));
+
+    // A hold placed in another tab arrives with the next refetch.
+    await client.invalidateQueries();
+
+    await waitFor(() => expect(within(region).getAllByRole('listitem')).toHaveLength(2));
+    expect(within(region).getByRole('status')).toHaveTextContent('Hold extended until');
+  });
+
   it('disables every action on the hold while one is in flight, so a double tap sends one request', async () => {
     listViews(list([active]));
     let requests = 0;
