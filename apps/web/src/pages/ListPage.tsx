@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useListView } from '../features/holds/useListView';
 import { GuestKeyGate } from '../features/guest-key/GuestKeyGate';
@@ -11,6 +12,9 @@ export default function ListPage() {
   // it internally disables the query via `enabled: Boolean(slug)` when slug
   // is undefined, so no request fires before the guard below returns.
   const query = useListView(slug);
+  // "Try again" sends the query back to pending, which unmounts the error
+  // view; this outlives it so a failed retry can hand focus back.
+  const [retried, setRetried] = useState(false);
   if (!slug) return null;
 
   if (query.status === 'pending') {
@@ -25,12 +29,13 @@ export default function ListPage() {
   const sessionGone = query.error instanceof ApiError && (query.error.status === 401 || query.error.status === 404);
   if (!query.data && query.error && !sessionGone) {
     // The alert is this view's content, mounted with it, so it is announced
-    // on arrival; focus stays put, since the guest didn't ask for this view.
+    // on arrival; focus stays put the first time, since the guest didn't ask
+    // for this view, but returns to the button after a failed "Try again".
     return (
       <main className="min-h-screen bg-slate-50 p-6">
         <div className="max-w-sm space-y-4">
           <p role="alert" className="text-red-600">{query.error.message}</p>
-          <button type="button" onClick={() => query.refetch()} className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white">
+          <button type="button" autoFocus={retried} onClick={() => { setRetried(true); void query.refetch(); }} className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white">
             Try again
           </button>
         </div>

@@ -140,4 +140,20 @@ describe('ListPage', () => {
     expect(await screen.findByRole('button', { name: 'Hold this item' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
   });
+
+  it('puts focus back on "Try again" when the retry fails too, but not on the first failure', async () => {
+    let gets = 0;
+    server.use(http.get('/api/lists/abc123', () => { gets++; return HttpResponse.json({ message: 'Service unavailable' }, { status: 503 }); }));
+    const user = userEvent.setup();
+    renderListPage();
+
+    const first = await screen.findByRole('button', { name: 'Try again' });
+    expect(first).not.toHaveFocus();
+    await user.click(first);
+
+    // The load and its one retry, then the same again after the click.
+    await waitFor(() => expect(gets).toBe(4));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Try again' })).toHaveFocus());
+    expect(screen.getByRole('button', { name: 'Try again' })).not.toBe(first);
+  });
 });
