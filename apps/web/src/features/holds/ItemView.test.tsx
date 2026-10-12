@@ -105,6 +105,12 @@ describe('ItemView', () => {
     expect(screen.queryByRole('button', { name: 'Hold this item' })).not.toBeInTheDocument();
   });
 
+  it('keeps the Hold button last in its stack, so space-y adds no margin below it', () => {
+    renderItem('available');
+    const button = screen.getByRole('button', { name: 'Hold this item' });
+    expect(button.parentElement?.lastElementChild).toBe(button);
+  });
+
   it('announces the item held through the status region already on the page', () => {
     const view = (status: ListViewResponse['item']['status']) => (
       <QueryClientProvider client={new QueryClient()}>

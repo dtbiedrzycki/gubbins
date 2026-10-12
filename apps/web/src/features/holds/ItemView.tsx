@@ -44,13 +44,13 @@ export function ItemView({ slug, listTitle, item, holdDurationDays, focusElsewhe
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">{listTitle}</h1>
       <p>{item.title}</p>
+      {/* Mounted while available too: screen readers miss a live region that arrives already filled. */}
+      <HeldAnnouncement message={item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is held.` : `${item.title} has been purchased.`} />
       {item.status === 'available' && (
         <button ref={holdButton} type="button" onClick={() => setDialogOpen(true)} className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white">
           Hold this item
         </button>
       )}
-      {/* Mounted while available too: screen readers miss a live region that arrives already filled. */}
-      <HeldAnnouncement message={item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is held.` : `${item.title} has been purchased.`} />
       {dialogOpen && (
         <HoldDialog
           itemTitle={item.title}
