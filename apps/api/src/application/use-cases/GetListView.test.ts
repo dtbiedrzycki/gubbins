@@ -28,7 +28,7 @@ describe('GetListView', () => {
     });
   });
 
-  it("shows the guest their own hold; another guest sees the item held but none of the guest's holds", async () => {
+  it('shows the holder their own hold; a different guest sees the item as held but has no holds listed', async () => {
     const { placeHold, view } = await setup();
     const placed = await placeHold();
 
