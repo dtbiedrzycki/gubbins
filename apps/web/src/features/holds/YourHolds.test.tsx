@@ -37,7 +37,8 @@ function Harness() {
 let client: QueryClient;
 
 async function renderYourHolds() {
-  client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  // useListView's own retry wins over these defaults; retryDelay: 0 keeps its one retry instant.
+  client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 }, mutations: { retry: false } } });
   render(<QueryClientProvider client={client}><Harness /></QueryClientProvider>);
   return screen.findByRole('region', { name: 'Your holds' });
 }

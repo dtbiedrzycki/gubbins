@@ -20,7 +20,8 @@ const view = (held: boolean): ListViewResponse => ({
 });
 
 function renderListPage() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false, retryDelay: 0 }, mutations: { retry: false } } });
+  // useListView's own retry wins over these defaults; retryDelay: 0 keeps its one retry instant.
+  const client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 }, mutations: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={['/abc123']}>
@@ -73,6 +74,7 @@ describe('ListPage', () => {
     expect(await within(yourHolds).findByRole('button', { name: 'Extend hold' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Enter the guest key')).not.toBeInTheDocument();
     expect(statuses).toContain(screen.getByText("Couldn't refresh the list, so it may be out of date."));
+    expect(gets).toBe(3);
   });
 
   it('goes back to the guest key when a refetch says the session is gone', async () => {

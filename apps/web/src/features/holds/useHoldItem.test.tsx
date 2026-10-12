@@ -10,7 +10,8 @@ import { useHoldItem } from './useHoldItem';
 import { useListView } from './useListView';
 
 function wrapper({ children }: { children: ReactNode }) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // useListView's own retry wins over these defaults; retryDelay: 0 keeps its one retry instant.
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
 
