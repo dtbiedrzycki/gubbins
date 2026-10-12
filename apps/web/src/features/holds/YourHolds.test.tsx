@@ -34,8 +34,10 @@ function Harness() {
   return query.data ? <YourHolds slug="abc123" holds={query.data.myHolds} itemTitles={{ 'item-1': 'Stroller' }} /> : null;
 }
 
+let client: QueryClient;
+
 async function renderYourHolds() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   render(<QueryClientProvider client={client}><Harness /></QueryClientProvider>);
   return screen.findByRole('region', { name: 'Your holds' });
 }
@@ -121,9 +123,54 @@ describe('YourHolds', () => {
 
     await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
 
-    expect(await within(region).findByRole('alert')).toHaveTextContent('This hold is no longer active.');
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent('This hold is no longer active.'));
     await waitFor(() => expect(within(region).queryByRole('button', { name: 'Extend hold' })).not.toBeInTheDocument());
     expect(within(region).getByText(/^Your hold expired on /)).toBeInTheDocument();
+  });
+
+  it('still explains a refusal when the refetch shows the hold was already released elsewhere', async () => {
+    listViews(list([active]), list([]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+
+    await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
+
+    await waitFor(() => expect(within(region).getByText('Holds you place appear here.')).toBeInTheDocument());
+    expect(within(region).getByRole('alert')).toHaveTextContent('This hold is no longer active.');
+  });
+
+  it('clears the last announcement when the guest starts another action', async () => {
+    listViews(list([active]), list([extended]));
+    server.use(
+      mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 200, extended),
+      http.post('/api/lists/abc123/holds/hold-1/purchase', () => new Promise<never>(() => {})),
+    );
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+    await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
+    await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Hold extended until'));
+
+    await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
+
+    expect(within(region).getByRole('status')).toBeEmptyDOMElement();
+  });
+
+  it('clears the last announcement when a new hold appears', async () => {
+    const second: HoldView = { ...active, holdId: 'hold-2' };
+    listViews(list([active]), list([]), list([second]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false } }));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+    await user.click(within(region).getByRole('button', { name: 'Release hold' }));
+    await user.click(within(region).getByRole('button', { name: 'Yes, release it' }));
+    await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Your hold on Stroller is released.'));
+
+    // The guest holds the item again from the item view, which refetches the list.
+    await client.invalidateQueries();
+
+    await waitFor(() => expect(within(region).getByRole('button', { name: 'Release hold' })).toBeInTheDocument());
+    expect(within(region).getByRole('status')).toBeEmptyDOMElement();
   });
 
   it('disables every action on the hold while one is in flight, so a double tap sends one request', async () => {

@@ -1,13 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import type { HoldView } from '@gubbins/shared-types';
-import { useHoldAction } from './useHoldAction';
+import { useHoldAction, type HoldAction } from './useHoldAction';
 import { formatExpiry } from './formatExpiry';
 
 export interface HoldActionsProps {
   slug: string;
   hold: HoldView;
   itemTitle: string;
-  onAnnounce: (message: string) => void;
+  /** An action was started: earlier feedback no longer applies. */
+  onStart: () => void;
+  onOutcome: (outcome: HoldOutcome) => void;
+}
+
+export interface HoldOutcome {
+  action: HoldAction;
+  ok: boolean;
+  message: string;
 }
 
 const primary = 'min-h-11 rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50';
@@ -17,12 +25,23 @@ const secondary = 'min-h-11 rounded border px-4 py-2 disabled:opacity-50';
  * The buttons one hold offers — exactly the server's `actions`, never
  * re-derived here, so the client cannot disagree with the rules it enforces.
  * While any action on the hold is in flight, every button is disabled, so a
- * double tap on slow wifi sends one request.
+ * double tap on slow wifi sends one request. Outcomes go up to the caller,
+ * because a refetch can remove this hold, and these buttons with it.
  */
-export function HoldActions({ slug, hold, itemTitle, onAnnounce }: HoldActionsProps) {
-  const extend = useHoldAction(slug, 'extend', (view) => onAnnounce(`Hold extended until ${formatExpiry(view.expiresAt)}.`));
-  const release = useHoldAction(slug, 'release', () => onAnnounce(`Your hold on ${itemTitle} is released.`));
-  const purchase = useHoldAction(slug, 'purchase', () => onAnnounce(`${itemTitle} is marked as purchased. Thank you!`));
+export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldActionsProps) {
+  const failed = (action: HoldAction) => (error: Error) => onOutcome({ action, ok: false, message: error.message });
+  const extend = useHoldAction(slug, 'extend', {
+    onSuccess: (view) => onOutcome({ action: 'extend', ok: true, message: `Hold extended until ${formatExpiry(view.expiresAt)}.` }),
+    onError: failed('extend'),
+  });
+  const release = useHoldAction(slug, 'release', {
+    onSuccess: () => onOutcome({ action: 'release', ok: true, message: `Your hold on ${itemTitle} is released.` }),
+    onError: failed('release'),
+  });
+  const purchase = useHoldAction(slug, 'purchase', {
+    onSuccess: () => onOutcome({ action: 'purchase', ok: true, message: `${itemTitle} is marked as purchased. Thank you!` }),
+    onError: failed('purchase'),
+  });
   const [confirmingRelease, setConfirmingRelease] = useState(false);
   const releaseButton = useRef<HTMLButtonElement>(null);
   const keepButton = useRef<HTMLButtonElement>(null);
@@ -42,10 +61,9 @@ export function HoldActions({ slug, hold, itemTitle, onAnnounce }: HoldActionsPr
 
   const mutations = [extend, release, purchase];
   const pending = mutations.some((m) => m.isPending);
-  const error = mutations.find((m) => m.error)?.error ?? null;
 
   function run(mutation: typeof extend) {
-    for (const m of mutations) m.reset();
+    onStart();
     mutation.mutate(hold.holdId);
   }
 
@@ -73,7 +91,6 @@ export function HoldActions({ slug, hold, itemTitle, onAnnounce }: HoldActionsPr
           </div>
         </div>
       )}
-      {error && <p role="alert" className="text-red-600">{error.message}</p>}
     </div>
   );
 }

@@ -18,16 +18,21 @@ const call: Record<HoldAction, (slug: string, holdId: string) => Promise<HoldVie
  * guest the real state. Stays pending until that refetch lands, like
  * useHoldItem.
  *
- * `onSuccess` is a hook-level option rather than a `mutate` callback on
- * purpose: a released hold drops out of the refetched list and its
- * component unmounts, and TanStack skips `mutate` callbacks for an
- * unmounted component — the release would never be announced.
+ * `onSuccess` and `onError` are hook-level options rather than `mutate`
+ * callbacks on purpose: a released hold drops out of the refetched list and
+ * its component unmounts, and TanStack skips `mutate` callbacks for an
+ * unmounted component — the outcome would never be shown.
  */
-export function useHoldAction(slug: string, action: HoldAction, onSuccess?: (view: HoldView) => void) {
+export function useHoldAction(
+  slug: string,
+  action: HoldAction,
+  { onSuccess, onError }: { onSuccess?: (view: HoldView) => void; onError?: (error: Error) => void } = {},
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (holdId: string) => call[action](slug, holdId),
     onSuccess,
+    onError,
     onSettled: () => queryClient.invalidateQueries({ queryKey: listViewKey(slug) }),
   });
 }
