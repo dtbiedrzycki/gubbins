@@ -104,4 +104,21 @@ describe('ItemView', () => {
     expect(screen.getByRole('status')).toHaveTextContent(message);
     expect(screen.queryByRole('button', { name: 'Hold this item' })).not.toBeInTheDocument();
   });
+
+  it('announces the item held through the status region already on the page', () => {
+    const view = (status: ListViewResponse['item']['status']) => (
+      <QueryClientProvider client={new QueryClient()}>
+        <ItemView slug="abc123" listTitle="Baby Shower" holdDurationDays={3} item={{ id: 'item-1', title: 'Stroller', status }} />
+      </QueryClientProvider>
+    );
+    const { rerender } = render(view('available'));
+    // Screen readers miss a live region that arrives already holding its text.
+    const status = screen.getByRole('status');
+    expect(status).toBeEmptyDOMElement();
+
+    rerender(view('held'));
+
+    expect(screen.getByRole('status')).toBe(status);
+    expect(status).toHaveTextContent('Stroller is held.');
+  });
 });
