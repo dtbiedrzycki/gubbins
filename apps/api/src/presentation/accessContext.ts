@@ -4,6 +4,8 @@ import type { Hasher } from '../application/ports/Hasher.js';
 
 export const SESSION_COOKIE = 'gubbins_session';
 export const OWNER_COOKIE = 'gubbins_owner';
+// Browsers keep Secure cookies only over HTTPS (localhost is exempt); deployments sit behind TLS.
+export const SIGNED_COOKIE_OPTIONS = { path: '/', httpOnly: true, signed: true, sameSite: 'strict', secure: true } as const;
 
 export interface OwnerSessionPayload {
   wishlistId: string;
