@@ -50,7 +50,7 @@ async function holdOnNewList() {
   const list = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'L', itemTitle: 'I', createSecret: 'test-create-secret' } })).json() as { slug: string; key: string; itemId: string };
   const cookie = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } }));
   const { holdId } = (await app.inject({
-    method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'k' },
+    method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'k', name: 'Ada' },
   })).json() as { holdId: string };
   const act = (action: string) => app.inject({ method: 'POST', url: `/api/lists/${list.slug}/holds/${holdId}/${action}`, headers: { cookie } });
   return { act };

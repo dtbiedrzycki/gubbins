@@ -56,7 +56,7 @@ describe('path parameters', () => {
       return HttpResponse.json({ holdId: 'h', itemId: 'item-1', expiresAt: '2026-01-04T00:00:00.000Z' }, { status: 201 });
     }));
 
-    await api.holdItem('abc123', 'item-1', { idempotencyKey: 'k' });
+    await api.holdItem('abc123', 'item-1', { idempotencyKey: 'k', name: 'Ada' });
 
     expect(requested).toBe('/api/lists/abc123/items/item-1/hold');
   });

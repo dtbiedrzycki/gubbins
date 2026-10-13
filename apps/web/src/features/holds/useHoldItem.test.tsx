@@ -42,7 +42,7 @@ describe('useHoldItem', () => {
     const { result } = renderListAndHold();
     await waitFor(() => expect(result.current.view.data?.item.status).toBe('available'));
 
-    result.current.hold.mutate({ idempotencyKey: 'key-1' });
+    result.current.hold.mutate({ idempotencyKey: 'key-1', name: 'Ada' });
 
     await waitFor(() => expect(result.current.hold.isError).toBe(true));
     expect(result.current.view.data?.item.status).toBe('held');
@@ -68,7 +68,7 @@ describe('useHoldItem', () => {
     const { result } = renderListAndHold();
     await waitFor(() => expect(result.current.view.data?.item.status).toBe('available'));
 
-    result.current.hold.mutate({ idempotencyKey: 'key-1' });
+    result.current.hold.mutate({ idempotencyKey: 'key-1', name: 'Ada' });
 
     await waitFor(() => expect(listViewRequests).toBe(2));
     expect(holdRequested).toBe(true);
