@@ -50,3 +50,7 @@ export class HoldAlreadyExtendedError extends Error {
 export class InvalidCreateSecretError extends Error {
   constructor() { super('Invalid create secret'); }
 }
+/** A group gift was added to a list that tells guests no way to pay. */
+export class NoPaymentMethodError extends Error {
+  constructor() { super('A group gift needs at least one payment method on the list'); }
+}

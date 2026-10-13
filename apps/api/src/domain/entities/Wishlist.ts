@@ -1,10 +1,11 @@
-import { DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError } from '../errors.js';
+import { DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, NoPaymentMethodError } from '../errors.js';
 import type { HoldExtendedEvent } from '../events/HoldExtendedEvent.js';
 import type { HoldReleasedEvent } from '../events/HoldReleasedEvent.js';
 import type { ItemHeldEvent } from '../events/ItemHeldEvent.js';
 import type { ItemPurchasedEvent } from '../events/ItemPurchasedEvent.js';
 import { GuestKey } from '../value-objects/GuestKey.js';
 import { OwnerToken } from '../value-objects/OwnerToken.js';
+import { PaymentMethods } from '../value-objects/PaymentMethods.js';
 import { Slug } from '../value-objects/Slug.js';
 import { UuidId } from '../value-objects/UuidId.js';
 import type { Hold, HoldStatus } from './Hold.js';
@@ -50,16 +51,17 @@ export class Wishlist {
     readonly key: GuestKey,
     readonly keyGen: number,
     private readonly asOf: Date,
+    readonly paymentMethods: PaymentMethods = PaymentMethods.none,
   ) {
     if (title.trim().length === 0) throw new DomainValidationError('Wishlist title must not be empty');
     if (title.length > 120) throw new DomainValidationError('Wishlist title must be at most 120 characters');
   }
 
   /** A new list, deciding as of `asOf`: the instant it is created at. */
-  static create(props: { id: string; slug: string; title: string; ownerToken: string; key: string; asOf: Date }): Wishlist {
+  static create(props: { id: string; slug: string; title: string; ownerToken: string; key: string; asOf: Date; paymentMethods?: PaymentMethods }): Wishlist {
     return new Wishlist(
       UuidId.from(props.id), Slug.from(props.slug), props.title.trim(),
-      OwnerToken.from(props.ownerToken), GuestKey.from(props.key), 1, new Date(props.asOf.getTime()),
+      OwnerToken.from(props.ownerToken), GuestKey.from(props.key), 1, new Date(props.asOf.getTime()), props.paymentMethods,
     );
   }
 
@@ -70,7 +72,7 @@ export class Wishlist {
    * purchased at it, each on one of this wishlist's items.
    */
   static reconstitute(props: {
-    id: string; slug: string; title: string; ownerToken: string; key: string; keyGen: number; asOf: Date;
+    id: string; slug: string; title: string; ownerToken: string; key: string; keyGen: number; asOf: Date; paymentMethods?: PaymentMethods;
     items?: readonly Item[]; holds?: readonly Hold[];
   }): Wishlist {
     const items = props.items ?? [];
@@ -85,7 +87,7 @@ export class Wishlist {
     }
     const wishlist = new Wishlist(
       UuidId.from(props.id), Slug.from(props.slug), props.title,
-      OwnerToken.from(props.ownerToken), GuestKey.from(props.key), props.keyGen, new Date(props.asOf.getTime()),
+      OwnerToken.from(props.ownerToken), GuestKey.from(props.key), props.keyGen, new Date(props.asOf.getTime()), props.paymentMethods,
     );
     wishlist._items = [...items];
     wishlist._holds = [...holds];
@@ -97,8 +99,19 @@ export class Wishlist {
    * supplied generator (a structural type: domain/ may not import
    * application/, ADR-0012).
    */
-  addItem(props: { title: string }, ids: { generateEntityId(): string }): Item {
-    const item = Item.createSingle({ id: ids.generateEntityId(), wishlistId: this.id.value, title: props.title });
+  addItem(
+    props: { type?: 'single'; title: string; quantity?: number; url?: string | null; priceMinor?: number | null }
+      | { type: 'group'; title: string; priceMinor: number; url?: string | null },
+    ids: { generateEntityId(): string },
+  ): Item {
+    const base = { id: ids.generateEntityId(), wishlistId: this.id.value };
+    let item: Item;
+    if (props.type === 'group') {
+      if (this.paymentMethods.isEmpty()) throw new NoPaymentMethodError();
+      item = Item.createGroup({ ...base, ...props });
+    } else {
+      item = Item.createSingle({ ...base, ...props });
+    }
     this._items.push(item);
     return item;
   }

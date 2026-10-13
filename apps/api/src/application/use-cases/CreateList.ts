@@ -42,7 +42,7 @@ export class CreateList {
         asOf: this.clock.now(),
       });
       // Wishlist mints its own item id via the generator it's handed.
-      const item = wishlist.addItem({ title: input.itemTitle }, this.tokenGenerator);
+      const item = wishlist.addItem({ type: 'single', title: input.itemTitle }, this.tokenGenerator);
       // Attach before insert: the repository persists the aggregate it is
       // handed, so the item must already be part of it.
       await ctx.wishlists.insert(wishlist);

@@ -3,8 +3,9 @@ import { Wishlist } from './Wishlist.js';
 import { Item } from './Item.js';
 import { Hold } from './Hold.js';
 import {
-  DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError,
+  DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError, NoPaymentMethodError,
 } from '../errors.js';
+import { PaymentMethods } from '../value-objects/PaymentMethods.js';
 
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
 const OTHER_WISHLIST_ID = '99999999-9999-7999-8999-999999999999';
@@ -160,6 +161,18 @@ describe('Wishlist.addItem', () => {
     const wishlist = Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [itemOf(), second], holds: [holdOn(ITEM_ID)] });
     expect(wishlist.itemStatus(ITEM_ID)).toBe('held');
     expect(wishlist.itemStatus(OTHER_ITEM_ID)).toBe('available');
+  });
+});
+
+describe('Wishlist group gifts', () => {
+  const ids = { generateEntityId: () => ITEM_ID };
+  it('refuses a group gift on a list with no payment method', () => {
+    const wishlist = Wishlist.create(validProps);
+    expect(() => wishlist.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, ids)).toThrow(NoPaymentMethodError);
+  });
+  it('accepts a group gift once the list has a payment method', () => {
+    const wishlist = Wishlist.create({ ...validProps, paymentMethods: PaymentMethods.from({ venmoHandle: 'my-venmo' }) });
+    expect(wishlist.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, ids).type).toBe('group');
   });
 });
 
