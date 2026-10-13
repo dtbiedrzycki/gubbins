@@ -5,12 +5,15 @@ import type { Hasher } from '../ports/Hasher.js';
 import type { AccessContext } from '../AccessContext.js';
 import { holdDurationMs, type HoldPolicy } from '../HoldPolicy.js';
 import { toHoldView, type HoldView } from '../views/HoldView.js';
+import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
 import { ItemNotFoundError, ItemUnavailableError } from '../../domain/errors.js';
 
 export interface HoldItemInput {
   wishlistId: string;
   itemId: string;
   idempotencyKey: string;
+  name?: string;
+  message?: string;
 }
 
 export class HoldItem {
@@ -50,15 +53,21 @@ export class HoldItem {
         return toHoldView(wishlist, existing);
       }
 
+      const details = input.name === undefined ? null : GuestDetails.from({ name: input.name, message: input.message });
+      const piiRef = details ? this.tokenGenerator.generateEntityId() : undefined;
+
       const { hold, item, event, expectedSeq } = wishlist.holdItem({
         itemId: input.itemId,
         sessionHash: guest.sessionHash,
         idempotencyKey: input.idempotencyKey,
         durationMs: holdDurationMs(this.policy),
+        piiRef,
       }, this.tokenGenerator, this.hasher);
 
       // Placing a hold is guest-only (ADR-0075), so the actor is fixed.
       await ctx.eventStore.append(item.id.value, expectedSeq, [event], 'guest');
+      // The hold's pii_ref foreign key needs this row to exist first.
+      if (details && piiRef) await ctx.guestPii.insert({ id: piiRef, name: details.name, message: details.message });
       await ctx.holds.insert(hold);
       // Persist exactly what the domain decided — the write path never
       // decides availability itself.

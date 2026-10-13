@@ -9,7 +9,7 @@ import { DEFAULT_HOLD_POLICY, type HoldPolicy } from '../HoldPolicy.js';
 import { RetryingUnitOfWork } from '../RetryingUnitOfWork.js';
 import type { AccessContext } from '../AccessContext.js';
 import type { EventStore } from '../ports/EventStore.js';
-import { ConcurrencyError, ItemNotFoundError, ItemUnavailableError } from '../../domain/errors.js';
+import { ConcurrencyError, DomainValidationError, ItemNotFoundError, ItemUnavailableError } from '../../domain/errors.js';
 
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
 const ITEM_ID = '33333333-3333-7333-8333-333333333333';
@@ -35,6 +35,35 @@ describe('HoldItem', () => {
       itemId: ITEM_ID, status: 'active', expiresAt: '2026-01-04T00:00:00.000Z', extendedAt: null,
       actions: { extend: true, release: true, purchase: true },
     });
+  });
+
+  it('stores the holder\'s details and references them from the hold and the event', async () => {
+    const { useCase, store, holds, eventStore } = await makeUseCase();
+    await useCase.execute({ ...input(), name: '  Ada ', message: 'Congrats' }, GUEST);
+
+    const rows = [...store.guestPii.values()];
+    expect(rows).toEqual([{ id: expect.any(String), name: 'Ada', message: 'Congrats' }]);
+    expect((await holds.findByIdempotencyKey(ITEM_ID, 'idem-1'))?.piiRef?.value).toBe(rows[0]!.id);
+    expect(eventStore.recorded(ITEM_ID)[0]!.event).toMatchObject({ piiRef: rows[0]!.id });
+  });
+
+  it('stores no details when no name is given', async () => {
+    const { useCase, store } = await makeUseCase();
+    await useCase.execute(input(), GUEST);
+    expect(store.guestPii.size).toBe(0);
+  });
+
+  it('rejects a blank name and stores nothing', async () => {
+    const { useCase, store } = await makeUseCase();
+    await expect(useCase.execute({ ...input(), name: '   ' }, GUEST)).rejects.toBeInstanceOf(DomainValidationError);
+    expect(store.guestPii.size).toBe(0);
+  });
+
+  it('inserts no second details row for a replayed key', async () => {
+    const { useCase, store } = await makeUseCase();
+    await useCase.execute({ ...input(), name: 'Ada' }, GUEST);
+    await useCase.execute({ ...input(), name: 'Ada' }, GUEST);
+    expect(store.guestPii.size).toBe(1);
   });
 
   it('reads HOLD_DURATION_DAYS from the policy', async () => {
