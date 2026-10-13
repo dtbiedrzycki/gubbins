@@ -227,9 +227,9 @@ New ADRs:
 ## Known risks
 
 - The owner token is shown once at creation. If it's lost, recovery means
-  reading it from the DB (ADR-0051).
+  reading it from the DB (ADR-0051). Accepted by the owner on 2026-10-13.
 - Payment handles can't be edited after creation. A typo needs a DB fix until a
-  settings UI exists.
+  settings UI exists. Accepted by the owner on 2026-10-13.
 - There's no hold cap, so one guest could hold everything. Fix that by hand in
   the DB if needed.
 - Until the owner view exists, seeing pledges and names needs a DB query.
