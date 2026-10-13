@@ -147,8 +147,9 @@ contributions  NEW: id pk, item_id, amount_minor int CHECK (> 0), idempotency_ke
 - `ManagePage` (`/:slug/manage`):
   - It first asks for the owner token and exchanges it for the cookie. The
     token is never put in a URL or storage (ADR-0062).
-  - It has an add-item form with a single/group switch. The group option is
-    disabled with an explanation when the list has no payment method.
+  - It has an add-item form with a single/group switch. A group gift on a
+    list with no payment method shows the server's `no_payment_method`
+    message.
 - `ListPage` shows single-column cards with title, price, store link and an
   image placeholder.
   - Singles show units left and **Hold it**.

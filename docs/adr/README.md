@@ -113,6 +113,9 @@ one-time renumbering documented in the restructuring history.
 | [077](0077-openapi-document-generated-from-route-schemas-is-the-api-contract.md) | The OpenAPI document generated from route schemas is the API contract | Accepted |
 | [078](0078-wishlist-is-the-aggregate-root.md) | Wishlist is the aggregate root for its items and holds | Accepted |
 | [079](0079-domain-methods-are-named-by-what-they-do-to-state.md) | Domain methods are named by what they do to state | Accepted |
+| [080](0080-list-creation-always-requires-createsecret.md) | List creation always requires a CREATE_SECRET | Accepted |
+| [081](0081-owner-session-keyed-by-slug-and-owner-token.md) | Owner session is keyed by slug and owner token | Accepted |
+| [082](0082-payment-handles-set-at-list-creation.md) | Payment handles are set at list creation | Accepted |
 
 ## Imported ADRs (0001–0070)
 

@@ -66,6 +66,10 @@ constrain sub-projects 2–5.
 | `AccessContext` as the only place "session" is built | 2: grown from `SessionPayload`, passed to use cases beside `TransactionContext` |
 | Cross-item session-cap logic behind `Wishlist.holdItem` | 2 |
 
+The [launch cut](../specs/2026-10-13-launch-cut-design.md) pulls a subset of
+sub-projects 2 and 3 forward and supersedes holds stacks B–G's order until
+go-live.
+
 ## Open items to act on
 
 1. ~~**Write the ADR for `Wishlist` as aggregate root.**~~ Done:
