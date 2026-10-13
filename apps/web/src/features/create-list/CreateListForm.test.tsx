@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import type { CreateListResponse } from '@gubbins/shared-types';
 import { describe, expect, it } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -58,7 +59,7 @@ describe('CreateListForm', () => {
     let body: unknown;
     server.use(http.post('/api/lists', async ({ request }) => {
       body = await request.json();
-      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k', itemId: 'i' }, { status: 201 });
+      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k', itemId: 'i' } satisfies CreateListResponse, { status: 201 });
     }));
     await fillAndSubmit();
     await screen.findByText('k');
