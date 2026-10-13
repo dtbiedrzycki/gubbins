@@ -11,7 +11,7 @@ and pulls a subset of sub-project 3 (group gifts) forward.
 
 Run the owner's own registry live within about two weeks. Guests must be able
 to do every item action and every group-gift action from their phones. The
-owner, who is also the operator, only needs to create the list and add items.
+owner only needs to create the list (with payment handles) and add items.
 
 After holds stack A, main supports one list with exactly one item. It has no
 owner access, no funds, no creation gate and no production container. Following
@@ -28,8 +28,8 @@ go-live checklist passes on the home server.
 | # | Decision | Why | Rejected |
 |---|---|---|---|
 | L1 | Creating a list **always requires `CREATE_SECRET`**; the app refuses to start when it is unset. | One operator, one list; a public site must not offer creation to strangers. Simpler than self-locking. | ADR-0014's self-lock after the first list; open creation. |
-| L2 | **Owner = operator.** `/{slug}/manage` asks for `CREATE_SECRET`, held in component memory only. The add-item route checks it in constant time (ADR-0035) on every call. | Removes the owner-token session (D17 lookup, owner cookie) from the launch. One instance serves one list. | Owner-token paste and owner cookie (holds stack B), now deferred. |
-| L3 | **Payment handles come from env vars:** `VENMO_HANDLE` and `ZELLE_HANDLE`, both optional. If a group gift exists and neither is set, the contribute flow says no payment method is configured. | No per-list settings UI is needed for a single list. | Per-list payment-method configuration (ADR-0044), deferred. |
+| L2 | **Owner access exchanges the owner token for a cookie.** `/{slug}/manage` posts `{ ownerToken }` once to `POST /api/lists/:slug/owner-session`. The route loads the list by slug, compares the token in constant time (ADR-0035), and sets the signed `gubbins_owner` cookie (`httpOnly`, `sameSite: strict`). Owner routes then check that cookie. | This is the app's existing secret pattern (the guest key is exchanged for `gubbins_session`) and the long-term owner design (ADR-0015, ADR-0062). The slug in the path makes the D17 hash lookup unnecessary, and `CreateList` already returns the token. | A `CREATE_SECRET` header on every call: a new pattern, with the secret held in JS memory. The token-only paste flow on `/` (needs D17): deferred. |
+| L3 | **Payment handles are set at list creation:** `venmoHandle?` and `zelleHandle?` are stored on the wishlist as per-list configuration (ADR-0044's model, with only these two kinds). `Wishlist.addItem` refuses a group gift when the list has no payment method. | This keeps payment details with the list, and a guest can never reach a group gift with no way to pay. | Env vars (an earlier draft); a payment-settings UI, which is deferred, so handles can't be edited after creation. |
 | L4 | **Group gifts only**: `Item.type` is `single \| group`. A group gift's price is its target. Open-ended funds are deferred. | The owner's registry needs priced items that guests chip in toward. | Funds with optional targets; both kinds. |
 | L5 | A contribution is **pledged only**, created at "I've sent it" (ADR-0050). There's no owner confirm/void yet, so the progress bar shows pledged amounts. | Guests can complete the whole flow; the owner reconciles outside the app. | Owner confirmation at launch. |
 | L6 | **Overfunding is allowed.** Only the 5× target bound and the arithmetic bound apply (ADR-0047, ADR-0061). | Simplest policy; the excess stays on the item (ADR-0011). | Blocking at target. |
@@ -59,7 +59,7 @@ go-live checklist passes on the home server.
   When images come, the owner uploads files they have the right to use. The
   server never fetches or scrapes images from store sites.
 - Hold cap (C), hold link (E), owner release and spoilers (F), reminders (G).
-- Owner-token sessions (L2), per-list payment settings (L3).
+- The token-only owner paste on `/` (D17), and editing payment handles (L3).
 - Owner confirm/void/reconciliation, and the owner viewing holds, pledges and
   names.
 - ¼/⅓/½ suggestions, the "already sent" hint (ADR-0050), and the sm/lg grid
@@ -72,19 +72,25 @@ go-live checklist passes on the home server.
 
 ### Domain
 
+- `Wishlist` gains `paymentMethods`: zero or more of `{ kind: 'venmo' | 'zelle', handle }`, set by `CreateList`.
+  Venmo handles are validated as usernames, and Zelle handles as an email or a
+  US phone number.
 - `Wishlist.addItem` loses the single-item guard and takes a type:
   - `single` takes `{ title, url?, priceMinor?, quantity ≥ 1 }`.
   - `group` takes `{ title, url?, priceMinor }`, where the price is the target
-    and the quantity is fixed at 1.
+    and the quantity is fixed at 1. A list with no payment method refuses it
+    with a domain error.
 - Holds apply only to singles: `holdItem` on a group gift is a domain error.
 - Availability for singles follows holds design §1: `active + purchased <
   quantity`.
 - **`Contribution`** is its own aggregate, referenced by `itemId` and authorized
   through `Wishlist.pledge(...)`.
-  - Fields: `id`, `itemId`, `amount: Money`, `idempotencyKey`, `piiRef`,
-    `pledgedAt`.
+  - Fields: `id`, `itemId`, `amount: Money`, `idempotencyKey`, `sessionHash`,
+    `piiRef`, `pledgedAt`. `sessionHash` is stored now so the "already sent"
+    hint (ADR-0050) can be built later without backfilling.
   - It returns `ContributionPledged { contributionId, itemId, amountMinor,
-    idempotencyKey, piiRef, occurredAt, v: 1 }`. The event carries
+    idempotencyKey, sessionHash, piiRef, occurredAt, v: 1 }`. This mirrors
+    `ItemHeld`, which also carries `sessionHash`. The event carries
     no PII and is appended to the item's stream with actor `guest`.
 - **`canAccept(amount)`** (ADR-0047/0061) rejects anything that isn't positive,
   is above `targetMinor × MAX_CONTRIBUTION_TARGET_MULTIPLE` (default 5), or is
@@ -102,10 +108,11 @@ items          + type text not null CHECK (type IN ('single','group'))
                + url text null, price_minor int null
                + CHECK (type = 'single' OR (price_minor IS NOT NULL AND quantity = 1))
 wishlists      + currency text not null default 'USD'
+               + venmo_handle text null, zelle_handle text null
 guest_pii      NEW (holds design §2)
 holds          + pii_ref references guest_pii(id)
 contributions  NEW: id pk, item_id, amount_minor int CHECK (> 0), idempotency_key,
-               pii_ref, pledged_at; UNIQUE (item_id, idempotency_key)
+               session_hash, pii_ref, pledged_at; UNIQUE (item_id, idempotency_key)
 ```
 
 - The store URL must be `https:` and is validated at the trust boundary. It's
@@ -117,8 +124,9 @@ contributions  NEW: id pk, item_id, amount_minor int CHECK (> 0), idempotency_ke
 
 | Route | Credential | Body → response |
 |---|---|---|
-| `POST /api/lists` | `createSecret` in body | existing body plus `createSecret` → 201; wrong secret → generic 403 |
-| `POST /api/lists/:slug/items` | `X-Create-Secret` header | `{ type, title, url?, priceMinor?, quantity? }` → item |
+| `POST /api/lists` | `createSecret` in body | existing body plus `createSecret`, `venmoHandle?`, `zelleHandle?` → 201 (includes `ownerToken`, as today); wrong secret → generic 403 |
+| `POST /api/lists/:slug/owner-session` | `{ ownerToken }` in body | sets `gubbins_owner` → `{ ok: true }`; wrong token or unknown list → the same generic 404 |
+| `POST /api/lists/:slug/items` | `gubbins_owner` cookie | `{ type, title, url?, priceMinor?, quantity? }` → item; group gift on a list with no payment method → 409 `no_payment_method` |
 | `GET /api/lists/:slug` | guest session | items gain `type`, `url`, `priceMinor`, `availableUnits`; group gifts gain `pledgedMinor`; plus `payment { venmoHandle?, zelleHandle? }` |
 | `POST /api/lists/:slug/items/:itemId/hold` | guest session | adds `name` (1–100, trimmed), `message?` (≤ 300) |
 | `POST /api/lists/:slug/items/:itemId/contributions` | guest session | `{ idempotencyKey, amountMinor, name, message? }` → 201; replay with the same key → 200 with the original |
@@ -126,15 +134,21 @@ contributions  NEW: id pk, item_id, amount_minor int CHECK (> 0), idempotency_ke
 - Errors follow the existing domain-error mapping.
 - Schemas live in `packages/shared-types`, flow into `openapi.json`, and
   `schema.gen.ts` is regenerated from it.
-- pino redacts `createSecret`, `name` and `message`.
+- pino redacts `createSecret`, `ownerToken`, `name` and `message`.
 
 ### Web
 
-- `CreateListPage` gains a create-secret field.
+- `CreateListPage` gains a create-secret field and optional Venmo and Zelle
+  handle fields.
+  - The form says that group gifts need at least one handle and that handles
+    can't be changed later.
+  - The success screen tells the owner to save the owner token and links to
+    `/:slug/manage`.
 - `ManagePage` (`/:slug/manage`):
-  - It first prompts for the secret and keeps it in memory only, never in a URL
-    or storage (ADR-0062's rule).
-  - It has an add-item form with a single/group switch.
+  - It first asks for the owner token and exchanges it for the cookie. The
+    token is never put in a URL or storage (ADR-0062).
+  - It has an add-item form with a single/group switch. The group option is
+    disabled with an explanation when the list has no payment method.
 - `ListPage` shows single-column cards with title, price, store link and an
   image placeholder.
   - Singles show units left and **Hold it**.
@@ -160,37 +174,41 @@ contributions  NEW: id pk, item_id, amount_minor int CHECK (> 0), idempotency_ke
   invalid:
   - `CREATE_SECRET` is required.
   - `SESSION_COOKIE_SECRET` must be non-empty.
-  - `VENMO_HANDLE` and `ZELLE_HANDLE` are optional, and their format is
-    validated.
 
 ## Delivery
 
 | Track | PRs | Depends on | Contents |
 |---|---|---|---|
 | 0. Deploy | 2 | — | Dockerfile, compose and CI container smoke job · `CREATE_SECRET` on create (config, constant-time check, form field) |
-| 1. Items | 3 | — | Multi-item `Wishlist`, quantity availability, add-item use case and route · `url`, `priceMinor`, `Money`/`Currency` · `ManagePage`, guest cards, e2e |
+| 1. Items | 4 | — | Owner session (owner-token exchange, `gubbins_owner`, owner credential in `AccessContext`) · multi-item `Wishlist`, quantity availability, add-item use case and route · `url`, `priceMinor`, `Money`/`Currency` · `ManagePage`, guest cards, e2e |
 | 2. Holder details | 2 | — | `GuestPii` + `piiRef` on holds · `HoldSheet` fields, e2e |
-| 3. Group gifts | 4 | 1 (PR 1), 2 (PR 1) | `Item.type`, `Contribution`, `canAccept` · pledge use case and route, payment config · `ContributeFlow`, progress bar, e2e · owner group-gift option |
+| 3. Group gifts | 4 | 1 (PR 2), 2 (PR 1) | `Item.type`, `Contribution`, `canAccept`, payment methods on `Wishlist` · pledge use case and route, handles on create (API and form) · `ContributeFlow`, progress bar, e2e · owner group-gift option |
 
-About 11 PRs. Tracks 0, 1 and 2 start together.
+About 12 PRs. Tracks 0, 1 and 2 start together.
 
-New ADRs: the always-required `CREATE_SECRET` (amends ADR-0014), owner =
-operator for single-list instances (defers ADR-0015's owner-token flow), and
-env-var payment handles (defers ADR-0044's per-list configuration).
+New ADRs:
+- The always-required `CREATE_SECRET` (amends ADR-0014).
+- The owner session keyed by slug plus owner token (amends D17's hash lookup
+  for this route).
+- Payment handles set at creation and immutable for now. This narrows ADR-0044
+  to two kinds and defers editing.
 
 ## Testing
 
 - Each rule gets one test, at the layer that owns it:
-  - **Domain:** availability with quantity > 1, no holds on group gifts,
-    `canAccept` bounds, and the pledged total.
+  - **Domain:** availability with quantity > 1, no holds on group gifts, no
+    group gift without a payment method, handle validation, `canAccept`
+    bounds, and the pledged total.
   - **Use case:** pledge idempotent replay.
   - **Routes:** status codes and wiring, the wrong create secret, and the
-    secret's transport (a header, never a query string).
+    wrong owner token getting the same 404 as an unknown list. Secrets travel
+    only in request bodies, never in a query string or path.
 - Port contract suites are extended for `contributions`.
 - A structural test checks that no event payload type contains `name` or
   `message`.
 - e2e (Playwright + axe, 375 px):
-  1. The owner adds a single (qty 2) and a group gift.
+  1. The owner creates a list with a Venmo handle, opens `/manage` with the
+     owner token, and adds a single (qty 2) and a group gift.
   2. A guest holds, extends and purchases the single.
   3. A second guest pledges "Cover the rest" and the bar shows 100%.
   4. Replaying the pledge creates no second contribution.
@@ -208,8 +226,10 @@ env-var payment handles (defers ADR-0044's per-list configuration).
 
 ## Known risks
 
-- `CREATE_SECRET` doubles as the owner credential while `/manage` is open.
-  Rotate it if it leaks.
+- The owner token is shown once at creation. If it's lost, recovery means
+  reading it from the DB (ADR-0051).
+- Payment handles can't be edited after creation. A typo needs a DB fix until a
+  settings UI exists.
 - There's no hold cap, so one guest could hold everything. Fix that by hand in
   the DB if needed.
 - Until the owner view exists, seeing pledges and names needs a DB query.
