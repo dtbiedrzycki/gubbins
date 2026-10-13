@@ -74,4 +74,13 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn('recorded_at', 'text', (col) => col.notNull())
     .addUniqueConstraint('event_log_item_seq_unique', ['item_id', 'seq'])
     .execute();
+
+  // Outside the ledger and rebuildProjections on purpose: PII must stay erasable (ADR-0057).
+  await schema.createTable('guest_pii').ifNotExists()
+    .addColumn('id', 'text', (col) => col.primaryKey())
+    .addColumn('name', 'text', (col) => col.notNull())
+    .addColumn('message', 'text', (col) => col.check(sql`message IS NULL OR length(message) <= 300`))
+    .addColumn('redacted_at', 'text')
+    .addColumn('created_at', 'text', (col) => col.notNull())
+    .execute();
 }

@@ -6,6 +6,7 @@ import type { LedgerEvent } from '../../domain/events/LedgerEvent.js';
 import { ConcurrencyError, ItemNotFoundError, WishlistNotFoundError } from '../../domain/errors.js';
 import type { EventStore } from '../ports/EventStore.js';
 import type { HoldRepository } from '../ports/HoldRepository.js';
+import type { GuestPiiRecord, GuestPiiRepository } from '../ports/GuestPiiRepository.js';
 import type { TransactionContext, UnitOfWork } from '../ports/UnitOfWork.js';
 import type { WishlistRepository } from '../ports/WishlistRepository.js';
 
@@ -41,6 +42,7 @@ export class InMemoryStore {
   /** Item rows. */
   readonly items = new Map<string, Item>();
   readonly holds = new Map<string, Hold>();
+  readonly guestPii = new Map<string, GuestPiiRecord>();
   readonly streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
 
   holdsOnList(wishlistId: string): Hold[] {
@@ -151,6 +153,20 @@ export class InMemoryEventStore implements EventStore {
   /** What a stream holds, envelope included — tests read it to check what a use case appended and as whom. */
   recorded(itemId: string): readonly { event: LedgerEvent; actor: Actor }[] {
     return this.store.streams.get(itemId) ?? [];
+  }
+}
+
+export class InMemoryGuestPiiRepository implements GuestPiiRepository {
+  constructor(private store: InMemoryStore) {}
+
+  async insert(record: GuestPiiRecord): Promise<void> {
+    if (this.store.guestPii.has(record.id)) throw new Error(`UNIQUE constraint failed: guest_pii (${record.id})`);
+    this.store.guestPii.set(record.id, { ...record });
+  }
+
+  async findById(id: string): Promise<GuestPiiRecord | null> {
+    const record = this.store.guestPii.get(id);
+    return record ? { ...record } : null;
   }
 }
 

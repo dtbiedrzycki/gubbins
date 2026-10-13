@@ -54,10 +54,19 @@ export interface EventLogTable {
   recorded_at: string;
 }
 
+export interface GuestPiiTable {
+  id: string;
+  name: string;
+  message: string | null;
+  redacted_at: string | null;
+  created_at: string;
+}
+
 export interface Database {
   wishlists: WishlistsTable;
   items: ItemsTable;
   item_state: ItemStateTable;
   holds: HoldsTable;
   event_log: EventLogTable;
+  guest_pii: GuestPiiTable;
 }
