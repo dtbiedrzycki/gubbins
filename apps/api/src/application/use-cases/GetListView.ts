@@ -8,7 +8,6 @@ import { toHoldView, type HoldView } from '../views/HoldView.js';
 
 export interface ListView {
   title: string;
-  item: { id: string; title: string; status: ItemStatus };
   items: {
     id: string; title: string; type: ItemType; status: ItemStatus; availableUnits: number; url: string | null; priceMinor: number | null;
     /** Sum of pledges for a group gift; null for a single. */
@@ -35,10 +34,7 @@ export class GetListView {
     return this.unitOfWork.execute(async (ctx) => {
       const now = this.clock.now();
       const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
-      const item = wishlist?.item;
-      // A list without its item has nothing a guest can see yet; presentation
-      // answers this with the same generic 404 as an unknown list.
-      if (!wishlist || !item) throw new WishlistNotFoundError(input.wishlistId);
+      if (!wishlist) throw new WishlistNotFoundError(input.wishlistId);
 
       const pledged = await ctx.contributions.pledgedTotals(wishlist.id.value);
       const mine = access.guestSession
@@ -47,7 +43,6 @@ export class GetListView {
 
       return {
         title: wishlist.title,
-        item: { id: item.id.value, title: item.title, status: wishlist.itemStatus(item.id.value) },
         items: wishlist.items.map((i) => ({
           id: i.id.value, title: i.title, type: i.type, status: wishlist.itemStatus(i.id.value),
           availableUnits: wishlist.availableUnitsOf(i.id.value), url: i.url, priceMinor: i.priceMinor,

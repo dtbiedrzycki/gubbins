@@ -350,13 +350,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         title: string;
-                        item?: {
-                            id: string;
-                            title: string;
-                            /** @enum {string} */
-                            status: "available" | "held" | "purchased";
-                        };
-                        items?: {
+                        items: {
                             id: string;
                             title: string;
                             /** @enum {string} */
@@ -368,7 +362,7 @@ export interface operations {
                             priceMinor: number | null;
                             pledgedMinor: number | null;
                         }[];
-                        payment?: {
+                        payment: {
                             venmoHandle: string | null;
                             zelleHandle: string | null;
                         };

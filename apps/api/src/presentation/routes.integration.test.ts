@@ -169,7 +169,6 @@ describe('GET /api/lists/:slug', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
       title: 'Baby Shower',
-      item: { id: list.itemId, title: 'Stroller', status: 'available' },
       items: [{ id: list.itemId, title: 'Stroller', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null, pledgedMinor: null }],
       payment: { venmoHandle: null, zelleHandle: null },
       myHolds: [],
@@ -192,7 +191,7 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
     expect(holdResponse.json()).toMatchObject({ itemId: list.itemId });
 
     const viewResponse = await app.inject({ method: 'GET', url: `/api/lists/${list.slug}`, headers: { cookie } });
-    expect(viewResponse.json()).toMatchObject({ item: { status: 'held' } });
+    expect(viewResponse.json()).toMatchObject({ items: [{ status: 'held' }] });
   });
 
   it('returns 409 for a second hold attempt on an already-held item', async () => {
@@ -330,7 +329,7 @@ describe('hold lifecycle over HTTP', () => {
 
     expect(purchased.statusCode).toBe(200);
     expect(purchased.json()).toMatchObject({ status: 'purchased' });
-    expect(view.item.status).toBe('purchased');
+    expect(view.items[0].status).toBe('purchased');
     expect(view.myHolds).toMatchObject([{ holdId, status: 'purchased', actions: { extend: false, release: false, purchase: false } }]);
     expect(release.statusCode).toBe(409);
     expect(release.json()).toMatchObject({ code: 'hold_not_active' });
@@ -347,7 +346,7 @@ describe('hold lifecycle over HTTP', () => {
     });
 
     expect(released.json()).toMatchObject({ status: 'released' });
-    expect(view).toMatchObject({ item: { status: 'available' }, myHolds: [] });
+    expect(view).toMatchObject({ items: [{ status: 'available' }], myHolds: [] });
     expect(retry.statusCode).toBe(201);
   });
 

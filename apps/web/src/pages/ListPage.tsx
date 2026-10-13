@@ -50,7 +50,7 @@ export default function ListPage() {
     );
   }
 
-  const items = query.data.items ?? [];
+  const items = query.data.items;
   return (
     <main className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-sm space-y-8">
