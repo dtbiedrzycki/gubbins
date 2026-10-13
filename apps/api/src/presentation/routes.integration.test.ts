@@ -27,6 +27,12 @@ afterEach(async () => {
   await app.close();
 });
 
+describe('GET /health', () => {
+  it('answers 200 so a probe can tell the process is up', async () => {
+    expect((await app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
+  });
+});
+
 describe('POST /api/lists', () => {
   it('creates a list and returns slug/ownerToken/key/itemId', async () => {
     const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'test-create-secret' } });
