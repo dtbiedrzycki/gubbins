@@ -18,7 +18,9 @@ const expiredBuyable: HoldView = { ...active, status: 'expired', actions: { exte
 const purchased: HoldView = { ...active, status: 'purchased', actions: { extend: false, release: false, purchase: false } };
 
 const list = (myHolds: HoldView[]): ListViewResponse => ({
-  title: 'Baby Shower', item: { id: 'item-1', title: 'Stroller', status: myHolds.length ? 'held' : 'available' },
+  title: 'Baby Shower',
+  items: [{ id: 'item-1', title: 'Stroller', type: 'single', status: myHolds.length ? 'held' : 'available', availableUnits: myHolds.length ? 0 : 1, url: null, priceMinor: null, pledgedMinor: null }],
+  payment: { venmoHandle: null, zelleHandle: null },
   myHolds, capabilities: { holdDurationDays: 3 },
 });
 

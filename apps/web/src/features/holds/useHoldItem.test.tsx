@@ -15,9 +15,10 @@ function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
 
-const listView = (status: ListViewResponse['item']['status']): ListViewResponse => ({
+const listView = (status: 'available' | 'held'): ListViewResponse => ({
   title: 'Baby Shower',
-  item: { id: 'item-1', title: 'Stroller', status },
+  items: [{ id: 'item-1', title: 'Stroller', type: 'single', status, availableUnits: status === 'held' ? 0 : 1, url: null, priceMinor: null, pledgedMinor: null }],
+  payment: { venmoHandle: null, zelleHandle: null },
   myHolds: [],
   capabilities: { holdDurationDays: 3 },
 });
@@ -40,12 +41,12 @@ describe('useHoldItem', () => {
       mock('post', '/api/lists/{slug}/items/{itemId}/hold', 409, { message: 'Item already held' }),
     );
     const { result } = renderListAndHold();
-    await waitFor(() => expect(result.current.view.data?.item.status).toBe('available'));
+    await waitFor(() => expect(result.current.view.data?.items?.[0]?.status).toBe('available'));
 
     result.current.hold.mutate({ idempotencyKey: 'key-1', name: 'Ada' });
 
     await waitFor(() => expect(result.current.hold.isError).toBe(true));
-    expect(result.current.view.data?.item.status).toBe('held');
+    expect(result.current.view.data?.items?.[0]?.status).toBe('held');
   });
 
   it('stays pending until the refetched list view has landed', async () => {
@@ -66,7 +67,7 @@ describe('useHoldItem', () => {
       }),
     );
     const { result } = renderListAndHold();
-    await waitFor(() => expect(result.current.view.data?.item.status).toBe('available'));
+    await waitFor(() => expect(result.current.view.data?.items?.[0]?.status).toBe('available'));
 
     result.current.hold.mutate({ idempotencyKey: 'key-1', name: 'Ada' });
 
@@ -77,6 +78,6 @@ describe('useHoldItem', () => {
     releaseRefetch();
 
     await waitFor(() => expect(result.current.hold.isSuccess).toBe(true));
-    expect(result.current.view.data?.item.status).toBe('held');
+    expect(result.current.view.data?.items?.[0]?.status).toBe('held');
   });
 });

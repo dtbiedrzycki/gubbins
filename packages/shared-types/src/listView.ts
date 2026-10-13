@@ -18,11 +18,12 @@ export const listItemSchema = z.object({
 
 export const listViewResponseSchema = z.object({
   title: z.string(),
+  /** @deprecated Read `items`. */
   item: z.object({
     id: z.string(),
     title: z.string(),
     status: itemStatusSchema,
-  }),
+  }).optional(),
   // shortcut: optional until the web reads them; the next task makes both required.
   items: z.array(listItemSchema).optional(),
   /** How guests pay for a group gift. */
