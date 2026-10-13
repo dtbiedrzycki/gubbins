@@ -366,6 +366,7 @@ export interface operations {
                             availableUnits: number;
                             url: string | null;
                             priceMinor: number | null;
+                            pledgedMinor: number | null;
                         }[];
                         payment?: {
                             venmoHandle: string | null;

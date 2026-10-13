@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GetListView } from './GetListView.js';
+import { PledgeContribution } from './PledgeContribution.js';
+import { SequentialTokenGenerator } from '../test-fakes/SequentialTokenGenerator.js';
 import { ReleaseHold } from './ReleaseHold.js';
 import { MarkHoldPurchased } from './MarkHoldPurchased.js';
 import type { HoldPolicy } from '../HoldPolicy.js';
@@ -37,10 +39,28 @@ describe('GetListView items and payment', () => {
       .execute({ wishlistId: WISHLIST_ID }, NO_SESSION);
 
     expect(shown.items).toEqual([
-      { id: ids[0], title: 'Crib', type: 'single', status: 'available', availableUnits: 2, url: 'https://shop.example/crib', priceMinor: 19999 },
-      { id: ids[1], title: 'Mixer', type: 'group', status: 'available', availableUnits: 1, url: null, priceMinor: 45000 },
+      { id: ids[0], title: 'Crib', type: 'single', status: 'available', availableUnits: 2, url: 'https://shop.example/crib', priceMinor: 19999, pledgedMinor: null },
+      { id: ids[1], title: 'Mixer', type: 'group', status: 'available', availableUnits: 1, url: null, priceMinor: 45000, pledgedMinor: 0 },
     ]);
     expect(shown.payment).toEqual({ venmoHandle: 'sam-w', zelleHandle: null });
+  });
+
+  it('reports the pledged total of a group gift, and null for a single', async () => {
+    const persistence = inMemoryPersistence();
+    const wishlist = Wishlist.create({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0, paymentMethods: PaymentMethods.from({ venmoHandle: 'sam-w' }) });
+    const ids = ['33333333-3333-7333-8333-333333333333', '44444444-4444-7444-8444-444444444444'];
+    wishlist.addItem({ type: 'single', title: 'Crib', quantity: 1 }, { generateEntityId: () => ids[0] });
+    wishlist.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, { generateEntityId: () => ids[1] });
+    await persistence.wishlists.insert(wishlist);
+    const pledge = new PledgeContribution(persistence.unitOfWork, new SequentialTokenGenerator(), new FixedClock(T0));
+    for (const [idempotencyKey, amountMinor] of [['k1', 11250], ['k2', 5000]] as const) {
+      await pledge.execute({ wishlistId: WISHLIST_ID, itemId: ids[1], idempotencyKey, amountMinor, name: 'Ada', message: '' }, GUEST);
+    }
+
+    const shown = await new GetListView(persistence.unitOfWork, new FixedClock(T0), { durationDays: 3 })
+      .execute({ wishlistId: WISHLIST_ID }, NO_SESSION);
+
+    expect(shown.items.map((i) => i.pledgedMinor)).toEqual([null, 16250]);
   });
 });
 
@@ -51,7 +71,7 @@ describe('GetListView', () => {
     expect(await view()).toEqual({
       title: 'Baby Shower',
       item: { id: ITEM_ID, title: 'Stroller', status: 'available' },
-      items: [{ id: ITEM_ID, title: 'Stroller', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null }],
+      items: [{ id: ITEM_ID, title: 'Stroller', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null, pledgedMinor: null }],
       payment: { venmoHandle: null, zelleHandle: null },
       myHolds: [],
       capabilities: { holdDurationDays: 5 },

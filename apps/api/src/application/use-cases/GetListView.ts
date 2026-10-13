@@ -11,6 +11,8 @@ export interface ListView {
   item: { id: string; title: string; status: ItemStatus };
   items: {
     id: string; title: string; type: ItemType; status: ItemStatus; availableUnits: number; url: string | null; priceMinor: number | null;
+    /** Sum of pledges for a group gift; null for a single. */
+    pledgedMinor: number | null;
   }[];
   payment: { venmoHandle: string | null; zelleHandle: string | null };
   /** This session's holds on the list, oldest expiry first. */
@@ -38,6 +40,7 @@ export class GetListView {
       // answers this with the same generic 404 as an unknown list.
       if (!wishlist || !item) throw new WishlistNotFoundError(input.wishlistId);
 
+      const pledged = await ctx.contributions.pledgedTotals(wishlist.id.value);
       const mine = access.guestSession
         ? await ctx.holds.findForSession(wishlist.id.value, access.guestSession.sessionHash)
         : [];
@@ -48,6 +51,7 @@ export class GetListView {
         items: wishlist.items.map((i) => ({
           id: i.id.value, title: i.title, type: i.type, status: wishlist.itemStatus(i.id.value),
           availableUnits: wishlist.availableUnitsOf(i.id.value), url: i.url, priceMinor: i.priceMinor,
+          pledgedMinor: i.type === 'group' ? (pledged.get(i.id.value) ?? 0) : null,
         })),
         payment: { venmoHandle: wishlist.paymentMethods.venmoHandle, zelleHandle: wishlist.paymentMethods.zelleHandle },
         // Released holds were the guest's own choice and need no follow-up;

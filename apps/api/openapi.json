@@ -375,6 +375,12 @@
                             "type": "integer",
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
+                          },
+                          "pledgedMinor": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
                           }
                         },
                         "required": [
@@ -384,7 +390,8 @@
                           "status",
                           "availableUnits",
                           "url",
-                          "priceMinor"
+                          "priceMinor",
+                          "pledgedMinor"
                         ],
                         "additionalProperties": false
                       }

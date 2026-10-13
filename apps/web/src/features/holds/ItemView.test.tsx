@@ -15,7 +15,7 @@ const heldView: HoldView = {
 
 type Item = NonNullable<ListViewResponse['items']>[number];
 const single = (over: Partial<Item> = {}): Item => ({
-  id: 'item-1', title: 'Stroller', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null, ...over,
+  id: 'item-1', title: 'Stroller', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null, pledgedMinor: null, ...over,
 });
 
 function renderItem(status: Item['status'] | Partial<Item> = 'available'): void {
