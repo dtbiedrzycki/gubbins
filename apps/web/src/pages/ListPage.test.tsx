@@ -15,6 +15,7 @@ const hold: HoldView = {
 const view = (held: boolean): ListViewResponse => ({
   title: 'Baby Shower',
   item: { id: 'item-1', title: 'Stroller', status: held ? 'held' : 'available' },
+  items: [{ id: 'item-1', title: 'Stroller', type: 'single', status: held ? 'held' : 'available', availableUnits: held ? 0 : 1, url: null, priceMinor: null }],
   myHolds: held ? [hold] : [],
   capabilities: { holdDurationDays: 3 },
 });
@@ -32,6 +33,23 @@ function renderListPage() {
 }
 
 describe('ListPage', () => {
+  it('shows the list title and a card per item, with both titles available to "Your holds"', async () => {
+    const two: ListViewResponse = {
+      ...view(false),
+      items: [
+        ...view(false).items!,
+        { id: 'item-2', title: 'Cot', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null },
+      ],
+      myHolds: [{ ...hold, itemId: 'item-2' }],
+    };
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(two)));
+    renderListPage();
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Baby Shower' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Hold this item' })).toHaveLength(2);
+    expect(within(screen.getByRole('region', { name: 'Your holds' })).getByRole('heading', { name: 'Cot' })).toBeInTheDocument();
+  });
+
   it('holds the item, then shows it held and under "Your holds" with its actions', async () => {
     let held = false;
     server.use(
@@ -96,7 +114,7 @@ describe('ListPage', () => {
     let gets = 0;
     server.use(
       http.get('/api/lists/abc123', () => {
-        const lost: ListViewResponse = { ...view(false), item: { id: 'item-1', title: 'Stroller', status: 'held' } };
+        const lost = view(true);
         return HttpResponse.json(++gets === 1 ? view(false) : lost);
       }),
       http.post('/api/lists/abc123/items/item-1/hold', () => HttpResponse.json({ message: 'This item is no longer available.', code: 'item_unavailable' }, { status: 409 })),

@@ -13,10 +13,14 @@ const heldView: HoldView = {
   extendedAt: null, actions: { extend: true, release: true, purchase: true },
 };
 
-function renderItem(status: ListViewResponse['item']['status']): void {
-  const ui: ReactElement = (
-    <ItemView slug="abc123" listTitle="Baby Shower" holdDurationDays={3} item={{ id: 'item-1', title: 'Stroller', status }} />
-  );
+type Item = NonNullable<ListViewResponse['items']>[number];
+const single = (over: Partial<Item> = {}): Item => ({
+  id: 'item-1', title: 'Stroller', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null, ...over,
+});
+
+function renderItem(status: Item['status'] | Partial<Item> = 'available'): void {
+  const item = typeof status === 'string' ? single({ status }) : single(status);
+  const ui: ReactElement = <ItemView slug="abc123" holdDurationDays={3} item={item} />;
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}>{ui}</QueryClientProvider>);
 }
 
@@ -102,9 +106,9 @@ describe('ItemView', () => {
 
   it('announces the item held through the status region already on the page', () => {
     const client = new QueryClient();
-    const view = (status: ListViewResponse['item']['status']) => (
+    const view = (status: Item['status']) => (
       <QueryClientProvider client={client}>
-        <ItemView slug="abc123" listTitle="Baby Shower" holdDurationDays={3} item={{ id: 'item-1', title: 'Stroller', status }} />
+        <ItemView slug="abc123" holdDurationDays={3} item={single({ status })} />
       </QueryClientProvider>
     );
     const { rerender } = render(view('available'));
@@ -116,5 +120,34 @@ describe('ItemView', () => {
 
     expect(screen.getByRole('status')).toBe(status);
     expect(status).toHaveTextContent('Stroller is held.');
+  });
+
+  it('shows the title as a heading and the price formatted', () => {
+    renderItem({ priceMinor: 45000 });
+    expect(screen.getByRole('heading', { level: 2, name: 'Stroller' })).toBeInTheDocument();
+    expect(screen.getByText('$450.00')).toBeInTheDocument();
+  });
+
+  it('links to the store in a new tab, and only when there is a url', () => {
+    const { unmount } = render(<QueryClientProvider client={new QueryClient()}><ItemView slug="abc123" holdDurationDays={3} item={single({ url: 'https://shop.example/stroller' })} /></QueryClientProvider>);
+    const link = screen.getByRole('link', { name: 'View in store' });
+    expect(link).toHaveAttribute('href', 'https://shop.example/stroller');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    unmount();
+    renderItem();
+    expect(screen.queryByRole('link', { name: 'View in store' })).not.toBeInTheDocument();
+  });
+
+  it('shows the units left for a single', () => {
+    renderItem({ availableUnits: 2 });
+    expect(screen.getByText('2 left')).toBeInTheDocument();
+  });
+
+  it('gives a group gift its price and no Hold button or units', () => {
+    renderItem({ type: 'group', priceMinor: 20000, availableUnits: 0 });
+    expect(screen.getByText('$200.00')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Hold this item' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/left$/)).not.toBeInTheDocument();
   });
 });

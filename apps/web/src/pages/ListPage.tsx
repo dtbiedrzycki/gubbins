@@ -50,19 +50,26 @@ export default function ListPage() {
     );
   }
 
+  const items = query.data.items ?? [];
   return (
     <main className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-sm space-y-8">
+        <h1 className="text-2xl font-semibold">{query.data.title}</h1>
         <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn't refresh the list, so it may be out of date." : ''}</p>
-        <ItemView
-          slug={slug}
-          listTitle={query.data.title}
-          item={query.data.item}
-          holdDurationDays={query.data.capabilities.holdDurationDays}
-          // The Hold button has gone; the new hold's actions are under Your holds.
-          focusElsewhere={() => document.getElementById('your-holds-heading')?.focus()}
-        />
-        <YourHolds slug={slug} holds={query.data.myHolds} itemTitles={{ [query.data.item.id]: query.data.item.title }} />
+        <ul className="space-y-4">
+          {items.map((item) => (
+            <li key={item.id} className="rounded border border-slate-200 bg-white p-4">
+              <ItemView
+                slug={slug}
+                item={item}
+                holdDurationDays={query.data.capabilities.holdDurationDays}
+                // The Hold button has gone; the new hold's actions are under Your holds.
+                focusElsewhere={() => document.getElementById('your-holds-heading')?.focus()}
+              />
+            </li>
+          ))}
+        </ul>
+        <YourHolds slug={slug} holds={query.data.myHolds} itemTitles={Object.fromEntries(items.map((i) => [i.id, i.title]))} />
       </div>
     </main>
   );
