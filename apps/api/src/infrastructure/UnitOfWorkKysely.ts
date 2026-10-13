@@ -5,6 +5,7 @@ import type { EventStore } from '../application/ports/EventStore.js';
 import { WishlistRepositoryKysely } from './WishlistRepositoryKysely.js';
 import { HoldRepositoryKysely } from './HoldRepositoryKysely.js';
 import { GuestPiiRepositoryKysely } from './GuestPiiRepositoryKysely.js';
+import { ContributionRepositoryKysely } from './ContributionRepositoryKysely.js';
 import { EventStoreKysely } from './EventStoreKysely.js';
 import { inImmediateTransaction } from './db/immediateTransaction.js';
 
@@ -29,6 +30,7 @@ export class UnitOfWorkKysely implements UnitOfWork {
       wishlists: new WishlistRepositoryKysely(trx),
       holds: new HoldRepositoryKysely(trx),
       guestPii: new GuestPiiRepositoryKysely(trx),
+      contributions: new ContributionRepositoryKysely(trx),
       eventStore: this.wrapEventStore(new EventStoreKysely(trx)),
     }));
   }
