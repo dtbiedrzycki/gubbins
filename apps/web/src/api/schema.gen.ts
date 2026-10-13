@@ -177,6 +177,8 @@ export interface operations {
                     listTitle: string;
                     itemTitle: string;
                     createSecret?: string;
+                    venmoHandle?: string;
+                    zelleHandle?: string;
                 };
             };
         };

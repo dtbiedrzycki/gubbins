@@ -4,7 +4,7 @@ import { SequentialTokenGenerator } from '../test-fakes/SequentialTokenGenerator
 import { FixedClock } from '../test-fakes/FixedClock.js';
 import { inMemoryPersistence } from '../test-fakes/InMemoryRepositories.js';
 import { PlainSecretComparer } from '../test-fakes/PlainSecretComparer.js';
-import { InvalidCreateSecretError } from '../../domain/errors.js';
+import { DomainValidationError, InvalidCreateSecretError } from '../../domain/errors.js';
 
 const NOW = new Date('2026-01-01T00:00:00Z');
 
@@ -47,5 +47,22 @@ describe('CreateList', () => {
     const useCase = new CreateList(unitOfWork, new SequentialTokenGenerator(), new FixedClock(NOW), new PlainSecretComparer(), null);
 
     await expect(useCase.execute({ listTitle: 'L', itemTitle: 'I', createSecret: 'anything' })).rejects.toThrow(InvalidCreateSecretError);
+  });
+
+  it('stores the payment handles given at creation, normalized', async () => {
+    const { useCase, wishlists } = makeUseCase();
+
+    await useCase.execute({ listTitle: 'L', itemTitle: 'I', createSecret: 'right', venmoHandle: '@my-venmo', zelleHandle: 'me@example.com' });
+
+    const persisted = await wishlists.findBySlug('slug-1', NOW);
+    expect(persisted?.paymentMethods.venmoHandle).toBe('my-venmo');
+    expect(persisted?.paymentMethods.zelleHandle).toBe('me@example.com');
+  });
+
+  it('rejects an invalid handle, persisting nothing', async () => {
+    const { useCase, wishlists } = makeUseCase();
+
+    await expect(useCase.execute({ listTitle: 'L', itemTitle: 'I', createSecret: 'right', zelleHandle: 'not a handle' })).rejects.toThrow(DomainValidationError);
+    expect(await wishlists.findBySlug('slug-1', NOW)).toBeNull();
   });
 });
