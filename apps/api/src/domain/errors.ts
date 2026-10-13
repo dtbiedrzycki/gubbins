@@ -46,3 +46,7 @@ export class HoldNotActiveError extends Error {
 export class HoldAlreadyExtendedError extends Error {
   constructor(holdId: string) { super(`Hold already extended: ${holdId}`); }
 }
+/** The create secret was missing or wrong (ADR-0080). Presented as 403 with no detail. */
+export class InvalidCreateSecretError extends Error {
+  constructor() { super('Invalid create secret'); }
+}

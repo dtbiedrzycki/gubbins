@@ -144,6 +144,7 @@ export interface operations {
                 "application/json": {
                     listTitle: string;
                     itemTitle: string;
+                    createSecret?: string;
                 };
             };
         };
@@ -164,6 +165,15 @@ export interface operations {
             };
             /** @description The request did not match the schema. */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description The create secret was missing or wrong (ADR-0080). */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
