@@ -29,7 +29,7 @@ describe('CreateList', () => {
     const persistedWishlist = await wishlists.findBySlug('slug-1', NOW);
     expect(persistedWishlist?.title).toBe('Baby Shower');
     // The item is reachable only through the aggregate that owns it.
-    const persistedItem = persistedWishlist?.item;
+    const persistedItem = persistedWishlist?.items[0];
     expect(persistedItem?.id.value).toBe('00000000-0000-7000-8000-000000000002');
     expect(persistedItem?.title).toBe('Stroller');
     expect(persistedItem?.wishlistId.value).toBe(persistedWishlist?.id.value);

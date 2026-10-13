@@ -25,8 +25,8 @@ describe('in-memory fakes never share instances with the store', () => {
 
     expect(first).not.toBe(inserted);
     expect(second).not.toBe(first);
-    expect(second?.item).not.toBe(first?.item);
-    expect(first?.item?.id.value).toBe(ITEM_ID);
+    expect(second?.items[0]).not.toBe(first?.items[0]);
+    expect(first?.items[0]?.id.value).toBe(ITEM_ID);
   });
 
   it('does not leak an unpersisted hold decision into the next read', async () => {
@@ -37,7 +37,7 @@ describe('in-memory fakes never share instances with the store', () => {
 
     const fresh = await wishlists.findById(WISHLIST_ID, T0);
     expect(fresh?.itemStatus(ITEM_ID)).toBe('available');
-    expect(fresh?.item?.seq).toBe(0);
+    expect(fresh?.items[0]?.seq).toBe(0);
   });
 
   it('does not let a caller change a stored hold through the instance it inserted', async () => {

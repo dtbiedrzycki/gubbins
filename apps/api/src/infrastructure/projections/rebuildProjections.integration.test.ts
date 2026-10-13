@@ -45,7 +45,7 @@ async function projections() {
     purchasedCounts: await Promise.all(
       wishlistIds.map(async ({ id }) => {
         const wishlist = await deps.wishlists.findById(id, clock.now());
-        return wishlist?.item ? wishlist.purchasedCountOf(wishlist.item.id.value) : undefined;
+        return wishlist?.items[0] ? wishlist.purchasedCountOf(wishlist.items[0].id.value) : undefined;
       }),
     ),
   };
