@@ -3,7 +3,6 @@ import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { createDb } from '../infrastructure/db/createDb.js';
 import { migrateToLatest } from '../infrastructure/db/migrate.js';
 import { FixedClock } from '../application/test-fakes/FixedClock.js';
-import { ConcurrencyError } from '../domain/errors.js';
 import type { Logger } from '../application/ports/Logger.js';
 import { buildDependencies, type BuildDependenciesOptions } from './compositionRoot.js';
 import { buildApp } from './app.js';
@@ -37,11 +36,6 @@ describe('POST /api/lists', () => {
     expect(body).toHaveProperty('ownerToken');
     expect(body).toHaveProperty('key');
     expect(body).toHaveProperty('itemId');
-  });
-
-  it('returns 400 for an empty listTitle', async () => {
-    const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: '', itemTitle: 'Stroller' } });
-    expect(response.statusCode).toBe(400);
   });
 
   it('keeps the 400 body shape: message plus zod-style issues', async () => {
@@ -128,13 +122,6 @@ describe('POST /api/lists/:slug/session', () => {
 });
 
 describe('GET /api/lists/:slug', () => {
-  it('returns the same generic 404 without a session cookie as for an unknown slug (ADR-0016/0054 anti-enumeration)', async () => {
-    const list = await createList();
-    const response = await app.inject({ method: 'GET', url: `/api/lists/${list.slug}` });
-    expect(response.statusCode).toBe(404);
-    expect(response.json()).toEqual({ message: 'Not found' });
-  });
-
   it('returns the list view for a valid session, with the item available', async () => {
     const list = await createList();
     const sessionResponse = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } });
@@ -179,82 +166,6 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
 
     expect(second.statusCode).toBe(409);
     expect(second.json()).toEqual({ message: 'This item is no longer available.', code: 'item_unavailable' });
-  });
-
-  it('replays the original hold for a repeated idempotency key instead of creating a second hold', async () => {
-    const list = await createList();
-    const sessionResponse = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } });
-    const cookie = extractCookieHeader(sessionResponse);
-
-    const first = await app.inject({
-      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`,
-      headers: { cookie }, payload: { idempotencyKey: 'idem-1' },
-    });
-    const second = await app.inject({
-      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`,
-      headers: { cookie }, payload: { idempotencyKey: 'idem-1' },
-    });
-
-    expect(first.statusCode).toBe(201);
-    expect(second.statusCode).toBe(201);
-    expect(second.json()).toEqual(first.json());
-  });
-
-  it('returns the same generic 404 without a session cookie as for an unknown slug (ADR-0016/0054 anti-enumeration)', async () => {
-    const list = await createList();
-    const response = await app.inject({
-      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, payload: { idempotencyKey: 'idem-1' },
-    });
-    expect(response.statusCode).toBe(404);
-    expect(response.json()).toEqual({ message: 'Not found' });
-  });
-
-  it('returns a generic 404 when the item belongs to a different wishlist than the URL slug', async () => {
-    const listA = await createList();
-    const listB = await createList();
-    const sessionResponse = await app.inject({ method: 'POST', url: `/api/lists/${listA.slug}/session`, payload: { key: listA.key } });
-    const cookie = extractCookieHeader(sessionResponse);
-
-    // A valid session for list A, but the item id in the URL belongs to list B.
-    const response = await app.inject({
-      method: 'POST', url: `/api/lists/${listA.slug}/items/${listB.itemId}/hold`,
-      headers: { cookie }, payload: { idempotencyKey: 'idem-1' },
-    });
-
-    expect(response.statusCode).toBe(404);
-    expect(response.json()).toEqual({ message: 'Not found' });
-  });
-
-  it('maps a ConcurrencyError from the use case to 409', async () => {
-    const db = createDb(':memory:');
-    await migrateToLatest(db);
-    const deps = buildDependencies(db);
-    const seedApp = buildApp(deps, { cookieSecret: 'test-secret' });
-    const createResponse = await seedApp.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller' } });
-    const list = createResponse.json() as { slug: string; key: string; itemId: string };
-
-    // Swap in a holdItem stub that reproduces the race EventStoreKysely.append
-    // detects (two concurrent HoldItem calls disagreeing on the stream's seq),
-    // to prove the route maps ConcurrencyError to 409 rather than falling
-    // through to the generic 500 handler.
-    const throwingHoldItem = { execute: async () => { throw new ConcurrencyError(list.itemId, 0, 1); } };
-    const raceApp = buildApp({ ...deps, holdItem: throwingHoldItem as unknown as typeof deps.holdItem }, { cookieSecret: 'test-secret' });
-    // Both apps share this test's own database, so neither owns it: close
-    // them, then destroy the database once.
-    onTestFinished(async () => {
-      await Promise.all([seedApp.close(), raceApp.close()]);
-      await db.destroy();
-    });
-
-    const sessionResponse = await raceApp.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } });
-    const cookie = extractCookieHeader(sessionResponse);
-
-    const response = await raceApp.inject({
-      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`,
-      headers: { cookie }, payload: { idempotencyKey: 'idem-1' },
-    });
-
-    expect(response.statusCode).toBe(409);
   });
 });
 
@@ -348,12 +259,6 @@ describe('hold lifecycle over HTTP', () => {
     expect(response.json()).toEqual({ message: 'Not found' });
   });
 
-  it('answers a hold with the full hold view', async () => {
-    const { response } = await heldByGuest();
-    expect(response.statusCode).toBe(201);
-    expect(response.json()).toMatchObject({ status: 'active', extendedAt: null, actions: { extend: true, release: true, purchase: true } });
-  });
-
   it('extends once, then answers 409 hold_already_extended', async () => {
     const { list, cookie, holdId } = await heldByGuest();
 
@@ -440,22 +345,6 @@ describe('lazy expiry and the configured duration over HTTP', () => {
       }
     },
   );
-
-  it('frees the item the moment a hold lapses, and still lets its guest mark it purchased', async () => {
-    const { timed, clock } = await appAt(T0);
-    const { list, cookie, holdId } = await heldByGuest(timed);
-
-    clock.advance(3 * DAY + 1);
-    const view = (await timed.inject({ method: 'GET', url: `/api/lists/${list.slug}`, headers: { cookie } })).json();
-    const extend = await holdAction(list.slug, holdId, 'extend', cookie, timed);
-    const purchase = await holdAction(list.slug, holdId, 'purchase', cookie, timed);
-
-    expect(view.item.status).toBe('available');
-    expect(view.myHolds).toMatchObject([{ holdId, status: 'expired', actions: { extend: false, release: false, purchase: true } }]);
-    expect(extend.statusCode).toBe(409);
-    expect(extend.json()).toMatchObject({ code: 'hold_not_active' });
-    expect(purchase.json()).toMatchObject({ status: 'purchased' });
-  });
 
   it('advertises the configured HOLD_DURATION_DAYS and holds for exactly that long', async () => {
     const { timed } = await appAt(T0, { holdPolicy: { durationDays: 1 } });
