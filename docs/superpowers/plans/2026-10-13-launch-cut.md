@@ -1011,7 +1011,7 @@ export class GuestDetails {
 
 - [ ] **Step 1: Write the failing tests.**
   - `GuestDetails`: trims; refuses an empty or blank name and a name over 100; turns a blank message into null; refuses a message over 300.
-  - `Item.test`: "placeHold records the piiRef on the hold and on ItemHeld". Also check that `ItemHeld` holds no `name` or `message` key: `expect(Object.keys(event)).not.toEqual(expect.arrayContaining(['name']))`.
+  - `Item.test`: "placeHold records the piiRef on the hold and on ItemHeld". Also check that `ItemHeld` holds no `name` or `message` key: `expect(event).not.toHaveProperty('name')`, and the same for `message`.
 - [ ] **Step 2: Implement.** The `ItemHeldEvent` doc comment says PII lives in `guest_pii`, referenced by `piiRef` (ADR-0057).
 - [ ] **Step 3: Run checks.** Run the api tests. Expected: PASS. If `anItemHeldEvent` in `builders.ts` fails to typecheck, add `piiRef: null`; that makes 8 files.
 - [ ] **Step 4: Commit.** `feat(api): holds reference the holder's details by piiRef`.
@@ -1138,7 +1138,8 @@ describe('pledge', () => {
     const item = group();
     const { contribution, event, expectedSeq } = item.pledge({ ...props, amountMinor: 11250 }, { generateEntityId: () => CID });
     expect([contribution.amount.amountMinor, event.type, event.amountMinor, expectedSeq, item.seq]).toEqual([11250, 'ContributionPledged', 11250, 0, 1]);
-    expect(Object.keys(event)).not.toEqual(expect.arrayContaining(['name', 'message']));
+    expect(event).not.toHaveProperty('name');
+    expect(event).not.toHaveProperty('message');
   });
   it('allows overfunding up to five times the price', () => {
     expect(() => group().pledge({ ...props, amountMinor: 45000 * 5 }, ids)).not.toThrow();
