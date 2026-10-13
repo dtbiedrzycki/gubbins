@@ -10,6 +10,11 @@ export interface WishlistRepository {
   /** Persists the wishlist along with its attached item and that item's state. */
   insert(wishlist: Wishlist): Promise<void>;
   /**
+   * Adds an item (and its stream state at `item.seq`) to a list already
+   * stored. Throws WishlistNotFoundError unless `item.wishlistId` exists.
+   */
+  insertItem(item: Item): Promise<void>;
+  /**
    * Loads the full aggregate as of `now` — its item and every hold on the
    * list active or purchased at `now` — or null if no such wishlist. The returned
    * aggregate decides as of that instant: its commands and status queries

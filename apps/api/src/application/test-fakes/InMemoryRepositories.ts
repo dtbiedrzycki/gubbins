@@ -3,7 +3,7 @@ import { Item } from '../../domain/entities/Item.js';
 import { Wishlist } from '../../domain/entities/Wishlist.js';
 import type { Actor } from '../../domain/Actor.js';
 import type { LedgerEvent } from '../../domain/events/LedgerEvent.js';
-import { ConcurrencyError, ItemNotFoundError } from '../../domain/errors.js';
+import { ConcurrencyError, ItemNotFoundError, WishlistNotFoundError } from '../../domain/errors.js';
 import type { EventStore } from '../ports/EventStore.js';
 import type { HoldRepository } from '../ports/HoldRepository.js';
 import type { TransactionContext, UnitOfWork } from '../ports/UnitOfWork.js';
@@ -19,7 +19,7 @@ import type { WishlistRepository } from '../ports/WishlistRepository.js';
 function copyItem(item: Item): Item {
   return Item.reconstitute({
     id: item.id.value, wishlistId: item.wishlistId.value, type: item.type, title: item.title,
-    quantity: item.quantity, seq: item.seq,
+    quantity: item.quantity, url: item.url, priceMinor: item.priceMinor, seq: item.seq,
   });
 }
 
@@ -68,6 +68,11 @@ export class InMemoryWishlistRepository implements WishlistRepository {
     for (const item of wishlist.items) this.store.items.set(item.id.value, copyItem(item));
   }
 
+  async insertItem(item: Item): Promise<void> {
+    if (!this.store.wishlists.has(item.wishlistId.value)) throw new WishlistNotFoundError(item.wishlistId.value);
+    this.store.items.set(item.id.value, copyItem(item));
+  }
+
   async findBySlug(slug: string, now: Date): Promise<Wishlist | null> {
     return this.hydrate([...this.store.wishlists.values()].find((w) => w.slug.value === slug), now);
   }
@@ -90,6 +95,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
     return Wishlist.reconstitute({
       id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
       ownerToken: wishlist.ownerToken.value, key: wishlist.key.value, keyGen: wishlist.keyGen, asOf: now,
+      paymentMethods: wishlist.paymentMethods,
       items, holds,
     });
   }

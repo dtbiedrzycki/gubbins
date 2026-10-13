@@ -8,6 +8,9 @@ export interface WishlistsTable {
   owner_token: string;
   key: string;
   key_gen: number;
+  venmo_handle: string | null;
+  zelle_handle: string | null;
+  currency: Generated<string>;
   created_at: string;
 }
 
@@ -17,6 +20,8 @@ export interface ItemsTable {
   type: string;
   title: string;
   quantity: number;
+  url: string | null;
+  price_minor: number | null;
   created_at: string;
 }
 

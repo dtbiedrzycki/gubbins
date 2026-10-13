@@ -3,6 +3,8 @@ import type { Database, WishlistsTable } from './db/schema.js';
 import type { WishlistRepository } from '../application/ports/WishlistRepository.js';
 import type { Item } from '../domain/entities/Item.js';
 import { Wishlist } from '../domain/entities/Wishlist.js';
+import { PaymentMethods } from '../domain/value-objects/PaymentMethods.js';
+import { WishlistNotFoundError } from '../domain/errors.js';
 import { HoldRepositoryKysely } from './HoldRepositoryKysely.js';
 import { ItemRepositoryKysely } from './ItemRepositoryKysely.js';
 
@@ -24,9 +26,16 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     await this.db.insertInto('wishlists').values({
       id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
       owner_token: wishlist.ownerToken.value, key: wishlist.key.value, key_gen: wishlist.keyGen,
+      venmo_handle: wishlist.paymentMethods.venmoHandle, zelle_handle: wishlist.paymentMethods.zelleHandle,
       created_at: new Date().toISOString(),
     }).execute();
     for (const item of wishlist.items) await this.items.insert(item);
+  }
+
+  async insertItem(item: Item): Promise<void> {
+    const list = await this.db.selectFrom('wishlists').select('id').where('id', '=', item.wishlistId.value).executeTakeFirst();
+    if (list === undefined) throw new WishlistNotFoundError(item.wishlistId.value);
+    await this.items.insert(item);
   }
 
   async findBySlug(slug: string, now: Date): Promise<Wishlist | null> {
@@ -54,6 +63,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
       ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now,
+      paymentMethods: PaymentMethods.from({ venmoHandle: row.venmo_handle, zelleHandle: row.zelle_handle }),
       items, holds,
     });
   }
