@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { describe, expect, it } from 'vitest';
+import { http, HttpResponse } from 'msw';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mock } from '../../test/msw/mock';
@@ -17,6 +18,7 @@ async function fillAndSubmit(beforeSubmit = () => {}) {
   beforeSubmit();
   await user.type(screen.getByLabelText('List title'), 'Baby Shower');
   await user.type(screen.getByLabelText('First item'), 'Stroller');
+  await user.type(screen.getByLabelText('Create secret'), 'the-secret');
   await user.click(screen.getByRole('button', { name: 'Create list' }));
 }
 
@@ -50,5 +52,16 @@ describe('CreateListForm', () => {
 
     await waitFor(() => expect(alert).toHaveTextContent('Invalid request'));
     expect(screen.getByRole('alert')).toBe(alert);
+  });
+
+  it('sends the create secret with the list', async () => {
+    let body: unknown;
+    server.use(http.post('/api/lists', async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k', itemId: 'i' }, { status: 201 });
+    }));
+    await fillAndSubmit();
+    await screen.findByText('k');
+    expect(body).toMatchObject({ createSecret: 'the-secret' });
   });
 });
