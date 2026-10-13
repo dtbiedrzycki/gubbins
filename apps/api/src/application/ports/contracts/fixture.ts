@@ -18,6 +18,8 @@ export interface PersistenceFixture {
   eventStore: EventStore;
   /** The rows a stream holds, read behind the port: `append` returns nothing, so this is how a suite sees what it wrote. */
   recordedEvents(itemId: string): Promise<{ type: string; actor: Actor; payload: LedgerEvent }[]>;
+  /** Makes a guest_pii row a hold can reference; the real table enforces the foreign key. */
+  seedGuestPii(id: string): Promise<void>;
   dispose(): Promise<void>;
 }
 

@@ -117,6 +117,21 @@ describe('rebuildProjections', () => {
     expect(await projections()).toEqual(before);
   });
 
+  it('re-folds piiRef from ItemHeld and leaves guest_pii untouched', async () => {
+    const { hold } = await newList();
+    const placed = await hold(GUEST, 'k');
+    const piiRef = '00000000-0000-7000-8000-00000000aaaa';
+    await db.insertInto('guest_pii').values({ id: piiRef, name: 'Guest', message: null, redacted_at: null, created_at: clock.now().toISOString() }).execute();
+    const row = await db.selectFrom('event_log').select(['id', 'payload']).executeTakeFirstOrThrow();
+    await db.updateTable('event_log').set({ payload: JSON.stringify({ ...JSON.parse(row.payload), piiRef }) }).where('id', '=', row.id).execute();
+    const piiBefore = await db.selectFrom('guest_pii').selectAll().execute();
+
+    await rebuildProjections(db);
+
+    expect(await db.selectFrom('holds').select('pii_ref').where('id', '=', placed.holdId).executeTakeFirstOrThrow()).toEqual({ pii_ref: piiRef });
+    expect(await db.selectFrom('guest_pii').selectAll().execute()).toEqual(piiBefore);
+  });
+
   it('refuses a payload version it does not know', async () => {
     const { hold } = await newList();
     const placed = await hold(GUEST, 'k');

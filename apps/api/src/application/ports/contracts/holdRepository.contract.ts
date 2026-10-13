@@ -16,6 +16,14 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
       expect(await fx.holds.findById(hold.id.value)).toEqual(hold);
     });
 
+    it("round-trips a hold's piiRef", async () => {
+      const piiRef = '00000000-0000-7000-8000-00000000aaaa';
+      await fx.seedGuestPii(piiRef);
+      const hold = holdFixture({ piiRef });
+      await fx.holds.insert(hold);
+      expect((await fx.holds.findById(hold.id.value))?.piiRef?.value).toBe(piiRef);
+    });
+
     it('returns null for an unknown or malformed id', async () => {
       expect(await fx.holds.findById('00000000-0000-7000-8000-999999999999')).toBeNull();
       expect(await fx.holds.findById('not-a-uuid')).toBeNull();

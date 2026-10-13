@@ -10,6 +10,7 @@ const inMemory: PersistenceFactory = async () => {
   return {
     wishlists, holds, eventStore,
     recordedEvents: async (itemId) => eventStore.recorded(itemId).map(({ event, actor }) => ({ type: event.type, actor, payload: event })),
+    seedGuestPii: async () => {},
     dispose: async () => {},
   };
 };
