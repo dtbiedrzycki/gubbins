@@ -18,8 +18,8 @@ function parse(row: { id: number; event_type: string; payload: string }): Ledger
 }
 
 /**
- * Truncates and re-folds the event-derived projections — `holds` and
- * `item_state` — from `event_log`, the source of truth (data & persistence).
+ * Truncates and re-folds the event-derived projections — `holds`,
+ * `contributions` and `item_state` — from `event_log`, the source of truth (data & persistence).
  * Minimal by design: tables outside rebuild scope (guest_pii, hold_reminders
  * and the rest, as they arrive) are never touched.
  *
@@ -38,6 +38,7 @@ export async function rebuildProjections(db: Kysely<Database>): Promise<{ events
       (await trx.selectFrom('holds').select(['id', 'secret']).execute()).map((row) => [row.id, row.secret]),
     );
     await trx.deleteFrom('holds').execute();
+    await trx.deleteFrom('contributions').execute();
 
     const rows = await trx.selectFrom('event_log').select(['id', 'item_id', 'event_type', 'payload']).orderBy('id').execute();
     for (const row of rows) {
@@ -63,6 +64,12 @@ export async function rebuildProjections(db: Kysely<Database>): Promise<{ events
           break;
         case 'ItemPurchased':
           await trx.updateTable('holds').set({ purchased_at: event.occurredAt }).where('id', '=', event.holdId).execute();
+          break;
+        case 'ContributionPledged':
+          await trx.insertInto('contributions').values({
+            id: event.contributionId, item_id: row.item_id, amount_minor: event.amountMinor, session_hash: event.sessionHash,
+            idempotency_key: event.idempotencyKey, pii_ref: event.piiRef, pledged_at: event.occurredAt, created_at: event.occurredAt,
+          }).execute();
           break;
         default: {
           // Exhaustive over LedgerEvent: a new event type fails to compile
@@ -95,7 +102,7 @@ if (isMain) {
   try {
     await migrateToLatest(db);
     const { events } = await rebuildProjections(db);
-    console.log(`Rebuilt holds and item_state from ${events} events.`);
+    console.log(`Rebuilt holds, contributions and item_state from ${events} events.`);
   } catch (err) {
     console.error(err);
     process.exitCode = 1;
