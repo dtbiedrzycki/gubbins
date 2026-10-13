@@ -5,6 +5,7 @@ import {
   createListRequestSchema, createListResponseSchema,
   enterGuestKeyRequestSchema, enterGuestKeyResponseSchema,
   ownerSessionRequestSchema, ownerSessionResponseSchema,
+  addItemRequestSchema, addItemResponseSchema,
   holdItemRequestSchema, holdItemResponseSchema, holdViewSchema, listViewResponseSchema,
   errorResponseSchema,
 } from '@gubbins/shared-types';
@@ -13,7 +14,7 @@ import type { AccessContext } from '../application/AccessContext.js';
 import type { HoldCommand } from '../application/use-cases/holdCommand.js';
 import type { Wishlist } from '../domain/entities/Wishlist.js';
 import { WishlistNotFoundError, InvalidGuestKeyError } from '../domain/errors.js';
-import { OWNER_COOKIE, SESSION_COOKIE, accessContextFor, readSignedSession, type OwnerSessionPayload, type SessionPayload } from './accessContext.js';
+import { OWNER_COOKIE, SESSION_COOKIE, accessContextFor, readOwnerSession, readSignedSession, type OwnerSessionPayload, type SessionPayload } from './accessContext.js';
 import { NOT_FOUND, domainErrorResponse } from './domainErrorResponse.js';
 
 // Path parameters are an HTTP concern, so their schemas live here rather than
@@ -51,6 +52,16 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     if (!wishlist) return null;
     const access = accessContextFor({ guest: session, owner: null }, { id: wishlist.id.value, keyGen: wishlist.keyGen }, deps.hasher);
     return access.guestSession ? { wishlist, access } : null;
+  }
+
+  /** Like guestAccess, for the owner cookie: the list, or null for the same generic 404. */
+  async function ownerAccess(request: FastifyRequest, slug: string): Promise<{ wishlist: Wishlist; access: AccessContext } | null> {
+    const owner = readOwnerSession(request);
+    if (!owner) return null;
+    const wishlist = await deps.wishlists.findBySlug(slug, deps.clock.now());
+    if (!wishlist) return null;
+    const access = accessContextFor({ guest: readSignedSession(request), owner }, { id: wishlist.id.value, keyGen: wishlist.keyGen }, deps.hasher);
+    return access.owner ? { wishlist, access } : null;
   }
 
   /** Answers a domain error with its mapped status, or rethrows it for the generic 500 handler. */
@@ -145,6 +156,29 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     try {
       const view = await deps.getListView.execute({ wishlistId: guest.wishlist.id.value }, guest.access);
       return reply.code(200).send(view);
+    } catch (err) {
+      return sendDomainError(reply, err);
+    }
+  });
+
+  app.post('/api/lists/:slug/items', {
+    schema: {
+      operationId: 'addItem',
+      params: slugParams,
+      body: addItemRequestSchema,
+      response: {
+        201: json('The item was added to the list.', addItemResponseSchema),
+        400: json(INVALID_REQUEST, errorResponseSchema),
+        404: json('No such list, or no owner cookie for it. Deliberately indistinguishable (ADR-0016, ADR-0054).', errorResponseSchema),
+        409: json('A group gift needs a payment method on the list (no_payment_method).', errorResponseSchema),
+      },
+    },
+  }, async (request, reply) => {
+    const owner = await ownerAccess(request, request.params.slug);
+    if (!owner) return reply.code(404).send(NOT_FOUND);
+    try {
+      const result = await deps.addItem.execute({ wishlistId: owner.wishlist.id.value, ...request.body }, owner.access);
+      return reply.code(201).send(result);
     } catch (err) {
       return sendDomainError(reply, err);
     }

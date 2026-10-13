@@ -65,6 +65,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lists/{slug}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["addItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lists/{slug}/items/{itemId}/hold": {
         parameters: {
             query?: never;
@@ -343,6 +359,77 @@ export interface operations {
             };
             /** @description No such list, or no valid session for it. The two are deliberately indistinguishable (ADR-0016, ADR-0054). */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    addItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    type: "single";
+                    title: string;
+                    /** @default 1 */
+                    quantity?: number;
+                    /** Format: uri */
+                    url?: string;
+                    priceMinor?: number;
+                } | {
+                    /** @enum {string} */
+                    type: "group";
+                    title: string;
+                    /** Format: uri */
+                    url?: string;
+                    priceMinor: number;
+                };
+            };
+        };
+        responses: {
+            /** @description The item was added to the list. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        itemId: string;
+                    };
+                };
+            };
+            /** @description The request did not match the schema. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No such list, or no owner cookie for it. Deliberately indistinguishable (ADR-0016, ADR-0054). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A group gift needs a payment method on the list (no_payment_method). */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

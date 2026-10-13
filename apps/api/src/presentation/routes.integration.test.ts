@@ -424,3 +424,44 @@ describe('guest access is checked before any list is loaded', () => {
     expect(findBySlug).not.toHaveBeenCalled();
   });
 });
+
+describe('POST /api/lists/:slug/items', () => {
+  const single = { type: 'single', title: 'Crib' };
+
+  async function ownerOn(list: { slug: string; ownerToken: string }): Promise<string> {
+    return extractCookieHeader(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } }));
+  }
+
+  const addItem = (slug: string, cookie: string | undefined, payload: unknown) =>
+    app.inject({ method: 'POST', url: `/api/lists/${slug}/items`, headers: cookie ? { cookie } : {}, payload: payload as object });
+
+  it('lets the owner add a single item', async () => {
+    const list = await createList();
+    const response = await addItem(list.slug, await ownerOn(list), single);
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toEqual({ itemId: expect.any(String) });
+  });
+
+  it('answers the same bare 404 without an owner cookie for this list', async () => {
+    const list = await createList();
+    const other = await createList();
+    const cookies = [undefined, await guestOn(list), await ownerOn(other)];
+    for (const cookie of cookies) {
+      const response = await addItem(list.slug, cookie, single);
+      expect(response.statusCode).toBe(404);
+      expect(response.json()).toEqual({ message: 'Not found' });
+    }
+  });
+
+  it.each(['javascript:alert(1)', 'http://shop.example/crib'])('rejects the url %s at the schema', async (url) => {
+    const list = await createList();
+    expect((await addItem(list.slug, await ownerOn(list), { ...single, url })).statusCode).toBe(400);
+  });
+
+  it('answers 409 no_payment_method for a group gift on a list without handles', async () => {
+    const list = await createList();
+    const response = await addItem(list.slug, await ownerOn(list), { type: 'group', title: 'Pram', priceMinor: 50000 });
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({ code: 'no_payment_method' });
+  });
+});
