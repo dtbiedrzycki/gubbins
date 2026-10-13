@@ -14,11 +14,11 @@ trap cleanup EXIT
 
 docker build -t gubbins:smoke .
 
-# The server must refuse to start without CREATE_SECRET.
-if docker run --rm -e SESSION_COOKIE_SECRET=x gubbins:smoke >/dev/null 2>&1; then
-  echo "FAIL: started without CREATE_SECRET" >&2
-  exit 1
-fi
+# The server must refuse to start without CREATE_SECRET, and say why. The timeout
+# turns a server that starts anyway into a failure instead of a hung CI job.
+out=$(timeout 30 docker run --rm --name "$name" -e SESSION_COOKIE_SECRET=x gubbins:smoke 2>&1 || true)
+docker rm -f "$name" >/dev/null 2>&1 || true
+grep -q 'CREATE_SECRET must be set' <<<"$out" || { echo "$out" >&2; echo "FAIL: did not refuse to start without CREATE_SECRET" >&2; exit 1; }
 
 docker run -d --name "$name" -p 127.0.0.1:3000:3000 -v "$volume":/data \
   -e CREATE_SECRET=smoke-create -e SESSION_COOKIE_SECRET=smoke-cookie gubbins:smoke >/dev/null
