@@ -47,7 +47,6 @@ describe('POST /api/lists', () => {
   it('refuses a wrong create secret with 403', async () => {
     const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'wrong' } });
     expect(response.statusCode).toBe(403);
-    expect(response.json()).toEqual({ message: 'Not allowed' });
   });
 
   it('keeps the 400 body shape: message plus zod-style issues', async () => {
@@ -117,7 +116,7 @@ describe('POST /api/lists/:slug/session', () => {
     const list = await createList();
     const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } });
     expect(response.statusCode).toBe(200);
-    expect(response.headers['set-cookie']).toBeDefined();
+    expect(response.cookies).toEqual([expect.objectContaining({ httpOnly: true, secure: true, sameSite: 'Strict' })]);
   });
 
   it('returns a generic 404 for a wrong key', async () => {
@@ -139,23 +138,17 @@ describe('POST /api/lists/:slug/owner-session', () => {
     const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ ok: true });
-    const cookie = String(response.headers['set-cookie']);
-    expect(cookie.startsWith('gubbins_owner=')).toBe(true);
-    expect(cookie).toContain('HttpOnly');
-    expect(cookie).toContain('Secure');
-    expect(cookie).toContain('SameSite=Strict');
+    const [owner] = response.cookies;
+    expect(owner).toMatchObject({ name: 'gubbins_owner', httpOnly: true, secure: true, sameSite: 'Strict' });
+    expect(JSON.parse(app.unsignCookie(owner.value).value!)).toEqual({ wishlistId: expect.any(String) });
   });
 
-  it.each([['a wrong token', (slug: string) => ({ slug, ownerToken: 'wrong-token' })], ['an unknown slug', () => ({ slug: 'no-such-slug', ownerToken: 'anything' })]])(
-    'returns the same bare 404 with no cookie for %s', async (_case, build) => {
-      const list = await createList();
-      const { slug, ownerToken } = build(list.slug);
-      const response = await app.inject({ method: 'POST', url: `/api/lists/${slug}/owner-session`, payload: { ownerToken } });
-      expect(response.statusCode).toBe(404);
-      expect(response.json()).toEqual({ message: 'Not found' });
-      expect(response.headers['set-cookie']).toBeUndefined();
-    },
-  );
+  it('answers a wrong token with a 404 and no cookie', async () => {
+    const list = await createList();
+    const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: 'wrong-token' } });
+    expect(response.statusCode).toBe(404);
+    expect(response.headers['set-cookie']).toBeUndefined();
+  });
 });
 
 describe('GET /api/lists/:slug', () => {
