@@ -35,6 +35,20 @@ export function readSignedSession(request: FastifyRequest): SessionPayload | nul
   }
 }
 
+/** The signed owner cookie's payload, if validly signed and well formed. */
+export function readOwnerSession(request: FastifyRequest): OwnerSessionPayload | null {
+  const raw = request.cookies[OWNER_COOKIE];
+  if (!raw) return null;
+  const unsigned = request.unsignCookie(raw);
+  if (!unsigned.valid || !unsigned.value) return null;
+  try {
+    const payload = JSON.parse(unsigned.value) as Partial<OwnerSessionPayload> | null;
+    return typeof payload?.wishlistId === 'string' ? { wishlistId: payload.wishlistId } : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * The one place a session becomes an AccessContext. A session from before a
  * key rotation, or for another list, counts as no session at all. The
@@ -42,10 +56,14 @@ export function readSignedSession(request: FastifyRequest): SessionPayload | nul
  * `holds.session_hash` stores — never the raw value.
  */
 export function accessContextFor(
-  session: SessionPayload | null,
+  sessions: { guest: SessionPayload | null; owner: OwnerSessionPayload | null },
   list: { id: string; keyGen: number },
   hasher: Hasher,
 ): AccessContext {
+  const session = sessions.guest;
   const valid = session && session.wishlistId === list.id && session.keyGen === list.keyGen;
-  return { guestSession: valid ? { sessionHash: hasher.hash(session.sessionId) } : null };
+  return {
+    guestSession: valid ? { sessionHash: hasher.hash(session.sessionId) } : null,
+    owner: sessions.owner?.wishlistId === list.id,
+  };
 }

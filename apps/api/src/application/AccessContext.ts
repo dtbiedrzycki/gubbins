@@ -11,4 +11,6 @@
  */
 export interface AccessContext {
   guestSession: { sessionHash: string } | null;
+  /** True only for an owner cookie on this list. */
+  owner?: boolean;
 }
