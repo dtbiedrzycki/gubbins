@@ -42,11 +42,11 @@ describe('CreateList', () => {
     expect(await wishlists.findBySlug('slug-1', NOW)).toBeNull();
   });
 
-  it('refuses every creation when no secret is configured', async () => {
+  it.each([undefined, '', 'anything'])('refuses every creation when no secret is configured (%j)', async (candidate) => {
     const { unitOfWork } = inMemoryPersistence();
     const useCase = new CreateList(unitOfWork, new SequentialTokenGenerator(), new FixedClock(NOW), new PlainSecretComparer(), null);
 
-    await expect(useCase.execute({ listTitle: 'L', itemTitle: 'I', createSecret: 'anything' })).rejects.toThrow(InvalidCreateSecretError);
+    await expect(useCase.execute({ listTitle: 'L', itemTitle: 'I', createSecret: candidate })).rejects.toThrow(InvalidCreateSecretError);
   });
 
   it('stores the payment handles given at creation, normalized', async () => {
