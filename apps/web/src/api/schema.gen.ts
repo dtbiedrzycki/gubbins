@@ -152,7 +152,7 @@ export interface components {
         ErrorResponse: {
             message: string;
             /** @enum {string} */
-            code?: "item_unavailable" | "hold_not_active" | "hold_already_extended" | "no_payment_method";
+            code?: "item_unavailable" | "hold_not_active" | "hold_already_extended" | "no_payment_method" | "amount_out_of_range";
             issues?: unknown[];
         };
     };

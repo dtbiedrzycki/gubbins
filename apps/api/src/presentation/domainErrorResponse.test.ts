@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { domainErrorResponse } from './domainErrorResponse.js';
 import {
-  ConcurrencyError, DomainValidationError, NoPaymentMethodError, HoldAlreadyExtendedError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError,
+  ConcurrencyError, ContributionAmountError, DomainValidationError, NoPaymentMethodError, HoldAlreadyExtendedError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError,
   InvalidCreateSecretError, InvalidGuestKeyError, ItemNotFoundError, ItemUnavailableError, WishlistNotFoundError,
 } from '../domain/errors.js';
 
@@ -31,6 +31,13 @@ describe('domainErrorResponse', () => {
     expect(domainErrorResponse(new NoPaymentMethodError())).toEqual({
       status: 409,
       body: { message: 'Add a Venmo or Zelle handle to this list before adding a group gift.', code: 'no_payment_method' },
+    });
+  });
+
+  it('answers a ContributionAmountError with 409 and a code the client can branch on', () => {
+    expect(domainErrorResponse(new ContributionAmountError('x'))).toEqual({
+      status: 409,
+      body: { message: 'That amount is more than this gift can take. Try a smaller amount.', code: 'amount_out_of_range' },
     });
   });
 

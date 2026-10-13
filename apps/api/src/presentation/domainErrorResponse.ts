@@ -1,6 +1,6 @@
 import type { ErrorResponse } from '@gubbins/shared-types';
 import {
-  ConcurrencyError, DomainValidationError, HoldAlreadyExtendedError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError,
+  ConcurrencyError, ContributionAmountError, DomainValidationError, HoldAlreadyExtendedError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError,
   InvalidCreateSecretError, ItemNotFoundError, ItemUnavailableError, NoPaymentMethodError, WishlistNotFoundError,
 } from '../domain/errors.js';
 
@@ -39,6 +39,9 @@ export function domainErrorResponse(err: unknown): { status: 400 | 403 | 404 | 4
   }
   if (err instanceof NoPaymentMethodError) {
     return { status: 409, body: { message: 'Add a Venmo or Zelle handle to this list before adding a group gift.', code: 'no_payment_method' } };
+  }
+  if (err instanceof ContributionAmountError) {
+    return { status: 409, body: { message: 'That amount is more than this gift can take. Try a smaller amount.', code: 'amount_out_of_range' } };
   }
   // Last: any subclass mapped above keeps its own status. Domain messages are written to be shown.
   if (err instanceof DomainValidationError) {
