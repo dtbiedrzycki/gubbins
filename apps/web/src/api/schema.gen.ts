@@ -97,6 +97,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lists/{slug}/items/{itemId}/contributions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["pledgeContribution"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lists/{slug}/holds/{holdId}/extend": {
         parameters: {
             query?: never;
@@ -516,6 +532,69 @@ export interface operations {
                 };
             };
             /** @description No unit of the item is free (item_unavailable), or a concurrent change won (no code). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    pledgeContribution: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    idempotencyKey: string;
+                    amountMinor: number;
+                    name: string;
+                    message?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The pledge was recorded; a replayed idempotency key returns the original. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        contributionId: string;
+                        itemId: string;
+                        amountMinor: number;
+                    };
+                };
+            };
+            /** @description The request did not match the schema. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No such list or item, or no valid session for the list. These are deliberately indistinguishable (ADR-0016, ADR-0054). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description The item is not a group gift (item_unavailable), the amount is out of range (amount_out_of_range), or a concurrent change won (no code). */
             409: {
                 headers: {
                     [name: string]: unknown;

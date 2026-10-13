@@ -7,6 +7,7 @@ import {
   ownerSessionRequestSchema, ownerSessionResponseSchema,
   addItemRequestSchema, addItemResponseSchema,
   holdItemRequestSchema, holdItemResponseSchema, holdViewSchema, listViewResponseSchema,
+  pledgeRequestSchema, pledgeResponseSchema,
   errorResponseSchema,
 } from '@gubbins/shared-types';
 import type { AppDependencies } from './compositionRoot.js';
@@ -205,6 +206,30 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       // the item, so another list's item id is ItemNotFoundError — a 404.
       const view = await deps.holdItem.execute({ wishlistId: guest.wishlist.id.value, itemId, idempotencyKey: request.body.idempotencyKey, name: request.body.name, message: request.body.message }, guest.access);
       return reply.code(201).send(view);
+    } catch (err) {
+      return sendDomainError(reply, err);
+    }
+  });
+
+  app.post('/api/lists/:slug/items/:itemId/contributions', {
+    schema: {
+      operationId: 'pledgeContribution',
+      params: slugItemParams,
+      body: pledgeRequestSchema,
+      response: {
+        201: json('The pledge was recorded; a replayed idempotency key returns the original.', pledgeResponseSchema),
+        400: json(INVALID_REQUEST, errorResponseSchema),
+        404: json('No such list or item, or no valid session for the list. These are deliberately indistinguishable (ADR-0016, ADR-0054).', errorResponseSchema),
+        409: json('The item is not a group gift (item_unavailable), the amount is out of range (amount_out_of_range), or a concurrent change won (no code).', errorResponseSchema),
+      },
+    },
+  }, async (request, reply) => {
+    const { slug, itemId } = request.params;
+    const guest = await guestAccess(request, slug);
+    if (!guest) return reply.code(404).send(NOT_FOUND);
+    try {
+      const result = await deps.pledgeContribution.execute({ wishlistId: guest.wishlist.id.value, itemId, ...request.body }, guest.access);
+      return reply.code(201).send(result);
     } catch (err) {
       return sendDomainError(reply, err);
     }
