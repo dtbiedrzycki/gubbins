@@ -18,6 +18,11 @@ export interface ItemHeldEvent {
   secretHash: string;
   sessionHash: string;
   idempotencyKey: string;
+  /**
+   * Points at the holder's `guest_pii` row (ADR-0057). The name and message
+   * live there, never in this immutable log, so they can be erased.
+   */
+  piiRef: string | null;
   expiresAt: string; // ISO 8601
   occurredAt: string; // ISO 8601
 }

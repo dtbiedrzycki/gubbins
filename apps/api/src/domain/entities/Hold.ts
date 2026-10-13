@@ -37,6 +37,7 @@ export class Hold {
     readonly secret: HoldSecret,
     readonly sessionHash: SessionHash,
     readonly idempotencyKey: IdempotencyKey,
+    readonly piiRef: UuidId | null,
     private _expiresAt: Date,
     private _extendedAt: Date | null,
     private _releasedAt: Date | null,
@@ -49,7 +50,7 @@ export class Hold {
 
   static create(props: {
     id: string; itemId: string; secret: string; sessionHash: string;
-    idempotencyKey: string; expiresAt: Date; now: Date;
+    idempotencyKey: string; expiresAt: Date; now: Date; piiRef?: string | null;
   }): Hold {
     const secret = HoldSecret.from(props.secret);
     const sessionHash = SessionHash.from(props.sessionHash);
@@ -59,6 +60,7 @@ export class Hold {
     }
     return new Hold(
       UuidId.from(props.id), UuidId.from(props.itemId), secret, sessionHash, idempotencyKey,
+      props.piiRef == null ? null : UuidId.from(props.piiRef),
       props.expiresAt, null, null, null,
     );
   }
@@ -71,10 +73,12 @@ export class Hold {
   static reconstitute(props: {
     id: string; itemId: string; secret: string; sessionHash: string; idempotencyKey: string;
     expiresAt: Date; extendedAt: Date | null; releasedAt: Date | null; purchasedAt: Date | null;
+    piiRef?: string | null;
   }): Hold {
     return new Hold(
       UuidId.from(props.id), UuidId.from(props.itemId), HoldSecret.from(props.secret),
       SessionHash.from(props.sessionHash), IdempotencyKey.from(props.idempotencyKey),
+      props.piiRef == null ? null : UuidId.from(props.piiRef),
       props.expiresAt, props.extendedAt, props.releasedAt, props.purchasedAt,
     );
   }

@@ -123,7 +123,7 @@ export class Item {
    * Hasher already satisfy these shapes.
    */
   placeHold(
-    props: { sessionHash: string; idempotencyKey: string; at: Date; durationMs: number },
+    props: { sessionHash: string; idempotencyKey: string; at: Date; durationMs: number; piiRef?: string },
     activeHolds: number,
     purchasedCount: number,
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
@@ -139,6 +139,7 @@ export class Item {
       secret: tokens.generateHoldSecret(),
       sessionHash: props.sessionHash,
       idempotencyKey: props.idempotencyKey,
+      piiRef: props.piiRef ?? null,
       expiresAt: new Date(props.at.getTime() + props.durationMs),
       now: props.at,
     });
@@ -150,6 +151,7 @@ export class Item {
       secretHash: hasher.hash(hold.secret.value),
       sessionHash: hold.sessionHash.value,
       idempotencyKey: hold.idempotencyKey.value,
+      piiRef: hold.piiRef?.value ?? null,
       expiresAt: hold.expiresAt.toISOString(),
       occurredAt: props.at.toISOString(),
     };
