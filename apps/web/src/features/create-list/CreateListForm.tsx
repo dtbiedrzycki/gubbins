@@ -55,7 +55,7 @@ export function CreateListForm() {
       <div>
         <label htmlFor="create-secret" className="block text-sm font-medium">Create secret</label>
         <input
-          id="create-secret" type="password" required autoComplete="off" value={createSecret}
+          id="create-secret" type="password" required value={createSecret}
           onChange={(e) => setCreateSecret(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
