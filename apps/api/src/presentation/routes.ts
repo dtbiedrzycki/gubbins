@@ -178,7 +178,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     const owner = await ownerAccess(request, request.params.slug);
     if (!owner) return reply.code(404).send(NOT_FOUND);
     try {
-      const result = await deps.addItem.execute({ wishlistId: owner.wishlist.id.value, ...request.body }, owner.access);
+      const result = await deps.addItem.execute({ ...request.body, wishlistId: owner.wishlist.id.value }, owner.access);
       return reply.code(201).send(result);
     } catch (err) {
       return sendDomainError(reply, err);
@@ -228,7 +228,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     const guest = await guestAccess(request, slug);
     if (!guest) return reply.code(404).send(NOT_FOUND);
     try {
-      const result = await deps.pledgeContribution.execute({ wishlistId: guest.wishlist.id.value, itemId, ...request.body }, guest.access);
+      const result = await deps.pledgeContribution.execute({ ...request.body, wishlistId: guest.wishlist.id.value, itemId }, guest.access);
       return reply.code(201).send(result);
     } catch (err) {
       return sendDomainError(reply, err);

@@ -116,8 +116,8 @@ describe('Item.placeHold', () => {
     const { hold, event } = available().placeHold({ ...holdProps, piiRef }, 0, 0, fakeTokens, fakeHasher);
     expect(hold.piiRef?.value).toBe(piiRef);
     expect(event.piiRef).toBe(piiRef);
-    expect(Object.keys(event)).not.toEqual(expect.arrayContaining(['name']));
-    expect(Object.keys(event)).not.toEqual(expect.arrayContaining(['message']));
+    expect(event).not.toHaveProperty('name');
+    expect(event).not.toHaveProperty('message');
   });
 
   it('throws ItemUnavailableError when active holds cover the quantity, without advancing seq', () => {
@@ -193,7 +193,8 @@ describe('Item.pledge', () => {
     const { contribution, event, expectedSeq } = item.pledge({ ...props, amountMinor: 11250 }, ids);
     expect([contribution.amount.amountMinor, event.type, event.amountMinor, expectedSeq, item.seq]).toEqual([11250, 'ContributionPledged', 11250, 0, 1]);
     expect(event.piiRef).toBe(PII);
-    expect(Object.keys(event)).not.toEqual(expect.arrayContaining(['name', 'message']));
+    expect(event).not.toHaveProperty('name');
+    expect(event).not.toHaveProperty('message');
   });
   it('allows overfunding up to five times the price', () => {
     expect(() => group().pledge({ ...props, amountMinor: 45000 * 5 }, ids)).not.toThrow();
