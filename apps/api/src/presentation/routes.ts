@@ -14,7 +14,7 @@ import type { AccessContext } from '../application/AccessContext.js';
 import type { HoldCommand } from '../application/use-cases/holdCommand.js';
 import type { Wishlist } from '../domain/entities/Wishlist.js';
 import { WishlistNotFoundError, InvalidGuestKeyError } from '../domain/errors.js';
-import { OWNER_COOKIE, SESSION_COOKIE, accessContextFor, readOwnerSession, readSignedSession, type OwnerSessionPayload, type SessionPayload } from './accessContext.js';
+import { OWNER_COOKIE, SESSION_COOKIE, SIGNED_COOKIE_OPTIONS, accessContextFor, readOwnerSession, readSignedSession, type OwnerSessionPayload, type SessionPayload } from './accessContext.js';
 import { NOT_FOUND, domainErrorResponse } from './domainErrorResponse.js';
 
 // Path parameters are an HTTP concern, so their schemas live here rather than
@@ -106,8 +106,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     try {
       const result = await deps.enterGuestKey.execute({ slug, key: request.body.key });
       const payload: SessionPayload = { wishlistId: result.wishlistId, keyGen: result.keyGen, sessionId: result.sessionId };
-      // Browsers keep Secure cookies only over HTTPS (localhost is exempt); deployments sit behind TLS.
-      reply.setCookie(SESSION_COOKIE, JSON.stringify(payload), { path: '/', httpOnly: true, signed: true, sameSite: 'strict', secure: true });
+      reply.setCookie(SESSION_COOKIE, JSON.stringify(payload), SIGNED_COOKIE_OPTIONS);
       return reply.code(200).send({ ok: true });
     } catch (err) {
       // Same generic response for "no such list" and "wrong key" —
@@ -134,7 +133,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     try {
       const { wishlistId } = await deps.enterOwnerToken.execute({ slug: request.params.slug, ownerToken: request.body.ownerToken });
       const payload: OwnerSessionPayload = { wishlistId };
-      reply.setCookie(OWNER_COOKIE, JSON.stringify(payload), { path: '/', httpOnly: true, signed: true, sameSite: 'strict', secure: true });
+      reply.setCookie(OWNER_COOKIE, JSON.stringify(payload), SIGNED_COOKIE_OPTIONS);
       return reply.code(200).send({ ok: true });
     } catch (err) {
       return sendDomainError(reply, err);
