@@ -15,6 +15,7 @@ function unusedDependency(name: string): never {
 const noDependencies: AppDependencies = {
   createList: unusedDependency('createList'),
   enterGuestKey: unusedDependency('enterGuestKey'),
+  enterOwnerToken: unusedDependency('enterOwnerToken'),
   getListView: unusedDependency('getListView'),
   holdItem: unusedDependency('holdItem'),
   extendHold: unusedDependency('extendHold'),
