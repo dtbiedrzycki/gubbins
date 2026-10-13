@@ -6,12 +6,15 @@ import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { HoldView, ListViewResponse } from '@gubbins/shared-types';
 import { server } from '../../test/msw/server';
+import { mock } from '../../test/msw/mock';
 import { ItemView } from './ItemView';
 
 const heldView: HoldView = {
   holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: '2026-01-04T00:00:00.000Z',
   extendedAt: null, actions: { extend: true, release: true, purchase: true },
 };
+
+const payment: ListViewResponse['payment'] = { venmoHandle: 'my-venmo', zelleHandle: null };
 
 type Item = NonNullable<ListViewResponse['items']>[number];
 const single = (over: Partial<Item> = {}): Item => ({
@@ -20,7 +23,7 @@ const single = (over: Partial<Item> = {}): Item => ({
 
 function renderItem(status: Item['status'] | Partial<Item> = 'available'): void {
   const item = typeof status === 'string' ? single({ status }) : single(status);
-  const ui: ReactElement = <ItemView slug="abc123" holdDurationDays={3} item={item} />;
+  const ui: ReactElement = <ItemView slug="abc123" holdDurationDays={3} item={item} payment={payment} />;
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}>{ui}</QueryClientProvider>);
 }
 
@@ -112,7 +115,7 @@ describe('ItemView', () => {
     const client = new QueryClient();
     const view = (status: Item['status']) => (
       <QueryClientProvider client={client}>
-        <ItemView slug="abc123" holdDurationDays={3} item={single({ status })} />
+        <ItemView slug="abc123" holdDurationDays={3} item={single({ status })} payment={payment} />
       </QueryClientProvider>
     );
     const { rerender } = render(view('available'));
@@ -133,7 +136,7 @@ describe('ItemView', () => {
   });
 
   it('links to the store in a new tab, and only when there is a url', () => {
-    const { unmount } = render(<QueryClientProvider client={new QueryClient()}><ItemView slug="abc123" holdDurationDays={3} item={single({ url: 'https://shop.example/stroller' })} /></QueryClientProvider>);
+    const { unmount } = render(<QueryClientProvider client={new QueryClient()}><ItemView slug="abc123" holdDurationDays={3} item={single({ url: 'https://shop.example/stroller' })} payment={payment} /></QueryClientProvider>);
     const link = screen.getByRole('link', { name: 'View in store' });
     expect(link).toHaveAttribute('href', 'https://shop.example/stroller');
     expect(link).toHaveAttribute('target', '_blank');
@@ -153,5 +156,32 @@ describe('ItemView', () => {
     expect(screen.getByText('$200.00')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Hold this item' })).not.toBeInTheDocument();
     expect(screen.queryByText(/left$/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [16250, 16250, '$162.50 of $450.00 pledged · 36%'],
+    [52000, 45000, '$520.00 of $450.00 pledged · 116%'],
+  ])('shows a group gift pledged %i toward its price as progress', (pledgedMinor, value, label) => {
+    renderItem({ type: 'group', priceMinor: 45000, pledgedMinor, availableUnits: 0 });
+    const progress = screen.getByRole('progressbar', { name: label });
+    expect(progress).toHaveAttribute('max', '45000');
+    expect(progress).toHaveAttribute('value', String(value));
+  });
+
+  it('lets a guest chip in toward a group gift, thanks them, and hands focus back', async () => {
+    server.use(mock('post', '/api/lists/{slug}/items/{itemId}/contributions', 201, { contributionId: 'c-1', itemId: 'item-1', amountMinor: 28750 }));
+    const user = userEvent.setup();
+    renderItem({ type: 'group', priceMinor: 45000, pledgedMinor: 16250, availableUnits: 0 });
+    const status = screen.getByRole('status');
+
+    await user.click(screen.getByRole('button', { name: 'Chip in' }));
+    await user.click(screen.getByLabelText('Cover the rest ($287.50)'));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.click(screen.getByRole('button', { name: "I've sent it" }));
+
+    await vi.waitFor(() => expect(screen.queryByRole('dialog', { hidden: true })).not.toBeInTheDocument());
+    expect(status).toHaveTextContent('Thank you! Your pledge of $287.50 is recorded.');
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Chip in' })).toHaveFocus());
   });
 });
