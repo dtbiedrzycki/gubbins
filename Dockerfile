@@ -23,9 +23,10 @@ COPY --from=build /app/apps/api/dist apps/api/dist
 COPY --from=build /app/apps/web/dist apps/web/dist
 COPY --from=build /app/packages/shared-types/package.json packages/shared-types/
 COPY --from=build /app/packages/shared-types/dist packages/shared-types/dist
+# A new named volume takes this owner, so the non-root user can create the database.
 RUN mkdir /data && chown node:node /data
 USER node
 VOLUME /data
 EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=5s CMD node -e "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+HEALTHCHECK --interval=30s --timeout=5s CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
 CMD ["node", "apps/api/dist/presentation/server.js"]
