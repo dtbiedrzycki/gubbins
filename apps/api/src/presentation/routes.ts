@@ -70,8 +70,12 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       },
     },
   }, async (request, reply) => {
-    const result = await deps.createList.execute(request.body);
-    return reply.code(201).send(result);
+    try {
+      const result = await deps.createList.execute(request.body);
+      return reply.code(201).send(result);
+    } catch (err) {
+      return sendDomainError(reply, err);
+    }
   });
 
   app.post('/api/lists/:slug/session', {

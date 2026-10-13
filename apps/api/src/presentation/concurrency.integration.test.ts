@@ -18,7 +18,7 @@ let app: FastifyInstance;
 beforeEach(async () => {
   db = createDb(':memory:');
   await migrateToLatest(db);
-  app = buildApp(buildDependencies(db, silent), { cookieSecret: 'test-secret' });
+  app = buildApp(buildDependencies(db, silent, { createSecret: 'test-create-secret' }), { cookieSecret: 'test-secret' });
   disposeWithApp(app, db);
 });
 
@@ -32,7 +32,7 @@ function cookieOf(response: LightMyRequestResponse): string {
 }
 
 async function listWithGuests(guests: number) {
-  const list = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller' } }))
+  const list = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'test-create-secret' } }))
     .json() as { slug: string; key: string; itemId: string };
   const cookies: string[] = [];
   for (let i = 0; i < guests; i += 1) {

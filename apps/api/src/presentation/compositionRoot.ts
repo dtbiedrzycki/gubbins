@@ -26,6 +26,8 @@ export interface BuildDependenciesOptions {
   clock?: Clock;
   /** Validated from HOLD_DURATION_DAYS by the server (holdPolicyConfig.ts); defaults to 3 days. */
   holdPolicy?: HoldPolicy;
+  /** Validated from CREATE_SECRET by the server; when absent, every list creation is refused. */
+  createSecret?: string;
 }
 
 export interface AppDependencies {
@@ -53,7 +55,7 @@ export function buildDependencies(db: Kysely<Database>, logger: Logger = new Con
   const wishlists = new WishlistRepositoryKysely(db);
 
   return {
-    createList: new CreateList(unitOfWork, tokenGenerator, clock),
+    createList: new CreateList(unitOfWork, tokenGenerator, clock, secretComparer, options.createSecret ?? null),
     enterGuestKey: new EnterGuestKey(wishlists, secretComparer, tokenGenerator, clock),
     getListView: new GetListView(unitOfWork, clock, holdPolicy),
     holdItem: new HoldItem(unitOfWork, tokenGenerator, clock, hasher, holdPolicy),

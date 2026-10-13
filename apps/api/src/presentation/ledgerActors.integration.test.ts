@@ -32,7 +32,7 @@ let app: FastifyInstance;
 beforeEach(async () => {
   db = createDb(':memory:');
   await migrateToLatest(db);
-  app = buildApp(buildDependencies(db, silent), { cookieSecret: 'test-secret' });
+  app = buildApp(buildDependencies(db, silent, { createSecret: 'test-create-secret' }), { cookieSecret: 'test-secret' });
   disposeWithApp(app, db);
 });
 
@@ -46,7 +46,7 @@ function cookieOf(response: LightMyRequestResponse): string {
 }
 
 async function holdOnNewList() {
-  const list = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'L', itemTitle: 'I' } })).json() as { slug: string; key: string; itemId: string };
+  const list = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'L', itemTitle: 'I', createSecret: 'test-create-secret' } })).json() as { slug: string; key: string; itemId: string };
   const cookie = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } }));
   const { holdId } = (await app.inject({
     method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'k' },

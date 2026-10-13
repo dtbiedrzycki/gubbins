@@ -19,7 +19,7 @@ async function main(): Promise<void> {
   logger = new ConsoleLogger();
   // Before the database opens: a bad value should stop startup with nothing to clean up.
   const holdPolicy = parseHoldPolicy(process.env);
-  parseCreateSecret(process.env);
+  const createSecret = parseCreateSecret(process.env);
   const databasePath = process.env.DATABASE_PATH ?? './data/wishlist.db';
   const port = Number(process.env.PORT ?? 3000);
   const cookieSecret = parseCookieSecret(process.env);
@@ -33,7 +33,7 @@ async function main(): Promise<void> {
   let app: FastifyInstance | undefined;
   try {
     await migrateToLatest(db);
-    const deps = buildDependencies(db, logger, { holdPolicy });
+    const deps = buildDependencies(db, logger, { holdPolicy, createSecret });
     app = buildApp(deps, {
       cookieSecret: cookieSecret ?? 'dev-only-insecure-secret-change-me',
       webDist: process.env.WEB_DIST ?? fileURLToPath(new URL('../../../web/dist', import.meta.url)),
