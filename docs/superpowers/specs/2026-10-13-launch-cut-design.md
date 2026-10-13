@@ -19,8 +19,8 @@ the planned order (holds stacks B–G, then sub-project 3) would miss the date.
 This design cuts the launch down to what that registry needs and defers the
 rest.
 
-**Done when** the guest and owner journeys below run end to end at a 375 px
-viewport, the production container passes its CI smoke test, and the manual
+**Done when** the guest and owner journeys below run end to end (the owner and
+pledge journeys at a 375 px viewport), the production container passes its CI smoke test, and the manual
 go-live checklist passes on the home server.
 
 ## Decision log
@@ -128,14 +128,16 @@ contributions  NEW: id pk, item_id, amount_minor int CHECK (> 0), idempotency_ke
 | `POST /api/lists` | `createSecret` in body | existing body plus `createSecret`, `venmoHandle?`, `zelleHandle?` → 201 (includes `ownerToken`, as today); wrong secret → generic 403 |
 | `POST /api/lists/:slug/owner-session` | `{ ownerToken }` in body | sets `gubbins_owner` → `{ ok: true }`; wrong token or unknown list → the same generic 404 |
 | `POST /api/lists/:slug/items` | `gubbins_owner` cookie | `{ type, title, url?, priceMinor?, quantity? }` → item; group gift on a list with no payment method → 409 `no_payment_method` |
-| `GET /api/lists/:slug` | guest session | items gain `type`, `url`, `priceMinor`, `availableUnits`; group gifts gain `pledgedMinor`; plus `payment { venmoHandle?, zelleHandle? }` |
+| `GET /api/lists/:slug` | guest session | items gain `type`, `url`, `priceMinor`, `availableUnits`; group gifts gain `pledgedMinor`; plus `payment { venmoHandle, zelleHandle }`, each nullable |
 | `POST /api/lists/:slug/items/:itemId/hold` | guest session | adds `name` (1–100, trimmed), `message?` (≤ 300) |
-| `POST /api/lists/:slug/items/:itemId/contributions` | guest session | `{ idempotencyKey, amountMinor, name, message? }` → 201; replay with the same key → 200 with the original |
+| `POST /api/lists/:slug/items/:itemId/contributions` | guest session | `{ idempotencyKey, amountMinor, name, message? }` → 201; a replay with the same key returns the original, also 201 |
 
 - Errors follow the existing domain-error mapping.
 - Schemas live in `packages/shared-types`, flow into `openapi.json`, and
   `schema.gen.ts` is regenerated from it.
-- pino redacts `createSecret`, `ownerToken`, `name` and `message`.
+- Fastify's request logging is off, so request bodies (secrets, tokens, names,
+  messages) are never logged. The error hook logs only the message, stack, URL
+  and validation issues. pino and its redaction come with sub-project 6.
 
 ### Web
 
@@ -160,7 +162,7 @@ contributions  NEW: id pk, item_id, amount_minor int CHECK (> 0), idempotency_ke
   1. The guest chooses "Cover the rest" or a custom amount.
   2. The pay step shows a Venmo deep link
      (`venmo://paycharge?txn=pay&recipients=…&amount=…`, falling back to
-     `https://venmo.com/…`) and/or the Zelle handle with **Copy**.
+     `https://account.venmo.com/u/<handle>`) and/or the Zelle handle with **Copy**.
   3. "I've sent it" sends the editable amount, name and message.
 
   The idempotency key is generated when the flow opens. Status changes are
@@ -172,10 +174,11 @@ contributions  NEW: id pk, item_id, amount_minor int CHECK (> 0), idempotency_ke
   non-root user with `NODE_ENV=production` in the runtime stage only.
   `DATABASE_PATH` points at a volume.
 - A compose file covers the home-server-plus-tunnel setup.
-- The composition root validates the following and fails fast if any is
-  invalid:
+- `server.ts` validates the following at startup (`secretsConfig.ts`) and
+  fails fast if any is invalid:
   - `CREATE_SECRET` is required.
-  - `SESSION_COOKIE_SECRET` must be non-empty.
+  - `SESSION_COOKIE_SECRET` must be non-empty in production; elsewhere it
+    falls back to a development secret with a warning.
 
 ## Delivery
 
@@ -206,14 +209,15 @@ New ADRs:
     wrong owner token getting the same 404 as an unknown list. Secrets travel
     only in request bodies, never in a query string or path.
 - Port contract suites are extended for `contributions`.
-- A structural test checks that no event payload type contains `name` or
-  `message`.
-- e2e (Playwright + axe, 375 px):
-  1. The owner creates a list with a Venmo handle, opens `/manage` with the
-     owner token, and adds a single (qty 2) and a group gift.
-  2. A guest holds, extends and purchases the single.
-  3. A second guest pledges "Cover the rest" and the bar shows 100%.
-  4. Replaying the pledge creates no second contribution.
+- A test for each event asserts that its payload has no `name` or `message`
+  key.
+- e2e (Playwright + axe), three specs:
+  1. `owner-adds-items` (375 px): the owner creates a list with a Venmo handle,
+     opens `/manage` with the owner token, and adds a single (qty 2) and a
+     group gift.
+  2. `guest-manages-a-hold`: a guest holds, extends and purchases the single.
+  3. `guest-pledges` (375 px): a guest pledges "Cover the rest" and the bar
+     shows 100%.
 - **CI container smoke test:**
   1. Build the container.
   2. Assert it exits non-zero without `CREATE_SECRET`.
