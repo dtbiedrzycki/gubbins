@@ -188,6 +188,16 @@ describe('Wishlist.getItem', () => {
   });
 });
 
+describe('Wishlist.availableUnitsOf', () => {
+  it('is the quantity less the units under an active hold', () => {
+    expect(loaded({ quantity: 3, holds: [holdOn(ITEM_ID)] }).availableUnitsOf(ITEM_ID)).toBe(2);
+  });
+
+  it('throws ItemNotFoundError for an item the list does not own', () => {
+    expect(() => loaded().availableUnitsOf(OTHER_ITEM_ID)).toThrow(ItemNotFoundError);
+  });
+});
+
 describe('Wishlist.holdItem', () => {
   const props = { itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', durationMs: 3 * DAY };
 

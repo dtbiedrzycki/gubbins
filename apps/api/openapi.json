@@ -334,6 +334,78 @@
                       ],
                       "additionalProperties": false
                     },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "single",
+                              "group"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "available",
+                              "held",
+                              "purchased"
+                            ]
+                          },
+                          "availableUnits": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "url": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "priceMinor": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "type",
+                          "status",
+                          "availableUnits",
+                          "url",
+                          "priceMinor"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "payment": {
+                      "type": "object",
+                      "properties": {
+                        "venmoHandle": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "zelleHandle": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "venmoHandle",
+                        "zelleHandle"
+                      ],
+                      "additionalProperties": false
+                    },
                     "myHolds": {
                       "type": "array",
                       "items": {

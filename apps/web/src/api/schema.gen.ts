@@ -340,6 +340,21 @@ export interface operations {
                             /** @enum {string} */
                             status: "available" | "held" | "purchased";
                         };
+                        items?: {
+                            id: string;
+                            title: string;
+                            /** @enum {string} */
+                            type: "single" | "group";
+                            /** @enum {string} */
+                            status: "available" | "held" | "purchased";
+                            availableUnits: number;
+                            url: string | null;
+                            priceMinor: number | null;
+                        }[];
+                        payment?: {
+                            venmoHandle: string | null;
+                            zelleHandle: string | null;
+                        };
                         myHolds: {
                             holdId: string;
                             itemId: string;

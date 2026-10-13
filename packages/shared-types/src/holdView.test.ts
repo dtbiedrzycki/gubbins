@@ -22,7 +22,11 @@ describe('holdViewSchema', () => {
 });
 
 describe('listViewResponseSchema', () => {
-  const list = { title: 't', item: { id: 'i', title: 'x', status: 'held' }, myHolds: [view], capabilities: { holdDurationDays: 3 } };
+  const listItem = { id: 'i', title: 'x', type: 'single', status: 'held', availableUnits: 0, url: null, priceMinor: null };
+  const list = {
+    title: 't', item: { id: 'i', title: 'x', status: 'held' }, items: [listItem], payment: { venmoHandle: null, zelleHandle: 'a@b.co' },
+    myHolds: [view], capabilities: { holdDurationDays: 3 },
+  };
 
   it('accepts a list with its holds and capabilities', () => {
     expect(listViewResponseSchema.safeParse(list).success).toBe(true);
@@ -30,6 +34,14 @@ describe('listViewResponseSchema', () => {
 
   it('requires myHolds and capabilities', () => {
     expect(listViewResponseSchema.safeParse({ title: 't', item: list.item }).success).toBe(false);
+  });
+
+  it('rejects malformed payment handles', () => {
+    expect(listViewResponseSchema.safeParse({ ...list, payment: { venmoHandle: null } }).success).toBe(false);
+  });
+
+  it('rejects an item with an unknown type', () => {
+    expect(listViewResponseSchema.safeParse({ ...list, items: [{ ...listItem, type: 'bundle' }] }).success).toBe(false);
   });
 
   it('rejects a hold duration that is not a positive whole number', () => {

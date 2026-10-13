@@ -224,10 +224,12 @@ export class Wishlist {
     const status = hold.statusAt(this.asOf);
     if (status === 'active') return null;
     if (status !== 'expired') return 'closed';
-    return this.availableUnitsOf(this.itemOf(hold)) === 0 ? 'lapsed' : null;
+    return this.availableUnitsOf(hold.itemId.value) === 0 ? 'lapsed' : null;
   }
 
-  private availableUnitsOf(item: Item): number {
+  /** Units of the item neither under an active hold nor bought. */
+  availableUnitsOf(itemId: string): number {
+    const item = this.getItem(itemId);
     return item.availableUnits(this.activeHoldsOn(item), this.purchasedCountOf(item.id.value));
   }
 

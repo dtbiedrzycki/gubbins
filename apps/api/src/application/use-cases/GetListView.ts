@@ -1,4 +1,4 @@
-import type { ItemStatus } from '../../domain/entities/Item.js';
+import type { ItemStatus, ItemType } from '../../domain/entities/Item.js';
 import { WishlistNotFoundError } from '../../domain/errors.js';
 import type { AccessContext } from '../AccessContext.js';
 import type { HoldPolicy } from '../HoldPolicy.js';
@@ -9,6 +9,10 @@ import { toHoldView, type HoldView } from '../views/HoldView.js';
 export interface ListView {
   title: string;
   item: { id: string; title: string; status: ItemStatus };
+  items: {
+    id: string; title: string; type: ItemType; status: ItemStatus; availableUnits: number; url: string | null; priceMinor: number | null;
+  }[];
+  payment: { venmoHandle: string | null; zelleHandle: string | null };
   /** This session's holds on the list, oldest expiry first. */
   myHolds: HoldView[];
   capabilities: { holdDurationDays: number };
@@ -41,6 +45,11 @@ export class GetListView {
       return {
         title: wishlist.title,
         item: { id: item.id.value, title: item.title, status: wishlist.itemStatus(item.id.value) },
+        items: wishlist.items.map((i) => ({
+          id: i.id.value, title: i.title, type: i.type, status: wishlist.itemStatus(i.id.value),
+          availableUnits: wishlist.availableUnitsOf(i.id.value), url: i.url, priceMinor: i.priceMinor,
+        })),
+        payment: { venmoHandle: wishlist.paymentMethods.venmoHandle, zelleHandle: wishlist.paymentMethods.zelleHandle },
         // Released holds were the guest's own choice and need no follow-up;
         // expired ones stay, since an expired hold can still be purchased while a unit is free.
         myHolds: mine
