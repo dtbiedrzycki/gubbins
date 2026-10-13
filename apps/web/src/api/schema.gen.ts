@@ -470,7 +470,7 @@ export interface operations {
             content: {
                 "application/json": {
                     idempotencyKey: string;
-                    name?: string;
+                    name: string;
                     message?: string;
                 };
             };

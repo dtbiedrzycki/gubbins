@@ -12,7 +12,7 @@ export interface HoldItemInput {
   wishlistId: string;
   itemId: string;
   idempotencyKey: string;
-  name?: string;
+  name: string;
   message?: string;
 }
 
@@ -53,8 +53,8 @@ export class HoldItem {
         return toHoldView(wishlist, existing);
       }
 
-      const details = input.name === undefined ? null : GuestDetails.from({ name: input.name, message: input.message });
-      const piiRef = details ? this.tokenGenerator.generateEntityId() : undefined;
+      const details = GuestDetails.from({ name: input.name, message: input.message });
+      const piiRef = this.tokenGenerator.generateEntityId();
 
       const { hold, item, event, expectedSeq } = wishlist.holdItem({
         itemId: input.itemId,
@@ -67,7 +67,7 @@ export class HoldItem {
       // Placing a hold is guest-only (ADR-0075), so the actor is fixed.
       await ctx.eventStore.append(item.id.value, expectedSeq, [event], 'guest');
       // The hold's pii_ref foreign key needs this row to exist first.
-      if (details && piiRef) await ctx.guestPii.insert({ id: piiRef, name: details.name, message: details.message });
+      await ctx.guestPii.insert({ id: piiRef, name: details.name, message: details.message });
       await ctx.holds.insert(hold);
       // Persist exactly what the domain decided — the write path never
       // decides availability itself.
