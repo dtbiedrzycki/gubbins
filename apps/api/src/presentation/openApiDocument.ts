@@ -17,6 +17,7 @@ const noDependencies: AppDependencies = {
   enterGuestKey: unusedDependency('enterGuestKey'),
   enterOwnerToken: unusedDependency('enterOwnerToken'),
   getListView: unusedDependency('getListView'),
+  addItem: unusedDependency('addItem'),
   holdItem: unusedDependency('holdItem'),
   extendHold: unusedDependency('extendHold'),
   releaseHold: unusedDependency('releaseHold'),
