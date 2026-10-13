@@ -4,6 +4,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import {
   createListRequestSchema, createListResponseSchema,
   enterGuestKeyRequestSchema, enterGuestKeyResponseSchema,
+  ownerSessionRequestSchema, ownerSessionResponseSchema,
   holdItemRequestSchema, holdItemResponseSchema, holdViewSchema, listViewResponseSchema,
   errorResponseSchema,
 } from '@gubbins/shared-types';
@@ -12,7 +13,7 @@ import type { AccessContext } from '../application/AccessContext.js';
 import type { HoldCommand } from '../application/use-cases/holdCommand.js';
 import type { Wishlist } from '../domain/entities/Wishlist.js';
 import { WishlistNotFoundError, InvalidGuestKeyError } from '../domain/errors.js';
-import { SESSION_COOKIE, accessContextFor, readSignedSession, type SessionPayload } from './accessContext.js';
+import { OWNER_COOKIE, SESSION_COOKIE, accessContextFor, readSignedSession, type OwnerSessionPayload, type SessionPayload } from './accessContext.js';
 import { NOT_FOUND, domainErrorResponse } from './domainErrorResponse.js';
 
 // Path parameters are an HTTP concern, so their schemas live here rather than
@@ -102,6 +103,29 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       if (err instanceof WishlistNotFoundError || err instanceof InvalidGuestKeyError) {
         return reply.code(404).send(NOT_FOUND);
       }
+      throw err;
+    }
+  });
+
+  app.post('/api/lists/:slug/owner-session', {
+    schema: {
+      operationId: 'enterOwnerToken',
+      params: slugParams,
+      body: ownerSessionRequestSchema,
+      response: {
+        200: json('The token was accepted and an owner cookie was set.', ownerSessionResponseSchema),
+        400: json(INVALID_REQUEST, errorResponseSchema),
+        404: json('No such list, or the token is wrong. Deliberately indistinguishable (ADR-0016, ADR-0054).', errorResponseSchema),
+      },
+    },
+  }, async (request, reply) => {
+    try {
+      const { wishlistId } = await deps.enterOwnerToken.execute({ slug: request.params.slug, ownerToken: request.body.ownerToken });
+      const payload: OwnerSessionPayload = { wishlistId };
+      reply.setCookie(OWNER_COOKIE, JSON.stringify(payload), { path: '/', httpOnly: true, signed: true, sameSite: 'strict', secure: true });
+      return reply.code(200).send({ ok: true });
+    } catch (err) {
+      if (err instanceof WishlistNotFoundError) return reply.code(404).send(NOT_FOUND);
       throw err;
     }
   });

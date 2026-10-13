@@ -3,6 +3,11 @@ import type { AccessContext } from '../application/AccessContext.js';
 import type { Hasher } from '../application/ports/Hasher.js';
 
 export const SESSION_COOKIE = 'gubbins_session';
+export const OWNER_COOKIE = 'gubbins_owner';
+
+export interface OwnerSessionPayload {
+  wishlistId: string;
+}
 
 export interface SessionPayload {
   wishlistId: string;
