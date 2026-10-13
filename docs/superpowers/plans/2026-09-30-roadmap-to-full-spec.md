@@ -27,6 +27,10 @@ during the skeleton's reviews, and the DDD foundation decisions made on
 The spec topics under `docs/spec/` and the ADRs are the source of truth for each
 sub-project's requirements; this table only orders and groups them.
 
+The [launch cut](../specs/2026-10-13-launch-cut-design.md) pulls a subset of
+sub-projects 2 and 3 forward and supersedes holds stacks B–G's order until
+go-live.
+
 ## Domain foundation decisions (2026-09-13)
 
 From two independent design reviews of the skeleton's domain model. These
@@ -65,10 +69,6 @@ constrain sub-projects 2–5.
 | `Item.type` union | 3 |
 | `AccessContext` as the only place "session" is built | 2: grown from `SessionPayload`, passed to use cases beside `TransactionContext` |
 | Cross-item session-cap logic behind `Wishlist.holdItem` | 2 |
-
-The [launch cut](../specs/2026-10-13-launch-cut-design.md) pulls a subset of
-sub-projects 2 and 3 forward and supersedes holds stacks B–G's order until
-go-live.
 
 ## Open items to act on
 
