@@ -9,6 +9,7 @@ async function guestOnNewList(page: Page, context: BrowserContext): Promise<Page
   await page.getByRole('button', { name: 'Create list' }).click();
   const guestLink = await page.getByTestId('guest-link').getAttribute('href');
   const guestKey = (await page.getByTestId('guest-key').textContent())?.trim();
+  await expectNoSeriousAxeViolations(page);
 
   const guest = await context.newPage();
   await guest.goto(guestLink!);
