@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { Wishlist } from '../../../domain/entities/Wishlist.js';
 import { Item } from '../../../domain/entities/Item.js';
 import { ItemNotFoundError } from '../../../domain/errors.js';
 import {
@@ -20,6 +21,18 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
         expect(loaded?.item?.seq).toBe(0);
         expect(loaded?.purchasedCountOf(ITEM_A)).toBe(0);
       }
+    });
+
+    it('loads every item of the list, in the order they were added', async () => {
+      const ids = ['55555555-5555-7555-8555-555555555551', '55555555-5555-7555-8555-555555555552'];
+      const list = Wishlist.create({ id: '66666666-6666-7666-8666-666666666666', slug: 'list-c', title: 'List C', ownerToken: 'owner-c', key: 'key-c', asOf: NOW });
+      let next = 0;
+      for (const title of ['Stroller', 'Crib']) list.addItem({ title }, { generateEntityId: () => ids[next++] });
+      await fx.wishlists.insert(list);
+
+      const loaded = await fx.wishlists.findById(list.id.value, NOW);
+
+      expect(loaded?.items.map((i) => i.id.value)).toEqual(ids);
     });
 
     it('returns null for an unknown slug or id', async () => {

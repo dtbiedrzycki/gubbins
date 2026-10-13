@@ -22,7 +22,7 @@ function holdOn(overrides: Partial<Parameters<typeof Hold.reconstitute>[0]> = {}
 /** The list as loaded at `asOf`, carrying `holds`. */
 function wishlistAt(asOf: Date, holds: Hold[] = []): Wishlist {
   const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0 });
-  return Wishlist.reconstitute({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'o', key: 'k', keyGen: 1, asOf, item, holds });
+  return Wishlist.reconstitute({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'o', key: 'k', keyGen: 1, asOf, items: [item], holds });
 }
 
 // The rules behind status and actions are the wishlist's, tested in Wishlist.test.ts;

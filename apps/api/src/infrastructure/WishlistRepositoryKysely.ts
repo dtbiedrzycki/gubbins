@@ -26,8 +26,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
       owner_token: wishlist.ownerToken.value, key: wishlist.key.value, key_gen: wishlist.keyGen,
       created_at: new Date().toISOString(),
     }).execute();
-    const item = wishlist.item;
-    if (item !== null) await this.items.insert(item);
+    for (const item of wishlist.items) await this.items.insert(item);
   }
 
   async findBySlug(slug: string, now: Date): Promise<Wishlist | null> {
@@ -50,12 +49,12 @@ export class WishlistRepositoryKysely implements WishlistRepository {
    * the aggregate's `asOf`, so load and decision share it.
    */
   private async hydrate(row: Selectable<WishlistsTable>, now: Date): Promise<Wishlist> {
-    const item = await this.items.findByWishlistId(row.id);
+    const items = await this.items.findAllByWishlistId(row.id);
     const holds = await this.holds.findActiveOrPurchasedForWishlist(row.id, now);
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
       ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now,
-      item: item ?? undefined, holds,
+      items, holds,
     });
   }
 }

@@ -9,7 +9,7 @@ const DEFAULT_AS_OF = new Date('2026-01-01T00:00:00.000Z');
 
 export class WishlistBuilder {
   private props = { id: DEFAULT_WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' };
-  private itemProps: { id: string; title: string } | null = null;
+  private itemProps: { id: string; title: string }[] = [];
   private purchased = 0;
   private instant = DEFAULT_AS_OF;
 
@@ -22,27 +22,26 @@ export class WishlistBuilder {
   asOf(at: Date): this { this.instant = at; return this; }
   /**
    * Attaches an item to the built aggregate — the wishlist assigns its own
-   * id, so only `id`/`title` are needed here. Omit to build an itemless
-   * wishlist.
+   * id, so only `id`/`title` are needed here. Call again for more items;
+   * omit to build an itemless wishlist.
    */
-  withItem(props: { id: string; title: string }): this { this.itemProps = props; return this; }
+  withItem(props: { id: string; title: string }): this { this.itemProps.push(props); return this; }
 
-  /** Loads the aggregate with this many purchased holds on the item; needs `withItem`. */
+  /** Loads the aggregate with this many purchased holds on the first item; needs `withItem`. */
   withPurchasedCount(purchasedCount: number): this { this.purchased = purchasedCount; return this; }
 
   build(): Wishlist {
-    if (this.itemProps === null && this.purchased !== 0) throw new Error('withPurchasedCount needs withItem');
+    if (this.itemProps.length === 0 && this.purchased !== 0) throw new Error('withPurchasedCount needs withItem');
     const wishlist = Wishlist.create({ ...this.props, asOf: this.instant });
-    if (this.itemProps === null) return wishlist;
-    const { id, title } = this.itemProps;
-    const item = wishlist.addItem({ title }, { generateEntityId: () => id });
+    const items = this.itemProps.map(({ id, title }) => wishlist.addItem({ title }, { generateEntityId: () => id }));
     if (this.purchased === 0) return wishlist;
+    const id = items[0].id.value;
     const holds = Array.from({ length: this.purchased }, (_, i) => Hold.reconstitute({
       id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, itemId: id, secret: `secret-${i + 1}`,
       sessionHash: 'a'.repeat(64), idempotencyKey: `purchased-${i + 1}`,
       expiresAt: new Date(this.instant.getTime() + 60_000), extendedAt: null, releasedAt: null, purchasedAt: this.instant,
     }));
-    return Wishlist.reconstitute({ ...this.props, keyGen: wishlist.keyGen, asOf: this.instant, item, holds });
+    return Wishlist.reconstitute({ ...this.props, keyGen: wishlist.keyGen, asOf: this.instant, items, holds });
   }
 }
 

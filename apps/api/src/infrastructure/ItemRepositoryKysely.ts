@@ -18,18 +18,18 @@ export class ItemRepositoryKysely implements ItemRepository {
     }).execute();
   }
 
-  async findByWishlistId(wishlistId: string): Promise<Item | null> {
-    const row = await this.db.selectFrom('items')
+  async findAllByWishlistId(wishlistId: string): Promise<Item[]> {
+    const rows = await this.db.selectFrom('items')
       .innerJoin('item_state', 'item_state.item_id', 'items.id')
       .selectAll('items')
       .select('item_state.seq as seq')
       .where('wishlist_id', '=', wishlistId)
-      .executeTakeFirst();
-    if (!row) return null;
-    return Item.reconstitute({
+      .orderBy('items.created_at').orderBy('items.id')
+      .execute();
+    return rows.map((row) => Item.reconstitute({
       id: row.id, wishlistId: row.wishlist_id, type: row.type, title: row.title, quantity: row.quantity,
       seq: row.seq,
-    });
+    }));
   }
 
   /** Writes `seq` only: the purchased count is derived from holds, never stored. */

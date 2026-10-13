@@ -39,7 +39,7 @@ function loaded(options: { quantity?: number; seq?: number; purchasedCount?: num
   const { holds = [], asOf = T0, purchasedCount = 0, ...itemOverrides } = options;
   const purchased = Array.from({ length: purchasedCount }, () => holdOn(ITEM_ID, { purchasedAt: T0 }));
   return Wishlist.reconstitute({
-    ...validProps, asOf, keyGen: 1, item: itemOf(WISHLIST_ID, itemOverrides), holds: [...holds, ...purchased],
+    ...validProps, asOf, keyGen: 1, items: [itemOf(WISHLIST_ID, itemOverrides)], holds: [...holds, ...purchased],
   });
 }
 
@@ -86,21 +86,22 @@ describe('Wishlist.reconstitute', () => {
   });
 
   it('has no item when none was loaded', () => {
+    expect(Wishlist.reconstitute(persisted).items).toEqual([]);
     expect(Wishlist.reconstitute(persisted).item).toBeNull();
   });
 
   it('attaches the loaded item, concurrency state and all', () => {
     const item = itemOf(WISHLIST_ID, { seq: 7 });
-    const wishlist = Wishlist.reconstitute({ ...persisted, item });
-    expect(wishlist.item).toBe(item);
-    expect(wishlist.item?.seq).toBe(7);
+    const wishlist = Wishlist.reconstitute({ ...persisted, items: [item] });
+    expect(wishlist.items).toEqual([item]);
+    expect(wishlist.items[0].seq).toBe(7);
   });
 
   it('counts the loaded holds that are purchased, zero when there are none', () => {
     const item = itemOf();
     const holds = [holdOn(ITEM_ID, { purchasedAt: T0 }), holdOn(ITEM_ID, { purchasedAt: T0 }), holdOn(ITEM_ID)];
-    expect(Wishlist.reconstitute({ ...persisted, item, holds }).purchasedCountOf(ITEM_ID)).toBe(2);
-    expect(Wishlist.reconstitute({ ...persisted, item }).purchasedCountOf(ITEM_ID)).toBe(0);
+    expect(Wishlist.reconstitute({ ...persisted, items: [item], holds }).purchasedCountOf(ITEM_ID)).toBe(2);
+    expect(Wishlist.reconstitute({ ...persisted, items: [item] }).purchasedCountOf(ITEM_ID)).toBe(0);
   });
 
   it('does not count a purchased hold as active', () => {
@@ -115,7 +116,7 @@ describe('Wishlist.reconstitute', () => {
   });
 
   it('rejects an item that belongs to a different wishlist', () => {
-    expect(() => Wishlist.reconstitute({ ...persisted, item: itemOf(OTHER_WISHLIST_ID) })).toThrow(DomainValidationError);
+    expect(() => Wishlist.reconstitute({ ...persisted, items: [itemOf(OTHER_WISHLIST_ID)] })).toThrow(DomainValidationError);
   });
 
   it('carries the loaded holds, each reachable by id', () => {
@@ -139,23 +140,33 @@ describe('Wishlist.addItem', () => {
   it('attaches an available item it minted the id for, owned by this wishlist', () => {
     const wishlist = Wishlist.create(validProps);
     const item = wishlist.addItem({ title: 'Cot' }, { generateEntityId: () => ITEM_ID });
-    expect(wishlist.item).toBe(item);
+    expect(wishlist.items).toEqual([item]);
     expect(item.id.value).toBe(ITEM_ID);
     expect(item.wishlistId.value).toBe(WISHLIST_ID);
     expect(wishlist.itemStatus(ITEM_ID)).toBe('available');
   });
 
-  it('throws when a second item is added — a list holds a single item', () => {
+  it('takes several items, each reachable by id', () => {
     const wishlist = Wishlist.create(validProps);
-    wishlist.addItem({ title: 'Cot' }, { generateEntityId: () => ITEM_ID });
-    expect(() => wishlist.addItem({ title: 'Pram' }, { generateEntityId: () => OTHER_ITEM_ID })).toThrow(DomainValidationError);
+    const ids = [ITEM_ID, OTHER_ITEM_ID];
+    let next = 0;
+    for (const title of ['Stroller', 'Crib']) wishlist.addItem({ title }, { generateEntityId: () => ids[next++] });
+    expect(wishlist.items.map((i) => i.title)).toEqual(['Stroller', 'Crib']);
+    expect(wishlist.getItem(OTHER_ITEM_ID).title).toBe('Crib');
+  });
+
+  it('decides availability per item: a hold on one leaves the other available', () => {
+    const second = Item.reconstitute({ id: OTHER_ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Crib', quantity: 1, seq: 0 });
+    const wishlist = Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [itemOf(), second], holds: [holdOn(ITEM_ID)] });
+    expect(wishlist.itemStatus(ITEM_ID)).toBe('held');
+    expect(wishlist.itemStatus(OTHER_ITEM_ID)).toBe('available');
   });
 });
 
 describe('Wishlist.getItem', () => {
   it('returns the attached item when the id matches', () => {
     const wishlist = loaded();
-    expect(wishlist.getItem(ITEM_ID)).toBe(wishlist.item);
+    expect(wishlist.getItem(ITEM_ID)).toBe(wishlist.items[0]);
   });
 
   it('throws ItemNotFoundError when no item is attached, or the id does not match', () => {
