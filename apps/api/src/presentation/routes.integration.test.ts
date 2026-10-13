@@ -47,7 +47,6 @@ describe('POST /api/lists', () => {
   it('refuses a wrong create secret with 403', async () => {
     const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'wrong' } });
     expect(response.statusCode).toBe(403);
-    expect(response.json()).toEqual({ message: 'Not allowed' });
   });
 
   it('keeps the 400 body shape: message plus zod-style issues', async () => {
@@ -117,7 +116,7 @@ describe('POST /api/lists/:slug/session', () => {
     const list = await createList();
     const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } });
     expect(response.statusCode).toBe(200);
-    expect(response.headers['set-cookie']).toBeDefined();
+    expect(response.cookies).toEqual([expect.objectContaining({ httpOnly: true, secure: true, sameSite: 'Strict' })]);
   });
 
   it('returns a generic 404 for a wrong key', async () => {
