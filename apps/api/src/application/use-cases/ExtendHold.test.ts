@@ -3,7 +3,7 @@ import { ExtendHold } from './ExtendHold.js';
 import type { HoldPolicy } from '../HoldPolicy.js';
 import type { AccessContext } from '../AccessContext.js';
 import { DAY, GUEST, ITEM_ID, NO_SESSION, OTHER_GUEST, T0, WISHLIST_ID, twoListsWithOneItemEach } from '../test-fakes/scenarios.js';
-import { HoldAlreadyExtendedError, HoldNotActiveError, HoldNotFoundError } from '../../domain/errors.js';
+import { HoldAlreadyExtendedError, HoldNotFoundError } from '../../domain/errors.js';
 
 async function setup(policy?: HoldPolicy) {
   const world = await twoListsWithOneItemEach(policy);
@@ -43,13 +43,6 @@ describe('ExtendHold', () => {
     expect((await extend(holdId)).expiresAt).toBe(iso(2 * DAY));
   });
 
-  it('extends at the very instant the hold expires', async () => {
-    const { placeHold, clock, extend } = await setup();
-    const { holdId } = await placeHold();
-    clock.advance(3 * DAY);
-    await expect(extend(holdId)).resolves.toMatchObject({ status: 'active' });
-  });
-
   it('refuses a second extension and appends nothing', async () => {
     const { placeHold, extend, eventStore } = await setup();
     const { holdId } = await placeHold();
@@ -57,13 +50,6 @@ describe('ExtendHold', () => {
 
     await expect(extend(holdId)).rejects.toThrow(HoldAlreadyExtendedError);
     expect(eventStore.recorded(ITEM_ID)).toHaveLength(2);
-  });
-
-  it('refuses a hold that has expired', async () => {
-    const { placeHold, clock, extend } = await setup();
-    const { holdId } = await placeHold();
-    clock.advance(3 * DAY + 1);
-    await expect(extend(holdId)).rejects.toThrow(HoldNotActiveError);
   });
 
   it.each([

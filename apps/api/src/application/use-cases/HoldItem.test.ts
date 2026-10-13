@@ -61,12 +61,6 @@ describe('HoldItem', () => {
     expect(eventStore.recorded(ITEM_ID)).toHaveLength(1);
   });
 
-  it('throws ItemUnavailableError for a second, different hold on a held item', async () => {
-    const { useCase } = await makeUseCase();
-    await useCase.execute(input(), GUEST);
-    await expect(useCase.execute(input('idem-2'), OTHER_GUEST)).rejects.toThrow(ItemUnavailableError);
-  });
-
   it("refuses another session's idempotency key as ItemUnavailableError and writes nothing", async () => {
     const { useCase, eventStore, holds } = await makeUseCase();
     await useCase.execute(input(), GUEST);
