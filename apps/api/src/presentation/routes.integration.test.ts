@@ -105,7 +105,7 @@ describe('POST /api/lists/:slug/session', () => {
     const list = await createList();
     const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } });
     expect(response.statusCode).toBe(200);
-    expect(response.headers['set-cookie']).toBeDefined();
+    expect(response.cookies).toEqual([expect.objectContaining({ httpOnly: true, secure: true, sameSite: 'Strict' })]);
   });
 
   it('returns a generic 404 for a wrong key', async () => {

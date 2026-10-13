@@ -1,6 +1,6 @@
 # Launch cut: one live registry — design
 
-**Status:** Draft
+**Status:** Accepted
 **Date:** 2026-10-13
 **Target go-live:** ≈ 2026-10-27
 **Roadmap:** [roadmap to full spec](../plans/2026-09-30-roadmap-to-full-spec.md)
@@ -37,7 +37,7 @@ go-live checklist passes on the home server.
 | L8 | **Contribute flow is trimmed:** "Cover the rest" plus a custom amount. Venmo uses an app deep link with an https fallback. Zelle shows the handle with a copy button. There's no QR code, since guests are on phones. | Phones are the only expected guest device. | ¼/⅓/½ suggestions, payment QR codes. |
 | L9 | Guests give a **name and optional message** on holds and pledges, stored in `GuestPii` via `piiRef` (holds stack D, ADR-0057). There's no owner view of them yet. | The owner needs to know who gave what for thank-yous; capturing it now costs little and the view can follow. | No PII until later. |
 | L10 | The **production container** targets a home server behind a tunnel: multi-stage, non-root, `/health`, SQLite on a volume, secure cookies, required `SESSION_COOKIE_SECRET`. CI builds it and smoke-tests it. | The owner's chosen hosting. | VPS or PaaS-specific configuration. |
-| L11 | **Process for this push:** one plan for every track, with independent tracks in parallel. Each track's e2e test is folded into its web PR. PRs stay at 10 files or fewer, with TDD and tests at the owning layer. Spec amendments come after launch. | Fit the date without giving up reviewability. | Stack A's per-stack just-in-time plans (D20); larger PRs. |
+| L11 | **Process for this push:** one plan for every track, run as one linear stack, since the tracks share `routes.ts`, `0001_init.ts` and `openapi.json`. Each track's e2e test is folded into its web PR. PRs stay at 10 files or fewer, with TDD and tests at the owning layer. Spec amendments come after launch. | Fit the date without giving up reviewability. | Stack A's per-stack just-in-time plans (D20); larger PRs. |
 | L12 | The schema is amended in `0001_init` in place (D14) **until go-live**. After that, every schema change is a real migration. | There's no deployed instance until launch; after it there is. | — |
 
 ## Scope
@@ -72,7 +72,7 @@ go-live checklist passes on the home server.
 
 ### Domain
 
-- `Wishlist` gains `paymentMethods`: zero or more of `{ kind: 'venmo' | 'zelle', handle }`, set by `CreateList`.
+- `Wishlist` gains `paymentMethods`: an optional Venmo handle and an optional Zelle handle (`venmoHandle`, `zelleHandle`), set by `CreateList`.
   Venmo handles are validated as usernames, and Zelle handles as an email or a
   US phone number.
 - `Wishlist.addItem` loses the single-item guard and takes a type:
@@ -92,9 +92,10 @@ go-live checklist passes on the home server.
     idempotencyKey, sessionHash, piiRef, occurredAt, v: 1 }`. This mirrors
     `ItemHeld`, which also carries `sessionHash`. The event carries
     no PII and is appended to the item's stream with actor `guest`.
-- **`canAccept(amount)`** (ADR-0047/0061) rejects anything that isn't positive,
-  is above `targetMinor × MAX_CONTRIBUTION_TARGET_MULTIPLE` (default 5), or is
-  above `MAX_CONTRIBUTION_MINOR`. Overfunding is otherwise allowed (L6).
+- **`Item.pledge`** (ADR-0047/0061) refuses an amount that isn't a positive
+  whole number of minor units, is above `priceMinor × MAX_CONTRIBUTION_TARGET_MULTIPLE`
+  (a constant, 5), or is above `MAX_MONEY_MINOR`. Overfunding is otherwise
+  allowed (L6).
 - The pledged total is the sum of the item's contributions, computed rather than
   stored (D21's reasoning).
 - `Money { amountMinor, currency }` and `Currency` support USD only for now.
@@ -183,9 +184,9 @@ contributions  NEW: id pk, item_id, amount_minor int CHECK (> 0), idempotency_ke
 | 0. Deploy | 2 | — | Dockerfile, compose and CI container smoke job · `CREATE_SECRET` on create (config, constant-time check, form field) |
 | 1. Items | 4 | — | Owner session (owner-token exchange, `gubbins_owner`, owner credential in `AccessContext`) · multi-item `Wishlist`, quantity availability, add-item use case and route · `url`, `priceMinor`, `Money`/`Currency` · `ManagePage`, guest cards, e2e |
 | 2. Holder details | 2 | — | `GuestPii` + `piiRef` on holds · `HoldSheet` fields, e2e |
-| 3. Group gifts | 4 | 1 (PR 2), 2 (PR 1) | `Item.type`, `Contribution`, `canAccept`, payment methods on `Wishlist` · pledge use case and route, handles on create (API and form) · `ContributeFlow`, progress bar, e2e · owner group-gift option |
+| 3. Group gifts | 4 | 1 (PR 2), 2 (PR 1) | `Item.type`, `Contribution`, `Item.pledge` bounds, payment methods on `Wishlist` · pledge use case and route, handles on create (API and form) · `ContributeFlow`, progress bar, e2e · owner group-gift option |
 
-About 12 PRs. Tracks 0, 1 and 2 start together.
+The plan's task order supersedes this table: one linear stack of small PRs, because the tracks share files.
 
 New ADRs:
 - The always-required `CREATE_SECRET` (amends ADR-0014).
@@ -198,7 +199,7 @@ New ADRs:
 
 - Each rule gets one test, at the layer that owns it:
   - **Domain:** availability with quantity > 1, no holds on group gifts, no
-    group gift without a payment method, handle validation, `canAccept`
+    group gift without a payment method, handle validation, `Item.pledge`
     bounds, and the pledged total.
   - **Use case:** pledge idempotent replay.
   - **Routes:** status codes and wiring, the wrong create secret, and the
