@@ -126,8 +126,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       reply.setCookie(OWNER_COOKIE, JSON.stringify(payload), { path: '/', httpOnly: true, signed: true, sameSite: 'strict', secure: true });
       return reply.code(200).send({ ok: true });
     } catch (err) {
-      if (err instanceof WishlistNotFoundError) return reply.code(404).send(NOT_FOUND);
-      throw err;
+      return sendDomainError(reply, err);
     }
   });
 
