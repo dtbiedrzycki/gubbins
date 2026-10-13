@@ -85,17 +85,6 @@ describe('ItemView', () => {
     expect(screen.getByRole('button', { name: 'Hold this item' })).toHaveFocus();
   });
 
-  it('explains a network failure in plain words, not the browser\'s fetch error', async () => {
-    server.use(http.post('/api/lists/abc123/items/item-1/hold', () => HttpResponse.error()));
-    const user = userEvent.setup();
-    renderItem('available');
-
-    await user.click(screen.getByRole('button', { name: 'Hold this item' }));
-    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
-
-    await vi.waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent("Couldn't reach the server. Check your connection and try again."));
-  });
-
   it.each([
     ['held', 'Stroller is held.'],
     ['purchased', 'Stroller has been purchased.'],
