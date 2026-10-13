@@ -56,7 +56,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
   const group = item.type === 'group' && item.priceMinor !== null
     ? { price: item.priceMinor, pledged: item.pledgedMinor ?? 0 }
     : null;
-  const progress = group && `${formatMoney(group.pledged)} of ${formatMoney(group.price)} pledged · ${Math.round((group.pledged / group.price) * 100)}%`;
+  const progress = group && `${formatMoney(group.pledged)} of ${formatMoney(group.price)} pledged · ${Math.floor((group.pledged / group.price) * 100)}%`;
 
   // Status comes from the server alone. useHoldItem stays pending until the
   // refetched list view lands, and a remembered local success would go stale

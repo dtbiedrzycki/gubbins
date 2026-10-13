@@ -55,8 +55,8 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
       <p id="hold-dialog-title" className="mb-2">Hold &ldquo;{itemTitle}&rdquo; for yourself?</p>
       <p className="mb-4 text-slate-700">Held for you for {duration}.</p>
       <label className="mb-1 block" htmlFor="hold-name">Your name</label>
-      <input id="hold-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} disabled={isPending} className="mb-1 min-h-11 w-full rounded border px-2" />
-      <p className="mb-4 text-sm text-slate-700">Your name is only shared with the list owner.</p>
+      <input id="hold-name" required aria-describedby="hold-name-privacy" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} disabled={isPending} className="mb-1 min-h-11 w-full rounded border px-2" />
+      <p id="hold-name-privacy" className="mb-4 text-sm text-slate-700">Your name is only shared with the list owner.</p>
       <label className="mb-1 block" htmlFor="hold-message">Message to the owner (optional)</label>
       <textarea id="hold-message" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={300} disabled={isPending} className="mb-4 w-full rounded border px-2 py-1" />
       <p role="alert" className="mb-4 text-red-600 empty:mb-0">{error?.message}</p>

@@ -65,6 +65,13 @@ describe('HoldDialog', () => {
     expect(screen.getByText('Your name is only shared with the list owner.')).toBeInTheDocument();
   });
 
+  it('marks the name as required and describes it with the privacy line', () => {
+    renderDialog();
+    const name = screen.getByLabelText('Your name');
+    expect(name).toBeRequired();
+    expect(name).toHaveAccessibleDescription('Your name is only shared with the list owner.');
+  });
+
   it('cannot be cancelled or escaped while the hold is in flight', () => {
     renderDialog({ isPending: true });
 

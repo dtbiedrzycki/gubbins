@@ -14,14 +14,14 @@ test('a guest covers the rest of a group gift with Venmo, and the card shows it 
   const guestKey = (await page.getByTestId('guest-key').textContent())?.trim();
   const ownerToken = (await page.getByTestId('owner-token').textContent())?.trim();
 
-  await page.getByRole('link', { name: 'Manage your list' }).click();
-  await page.getByLabel('Owner token').fill(ownerToken!);
-  await page.getByRole('button', { name: 'Manage list' }).click();
-  await page.getByLabel('Group gift').check();
-  await page.getByLabel('Title').fill('Stand mixer');
-  await page.getByLabel('Price (USD)').fill('450');
-  await page.getByRole('button', { name: 'Add item' }).click();
-  await expect(page.getByRole('status')).toHaveText('Added "Stand mixer".');
+  const [manage] = await Promise.all([context.waitForEvent('page'), page.getByRole('link', { name: 'Manage your list' }).click()]);
+  await manage.getByLabel('Owner token').fill(ownerToken!);
+  await manage.getByRole('button', { name: 'Manage list' }).click();
+  await manage.getByLabel('Group gift').check();
+  await manage.getByLabel('Title').fill('Stand mixer');
+  await manage.getByLabel('Price (USD)').fill('450');
+  await manage.getByRole('button', { name: 'Add item' }).click();
+  await expect(manage.getByRole('status')).toHaveText('Added "Stand mixer".');
 
   const guest = await context.newPage();
   await guest.goto(guestLink!);

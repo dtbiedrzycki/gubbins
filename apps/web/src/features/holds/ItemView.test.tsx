@@ -160,12 +160,17 @@ describe('ItemView', () => {
 
   it.each([
     [16250, 16250, '$162.50 of $450.00 pledged · 36%'],
-    [52000, 45000, '$520.00 of $450.00 pledged · 116%'],
+    [52000, 45000, '$520.00 of $450.00 pledged · 115%'],
   ])('shows a group gift pledged %i toward its price as progress', (pledgedMinor, value, label) => {
     renderItem({ type: 'group', priceMinor: 45000, pledgedMinor, availableUnits: 0 });
     const progress = screen.getByRole('progressbar', { name: label });
     expect(progress).toHaveAttribute('max', '45000');
     expect(progress).toHaveAttribute('value', String(value));
+  });
+
+  it('does not round a nearly funded group gift up to 100%', () => {
+    renderItem({ type: 'group', priceMinor: 100000, pledgedMinor: 99500, availableUnits: 0 });
+    expect(screen.getByRole('progressbar', { name: '$995.00 of $1,000.00 pledged · 99%' })).toBeInTheDocument();
   });
 
   it('lets a guest chip in toward a group gift, thanks them, and hands focus back', async () => {

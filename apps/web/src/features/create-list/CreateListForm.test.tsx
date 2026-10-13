@@ -93,6 +93,9 @@ describe('CreateListForm', () => {
 
     const link = await screen.findByRole('link', { name: 'Manage your list' });
     expect(link).toHaveAttribute('href', '/abc123/manage');
+    // A new tab, so one tap cannot lose the only display of the owner token and guest key.
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(screen.getByText("Save your owner token now: you'll need it to manage the list, and it isn't shown again.")).toBeInTheDocument();
   });
 });

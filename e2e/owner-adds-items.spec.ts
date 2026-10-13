@@ -20,23 +20,23 @@ test('the owner adds a single item and a group gift, and a guest sees both', asy
   const guestKey = (await page.getByTestId('guest-key').textContent())?.trim();
   const ownerToken = (await page.getByTestId('owner-token').textContent())?.trim();
 
-  await page.getByRole('link', { name: 'Manage your list' }).click();
-  await page.getByLabel('Owner token').fill(ownerToken!);
-  await page.getByRole('button', { name: 'Manage list' }).click();
+  const [manage] = await Promise.all([context.waitForEvent('page'), page.getByRole('link', { name: 'Manage your list' }).click()]);
+  await manage.getByLabel('Owner token').fill(ownerToken!);
+  await manage.getByRole('button', { name: 'Manage list' }).click();
 
-  await page.getByLabel('Title').fill('Crib');
-  await page.getByLabel('Quantity').fill('2');
-  await page.getByLabel('Price (USD)').fill('199.99');
-  await page.getByLabel('Store link').fill('https://shop.example/crib');
-  await page.getByRole('button', { name: 'Add item' }).click();
-  await expect(page.getByRole('status')).toHaveText('Added "Crib".');
+  await manage.getByLabel('Title').fill('Crib');
+  await manage.getByLabel('Quantity').fill('2');
+  await manage.getByLabel('Price (USD)').fill('199.99');
+  await manage.getByLabel('Store link').fill('https://shop.example/crib');
+  await manage.getByRole('button', { name: 'Add item' }).click();
+  await expect(manage.getByRole('status')).toHaveText('Added "Crib".');
 
-  await page.getByLabel('Group gift').check();
-  await page.getByLabel('Title').fill('Stand mixer');
-  await page.getByLabel('Price (USD)').fill('450');
-  await page.getByRole('button', { name: 'Add item' }).click();
-  await expect(page.getByRole('status')).toHaveText('Added "Stand mixer".');
-  await expectNoSeriousAxeViolations(page);
+  await manage.getByLabel('Group gift').check();
+  await manage.getByLabel('Title').fill('Stand mixer');
+  await manage.getByLabel('Price (USD)').fill('450');
+  await manage.getByRole('button', { name: 'Add item' }).click();
+  await expect(manage.getByRole('status')).toHaveText('Added "Stand mixer".');
+  await expectNoSeriousAxeViolations(manage);
 
   const guest = await context.newPage();
   await guest.goto(guestLink!);
