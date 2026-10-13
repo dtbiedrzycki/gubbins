@@ -136,7 +136,7 @@ export interface components {
         ErrorResponse: {
             message: string;
             /** @enum {string} */
-            code?: "item_unavailable" | "hold_not_active" | "hold_already_extended";
+            code?: "item_unavailable" | "hold_not_active" | "hold_already_extended" | "no_payment_method";
             issues?: unknown[];
         };
     };
