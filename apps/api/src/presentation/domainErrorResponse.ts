@@ -8,7 +8,8 @@ export const NOT_FOUND = { message: 'Not found' } as const;
 
 /**
  * The one table from domain failure to HTTP answer — only presentation maps
- * to status codes (backend architecture). Every way of failing to reach a
+ * to status codes (backend architecture). A missing or wrong create secret
+ * is a bare 403 that says nothing more (ADR-0080). Every way of failing to reach a
  * list, item or hold is the same generic 404 (ADR-0016/0054). The 409
  * messages reach the guest as they are, so they are written for a person;
  * `code` is for the client to branch on.
