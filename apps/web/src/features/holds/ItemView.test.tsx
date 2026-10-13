@@ -43,6 +43,7 @@ describe('ItemView', () => {
 
     await user.click(screen.getByRole('button', { name: 'Hold this item' }));
     expect(screen.getByText('Held for you for 3 days.')).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     await vi.waitFor(() => expect(screen.queryByRole('dialog', { hidden: true })).not.toBeInTheDocument());
@@ -54,6 +55,7 @@ describe('ItemView', () => {
     renderItem('available');
 
     await user.click(screen.getByRole('button', { name: 'Hold this item' }));
+    await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
     await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
@@ -68,11 +70,13 @@ describe('ItemView', () => {
     renderItem('available');
 
     await user.click(screen.getByRole('button', { name: 'Hold this item' }));
+    await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
     await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     await user.click(screen.getByRole('button', { name: 'Hold this item' }));
     expect(screen.getByRole('alert')).toBeEmptyDOMElement();
+    await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     await vi.waitFor(() => expect(keys).toHaveLength(2));

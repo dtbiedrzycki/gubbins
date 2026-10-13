@@ -33,6 +33,7 @@ test('a guest holds the item, extends the hold once, and marks it purchased', as
   await guest.getByRole('button', { name: 'Hold this item' }).click();
   await expect(guest.getByText('Held for you for 3 days.')).toBeVisible();
   await expectNoSeriousAxeViolations(guest);
+  await guest.getByLabel('Your name').fill('Amara');
   await guest.getByRole('button', { name: 'Yes, hold it' }).click();
 
   await expect(guest.getByText('Stroller is held.')).toBeVisible();
@@ -59,6 +60,7 @@ test('a guest releases a hold after confirming, and the item can be held again',
   const guest = await guestOnNewList(page, context);
   const yourHolds = guest.getByRole('region', { name: 'Your holds' });
   await guest.getByRole('button', { name: 'Hold this item' }).click();
+  await guest.getByLabel('Your name').fill('Amara');
   await guest.getByRole('button', { name: 'Yes, hold it' }).click();
 
   await yourHolds.getByRole('button', { name: 'Release hold' }).click();
