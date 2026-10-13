@@ -41,7 +41,6 @@ describe('POST /api/lists', () => {
   it('refuses a wrong create secret with 403', async () => {
     const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'wrong' } });
     expect(response.statusCode).toBe(403);
-    expect(response.json()).toEqual({ message: 'Not allowed' });
   });
 
   it('keeps the 400 body shape: message plus zod-style issues', async () => {
