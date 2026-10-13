@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Item } from './Item.js';
-import { DomainValidationError, ItemUnavailableError } from '../errors.js';
+import { ContributionAmountError, DomainValidationError, ItemUnavailableError } from '../errors.js';
 
 const ITEM_ID = '33333333-3333-7333-8333-333333333333';
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
@@ -178,5 +178,31 @@ describe('Item.reconstitute', () => {
   it('rejects a negative or fractional seq', () => {
     expect(() => Item.reconstitute({ ...base, seq: -5 })).toThrow(DomainValidationError);
     expect(() => Item.reconstitute({ ...base, seq: 1.5 })).toThrow(DomainValidationError);
+  });
+});
+
+describe('Item.pledge', () => {
+  const CONTRIBUTION_ID = '44444444-4444-7444-8444-444444444444';
+  const PII = '55555555-5555-7555-8555-555555555555';
+  const ids = { generateEntityId: () => CONTRIBUTION_ID };
+  const group = () => Item.createGroup({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Mixer', priceMinor: 45000 });
+  const props = { sessionHash: 'a'.repeat(64), idempotencyKey: 'k1', piiRef: PII, at: new Date('2026-10-13T10:00:00Z') };
+
+  it('records the pledge and advances the stream', () => {
+    const item = group();
+    const { contribution, event, expectedSeq } = item.pledge({ ...props, amountMinor: 11250 }, ids);
+    expect([contribution.amount.amountMinor, event.type, event.amountMinor, expectedSeq, item.seq]).toEqual([11250, 'ContributionPledged', 11250, 0, 1]);
+    expect(event.piiRef).toBe(PII);
+    expect(Object.keys(event)).not.toEqual(expect.arrayContaining(['name', 'message']));
+  });
+  it('allows overfunding up to five times the price', () => {
+    expect(() => group().pledge({ ...props, amountMinor: 45000 * 5 }, ids)).not.toThrow();
+  });
+  it.each([0, -100, 12.5, 45000 * 5 + 1])('refuses amount %j', (amountMinor) => {
+    expect(() => group().pledge({ ...props, amountMinor }, ids)).toThrow(ContributionAmountError);
+  });
+  it('refuses a pledge on a single item', () => {
+    const single = Item.createSingle({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Crib' });
+    expect(() => single.pledge({ ...props, amountMinor: 100 }, ids)).toThrow(ItemUnavailableError);
   });
 });

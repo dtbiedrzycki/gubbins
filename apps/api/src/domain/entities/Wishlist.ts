@@ -1,4 +1,5 @@
 import { DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, NoPaymentMethodError } from '../errors.js';
+import type { ContributionPledgedEvent } from '../events/ContributionPledgedEvent.js';
 import type { HoldExtendedEvent } from '../events/HoldExtendedEvent.js';
 import type { HoldReleasedEvent } from '../events/HoldReleasedEvent.js';
 import type { ItemHeldEvent } from '../events/ItemHeldEvent.js';
@@ -8,6 +9,7 @@ import { OwnerToken } from '../value-objects/OwnerToken.js';
 import { PaymentMethods } from '../value-objects/PaymentMethods.js';
 import { Slug } from '../value-objects/Slug.js';
 import { UuidId } from '../value-objects/UuidId.js';
+import type { Contribution } from './Contribution.js';
 import type { Hold, HoldStatus } from './Hold.js';
 import { Item, type ItemStatus } from './Item.js';
 
@@ -184,6 +186,14 @@ export class Wishlist {
     const { hold, event, expectedSeq } = item.placeHold({ ...props, at: this.asOf }, this.activeHoldsOn(item), this.purchasedCountOf(item.id.value), tokens, hasher);
     this._holds.push(hold);
     return { hold, item, event, expectedSeq };
+  }
+
+  pledge(
+    props: { itemId: string; amountMinor: number; sessionHash: string; idempotencyKey: string; piiRef: string },
+    ids: { generateEntityId(): string },
+  ): { contribution: Contribution; item: Item; event: ContributionPledgedEvent; expectedSeq: number } {
+    const item = this.getItem(props.itemId);
+    return { item, ...item.pledge({ ...props, at: this.asOf }, ids) };
   }
 
   extendHold(hold: Hold, durationMs: number): HoldCommandResult<HoldExtendedEvent> {
