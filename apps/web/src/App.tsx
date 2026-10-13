@@ -6,10 +6,12 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 // land in later sub-projects.
 const CreateListPage = lazy(() => import('./pages/CreateListPage'));
 const ListPage = lazy(() => import('./pages/ListPage'));
+const ManagePage = lazy(() => import('./pages/ManagePage'));
 
 const router = createBrowserRouter([
   { path: '/', element: <CreateListPage /> },
   { path: '/:slug', element: <ListPage /> },
+  { path: '/:slug/manage', element: <ManagePage /> },
 ]);
 
 export default function App() {
