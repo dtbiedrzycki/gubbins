@@ -23,22 +23,10 @@ describe('domainErrorResponse', () => {
     ['HoldLapsedError', new HoldLapsedError('x'), 'item_unavailable', 'Your hold expired and this gift has since been held or bought by someone else.'],
     ['HoldNotActiveError', new HoldNotActiveError('x'), 'hold_not_active', 'This hold is no longer active.'],
     ['HoldAlreadyExtendedError', new HoldAlreadyExtendedError('x'), 'hold_already_extended', 'This hold has already been extended.'],
+    ['NoPaymentMethodError', new NoPaymentMethodError(), 'no_payment_method', 'Add a Venmo or Zelle handle to this list before adding a group gift.'],
+    ['ContributionAmountError', new ContributionAmountError('x'), 'amount_out_of_range', 'That amount is more than this gift can take. Try a smaller amount.'],
   ])('answers %s with 409 and a code the client can branch on', (_name, err, code, message) => {
     expect(domainErrorResponse(err)).toEqual({ status: 409, body: { message, code } });
-  });
-
-  it('answers a NoPaymentMethodError with 409 and a code the client can branch on', () => {
-    expect(domainErrorResponse(new NoPaymentMethodError())).toEqual({
-      status: 409,
-      body: { message: 'Add a Venmo or Zelle handle to this list before adding a group gift.', code: 'no_payment_method' },
-    });
-  });
-
-  it('answers a ContributionAmountError with 409 and a code the client can branch on', () => {
-    expect(domainErrorResponse(new ContributionAmountError('x'))).toEqual({
-      status: 409,
-      body: { message: 'That amount is more than this gift can take. Try a smaller amount.', code: 'amount_out_of_range' },
-    });
   });
 
   it('answers a DomainValidationError with 400 and its own message', () => {
