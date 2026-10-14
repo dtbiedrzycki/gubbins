@@ -52,6 +52,9 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 120
+                  },
+                  "createSecret": {
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -96,6 +99,16 @@
           },
           "400": {
             "description": "The request did not match the schema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The create secret was missing or wrong.",
             "content": {
               "application/json": {
                 "schema": {

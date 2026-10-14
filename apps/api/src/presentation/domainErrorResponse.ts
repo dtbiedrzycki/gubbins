@@ -1,19 +1,23 @@
 import type { ErrorResponse } from '@gubbins/shared-types';
 import {
   ConcurrencyError, HoldAlreadyExtendedError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError,
-  ItemNotFoundError, ItemUnavailableError, WishlistNotFoundError,
+  InvalidCreateSecretError, ItemNotFoundError, ItemUnavailableError, WishlistNotFoundError,
 } from '../domain/errors.js';
 
 export const NOT_FOUND = { message: 'Not found' } as const;
 
 /**
  * The one table from domain failure to HTTP answer — only presentation maps
- * to status codes (backend architecture). Every way of failing to reach a
+ * to status codes (backend architecture). A missing or wrong create secret
+ * is a bare 403 that says nothing more (ADR-0080). Every way of failing to reach a
  * list, item or hold is the same generic 404 (ADR-0016/0054). The 409
  * messages reach the guest as they are, so they are written for a person;
  * `code` is for the client to branch on.
  */
-export function domainErrorResponse(err: unknown): { status: 404 | 409; body: ErrorResponse } | null {
+export function domainErrorResponse(err: unknown): { status: 403 | 404 | 409; body: ErrorResponse } | null {
+  if (err instanceof InvalidCreateSecretError) {
+    return { status: 403, body: { message: 'Not allowed' } };
+  }
   if (err instanceof WishlistNotFoundError || err instanceof ItemNotFoundError || err instanceof HoldNotFoundError) {
     return { status: 404, body: NOT_FOUND };
   }

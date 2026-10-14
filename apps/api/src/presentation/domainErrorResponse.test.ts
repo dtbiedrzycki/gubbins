@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { domainErrorResponse } from './domainErrorResponse.js';
 import {
   ConcurrencyError, HoldAlreadyExtendedError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError,
-  InvalidGuestKeyError, ItemNotFoundError, ItemUnavailableError, WishlistNotFoundError,
+  InvalidCreateSecretError, InvalidGuestKeyError, ItemNotFoundError, ItemUnavailableError, WishlistNotFoundError,
 } from '../domain/errors.js';
 
 describe('domainErrorResponse', () => {
@@ -12,6 +12,10 @@ describe('domainErrorResponse', () => {
     ['HoldNotFoundError', new HoldNotFoundError('x')],
   ])('answers %s with the generic 404 (ADR-0016/0054)', (_name, err) => {
     expect(domainErrorResponse(err)).toEqual({ status: 404, body: { message: 'Not found' } });
+  });
+
+  it('answers an InvalidCreateSecretError with a 403 that says nothing more', () => {
+    expect(domainErrorResponse(new InvalidCreateSecretError())).toEqual({ status: 403, body: { message: 'Not allowed' } });
   });
 
   it.each([
