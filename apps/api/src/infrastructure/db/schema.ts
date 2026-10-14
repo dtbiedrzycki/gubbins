@@ -10,7 +10,6 @@ export interface WishlistsTable {
   key_gen: number;
   venmo_handle: string | null;
   zelle_handle: string | null;
-  currency: Generated<string>;
   created_at: string;
 }
 

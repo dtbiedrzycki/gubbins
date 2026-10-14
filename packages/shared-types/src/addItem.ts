@@ -7,6 +7,7 @@ export const addItemRequestSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('single'),
     title: z.string().trim().min(1).max(120),
+    // Near-arbitrary cap to catch an accidentally large quantity; not a product rule.
     quantity: z.number().int().min(1).max(99).default(1),
     url: httpsUrl.optional(),
     priceMinor: priceMinor.optional(),
