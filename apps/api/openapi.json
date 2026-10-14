@@ -107,7 +107,7 @@
             }
           },
           "400": {
-            "description": "The request did not match the schema.",
+            "description": "The request did not match the schema, or a domain rule refused it.",
             "content": {
               "application/json": {
                 "schema": {
@@ -185,7 +185,7 @@
             }
           },
           "400": {
-            "description": "The request did not match the schema.",
+            "description": "The request did not match the schema, or a domain rule refused it.",
             "content": {
               "application/json": {
                 "schema": {
@@ -263,7 +263,7 @@
             }
           },
           "400": {
-            "description": "The request did not match the schema.",
+            "description": "The request did not match the schema, or a domain rule refused it.",
             "content": {
               "application/json": {
                 "schema": {
@@ -492,6 +492,16 @@
               }
             }
           },
+          "400": {
+            "description": "The request did not match the schema, or a domain rule refused it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "No such list, or no valid session for it. The two are deliberately indistinguishable (ADR-0016, ADR-0054).",
             "content": {
@@ -619,7 +629,7 @@
             }
           },
           "400": {
-            "description": "The request did not match the schema.",
+            "description": "The request did not match the schema, or a domain rule refused it.",
             "content": {
               "application/json": {
                 "schema": {
@@ -765,7 +775,7 @@
             }
           },
           "400": {
-            "description": "The request did not match the schema.",
+            "description": "The request did not match the schema, or a domain rule refused it.",
             "content": {
               "application/json": {
                 "schema": {
@@ -882,6 +892,16 @@
               }
             }
           },
+          "400": {
+            "description": "The request did not match the schema, or a domain rule refused it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable (ADR-0016, ADR-0054).",
             "content": {
@@ -990,6 +1010,16 @@
               }
             }
           },
+          "400": {
+            "description": "The request did not match the schema, or a domain rule refused it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable (ADR-0016, ADR-0054).",
             "content": {
@@ -1094,6 +1124,16 @@
                     "actions"
                   ],
                   "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the schema, or a domain rule refused it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }

@@ -13,8 +13,6 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn('key_gen', 'integer', (col) => col.notNull())
     .addColumn('venmo_handle', 'text')
     .addColumn('zelle_handle', 'text')
-    // One currency per list (ADR-0006); every list is USD until a picker exists, so nothing reads it yet.
-    .addColumn('currency', 'text', (col) => col.notNull().defaultTo('USD'))
     .addColumn('created_at', 'text', (col) => col.notNull())
     .execute();
 
@@ -81,8 +79,8 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   // Outside the ledger and rebuildProjections on purpose: PII must stay erasable (ADR-0057).
   await schema.createTable('guest_pii').ifNotExists()
     .addColumn('id', 'text', (col) => col.primaryKey())
-    .addColumn('name', 'text', (col) => col.notNull())
-    // Backstop for the 300-character limit on a guest's message.
+    // Backstops for the 100-character name and 300-character message limits.
+    .addColumn('name', 'text', (col) => col.notNull().check(sql`length(name) <= 100`))
     .addColumn('message', 'text', (col) => col.check(sql`message IS NULL OR length(message) <= 300`))
     // Set when a guest's details are erased (ADR-0057); no erasure path writes it yet.
     .addColumn('redacted_at', 'text')
