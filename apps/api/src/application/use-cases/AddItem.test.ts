@@ -27,10 +27,17 @@ describe('AddItem', () => {
     expect(item).toMatchObject({ title: 'Stroller', seq: 0 });
   });
 
-  it('refuses without owner access exactly as it refuses an unknown list, persisting nothing', async () => {
+  it('refuses a caller without owner access as if the list did not exist, persisting nothing', async () => {
     const { useCase, wishlists } = await makeUseCase();
 
     await expect(useCase.execute(input, { guestSession: { sessionHash: 'a'.repeat(64) } })).rejects.toThrow(WishlistNotFoundError);
     expect((await wishlists.findById(WISHLIST_ID, NOW))?.items).toHaveLength(0);
+  });
+
+  it('refuses an unknown list', async () => {
+    const { useCase } = await makeUseCase();
+
+    await expect(useCase.execute({ ...input, wishlistId: '22222222-2222-7222-8222-222222222222' }, { guestSession: null, owner: true }))
+      .rejects.toThrow(WishlistNotFoundError);
   });
 });
