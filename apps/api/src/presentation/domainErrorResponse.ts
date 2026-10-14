@@ -12,7 +12,8 @@ export const NOT_FOUND = { message: 'Not found' } as const;
  * is a bare 403 that says nothing more (ADR-0080). Every way of failing to reach a
  * list, item or hold is the same generic 404 (ADR-0016/0054). The 409
  * messages reach the guest as they are, so they are written for a person;
- * `code` is for the client to branch on.
+ * `code` is for the client to branch on. Any other domain validation failure
+ * is a 400 carrying the rule's own message.
  */
 export function domainErrorResponse(err: unknown): { status: 400 | 403 | 404 | 409; body: ErrorResponse } | null {
   if (err instanceof InvalidCreateSecretError) {
@@ -44,7 +45,7 @@ export function domainErrorResponse(err: unknown): { status: 400 | 403 | 404 | 4
   if (err instanceof ContributionAmountError) {
     return { status: 409, body: { message: 'That amount is more than this gift can take. Try a smaller amount.', code: 'amount_out_of_range' } };
   }
-  // Last: any subclass mapped above keeps its own status. Domain messages are written to be shown.
+  // Last, so a subclass mapped above keeps its own status.
   if (err instanceof DomainValidationError) {
     return { status: 400, body: { message: err.message } };
   }
