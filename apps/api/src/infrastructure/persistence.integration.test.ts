@@ -8,6 +8,7 @@ import { migrateToLatest } from './db/migrate.js';
 import type { Database } from './db/schema.js';
 import { WishlistRepositoryKysely } from './WishlistRepositoryKysely.js';
 import { UnitOfWorkKysely } from './UnitOfWorkKysely.js';
+import { GuestPiiRepositoryKysely } from './GuestPiiRepositoryKysely.js';
 import { Wishlist } from '../domain/entities/Wishlist.js';
 
 const W1 = '11111111-1111-7111-8111-111111111111';
@@ -37,11 +38,13 @@ describe('UnitOfWorkKysely', () => {
     await expect(
       unitOfWork.execute(async (ctx) => {
         await ctx.wishlists.insert(Wishlist.create({ id: W1, slug: 'abc123', title: 'Baby Shower', ownerToken: 'tok', key: 'key', asOf: NOW }));
+        await ctx.guestPii.insert({ id: 'pii-1', name: 'Ada', message: null });
         throw new Error('boom');
       }),
     ).rejects.toThrow('boom');
 
     expect(await new WishlistRepositoryKysely(db).findBySlug('abc123', NOW)).toBeNull();
+    expect(await new GuestPiiRepositoryKysely(db).findById('pii-1')).toBeNull();
   });
 
   it('takes the write lock at BEGIN, so a second writer cannot even start (BEGIN IMMEDIATE)', async () => {
