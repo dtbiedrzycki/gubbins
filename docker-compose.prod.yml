@@ -1,0 +1,12 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    # The tunnel connects locally; never publish to the LAN.
+    ports: ["127.0.0.1:3000:3000"]
+    env_file: .env.prod
+    volumes:
+      - gubbins-data:/data
+
+volumes:
+  gubbins-data:

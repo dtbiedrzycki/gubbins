@@ -55,6 +55,9 @@ export function buildApp(deps: AppDependencies, options: BuildAppOptions): Fasti
   });
   app.register(async (instance) => registerRoutes(instance, deps));
 
+  // Ops probe, not part of the API contract: hidden from the OpenAPI document.
+  app.get('/health', { schema: { hide: true } }, async () => ({ ok: true }));
+
   if (options.webDist) {
     const webDist = path.resolve(options.webDist);
     app.register(fastifyStatic, { root: webDist, wildcard: false });

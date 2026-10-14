@@ -1,0 +1,52 @@
+# Deploying gubbins to a home server
+
+The production image runs the API and serves the built web app on port 3000.
+SQLite lives on the `gubbins-data` volume. The server refuses to start without
+`CREATE_SECRET` and `SESSION_COOKIE_SECRET`.
+
+## First deploy
+
+1. Generate the two secrets (run it twice):
+
+   ```sh
+   openssl rand -base64 32
+   ```
+
+2. Put them in `.env.prod` next to `docker-compose.prod.yml`. Keep the file out
+   of git and readable only by you:
+
+   ```sh
+   CREATE_SECRET=<first value>
+   SESSION_COOKIE_SECRET=<second value>
+   ```
+
+   `CREATE_SECRET` is what you type into the create form. `SESSION_COOKIE_SECRET`
+   signs cookies; changing it signs every guest out.
+
+3. Build and start:
+
+   ```sh
+   docker compose -f docker-compose.prod.yml up -d --build
+   ```
+
+4. Point the tunnel (for example `cloudflared`) at `http://127.0.0.1:3000`. The
+   container publishes only on loopback, so the tunnel is the one way in. The
+   tunnel provides HTTPS; session cookies are marked secure and need it.
+
+Leave `TRUSTED_PROXY_HOPS` unset. Nothing reads it yet.
+
+## Upgrading
+
+Pull the new code and rerun the `up -d --build` command. The volume persists.
+
+Until go-live the schema is amended in `0001_init` in place, so a schema change
+means deleting the database (`docker compose -f docker-compose.prod.yml down -v`).
+After go-live every schema change is a real migration, and `down -v` destroys
+real data.
+
+## Go-live checklist (manual)
+
+- [ ] The container runs behind the tunnel.
+- [ ] Create the list from a phone over HTTPS.
+- [ ] Go through the hold and pledge flows on a phone.
+- [ ] The Venmo deep link opens the app.

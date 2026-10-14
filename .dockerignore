@@ -1,25 +1,23 @@
 # Keep the build context small and free of anything sensitive. The
-# Dockerfile only COPYs a couple of named files, but the whole context
-# is still sent to the daemon on every build.
+# Dockerfile copies the whole context (COPY . .), so anything secret
+# must be listed here.
 
 .git
 node_modules
 **/node_modules
 
 # Never ship signing keys or local secrets into the build context
-# (the Dockerfile needs nothing from here)
 .devcontainer/secrets/
 
 .env
 .env.*
 !.env.example
 
-data/*.db
-data/*.db-shm
-data/*.db-wal
-
-dist
+**/dist
+data
 build
 coverage
 *.log
 .DS_Store
+test-results
+.superpowers
