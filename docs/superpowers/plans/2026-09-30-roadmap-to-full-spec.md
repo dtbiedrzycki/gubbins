@@ -27,6 +27,10 @@ during the skeleton's reviews, and the DDD foundation decisions made on
 The spec topics under `docs/spec/` and the ADRs are the source of truth for each
 sub-project's requirements; this table only orders and groups them.
 
+The [launch cut](../specs/2026-10-13-launch-cut-design.md) pulls a subset of
+sub-projects 2 and 3 forward and supersedes holds stacks B–G's order until
+go-live.
+
 ## Domain foundation decisions (2026-09-13)
 
 From two independent design reviews of the skeleton's domain model. These
