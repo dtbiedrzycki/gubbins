@@ -24,25 +24,26 @@ describe('Item.createSingle', () => {
   });
 });
 
-describe('Item.createSingle fields', () => {
+describe('Item kinds, URL and price', () => {
   const ID = ITEM_ID;
   const WL = WISHLIST_ID;
   it.each(['javascript:alert(1)', 'http://shop.example/x', 'data:text/html,hi', 'shop.example', 'https://' + 'a'.repeat(2050)])('refuses a store URL that is not a short https URL (%j)', (url) => {
     expect(() => Item.createSingle({ id: ID, wishlistId: WL, title: 'T', url })).toThrow(DomainValidationError);
   });
-  it('keeps an https store URL', () => {
+  it('accepts an https store URL', () => {
     expect(Item.createSingle({ id: ID, wishlistId: WL, title: 'T', url: 'https://shop.example/x' }).url).toBe('https://shop.example/x');
   });
   it.each([0, -1, 1.5, 10 ** 12 + 1])('refuses price %j', (priceMinor) => {
     expect(() => Item.createSingle({ id: ID, wishlistId: WL, title: 'T', priceMinor })).toThrow(DomainValidationError);
   });
-  it('takes a quantity for a single', () => {
+  it('creates a single with the quantity given', () => {
     expect(Item.createSingle({ id: ID, wishlistId: WL, title: 'T', quantity: 3 }).quantity).toBe(3);
   });
-  it('a group gift is one unit with a required price', () => {
+  it('creates a group gift as one unit, refusing one without a price or with a quantity other than 1', () => {
     const group = Item.createGroup({ id: ID, wishlistId: WL, title: 'Mixer', priceMinor: 45000 });
     expect([group.type, group.quantity, group.priceMinor]).toEqual(['group', 1, 45000]);
     expect(() => Item.reconstitute({ id: ID, wishlistId: WL, type: 'group', title: 'M', quantity: 1, url: null, priceMinor: null, seq: 0 })).toThrow(DomainValidationError);
+    expect(() => Item.reconstitute({ id: ID, wishlistId: WL, type: 'group', title: 'M', quantity: 2, url: null, priceMinor: 45000, seq: 0 })).toThrow(DomainValidationError);
   });
 });
 
