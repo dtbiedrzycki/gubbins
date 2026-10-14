@@ -80,7 +80,9 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   await schema.createTable('guest_pii').ifNotExists()
     .addColumn('id', 'text', (col) => col.primaryKey())
     .addColumn('name', 'text', (col) => col.notNull())
+    // Backstop for the 300-character message limit; the domain is the rule's owner.
     .addColumn('message', 'text', (col) => col.check(sql`message IS NULL OR length(message) <= 300`))
+    // Set when a guest's details are erased (ADR-0057); no erasure path writes it yet.
     .addColumn('redacted_at', 'text')
     .addColumn('created_at', 'text', (col) => col.notNull())
     .execute();
