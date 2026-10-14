@@ -197,7 +197,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description The request did not match the schema. */
+            /** @description The request did not match the schema, or a domain rule refused it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -246,7 +246,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description The request did not match the schema. */
+            /** @description The request did not match the schema, or a domain rule refused it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -295,7 +295,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description The request did not match the schema. */
+            /** @description The request did not match the schema, or a domain rule refused it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -359,6 +359,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description The request did not match the schema, or a domain rule refused it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description No such list, or no valid session for it. The two are deliberately indistinguishable (ADR-0016, ADR-0054). */
             404: {
                 headers: {
@@ -412,7 +421,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description The request did not match the schema. */
+            /** @description The request did not match the schema, or a domain rule refused it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -480,7 +489,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description The request did not match the schema. */
+            /** @description The request did not match the schema, or a domain rule refused it. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -542,6 +551,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description The request did not match the schema, or a domain rule refused it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable (ADR-0016, ADR-0054). */
             404: {
                 headers: {
@@ -595,6 +613,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description The request did not match the schema, or a domain rule refused it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable (ADR-0016, ADR-0054). */
             404: {
                 headers: {
@@ -646,6 +673,15 @@ export interface operations {
                             purchase: boolean;
                         };
                     };
+                };
+            };
+            /** @description The request did not match the schema, or a domain rule refused it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable (ADR-0016, ADR-0054). */
