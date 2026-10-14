@@ -45,7 +45,7 @@ export function domainErrorResponse(err: unknown): { status: 400 | 403 | 404 | 4
   if (err instanceof ContributionAmountError) {
     return { status: 409, body: { message: 'That amount is more than this gift can take. Try a smaller amount.', code: 'amount_out_of_range' } };
   }
-  // Last, so a subclass mapped above keeps its own status.
+  // Catch-all for rules zod doesn't know; domain messages are written to be shown.
   if (err instanceof DomainValidationError) {
     return { status: 400, body: { message: err.message } };
   }
