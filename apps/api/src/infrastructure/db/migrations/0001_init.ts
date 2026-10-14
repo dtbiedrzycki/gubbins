@@ -13,8 +13,6 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn('key_gen', 'integer', (col) => col.notNull())
     .addColumn('venmo_handle', 'text')
     .addColumn('zelle_handle', 'text')
-    // One currency per list (ADR-0006); every list is USD until a picker exists, so nothing reads it yet.
-    .addColumn('currency', 'text', (col) => col.notNull().defaultTo('USD'))
     .addColumn('created_at', 'text', (col) => col.notNull())
     .execute();
 
