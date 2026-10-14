@@ -7,6 +7,7 @@ import type { Logger } from '../application/ports/Logger.js';
 import { buildDependencies, type BuildDependenciesOptions } from './compositionRoot.js';
 import { buildApp } from './app.js';
 import { disposeWithApp } from './lifecycle.js';
+import { DomainValidationError } from '../domain/errors.js';
 
 function extractCookieHeader(response: LightMyRequestResponse): string {
   const setCookie = response.headers['set-cookie'];
@@ -236,6 +237,26 @@ describe('response validation', () => {
     const entry = logged.find((l) => l.message === 'response_schema_mismatch');
     expect(entry?.meta?.issues).toEqual(expect.arrayContaining([expect.objectContaining({ path: ['slug'], code: 'invalid_type' })]));
     expect(JSON.stringify(entry?.meta)).not.toContain('42');
+  });
+});
+
+describe('domain validation', () => {
+  it('answers a rule the request schema cannot see with 400 and logs a warning', async () => {
+    const db = createDb(':memory:');
+    await migrateToLatest(db);
+    const warnings: string[] = [];
+    const logger: Logger = { logInfo: () => {}, logWarn: (message) => { warnings.push(message); }, logError: () => {} };
+    const deps = buildDependencies(db, logger);
+    const refusingCreateList = { execute: async () => { throw new DomainValidationError('Venmo handle is invalid'); } };
+    const refusingApp = buildApp({ ...deps, createList: refusingCreateList as unknown as typeof deps.createList }, { cookieSecret: 'test-secret' });
+    disposeWithApp(refusingApp, db);
+    onTestFinished(() => refusingApp.close());
+
+    const response = await refusingApp.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'test-create-secret' } });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({ message: 'Venmo handle is invalid' });
+    expect(warnings).toEqual(['domain_validation_rejected']);
   });
 });
 
