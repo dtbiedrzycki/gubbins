@@ -149,7 +149,7 @@ describe('Wishlist.addItem', () => {
 
   it('keeps the id and wishlist it assigned even if the caller passes its own', () => {
     const wishlist = Wishlist.create(validProps);
-    const smuggled = { title: 'Cot', id: OTHER_ITEM_ID, wishlistId: 'someone-else' };
+    const smuggled = { type: 'single' as const, title: 'Cot', id: OTHER_ITEM_ID, wishlistId: 'someone-else' };
     const item = wishlist.addItem(smuggled, { generateEntityId: () => ITEM_ID });
     expect([item.id.value, item.wishlistId.value]).toEqual([ITEM_ID, WISHLIST_ID]);
   });
