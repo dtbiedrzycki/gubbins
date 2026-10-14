@@ -132,6 +132,25 @@ describe('POST /api/lists/:slug/session', () => {
   });
 });
 
+describe('POST /api/lists/:slug/owner-session', () => {
+  it('sets a signed owner cookie for the correct token', async () => {
+    const list = await createList();
+    const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ ok: true });
+    const [owner] = response.cookies;
+    expect(owner).toMatchObject({ name: 'gubbins_owner', httpOnly: true, secure: true, sameSite: 'Strict' });
+    expect(JSON.parse(app.unsignCookie(owner.value).value!)).toEqual({ wishlistId: expect.any(String) });
+  });
+
+  it('answers a wrong token with a 404 and no cookie', async () => {
+    const list = await createList();
+    const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: 'wrong-token' } });
+    expect(response.statusCode).toBe(404);
+    expect(response.headers['set-cookie']).toBeUndefined();
+  });
+});
+
 describe('GET /api/lists/:slug', () => {
   it('returns the list view for a valid session, with the item available', async () => {
     const list = await createList();

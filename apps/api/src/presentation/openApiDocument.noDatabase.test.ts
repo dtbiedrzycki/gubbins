@@ -11,6 +11,6 @@ const { generateOpenApiDocument } = await import('./openApiDocument.js');
 describe('generateOpenApiDocument', () => {
   it('does not open a database', async () => {
     const doc = JSON.parse(await generateOpenApiDocument());
-    expect(Object.keys(doc.paths)).toHaveLength(7);
+    expect(Object.keys(doc.paths)).toHaveLength(8);
   });
 });
