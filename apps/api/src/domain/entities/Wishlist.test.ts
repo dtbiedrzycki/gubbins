@@ -155,13 +155,6 @@ describe('Wishlist.addItem', () => {
     expect(wishlist.items.map((i) => i.title)).toEqual(['Stroller', 'Crib']);
     expect(wishlist.getItem(OTHER_ITEM_ID).title).toBe('Crib');
   });
-
-  it('decides availability per item: a hold on one leaves the other available', () => {
-    const second = Item.reconstitute({ id: OTHER_ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Crib', quantity: 1, seq: 0 });
-    const wishlist = Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [itemOf(), second], holds: [holdOn(ITEM_ID)] });
-    expect(wishlist.itemStatus(ITEM_ID)).toBe('held');
-    expect(wishlist.itemStatus(OTHER_ITEM_ID)).toBe('available');
-  });
 });
 
 describe('Wishlist group gifts', () => {
@@ -389,6 +382,13 @@ describe('Wishlist.holdStatus, canExtendHold and canReleaseHold', () => {
 });
 
 describe('Wishlist.itemStatus — lazy expiry', () => {
+  it('decides availability per item: a hold on one leaves the other available', () => {
+    const second = Item.reconstitute({ id: OTHER_ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Crib', quantity: 1, seq: 0 });
+    const wishlist = Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [itemOf(), second], holds: [holdOn(ITEM_ID)] });
+    expect(wishlist.itemStatus(ITEM_ID)).toBe('held');
+    expect(wishlist.itemStatus(OTHER_ITEM_ID)).toBe('available');
+  });
+
   it('is held up to and including the instant the hold expires, available 1 ms later', () => {
     const hold = holdOn(ITEM_ID);
     expect(loaded({ holds: [hold], asOf: at(3 * DAY) }).itemStatus(ITEM_ID)).toBe('held');

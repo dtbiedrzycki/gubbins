@@ -24,28 +24,25 @@ export interface SessionPayload {
  * list is `accessContextFor`'s question.
  */
 export function readSignedSession(request: FastifyRequest): SessionPayload | null {
-  const raw = request.cookies[SESSION_COOKIE];
-  if (!raw) return null;
-  const unsigned = request.unsignCookie(raw);
-  if (!unsigned.valid || !unsigned.value) return null;
-  try {
-    const payload = JSON.parse(unsigned.value) as Partial<SessionPayload> | null;
-    if (typeof payload?.wishlistId !== 'string' || typeof payload.keyGen !== 'number' || typeof payload.sessionId !== 'string') return null;
-    return { wishlistId: payload.wishlistId, keyGen: payload.keyGen, sessionId: payload.sessionId };
-  } catch {
-    return null;
-  }
+  const payload = readSignedJson<SessionPayload>(request, SESSION_COOKIE);
+  if (typeof payload?.wishlistId !== 'string' || typeof payload.keyGen !== 'number' || typeof payload.sessionId !== 'string') return null;
+  return { wishlistId: payload.wishlistId, keyGen: payload.keyGen, sessionId: payload.sessionId };
 }
 
 /** The signed owner cookie's payload, if validly signed and well formed. */
 export function readOwnerSession(request: FastifyRequest): OwnerSessionPayload | null {
-  const raw = request.cookies[OWNER_COOKIE];
+  const payload = readSignedJson<OwnerSessionPayload>(request, OWNER_COOKIE);
+  return typeof payload?.wishlistId === 'string' ? { wishlistId: payload.wishlistId } : null;
+}
+
+/** A signed cookie's JSON, unchecked; null if missing, badly signed or not JSON. */
+function readSignedJson<T>(request: FastifyRequest, name: string): Partial<T> | null {
+  const raw = request.cookies[name];
   if (!raw) return null;
   const unsigned = request.unsignCookie(raw);
   if (!unsigned.valid || !unsigned.value) return null;
   try {
-    const payload = JSON.parse(unsigned.value) as Partial<OwnerSessionPayload> | null;
-    return typeof payload?.wishlistId === 'string' ? { wishlistId: payload.wishlistId } : null;
+    return JSON.parse(unsigned.value) as Partial<T> | null;
   } catch {
     return null;
   }
