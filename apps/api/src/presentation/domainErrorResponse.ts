@@ -42,7 +42,7 @@ export function domainErrorResponse(err: unknown): { status: 400 | 403 | 404 | 4
   if (err instanceof NoPaymentMethodError) {
     return { status: 409, body: { message: 'Add a Venmo or Zelle handle to this list before adding a group gift.', code: 'no_payment_method' } };
   }
-  // Last, so a subclass mapped above keeps its own status.
+  // Catch-all for rules zod doesn't know; domain messages are written to be shown.
   if (err instanceof DomainValidationError) {
     return { status: 400, body: { message: err.message } };
   }
