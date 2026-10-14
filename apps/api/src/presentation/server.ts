@@ -4,6 +4,7 @@ import { createDb } from '../infrastructure/db/createDb.js';
 import { migrateToLatest } from '../infrastructure/db/migrate.js';
 import { buildDependencies } from './compositionRoot.js';
 import { parseHoldPolicy } from './holdPolicyConfig.js';
+import { parseCookieSecret, parseCreateSecret } from './secretsConfig.js';
 import { buildApp } from './app.js';
 import { ConsoleLogger } from '../infrastructure/ConsoleLogger.js';
 import type { Logger } from '../application/ports/Logger.js';
@@ -18,9 +19,10 @@ async function main(): Promise<void> {
   logger = new ConsoleLogger();
   // Before the database opens: a bad value should stop startup with nothing to clean up.
   const holdPolicy = parseHoldPolicy(process.env);
+  parseCreateSecret(process.env);
   const databasePath = process.env.DATABASE_PATH ?? './data/wishlist.db';
   const port = Number(process.env.PORT ?? 3000);
-  const cookieSecret = process.env.SESSION_COOKIE_SECRET;
+  const cookieSecret = parseCookieSecret(process.env);
   if (!cookieSecret) {
     logger.logWarn('session_cookie_secret_missing', {
       detail: 'Using an insecure development default. Set SESSION_COOKIE_SECRET in .env before deploying.',

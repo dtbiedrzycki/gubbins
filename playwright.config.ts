@@ -20,6 +20,7 @@ export default defineConfig({
       PORT: '3100',
       DATABASE_PATH: ':memory:',
       SESSION_COOKIE_SECRET: 'e2e-test-secret',
+      CREATE_SECRET: 'e2e-create-secret',
       WEB_DIST: path.resolve(__dirname, 'apps/web/dist'),
     },
   },
