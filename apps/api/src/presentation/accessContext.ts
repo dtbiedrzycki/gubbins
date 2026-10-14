@@ -52,7 +52,8 @@ function readSignedJson<T>(request: FastifyRequest, name: string): Partial<T> | 
  * The one place a session becomes an AccessContext. A session from before a
  * key rotation, or for another list, counts as no session at all. The
  * session id is hashed here, so application/ only ever sees the hash that
- * `holds.session_hash` stores — never the raw value.
+ * `holds.session_hash` stores — never the raw value. An owner cookie counts
+ * only for the list it was issued for.
  */
 export function accessContextFor(
   sessions: { guest: SessionPayload | null; owner: OwnerSessionPayload | null },
