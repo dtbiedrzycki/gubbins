@@ -528,6 +528,13 @@ describe('POST /api/lists/:slug/items/:itemId/contributions', () => {
     expect((await pledge(list.slug, other.itemId, await guestOn(list))).statusCode).toBe(404);
   });
 
+  it.each([0, -2500])('answers an amount of %i as an invalid request, not as too much', async (amountMinor) => {
+    const { list, groupId } = await groupGift();
+    const response = await pledge(list.slug, groupId, await guestOn(list), { idempotencyKey: 'idem-1', amountMinor, name: 'Ada' });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ message: 'Invalid request' });
+  });
+
   it('answers 409 item_unavailable for a single item', async () => {
     const list = await createList();
     const response = await pledge(list.slug, list.itemId, await guestOn(list));
