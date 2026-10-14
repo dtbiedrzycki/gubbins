@@ -104,13 +104,14 @@ export class Wishlist {
       | { type: 'group'; title: string; priceMinor: number; url?: string | null },
     ids: { generateEntityId(): string },
   ): Item {
+    // Spread last, so a caller passing extra keys can never override what the aggregate assigns.
     const base = { id: ids.generateEntityId(), wishlistId: this.id.value };
     let item: Item;
     if (props.type === 'group') {
       if (this.paymentMethods.isEmpty()) throw new NoPaymentMethodError();
-      item = Item.createGroup({ ...base, ...props });
+      item = Item.createGroup({ ...props, ...base });
     } else {
-      item = Item.createSingle({ ...base, ...props });
+      item = Item.createSingle({ ...props, ...base });
     }
     this._items.push(item);
     return item;
