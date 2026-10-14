@@ -16,4 +16,5 @@ export * from './enterGuestKey.js';
 export * from './holdItem.js';
 export * from './holdView.js';
 export * from './listView.js';
+export * from './ownerSession.js';
 export * from './errorResponse.js';
