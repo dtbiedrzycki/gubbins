@@ -22,7 +22,7 @@ beforeEach(async () => {
   db = createDb(':memory:');
   await migrateToLatest(db);
   clock = new FixedClock(new Date('2026-01-01T00:00:00.000Z'));
-  deps = buildDependencies(db, silent, { clock });
+  deps = buildDependencies(db, silent, { clock, createSecret: 'test-create-secret' });
 });
 
 afterEach(async () => {
@@ -52,7 +52,7 @@ async function projections() {
 }
 
 async function newList() {
-  const { slug, itemId } = await deps.createList.execute({ listTitle: 'L', itemTitle: 'I' });
+  const { slug, itemId } = await deps.createList.execute({ listTitle: 'L', itemTitle: 'I', createSecret: 'test-create-secret' });
   const wishlist = await deps.wishlists.findBySlug(slug, clock.now());
   const wishlistId = wishlist!.id.value;
   const hold = (access: AccessContext, idempotencyKey: string) => deps.holdItem.execute({ wishlistId, itemId, idempotencyKey }, access);

@@ -2,10 +2,13 @@ import { Wishlist } from '../../domain/entities/Wishlist.js';
 import type { UnitOfWork } from '../ports/UnitOfWork.js';
 import type { TokenGenerator } from '../ports/TokenGenerator.js';
 import type { Clock } from '../ports/Clock.js';
+import type { SecretComparer } from '../ports/SecretComparer.js';
+import { InvalidCreateSecretError } from '../../domain/errors.js';
 
 export interface CreateListInput {
   listTitle: string;
   itemTitle: string;
+  createSecret?: string;
 }
 
 export interface CreateListOutput {
@@ -20,9 +23,15 @@ export class CreateList {
     private unitOfWork: UnitOfWork,
     private tokenGenerator: TokenGenerator,
     private clock: Clock,
+    private secretComparer: SecretComparer,
+    private createSecret: string | null,
   ) {}
 
   async execute(input: CreateListInput): Promise<CreateListOutput> {
+    // Fail closed: no configured secret means no one may create (ADR-0080).
+    if (this.createSecret === null || !this.secretComparer.compareInConstantTime(this.createSecret, input.createSecret ?? '')) {
+      throw new InvalidCreateSecretError();
+    }
     return this.unitOfWork.execute(async (ctx) => {
       const wishlist = Wishlist.create({
         id: this.tokenGenerator.generateEntityId(),
