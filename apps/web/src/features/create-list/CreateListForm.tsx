@@ -5,11 +5,12 @@ import { useCreateList } from './useCreateList';
 export function CreateListForm() {
   const [listTitle, setListTitle] = useState('');
   const [itemTitle, setItemTitle] = useState('');
+  const [createSecret, setCreateSecret] = useState('');
   const { mutate, data, error, isPending } = useCreateList();
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    mutate({ listTitle, itemTitle });
+    mutate({ listTitle, itemTitle, createSecret });
   }
 
   if (data) {
@@ -48,6 +49,14 @@ export function CreateListForm() {
         <label htmlFor="item-title" className="block text-sm font-medium">First item</label>
         <input
           id="item-title" required value={itemTitle} onChange={(e) => setItemTitle(e.target.value)}
+          className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
+        />
+      </div>
+      <div>
+        <label htmlFor="create-secret" className="block text-sm font-medium">Create secret</label>
+        <input
+          id="create-secret" type="password" required value={createSecret}
+          onChange={(e) => setCreateSecret(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>

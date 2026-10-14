@@ -6,6 +6,7 @@ async function guestOnNewList(page: Page, context: BrowserContext): Promise<Page
   await page.goto('/');
   await page.getByLabel('List title').fill('Baby Shower');
   await page.getByLabel('First item').fill('Stroller');
+  await page.getByLabel('Create secret').fill('e2e-create-secret');
   await page.getByRole('button', { name: 'Create list' }).click();
   const guestLink = await page.getByTestId('guest-link').getAttribute('href');
   const guestKey = (await page.getByTestId('guest-key').textContent())?.trim();
