@@ -4,6 +4,7 @@ function venmo(raw: string | null | undefined): string | null {
   const trimmed = (raw ?? '').trim();
   if (trimmed === '') return null;
   const handle = trimmed.startsWith('@') ? trimmed.slice(1) : trimmed;
+  // Venmo's own username rule, so a typo is caught here rather than on the guest's phone.
   if (!/^[A-Za-z0-9_-]{5,30}$/.test(handle)) throw new DomainValidationError('Venmo handle must be 5 to 30 letters, digits, "_" or "-"');
   return handle;
 }
