@@ -33,7 +33,7 @@ function json<T extends z.ZodType>(description: string, schema: T) {
   return { description, content: { 'application/json': { schema } } };
 }
 
-const INVALID_REQUEST = 'The request did not match the schema.';
+const INVALID_REQUEST = 'The request did not match the schema, or a domain rule refused it.';
 const HOLD_NOT_FOUND = "No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable (ADR-0016, ADR-0054).";
 
 export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies): void {
@@ -149,6 +149,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       params: slugParams,
       response: {
         200: json("The list, its item, this session's holds, and what this server does for guests.", listViewResponseSchema),
+        400: json(INVALID_REQUEST, errorResponseSchema),
         404: json('No such list, or no valid session for it. The two are deliberately indistinguishable (ADR-0016, ADR-0054).', errorResponseSchema),
       },
     },
@@ -262,6 +263,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
         params: slugHoldParams,
         response: {
           200: json(done, holdViewSchema),
+          400: json(INVALID_REQUEST, errorResponseSchema),
           404: json(HOLD_NOT_FOUND, errorResponseSchema),
           409: json(conflict, errorResponseSchema),
         },
