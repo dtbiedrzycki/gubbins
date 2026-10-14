@@ -68,6 +68,8 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
   function sendDomainError(reply: FastifyReply, err: unknown) {
     const mapped = domainErrorResponse(err);
     if (!mapped) throw err;
+    // A 400 here is usually a rule zod doesn't know, but can be bad stored data, so keep a trace.
+    if (mapped.status === 400) deps.logger.logWarn('domain_validation_rejected', { message: mapped.body.message, url: reply.request.url });
     return reply.code(mapped.status).send(mapped.body);
   }
 
