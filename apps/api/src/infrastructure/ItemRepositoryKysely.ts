@@ -24,6 +24,7 @@ export class ItemRepositoryKysely implements ItemRepository {
       .selectAll('items')
       .select('item_state.seq as seq')
       .where('wishlist_id', '=', wishlistId)
+      // created_at ties within a millisecond; monotonic v7 ids (ADR-0076) break the tie in insertion order.
       .orderBy('items.created_at').orderBy('items.id')
       .execute();
     return rows.map((row) => Item.reconstitute({
