@@ -52,8 +52,11 @@ describe('0001_init schema', () => {
     await expect(db.insertInto('items').values(row).execute()).rejects.toThrow(/CHECK constraint failed/);
   });
 
-  it('refuses a guest message over 300 characters', async () => {
-    await expect(db.insertInto('guest_pii').values({ id: 'pii-1', name: 'Ada', message: 'x'.repeat(301), redacted_at: null, created_at: NOW }).execute())
+  it.each([
+    ['name over 100 characters', { name: 'x'.repeat(101), message: null }],
+    ['message over 300 characters', { name: 'Ada', message: 'x'.repeat(301) }],
+  ])('refuses a guest %s', async (_case, fields) => {
+    await expect(db.insertInto('guest_pii').values({ id: 'pii-1', ...fields, redacted_at: null, created_at: NOW }).execute())
       .rejects.toThrow(/CHECK constraint failed/);
   });
 
