@@ -44,7 +44,7 @@ export function ItemView({ slug, item, holdDurationDays, focusElsewhere }: ItemV
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">{item.title}</h2>
       {item.priceMinor !== null && <p>{formatMoney(item.priceMinor)}</p>}
-      {item.url && <p><a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2.5 text-blue-700 underline">View in store<span className="sr-only"> for {item.title} (opens in a new tab)</span></a></p>}
+      {item.url && <p><a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2.5 text-blue-700 underline">View in store <span className="sr-only">for {item.title} (opens in a new tab)</span></a></p>}
       {item.type === 'single' && item.status === 'available' && item.availableUnits > 1 && <p>{item.availableUnits} left</p>}
       {/* Mounted while available too: screen readers miss a live region that arrives already filled. */}
       <HeldAnnouncement message={item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is held.` : `${item.title} has been purchased.`} />
