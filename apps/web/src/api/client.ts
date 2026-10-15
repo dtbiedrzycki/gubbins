@@ -1,7 +1,7 @@
 import createClient from 'openapi-fetch';
 import type {
-  CreateListRequest, CreateListResponse, EnterGuestKeyRequest, EnterGuestKeyResponse,
-  HoldItemRequest, HoldItemResponse, HoldView, ListViewResponse,
+  AddItemRequest, AddItemResponse, CreateListRequest, CreateListResponse, EnterGuestKeyRequest, EnterGuestKeyResponse,
+  HoldItemRequest, HoldItemResponse, HoldView, ListViewResponse, OwnerSessionRequest, OwnerSessionResponse,
 } from '@gubbins/shared-types';
 import type { paths } from './schema.gen';
 
@@ -61,6 +61,12 @@ export const api = {
 
   enterGuestKey: (slug: string, input: EnterGuestKeyRequest): Promise<EnterGuestKeyResponse> =>
     http.POST('/api/lists/{slug}/session', { params: { path: { slug } }, body: input }).then(unwrap),
+
+  enterOwnerToken: (slug: string, input: OwnerSessionRequest): Promise<OwnerSessionResponse> =>
+    http.POST('/api/lists/{slug}/owner-session', { params: { path: { slug } }, body: input }).then(unwrap),
+
+  addItem: (slug: string, input: AddItemRequest): Promise<AddItemResponse> =>
+    http.POST('/api/lists/{slug}/items', { params: { path: { slug } }, body: input }).then(unwrap),
 
   getListView: (slug: string): Promise<ListViewResponse> =>
     http.GET('/api/lists/{slug}', { params: { path: { slug } } }).then(unwrap),
