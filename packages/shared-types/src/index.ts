@@ -11,6 +11,7 @@
  * them. When the two overlap, the domain is the authority, so when a rule
  * changes, change it there first.
  */
+export * from './addItem.js';
 export * from './createList.js';
 export * from './enterGuestKey.js';
 export * from './holdItem.js';
