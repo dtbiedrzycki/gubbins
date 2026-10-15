@@ -36,17 +36,14 @@ export class GetListView {
       const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
       if (!wishlist) throw new WishlistNotFoundError(input.wishlistId);
 
-      const pledged = await ctx.contributions.pledgedTotals(wishlist.id.value);
-      const mine = access.guestSession
-        ? await ctx.holds.findForSession(wishlist.id.value, access.guestSession.sessionHash)
-        : [];
+      const mine = access.guestSession ? wishlist.holdsForSession(access.guestSession.sessionHash) : [];
 
       return {
         title: wishlist.title,
         items: wishlist.items.map((i) => ({
           id: i.id.value, title: i.title, type: i.type, status: wishlist.itemStatus(i.id.value),
           availableUnits: wishlist.availableUnitsOf(i.id.value), url: i.url, priceMinor: i.priceMinor,
-          pledgedMinor: i.type === 'group' ? (pledged.get(i.id.value) ?? 0) : null,
+          pledgedMinor: i.type === 'group' ? i.pledgedTotal().amountMinor : null,
         })),
         payment: { venmoHandle: wishlist.paymentMethods.venmoHandle, zelleHandle: wishlist.paymentMethods.zelleHandle },
         // Released holds were the guest's own choice and need no follow-up;
