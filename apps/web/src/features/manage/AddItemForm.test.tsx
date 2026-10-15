@@ -81,9 +81,14 @@ describe('AddItemForm', () => {
     expect(screen.getByLabelText('Price (USD)')).toHaveFocus();
     expect(screen.getByLabelText('Price (USD)')).toHaveAccessibleDescription('Enter a price like 25 or 25.50.');
     expect(called).toBe(false);
+
+    await user.clear(screen.getByLabelText('Price (USD)'));
+    await user.type(screen.getByLabelText('Price (USD)'), '25');
+    expect(screen.getByLabelText('Price (USD)')).not.toBeInvalid();
+    expect(screen.getByRole('alert')).toBeEmptyDOMElement();
   });
 
-  it("shows the server's message when a group gift has no payment method", async () => {
+  it("shows the server's message and keeps what was typed when adding fails", async () => {
     const message = 'Add a Venmo or Zelle handle to this list before adding a group gift.';
     server.use(mock('post', '/api/lists/{slug}/items', 409, { code: 'no_payment_method', message }));
     const user = userEvent.setup();
