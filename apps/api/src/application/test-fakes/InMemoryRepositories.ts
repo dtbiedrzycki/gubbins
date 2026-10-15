@@ -29,6 +29,7 @@ function copyHold(hold: Hold): Hold {
     id: hold.id.value, itemId: hold.itemId.value, secret: hold.secret.value, sessionHash: hold.sessionHash.value,
     idempotencyKey: hold.idempotencyKey.value, expiresAt: hold.expiresAt,
     extendedAt: hold.extendedAt, releasedAt: hold.releasedAt, purchasedAt: hold.purchasedAt,
+    piiRef: hold.piiRef?.value ?? null,
   });
 }
 
@@ -106,12 +107,13 @@ export class InMemoryWishlistRepository implements WishlistRepository {
 export class InMemoryHoldRepository implements HoldRepository {
   constructor(private store: InMemoryStore) {}
 
-  /** Mirrors the table's primary key and UNIQUE (item_id, idempotency_key). */
+  /** Mirrors the table's primary key, UNIQUE (item_id, idempotency_key) and the pii_ref foreign key. */
   async insert(hold: Hold): Promise<void> {
     const clash = this.store.holds.has(hold.id.value) || [...this.store.holds.values()].some(
       (h) => h.itemId.value === hold.itemId.value && h.idempotencyKey.value === hold.idempotencyKey.value,
     );
     if (clash) throw new Error(`UNIQUE constraint failed: holds (${hold.id.value})`);
+    if (hold.piiRef && !this.store.guestPii.has(hold.piiRef.value)) throw new Error(`FOREIGN KEY constraint failed: holds.pii_ref (${hold.piiRef.value})`);
     this.store.holds.set(hold.id.value, copyHold(hold));
   }
 

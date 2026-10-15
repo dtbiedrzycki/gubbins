@@ -22,6 +22,7 @@ const kysely: PersistenceFactory = async () => {
       const rows = await db.selectFrom('event_log').select(['event_type', 'actor', 'payload']).where('item_id', '=', itemId).orderBy('seq').execute();
       return rows.map((row) => ({ type: row.event_type, actor: row.actor, payload: JSON.parse(row.payload) as LedgerEvent }));
     },
+    seedGuestPii: (id) => new GuestPiiRepositoryKysely(db).insert({ id, name: 'Guest', message: null }),
     dispose: () => db.destroy(),
   };
 };

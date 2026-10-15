@@ -40,6 +40,7 @@ export interface HoldsTable {
   extended_at: string | null;
   released_at: string | null;
   purchased_at: string | null;
+  pii_ref: string | null;
   created_at: string;
 }
 

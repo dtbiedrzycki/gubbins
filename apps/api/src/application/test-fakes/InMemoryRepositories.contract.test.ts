@@ -6,10 +6,11 @@ import type { PersistenceFactory } from '../ports/contracts/fixture.js';
 import { InMemoryGuestPiiRepository, InMemoryStore, inMemoryPersistence } from './InMemoryRepositories.js';
 
 const inMemory: PersistenceFactory = async () => {
-  const { wishlists, holds, eventStore } = inMemoryPersistence();
+  const { wishlists, holds, eventStore, guestPii } = inMemoryPersistence();
   return {
     wishlists, holds, eventStore,
     recordedEvents: async (itemId) => eventStore.recorded(itemId).map(({ event, actor }) => ({ type: event.type, actor, payload: event })),
+    seedGuestPii: (id) => guestPii.insert({ id, name: 'Guest', message: null }),
     dispose: async () => {},
   };
 };

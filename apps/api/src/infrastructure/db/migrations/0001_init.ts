@@ -50,6 +50,8 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn('extended_at', 'text')
     .addColumn('released_at', 'text')
     .addColumn('purchased_at', 'text')
+    // The holder's details; null for a hold placed without any. guest_pii is created below: SQLite resolves the reference at write time.
+    .addColumn('pii_ref', 'text', (col) => col.references('guest_pii.id'))
     .addColumn('created_at', 'text', (col) => col.notNull())
     .addUniqueConstraint('holds_item_idempotency_key_unique', ['item_id', 'idempotency_key'])
     // A hold ends one way or the other, never both. A backstop: the domain
