@@ -164,6 +164,8 @@ describe('GET /api/lists/:slug', () => {
     expect(response.json()).toEqual({
       title: 'Baby Shower',
       item: { id: list.itemId, title: 'Stroller', status: 'available' },
+      items: [{ id: list.itemId, title: 'Stroller', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null }],
+      payment: { venmoHandle: null, zelleHandle: null },
       myHolds: [],
       capabilities: { holdDurationDays: 3 },
     });
