@@ -22,7 +22,7 @@ const single = (over: Partial<Item> = {}): Item => ({
 
 function renderItem(status: Item['status'] | Partial<Item> = 'available'): void {
   const item = typeof status === 'string' ? single({ status }) : single(status);
-  const ui: ReactElement = <ItemView slug="abc123" holdDurationDays={3} item={item} payment={payment} />;
+  const ui = <ItemView slug="abc123" holdDurationDays={3} item={item} payment={payment} />;
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}>{ui}</QueryClientProvider>);
 }
 
