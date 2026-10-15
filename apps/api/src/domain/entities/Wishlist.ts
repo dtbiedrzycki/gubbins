@@ -33,7 +33,7 @@ export interface HoldCommandResult<E> {
  * older or newer date than the one it was loaded at.
  */
 export class Wishlist {
-  private _item: Item | null = null;
+  private _items: Item[] = [];
   private _holds: Hold[] = [];
 
   /**
@@ -71,14 +71,15 @@ export class Wishlist {
    */
   static reconstitute(props: {
     id: string; slug: string; title: string; ownerToken: string; key: string; keyGen: number; asOf: Date;
-    item?: Item; holds?: readonly Hold[];
+    items?: readonly Item[]; holds?: readonly Hold[];
   }): Wishlist {
-    if (props.item && props.item.wishlistId.value !== props.id) {
+    const items = props.items ?? [];
+    if (items.some((item) => item.wishlistId.value !== props.id)) {
       throw new DomainValidationError('Item belongs to a different wishlist');
     }
     const holds = props.holds ?? [];
     for (const hold of holds) {
-      if (!props.item || hold.itemId.value !== props.item.id.value) {
+      if (!items.some((item) => item.id.value === hold.itemId.value)) {
         throw new DomainValidationError('Hold belongs to an item outside this wishlist');
       }
     }
@@ -86,26 +87,30 @@ export class Wishlist {
       UuidId.from(props.id), Slug.from(props.slug), props.title,
       OwnerToken.from(props.ownerToken), GuestKey.from(props.key), props.keyGen, new Date(props.asOf.getTime()),
     );
-    wishlist._item = props.item ?? null;
+    wishlist._items = [...items];
     wishlist._holds = [...holds];
     return wishlist;
   }
 
   /**
-   * Creates and attaches this wishlist's item, minting its id via the
+   * Creates and attaches another item to this wishlist, minting its id via the
    * supplied generator (a structural type: domain/ may not import
    * application/, ADR-0012).
    */
   addItem(props: { title: string }, ids: { generateEntityId(): string }): Item {
-    if (this._item !== null) {
-      throw new DomainValidationError('Wishlist already has an item; this slice supports a single item per wishlist');
-    }
-    this._item = Item.createSingle({ id: ids.generateEntityId(), wishlistId: this.id.value, title: props.title });
-    return this._item;
+    const item = Item.createSingle({ id: ids.generateEntityId(), wishlistId: this.id.value, title: props.title });
+    this._items.push(item);
+    return item;
   }
 
+  /** The items, in the order they were added. */
+  get items(): readonly Item[] {
+    return this._items;
+  }
+
+  /** First item; removed once the list view reads `items`. */
   get item(): Item | null {
-    return this._item;
+    return this._items[0] ?? null;
   }
 
   /**
@@ -113,10 +118,9 @@ export class Wishlist {
    * ItemNotFoundError — the aggregate's authorization step for items.
    */
   getItem(itemId: string): Item {
-    if (this._item === null || this._item.id.value !== itemId) {
-      throw new ItemNotFoundError(itemId);
-    }
-    return this._item;
+    const item = this._items.find((i) => i.id.value === itemId);
+    if (item === undefined) throw new ItemNotFoundError(itemId);
+    return item;
   }
 
   /** The loaded instance of an active or purchased hold, or null — a hold not in the snapshot is released or expired. */
@@ -126,7 +130,7 @@ export class Wishlist {
 
   /** Whether `hold` is on one of this wishlist's items: the authorization step for a hold loaded by id, as `getItem` is for items. */
   owns(hold: Hold): boolean {
-    return this._item !== null && hold.itemId.value === this._item.id.value;
+    return this._items.some((i) => i.id.value === hold.itemId.value);
   }
 
   itemStatus(itemId: string): ItemStatus {
@@ -230,7 +234,8 @@ export class Wishlist {
   }
 
   private itemOf(hold: Hold): Item {
-    if (!this.owns(hold)) throw new HoldNotFoundError(hold.id.value);
-    return this._item as Item;
+    const item = this._items.find((i) => i.id.value === hold.itemId.value);
+    if (item === undefined) throw new HoldNotFoundError(hold.id.value);
+    return item;
   }
 }

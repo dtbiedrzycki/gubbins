@@ -8,7 +8,8 @@ import type { Item } from '../../domain/entities/Item.js';
  */
 export interface ItemRepository {
   insert(item: Item): Promise<void>;
-  findByWishlistId(wishlistId: string): Promise<Item | null>;
+  /** In the order they were added. */
+  findAllByWishlistId(wishlistId: string): Promise<Item[]>;
   /** See `WishlistRepository.saveItemState`, which delegates here. */
   saveState(item: Item): Promise<void>;
 }

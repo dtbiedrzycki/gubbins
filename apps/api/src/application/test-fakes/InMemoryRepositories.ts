@@ -65,8 +65,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
 
   async insert(wishlist: Wishlist): Promise<void> {
     this.store.wishlists.set(wishlist.id.value, wishlist);
-    const item = wishlist.item;
-    if (item !== null) this.store.items.set(item.id.value, copyItem(item));
+    for (const item of wishlist.items) this.store.items.set(item.id.value, copyItem(item));
   }
 
   async findBySlug(slug: string, now: Date): Promise<Wishlist | null> {
@@ -86,12 +85,12 @@ export class InMemoryWishlistRepository implements WishlistRepository {
 
   private hydrate(wishlist: Wishlist | undefined, now: Date): Wishlist | null {
     if (wishlist === undefined) return null;
-    const item = [...this.store.items.values()].find((i) => i.wishlistId.value === wishlist.id.value);
+    const items = [...this.store.items.values()].filter((i) => i.wishlistId.value === wishlist.id.value).map(copyItem);
     const holds = this.store.activeOrPurchasedHoldsOnList(wishlist.id.value, now).map(copyHold);
     return Wishlist.reconstitute({
       id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
       ownerToken: wishlist.ownerToken.value, key: wishlist.key.value, keyGen: wishlist.keyGen, asOf: now,
-      item: item ? copyItem(item) : undefined, holds,
+      items, holds,
     });
   }
 }

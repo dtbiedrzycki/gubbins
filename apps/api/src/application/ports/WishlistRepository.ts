@@ -3,14 +3,14 @@ import type { Wishlist } from '../../domain/entities/Wishlist.js';
 
 /**
  * The aggregate's repository (ADR-0078): it loads and stores a `Wishlist`
- * together with its item and the list's active or purchased holds, so callers never
+ * together with its items and the list's active or purchased holds, so callers never
  * assemble an aggregate from separate lookups.
  */
 export interface WishlistRepository {
-  /** Persists the wishlist along with its attached item and that item's state. */
+  /** Persists the wishlist along with its attached items and their state. */
   insert(wishlist: Wishlist): Promise<void>;
   /**
-   * Loads the full aggregate as of `now` — its item and every hold on the
+   * Loads the full aggregate as of `now` — its items and every hold on the
    * list active or purchased at `now` — or null if no such wishlist. The returned
    * aggregate decides as of that instant: its commands and status queries
    * take no time argument, so load and decision share `now`.
