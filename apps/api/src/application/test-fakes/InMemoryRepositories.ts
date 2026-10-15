@@ -185,6 +185,7 @@ export function inMemoryPersistence() {
   const wishlists = new InMemoryWishlistRepository(store);
   const holds = new InMemoryHoldRepository(store);
   const eventStore = new InMemoryEventStore(store);
-  const unitOfWork = new InMemoryUnitOfWork({ wishlists, holds, eventStore });
-  return { store, wishlists, holds, eventStore, unitOfWork };
+  const guestPii = new InMemoryGuestPiiRepository(store);
+  const unitOfWork = new InMemoryUnitOfWork({ wishlists, holds, eventStore, guestPii });
+  return { store, wishlists, holds, eventStore, guestPii, unitOfWork };
 }
