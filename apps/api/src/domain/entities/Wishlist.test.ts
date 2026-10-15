@@ -140,7 +140,7 @@ describe('Wishlist.reconstitute', () => {
 describe('Wishlist.addItem', () => {
   it('attaches an available item it minted the id for, owned by this wishlist', () => {
     const wishlist = Wishlist.create(validProps);
-    const item = wishlist.addItem({ title: 'Cot' }, { generateEntityId: () => ITEM_ID });
+    const item = wishlist.addItem({ type: 'single', title: 'Cot' }, { generateEntityId: () => ITEM_ID });
     expect(wishlist.items).toEqual([item]);
     expect(item.id.value).toBe(ITEM_ID);
     expect(item.wishlistId.value).toBe(WISHLIST_ID);
@@ -158,7 +158,7 @@ describe('Wishlist.addItem', () => {
     const wishlist = Wishlist.create(validProps);
     const ids = [ITEM_ID, OTHER_ITEM_ID];
     let next = 0;
-    for (const title of ['Stroller', 'Crib']) wishlist.addItem({ title }, { generateEntityId: () => ids[next++] });
+    for (const title of ['Stroller', 'Crib']) wishlist.addItem({ type: 'single', title }, { generateEntityId: () => ids[next++] });
     expect(wishlist.items.map((i) => i.title)).toEqual(['Stroller', 'Crib']);
     expect(wishlist.getItem(OTHER_ITEM_ID).title).toBe('Crib');
   });

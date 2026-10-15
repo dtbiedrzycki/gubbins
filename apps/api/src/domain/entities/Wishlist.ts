@@ -100,7 +100,7 @@ export class Wishlist {
    * application/, ADR-0012).
    */
   addItem(
-    props: { type?: 'single'; title: string; quantity?: number; url?: string | null; priceMinor?: number | null }
+    props: { type: 'single'; title: string; quantity?: number; url?: string | null; priceMinor?: number | null }
       | { type: 'group'; title: string; priceMinor: number; url?: string | null },
     ids: { generateEntityId(): string },
   ): Item {

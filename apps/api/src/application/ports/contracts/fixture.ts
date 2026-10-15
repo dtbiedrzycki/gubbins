@@ -35,9 +35,9 @@ export const later = (ms: number) => new Date(NOW.getTime() + ms);
 /** Two one-item lists, A and B, so every suite can check an adapter never answers for the wrong list. */
 export async function seedTwoLists(wishlists: WishlistRepository): Promise<void> {
   const a = Wishlist.create({ id: LIST_A, slug: 'list-a', title: 'List A', ownerToken: 'owner-a', key: 'key-a', asOf: NOW });
-  a.addItem({ title: 'Cot' }, { generateEntityId: () => ITEM_A });
+  a.addItem({ type: 'single', title: 'Cot' }, { generateEntityId: () => ITEM_A });
   const b = Wishlist.create({ id: LIST_B, slug: 'list-b', title: 'List B', ownerToken: 'owner-b', key: 'key-b', asOf: NOW });
-  b.addItem({ title: 'Pram' }, { generateEntityId: () => ITEM_B });
+  b.addItem({ type: 'single', title: 'Pram' }, { generateEntityId: () => ITEM_B });
   await wishlists.insert(a);
   await wishlists.insert(b);
 }
