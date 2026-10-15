@@ -55,11 +55,11 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       <fieldset className="flex gap-4">
         <legend className="text-sm font-medium">Kind of item</legend>
         <label className="flex min-h-11 items-center gap-2">
-          <input type="radio" name="type" checked={type === 'single'} onChange={() => setType('single')} />
+          <input type="radio" name="type" checked={type === 'single'} onChange={() => { setType('single'); setPriceError(''); }} />
           Single item
         </label>
         <label className="flex min-h-11 items-center gap-2">
-          <input type="radio" name="type" checked={type === 'group'} onChange={() => setType('group')} />
+          <input type="radio" name="type" checked={type === 'group'} onChange={() => { setType('group'); setPriceError(''); }} />
           Group gift
         </label>
       </fieldset>

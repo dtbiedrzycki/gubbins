@@ -82,6 +82,10 @@ describe('AddItemForm', () => {
     expect(screen.getByLabelText('Price (USD)')).toHaveAccessibleDescription('Enter a price like 25 or 25.50.');
     expect(called).toBe(false);
 
+    await user.click(screen.getByLabelText('Group gift'));
+    expect(screen.getByLabelText('Price (USD)')).not.toBeInvalid();
+    expect(screen.getByRole('alert')).toBeEmptyDOMElement();
+
     await user.clear(screen.getByLabelText('Price (USD)'));
     await user.type(screen.getByLabelText('Price (USD)'), '25');
     expect(screen.getByLabelText('Price (USD)')).not.toBeInvalid();
