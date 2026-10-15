@@ -144,7 +144,7 @@ export class Item {
       idempotencyKey: props.idempotencyKey,
       piiRef: props.piiRef ?? null,
       expiresAt: new Date(props.at.getTime() + props.durationMs),
-      now: props.at,
+      at: props.at,
     });
     const event: ItemHeldEvent = {
       type: 'ItemHeld',
