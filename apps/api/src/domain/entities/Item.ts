@@ -3,10 +3,23 @@ import type { ItemHeldEvent } from '../events/ItemHeldEvent.js';
 import { Hold } from './Hold.js';
 import { UuidId } from '../value-objects/UuidId.js';
 
+export type ItemType = 'single' | 'group';
+export const MAX_MONEY_MINOR = 10 ** 12; // ADR-0061: keeps sums in safe-integer range
+const MAX_URL_LENGTH = 2048; // the de facto browser/CDN limit; bounds stored input
+
 export type ItemStatus = 'available' | 'held' | 'purchased';
 
 function isNonNegativeInteger(value: number): boolean {
   return Number.isInteger(value) && value >= 0;
+}
+
+function isHttpsUrl(url: string): boolean {
+  if (url.length > MAX_URL_LENGTH) return false;
+  try {
+    return new URL(url).protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 export class Item {
@@ -21,33 +34,53 @@ export class Item {
   private constructor(
     readonly id: UuidId,
     readonly wishlistId: UuidId,
-    readonly type: 'single',
+    readonly type: ItemType,
     readonly title: string,
     readonly quantity: number,
+    readonly url: string | null,
+    readonly priceMinor: number | null,
     private _seq: number,
   ) {
     if (title.trim().length === 0) throw new DomainValidationError('Item title must not be empty');
     if (title.length > 120) throw new DomainValidationError('Item title must be at most 120 characters');
-    if (type !== 'single') throw new DomainValidationError('Item type must be "single"; this slice supports no other variant');
+    if (type !== 'single' && type !== 'group') throw new DomainValidationError('Item type must be "single" or "group"');
     if (!Number.isInteger(quantity) || quantity < 1) throw new DomainValidationError('Item quantity must be a positive integer');
+    if (url !== null && !isHttpsUrl(url)) throw new DomainValidationError(`Item URL must be an https URL of at most ${MAX_URL_LENGTH} characters`);
+    if (priceMinor !== null && (!Number.isSafeInteger(priceMinor) || priceMinor < 1 || priceMinor > MAX_MONEY_MINOR)) {
+      throw new DomainValidationError('Item price must be a positive whole number of minor units within the limit');
+    }
+    if (type === 'group' && (priceMinor === null || quantity !== 1)) throw new DomainValidationError('A group gift is one unit with a price');
     if (!isNonNegativeInteger(_seq)) throw new DomainValidationError('Item seq must be a non-negative integer');
   }
 
-  static createSingle(props: { id: string; wishlistId: string; title: string }): Item {
-    return new Item(UuidId.from(props.id), UuidId.from(props.wishlistId), 'single', props.title.trim(), 1, 0);
+  static createSingle(props: {
+    id: string; wishlistId: string; title: string; quantity?: number; url?: string | null; priceMinor?: number | null;
+  }): Item {
+    return new Item(
+      UuidId.from(props.id), UuidId.from(props.wishlistId), 'single', props.title.trim(), props.quantity ?? 1,
+      props.url ?? null, props.priceMinor ?? null, 0,
+    );
+  }
+
+  static createGroup(props: { id: string; wishlistId: string; title: string; priceMinor: number; url?: string | null }): Item {
+    return new Item(
+      UuidId.from(props.id), UuidId.from(props.wishlistId), 'group', props.title.trim(), 1,
+      props.url ?? null, props.priceMinor, 0,
+    );
   }
 
   /**
    * Reconstructs an Item from persisted fields. `type` stays a `string` so
    * infrastructure can pass `row.type` straight through; the constructor
-   * rejects anything but 'single', so the cast below weakens nothing.
+   * rejects anything but a known type, so the cast below weakens nothing.
    */
   static reconstitute(props: {
-    id: string; wishlistId: string; type: string; title: string; quantity: number; seq: number;
+    id: string; wishlistId: string; type: string; title: string; quantity: number;
+    url?: string | null; priceMinor?: number | null; seq: number;
   }): Item {
     return new Item(
-      UuidId.from(props.id), UuidId.from(props.wishlistId), props.type as 'single',
-      props.title, props.quantity, props.seq,
+      UuidId.from(props.id), UuidId.from(props.wishlistId), props.type as ItemType,
+      props.title, props.quantity, props.url ?? null, props.priceMinor ?? null, props.seq,
     );
   }
 
@@ -96,6 +129,8 @@ export class Item {
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): { hold: Hold; event: ItemHeldEvent; expectedSeq: number } {
+    // Group gifts take pledges, never holds; the UI never offers one.
+    if (this.type === 'group') throw new ItemUnavailableError(this.id.value);
     if (this.availableUnits(activeHolds, purchasedCount) === 0) throw new ItemUnavailableError(this.id.value);
 
     const hold = Hold.create({

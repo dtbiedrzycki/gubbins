@@ -24,6 +24,29 @@ describe('Item.createSingle', () => {
   });
 });
 
+describe('Item kinds, URL and price', () => {
+  const ID = ITEM_ID;
+  const WL = WISHLIST_ID;
+  it.each(['javascript:alert(1)', 'http://shop.example/x', 'data:text/html,hi', 'shop.example', 'https://' + 'a'.repeat(2050)])('refuses a store URL that is not a short https URL (%j)', (url) => {
+    expect(() => Item.createSingle({ id: ID, wishlistId: WL, title: 'T', url })).toThrow(DomainValidationError);
+  });
+  it('accepts an https store URL', () => {
+    expect(Item.createSingle({ id: ID, wishlistId: WL, title: 'T', url: 'https://shop.example/x' }).url).toBe('https://shop.example/x');
+  });
+  it.each([0, -1, 1.5, 10 ** 12 + 1])('refuses price %j', (priceMinor) => {
+    expect(() => Item.createSingle({ id: ID, wishlistId: WL, title: 'T', priceMinor })).toThrow(DomainValidationError);
+  });
+  it('creates a single with the quantity given', () => {
+    expect(Item.createSingle({ id: ID, wishlistId: WL, title: 'T', quantity: 3 }).quantity).toBe(3);
+  });
+  it('creates a group gift as one unit, refusing one without a price or with a quantity other than 1', () => {
+    const group = Item.createGroup({ id: ID, wishlistId: WL, title: 'Mixer', priceMinor: 45000 });
+    expect([group.type, group.quantity, group.priceMinor]).toEqual(['group', 1, 45000]);
+    expect(() => Item.reconstitute({ id: ID, wishlistId: WL, type: 'group', title: 'M', quantity: 1, url: null, priceMinor: null, seq: 0 })).toThrow(DomainValidationError);
+    expect(() => Item.reconstitute({ id: ID, wishlistId: WL, type: 'group', title: 'M', quantity: 2, url: null, priceMinor: 45000, seq: 0 })).toThrow(DomainValidationError);
+  });
+});
+
 describe('Item availability — from hold state, never a stored counter', () => {
   it('starts a new item at seq 0, and available', () => {
     const item = Item.createSingle({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Stroller' });
@@ -100,6 +123,11 @@ describe('Item.placeHold', () => {
     expect(() => item.placeHold(holdProps, 0, 1, fakeTokens, fakeHasher)).toThrow(ItemUnavailableError);
   });
 
+  it('cannot be held when it is a group gift', () => {
+    const group = Item.createGroup({ id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Mixer', priceMinor: 45000 });
+    expect(() => group.placeHold(holdProps, 0, 0, fakeTokens, fakeHasher)).toThrow(ItemUnavailableError);
+  });
+
   it('rejects a duration that does not put the expiry in the future', () => {
     expect(() => available().placeHold({ ...holdProps, durationMs: 0 }, 0, 0, fakeTokens, fakeHasher)).toThrow(DomainValidationError);
   });
@@ -135,7 +163,7 @@ describe('Item.reconstitute', () => {
     expect(() => Item.reconstitute({ ...base, quantity: 1.5 })).toThrow(DomainValidationError);
   });
 
-  it('rejects a type other than single', () => {
+  it('refuses an unknown type', () => {
     expect(() => Item.reconstitute({ ...base, type: 'bundle' })).toThrow(DomainValidationError);
   });
 

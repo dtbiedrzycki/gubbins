@@ -3,8 +3,9 @@ import { Wishlist } from './Wishlist.js';
 import { Item } from './Item.js';
 import { Hold } from './Hold.js';
 import {
-  DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError,
+  DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError, NoPaymentMethodError,
 } from '../errors.js';
+import { PaymentMethods } from '../value-objects/PaymentMethods.js';
 
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
 const OTHER_WISHLIST_ID = '99999999-9999-7999-8999-999999999999';
@@ -146,6 +147,13 @@ describe('Wishlist.addItem', () => {
     expect(wishlist.itemStatus(ITEM_ID)).toBe('available');
   });
 
+  it('keeps the id and wishlist it assigned even if the caller passes its own', () => {
+    const wishlist = Wishlist.create(validProps);
+    const smuggled = { type: 'single' as const, title: 'Cot', id: OTHER_ITEM_ID, wishlistId: 'someone-else' };
+    const item = wishlist.addItem(smuggled, { generateEntityId: () => ITEM_ID });
+    expect([item.id.value, item.wishlistId.value]).toEqual([ITEM_ID, WISHLIST_ID]);
+  });
+
   it('takes several items, each reachable by id', () => {
     const wishlist = Wishlist.create(validProps);
     const ids = [ITEM_ID, OTHER_ITEM_ID];
@@ -153,6 +161,18 @@ describe('Wishlist.addItem', () => {
     for (const title of ['Stroller', 'Crib']) wishlist.addItem({ title }, { generateEntityId: () => ids[next++] });
     expect(wishlist.items.map((i) => i.title)).toEqual(['Stroller', 'Crib']);
     expect(wishlist.getItem(OTHER_ITEM_ID).title).toBe('Crib');
+  });
+});
+
+describe('Wishlist group gifts', () => {
+  const ids = { generateEntityId: () => ITEM_ID };
+  it('refuses a group gift on a list with no payment method', () => {
+    const wishlist = Wishlist.create(validProps);
+    expect(() => wishlist.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, ids)).toThrow(NoPaymentMethodError);
+  });
+  it('accepts a group gift once the list has a payment method', () => {
+    const wishlist = Wishlist.create({ ...validProps, paymentMethods: PaymentMethods.from({ venmoHandle: 'my-venmo' }) });
+    expect(wishlist.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, ids).type).toBe('group');
   });
 });
 
