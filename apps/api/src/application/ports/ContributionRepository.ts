@@ -1,10 +1,12 @@
 import type { Contribution } from '../../domain/entities/Contribution.js';
 
+/**
+ * The `Wishlist` repository's collaborator for contribution rows (ADR-0078),
+ * not a use-case-facing port. Every method's behaviour is pinned by
+ * `contributionRepository.contract.ts` against every implementation.
+ */
 export interface ContributionRepository {
   insert(contribution: Contribution): Promise<void>;
-  findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<Contribution | null>;
   /** Every contribution on the list's items, oldest pledge first: what the `Wishlist` aggregate loads. */
   findForWishlist(wishlistId: string): Promise<Contribution[]>;
-  /** Sum of pledged amounts per item on the list; items with none are absent. Computed from the rows, never stored (D21). */
-  pledgedTotals(wishlistId: string): Promise<Map<string, number>>;
 }

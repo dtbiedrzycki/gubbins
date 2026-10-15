@@ -19,8 +19,7 @@ function toHold(row: Selectable<HoldsTable>): Hold {
 /**
  * The lifecycle columns as the domain left them. Every instant goes through
  * toISOString(), so the stored text has one fixed shape (UTC, milliseconds,
- * `Z`) and string comparison in SQL is time order — findActiveOrPurchasedForWishlist
- * depends on that.
+ * `Z`) and string comparison in SQL is time order.
  */
 function lifecycleColumns(hold: Hold) {
   return {
@@ -46,50 +45,12 @@ export class HoldRepositoryKysely implements HoldRepository {
     if (result.numUpdatedRows === 0n) throw new Error(`No hold ${hold.id.value} to save`);
   }
 
-  async findById(holdId: string): Promise<Hold | null> {
-    const row = await this.db.selectFrom('holds').selectAll().where('id', '=', holdId).executeTakeFirst();
-    return row ? toHold(row) : null;
-  }
-
-  async findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<Hold | null> {
-    const row = await this.db.selectFrom('holds').selectAll()
-      .where('item_id', '=', itemId).where('idempotency_key', '=', idempotencyKey).executeTakeFirst();
-    return row ? toHold(row) : null;
-  }
-
   async findForWishlist(wishlistId: string): Promise<Hold[]> {
     const rows = await this.db.selectFrom('holds')
       .innerJoin('items', 'items.id', 'holds.item_id')
       .selectAll('holds')
       .where('items.wishlist_id', '=', wishlistId)
       .orderBy('holds.expires_at').orderBy('holds.id')
-      .execute();
-    return rows.map(toHold);
-  }
-
-  async findActiveOrPurchasedForWishlist(wishlistId: string, now: Date): Promise<Hold[]> {
-    const rows = await this.db.selectFrom('holds')
-      .innerJoin('items', 'items.id', 'holds.item_id')
-      .selectAll('holds')
-      .where('items.wishlist_id', '=', wishlistId)
-      .where((eb) => eb.or([
-        eb('holds.purchased_at', 'is not', null),
-        // Active means now <= expiresAt — still active at the very instant it
-        // expires — so the boundary row is included.
-        eb.and([eb('holds.released_at', 'is', null), eb('holds.expires_at', '>=', now.toISOString())]),
-      ]))
-      .orderBy('holds.expires_at')
-      .execute();
-    return rows.map(toHold);
-  }
-
-  async findForSession(wishlistId: string, sessionHash: string): Promise<Hold[]> {
-    const rows = await this.db.selectFrom('holds')
-      .innerJoin('items', 'items.id', 'holds.item_id')
-      .selectAll('holds')
-      .where('items.wishlist_id', '=', wishlistId)
-      .where('holds.session_hash', '=', sessionHash)
-      .orderBy('holds.expires_at')
       .execute();
     return rows.map(toHold);
   }
