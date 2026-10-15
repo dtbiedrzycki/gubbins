@@ -1,7 +1,8 @@
-# 0078. Wishlist is the aggregate root for its items and holds
+# 0078. Wishlist is the aggregate root for its items, holds and contributions
 
 - **Status:** Accepted
 - **Date:** 2026-09-13
+- **Amended:** 2026-10-15. Holds and contributions moved inside the aggregate, and the whole list is now loaded.
 - **Deciders:** dtbiedrzycki
 
 ## Context
@@ -33,15 +34,17 @@ We will treat `Wishlist` as the aggregate root.
   `Wishlist.getItem` is the authorization step. Repositories load and
   store the whole aggregate. There is no use-case-facing item
   repository.
-- `Hold` is its own aggregate, referenced by `itemId`; `Contribution`
-  will be too. The wishlist authorizes and decides commands on holds
-  (`holdItem`, `extendHold`, `releaseHold`, `purchaseHold`), and the
-  use case persists the results in the same unit of work. A purchase
-  is a terminal state of a `Hold`, not a separate aggregate.
-- The aggregate carries a snapshot of the list's active holds, loaded
-  with it, so list-wide rules (availability from hold state, the
-  session cap) are decided in the domain rather than in a use case or
-  a query.
+- The boundary is `Wishlist → Item → Hold / Contribution`. `Hold` and
+  `Contribution` are entities nested under their `Item`, not aggregates
+  of their own. The wishlist authorizes (`getItem`, `owns`) and owns
+  rules that span items; an item decides on its own holds and
+  contributions (availability, purchased count, placing a hold,
+  pledging); a hold or contribution records its own lifecycle. A
+  purchase is a terminal state of a `Hold`.
+- Repositories load and save the whole aggregate: the list, every item,
+  and every hold and contribution on it. There are no use-case-facing
+  hold or contribution repositories. A command's only other port calls
+  are the event append and records outside the aggregate.
 - Event streams stay per item. The aggregate decides; each item's
   stream records the decision and is where seq-based concurrency
   applies.
@@ -60,18 +63,26 @@ We will treat `Wishlist` as the aggregate root.
 - **No explicit root (a repository per entity, rules in use cases)** —
   rejected: this is the shape the skeleton reviews found rules leaking
   out of, including a write path that decided availability.
+- **`Hold` (and `Contribution`) as aggregates of their own** — the
+  original form of this ADR, rejected on 2026-10-15: the wishlist
+  created and changed holds anyway, so each use case cascaded the
+  writes by hand (event, hold, item state) and repeated that cascade.
+  The quantity rule spans an item and all its holds, so they belong
+  inside one boundary.
 
 ## Consequences
 
-- Loading the aggregate loads its active holds. The load stays bounded
-  because only active holds are loaded, never expired or closed ones,
-  and a port contract suite pins that boundary (holds-lifecycle D8).
+- Loading the aggregate loads every hold and contribution on the list,
+  as it loads every item. Expired holds are never closed (lazy expiry),
+  so the load grows with a list's history; at the scale the
+  performance & resource budget assumes this is small. Revisit if a
+  list's history grows large.
 - Cross-item rules are read inside the same transaction as the append,
   serialized by `BEGIN IMMEDIATE`
   ([backend architecture](../spec/backend-architecture.md)).
 - The write path persists only what the domain decided
   (`WishlistRepository.save`) and never recomputes it.
-- A list with very many active holds makes each command's load larger.
+- A list with a long hold history makes each command's load larger.
   That is acceptable at the scale the
   [performance & resource budget](../spec/performance-and-resource-budget.md)
   assumes; revisit if measurement says otherwise.

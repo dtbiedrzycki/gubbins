@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-09
+- **Amended:** 2026-10-15. The arithmetic guard also bounds each item's pledged total, and zero is a valid amount.
 - **Deciders:** dtbiedrzycki
 
 ## Context
@@ -86,3 +87,9 @@ currency-independent answer to "how much is too much" exists.
   with [threat model summary](../spec/threat-model-summary.md)'s
   existing stance that detection-and-reversal, not prevention, is the
   answer to a keyed guest.
+- The arithmetic guard (`MAX_MONEY_MINOR`, 10¹² minor units) bounds an
+  item's pledged total as well as each pledge: a pledge that would take
+  the total past it is refused like an oversized pledge. Sums of stored
+  amounts then stay in safe-integer range, which is what the guard is
+  for. An amount may be zero (an item with no pledges totals zero); a
+  pledge itself must still be more than zero.

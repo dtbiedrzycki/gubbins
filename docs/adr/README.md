@@ -10,6 +10,9 @@ the choice made, and the consequences accepted.
 - Start from [`0000-adr-template.md`](0000-adr-template.md).
 - An accepted ADR is immutable. To change a decision, write a new ADR
   and mark the old one `Superseded by NNNN` (and vice-versa).
+- Until the first release, an accepted ADR may be amended in place
+  instead: add an `Amended:` line with the date and what changed.
+  After the first release, supersede it as above.
 - Keep them short. Link to code, issues, or other ADRs rather than
   restating them.
 - **Date** is the date the decision was actually made — set it to the
