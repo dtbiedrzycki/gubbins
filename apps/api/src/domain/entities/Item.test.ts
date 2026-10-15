@@ -284,7 +284,8 @@ describe('Item.pledge', () => {
     expect(() => item.pledge({ ...props, amountMinor: 100 }, ids)).not.toThrow();
     expect(() => item.pledge({ ...props, idempotencyKey: 'k2', amountMinor: 1 }, ids)).toThrow(ContributionAmountError);
   });
-  it('rejects loaded pledges that total more than the limit', () => {
+  it('accepts loaded pledges that total the limit, and rejects more', () => {
+    expect(() => fundedGroup(MAX_MONEY_MINOR)).not.toThrow();
     expect(() => fundedGroup(MAX_MONEY_MINOR, 1)).toThrow(DomainValidationError);
   });
   it('refuses a pledge on a single item', () => {
