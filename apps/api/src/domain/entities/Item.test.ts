@@ -99,17 +99,12 @@ describe('Item holds', () => {
     expect(Item.reconstitute({ ...base, asOf: new Date(T0.getTime() + 1), holds: [hold] }).status()).toBe('available');
   });
 
-  it('counts purchased holds, and is purchased once they cover the quantity', () => {
-    const item = Item.reconstitute({ ...base, holds: [holdOn({ purchasedAt: T0 })] });
-    expect(item.purchasedCount()).toBe(1);
-    expect(item.status()).toBe('purchased');
-  });
-
-  it('counts purchased holds, zero when there are none, and not as active', () => {
+  it('counts purchased holds, zero when there are none and not as active, and is purchased once they cover the quantity', () => {
     const item = Item.reconstitute({ ...base, quantity: 4, holds: [holdOn({ purchasedAt: T0 }), holdOn({ purchasedAt: T0 }), holdOn()] });
     expect(item.purchasedCount()).toBe(2);
     expect(item.availableUnits()).toBe(1);
     expect(Item.reconstitute(base).purchasedCount()).toBe(0);
+    expect(Item.reconstitute({ ...base, holds: [holdOn({ purchasedAt: T0 })] }).status()).toBe('purchased');
   });
 
   it('counts neither a released nor an expired hold', () => {
@@ -289,7 +284,8 @@ describe('Item.pledge', () => {
     expect(() => item.pledge({ ...props, amountMinor: 100 }, ids)).not.toThrow();
     expect(() => item.pledge({ ...props, idempotencyKey: 'k2', amountMinor: 1 }, ids)).toThrow(ContributionAmountError);
   });
-  it('rejects loaded pledges that total more than the limit', () => {
+  it('accepts loaded pledges that total the limit, and rejects more', () => {
+    expect(() => fundedGroup(MAX_MONEY_MINOR)).not.toThrow();
     expect(() => fundedGroup(MAX_MONEY_MINOR, 1)).toThrow(DomainValidationError);
   });
   it('refuses a pledge on a single item', () => {
