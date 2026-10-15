@@ -7,6 +7,7 @@ import type { Hold } from '../../domain/entities/Hold.js';
  * implementation.
  */
 export interface HoldRepository {
+  /** Use cases persist holds through `WishlistRepository.save`, which calls this and `save`. */
   insert(hold: Hold): Promise<void>;
   /** Persists the hold's lifecycle — expiry and its extended/released/purchased instants — as the domain left them. */
   save(hold: Hold): Promise<void>;

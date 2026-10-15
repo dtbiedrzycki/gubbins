@@ -51,6 +51,14 @@ export class WishlistRepositoryKysely implements WishlistRepository {
       if (seq === undefined) await this.items.insert(item);
       else if (seq !== item.seq) await this.items.saveState(item);
     }
+    // After the items, so a new hold's item row already exists.
+    const holdIds = wishlist.holds.map((hold) => hold.id.value);
+    const storedHolds = holdIds.length === 0 ? new Set<string>()
+      : new Set((await this.db.selectFrom('holds').select('id').where('id', 'in', holdIds).execute()).map((row) => row.id));
+    for (const hold of wishlist.holds) {
+      if (storedHolds.has(hold.id.value)) await this.holds.save(hold);
+      else await this.holds.insert(hold);
+    }
   }
 
   /**

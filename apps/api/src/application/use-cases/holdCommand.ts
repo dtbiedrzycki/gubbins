@@ -57,7 +57,6 @@ export async function runHoldCommand<E extends LedgerEvent>(
   const { item, event, expectedSeq } = decide(wishlist, hold);
 
   await ctx.eventStore.append(item.id.value, expectedSeq, [event], actor);
-  await ctx.holds.save(hold);
   await ctx.wishlists.save(wishlist);
   return toHoldView(wishlist, hold);
 }
