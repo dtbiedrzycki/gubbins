@@ -4,7 +4,7 @@ import { Money } from '../value-objects/Money.js';
 import { SessionHash } from '../value-objects/SessionHash.js';
 import { UuidId } from '../value-objects/UuidId.js';
 
-/** A guest's pledge toward a group gift. Its own aggregate, referenced by itemId. */
+/** A guest's pledge toward a group gift: an entity inside the Wishlist aggregate, under its Item (ADR-0078). */
 export class Contribution {
   private constructor(
     readonly id: UuidId,
