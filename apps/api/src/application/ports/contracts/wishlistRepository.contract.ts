@@ -45,20 +45,14 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(await fx.wishlists.findById('00000000-0000-7000-8000-999999999999', NOW)).toBeNull();
     });
 
-    it("loads the list's holds active or purchased at now, and no others", async () => {
-      const active = holdFixture();
-      const purchased = holdFixture({ purchasedAt: later(-5), expiresAt: later(-1) });
-      const expired = holdFixture({ expiresAt: later(-1) });
-      const released = holdFixture({ releasedAt: later(-5) });
+    it('loads every hold on the list, whatever its state, and none from another list', async () => {
+      const mine = [holdFixture(), holdFixture({ purchasedAt: later(-5), expiresAt: later(-1) }), holdFixture({ expiresAt: later(-1) }), holdFixture({ releasedAt: later(-5) })];
       const elsewhere = holdFixture({ itemId: ITEM_B });
-      for (const hold of [active, purchased, expired, released, elsewhere]) await fx.holds.insert(hold);
+      for (const hold of [...mine, elsewhere]) await fx.holds.insert(hold);
 
       const loaded = await fx.wishlists.findById(LIST_A, NOW);
 
-      expect(loaded?.findHold(active.id.value)?.id.value).toBe(active.id.value);
-      expect(loaded?.findHold(purchased.id.value)?.id.value).toBe(purchased.id.value);
-      expect(loaded?.findHold(expired.id.value)).toBeNull();
-      expect(loaded?.findHold(released.id.value)).toBeNull();
+      for (const hold of mine) expect(loaded?.findHold(hold.id.value)?.id.value).toBe(hold.id.value);
       expect(loaded?.findHold(elsewhere.id.value)).toBeNull();
     });
 
@@ -96,11 +90,11 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(reloaded?.itemStatus(ITEM_A)).toBe('purchased');
     });
 
-    it('save persists the purchase of an expired hold, which the load left out', async () => {
+    it('save persists the purchase of an expired hold', async () => {
       const hold = holdFixture({ expiresAt: later(-1) });
       await fx.holds.insert(hold);
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
-      wishlist.purchaseHold((await fx.holds.findById(hold.id.value))!);
+      wishlist.purchaseHold(wishlist.findHold(hold.id.value)!);
 
       await fx.wishlists.save(wishlist);
 

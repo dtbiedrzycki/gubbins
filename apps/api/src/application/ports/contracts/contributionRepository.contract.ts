@@ -85,6 +85,16 @@ export function describeContributionRepositoryContract(adapter: string, factory:
       expect(await fx.contributions.pledgedTotals(LIST_X)).toEqual(new Map([[MIXER, 4000], [STROLLER, 7000]]));
     });
 
+    it("findForWishlist returns every contribution on the list's items, oldest pledge first, and none from another list", async () => {
+      const first = pledge(MIXER, 2500);
+      const second = pledge(STROLLER, 1500);
+      for (const c of [first, second, pledge(OTHER_LIST_ITEM, 1000)]) await fx.contributions.insert(c);
+
+      const found = await fx.contributions.findForWishlist(LIST_X);
+
+      expect(found.map((c) => c.id.value)).toEqual([first.id.value, second.id.value]);
+    });
+
     it('leaves out items with no pledges', async () => {
       await fx.contributions.insert(pledge(MIXER, 2500));
       expect((await fx.contributions.pledgedTotals(LIST_X)).has(STROLLER)).toBe(false);

@@ -57,6 +57,16 @@ export class HoldRepositoryKysely implements HoldRepository {
     return row ? toHold(row) : null;
   }
 
+  async findForWishlist(wishlistId: string): Promise<Hold[]> {
+    const rows = await this.db.selectFrom('holds')
+      .innerJoin('items', 'items.id', 'holds.item_id')
+      .selectAll('holds')
+      .where('items.wishlist_id', '=', wishlistId)
+      .orderBy('holds.expires_at').orderBy('holds.id')
+      .execute();
+    return rows.map(toHold);
+  }
+
   async findActiveOrPurchasedForWishlist(wishlistId: string, now: Date): Promise<Hold[]> {
     const rows = await this.db.selectFrom('holds')
       .innerJoin('items', 'items.id', 'holds.item_id')

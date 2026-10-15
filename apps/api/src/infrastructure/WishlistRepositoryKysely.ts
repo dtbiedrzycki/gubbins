@@ -55,6 +55,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     const holdIds = wishlist.holds.map((hold) => hold.id.value);
     const storedHolds = holdIds.length === 0 ? new Set<string>()
       : new Set((await this.db.selectFrom('holds').select('id').where('id', 'in', holdIds).execute()).map((row) => row.id));
+    // shortcut: writes every loaded hold, changed or not; compare lifecycle columns first if a list's hold history grows large.
     for (const hold of wishlist.holds) {
       if (storedHolds.has(hold.id.value)) await this.holds.save(hold);
       else await this.holds.insert(hold);
@@ -62,13 +63,12 @@ export class WishlistRepositoryKysely implements WishlistRepository {
   }
 
   /**
-   * Active and purchased holds only, so the aggregate stays bounded however
-   * long the list has been in use. `now` is both the hold query's instant and
-   * the aggregate's `asOf`, so load and decision share it.
+   * Every hold on the list, like its items (ADR-0078). `now` is the
+   * aggregate's `asOf`, the one instant it decides at.
    */
   private async hydrate(row: Selectable<WishlistsTable>, now: Date): Promise<Wishlist> {
     const items = await this.items.findAllByWishlistId(row.id);
-    const holds = await this.holds.findActiveOrPurchasedForWishlist(row.id, now);
+    const holds = await this.holds.findForWishlist(row.id);
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
       ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now,

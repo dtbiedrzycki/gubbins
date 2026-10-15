@@ -64,6 +64,16 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
       expect(reloaded).toEqual(hold);
     });
 
+    it("findForWishlist returns every hold on the list's items, whatever its state, and none from another list", async () => {
+      const mine = [holdFixture(), holdFixture({ expiresAt: later(-1) }), holdFixture({ releasedAt: later(-5) }), holdFixture({ purchasedAt: later(-5) })];
+      for (const hold of mine) await fx.holds.insert(hold);
+      await fx.holds.insert(holdFixture({ itemId: ITEM_B }));
+
+      const found = await fx.holds.findForWishlist(LIST_A);
+
+      expect(found.map((h) => h.id.value).sort()).toEqual(mine.map((h) => h.id.value).sort());
+    });
+
     describe('findActiveOrPurchasedForWishlist', () => {
       it.each([
         ['expired 1 ms ago', { expiresAt: later(-1) }, false],
