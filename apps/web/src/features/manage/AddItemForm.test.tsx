@@ -67,6 +67,8 @@ describe('AddItemForm', () => {
   });
 
   it('rejects an unreadable price without calling the server', async () => {
+    let called = false;
+    server.use(http.post('/api/lists/:slug/items', () => { called = true; return HttpResponse.json({ itemId: 'i1' }, { status: 201 }); }));
     const user = userEvent.setup();
     renderForm(<AddItemForm slug="abc123" onUnauthorized={() => {}} />);
 
@@ -75,6 +77,10 @@ describe('AddItemForm', () => {
     await user.click(screen.getByRole('button', { name: 'Add item' }));
 
     expect(screen.getByRole('alert')).toHaveTextContent('Enter a price like 25 or 25.50.');
+    expect(screen.getByLabelText('Price (USD)')).toBeInvalid();
+    expect(screen.getByLabelText('Price (USD)')).toHaveFocus();
+    expect(screen.getByLabelText('Price (USD)')).toHaveAccessibleDescription('Enter a price like 25 or 25.50.');
+    expect(called).toBe(false);
   });
 
   it("shows the server's message when a group gift has no payment method", async () => {
@@ -90,17 +96,6 @@ describe('AddItemForm', () => {
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(message));
     expect(screen.getByLabelText('Title')).toHaveValue('Stand mixer');
-  });
-
-  it("shows the server's message on a 400", async () => {
-    server.use(mock('post', '/api/lists/{slug}/items', 400, { message: 'url must be https' }));
-    const user = userEvent.setup();
-    renderForm(<AddItemForm slug="abc123" onUnauthorized={() => {}} />);
-
-    await user.type(screen.getByLabelText('Title'), 'Crib');
-    await user.click(screen.getByRole('button', { name: 'Add item' }));
-
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('url must be https'));
   });
 
   it('calls onUnauthorized when the owner cookie is not accepted', async () => {
