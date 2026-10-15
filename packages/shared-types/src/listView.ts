@@ -23,7 +23,7 @@ export const listViewResponseSchema = z.object({
     title: z.string(),
     status: itemStatusSchema,
   }),
-  // shortcut: optional until the web reads them; the next task makes both required.
+  // shortcut: optional until the web reads them; make both required once every client sends them.
   items: z.array(listItemSchema).optional(),
   /** How guests pay for a group gift. */
   payment: z.object({ venmoHandle: z.string().nullable(), zelleHandle: z.string().nullable() }).optional(),
