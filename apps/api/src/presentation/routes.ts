@@ -81,7 +81,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       response: {
         201: json('The list was created.', createListResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
-        403: json('The create secret was missing or wrong (ADR-0080).', errorResponseSchema),
+        403: json('The create secret was missing or wrong.', errorResponseSchema),
       },
     },
   }, async (request, reply) => {
