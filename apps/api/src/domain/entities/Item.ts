@@ -4,8 +4,8 @@ import { Hold } from './Hold.js';
 import { UuidId } from '../value-objects/UuidId.js';
 
 export type ItemType = 'single' | 'group';
-export const MAX_MONEY_MINOR = 10 ** 12;
-const MAX_URL_LENGTH = 2048;
+export const MAX_MONEY_MINOR = 10 ** 12; // ADR-0061: keeps sums in safe-integer range
+const MAX_URL_LENGTH = 2048; // the de facto browser/CDN limit; bounds stored input
 
 export type ItemStatus = 'available' | 'held' | 'purchased';
 
@@ -45,7 +45,7 @@ export class Item {
     if (title.length > 120) throw new DomainValidationError('Item title must be at most 120 characters');
     if (type !== 'single' && type !== 'group') throw new DomainValidationError('Item type must be "single" or "group"');
     if (!Number.isInteger(quantity) || quantity < 1) throw new DomainValidationError('Item quantity must be a positive integer');
-    if (url !== null && !isHttpsUrl(url)) throw new DomainValidationError('Item URL must be an https URL of at most 2048 characters');
+    if (url !== null && !isHttpsUrl(url)) throw new DomainValidationError(`Item URL must be an https URL of at most ${MAX_URL_LENGTH} characters`);
     if (priceMinor !== null && (!Number.isSafeInteger(priceMinor) || priceMinor < 1 || priceMinor > MAX_MONEY_MINOR)) {
       throw new DomainValidationError('Item price must be a positive whole number of minor units within the limit');
     }
