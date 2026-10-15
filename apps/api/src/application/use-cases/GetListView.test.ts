@@ -6,13 +6,12 @@ import { ReleaseHold } from './ReleaseHold.js';
 import { MarkHoldPurchased } from './MarkHoldPurchased.js';
 import type { HoldPolicy } from '../HoldPolicy.js';
 import type { AccessContext } from '../AccessContext.js';
-import { DAY, GUEST, ITEM_ID, NO_SESSION, OTHER_GUEST, WISHLIST_ID, twoListsWithOneItemEach } from '../test-fakes/scenarios.js';
+import { DAY, GUEST, ITEM_ID, NO_SESSION, OTHER_GUEST, T0, WISHLIST_ID, twoListsWithOneItemEach } from '../test-fakes/scenarios.js';
 import { WishlistNotFoundError } from '../../domain/errors.js';
 import { Wishlist } from '../../domain/entities/Wishlist.js';
 import { PaymentMethods } from '../../domain/value-objects/PaymentMethods.js';
 import { FixedClock } from '../test-fakes/FixedClock.js';
 import { inMemoryPersistence } from '../test-fakes/InMemoryRepositories.js';
-import { T0 } from '../test-fakes/scenarios.js';
 
 async function setup(policy?: HoldPolicy) {
   const world = await twoListsWithOneItemEach(policy);
