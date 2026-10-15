@@ -1,7 +1,6 @@
 import type { Kysely, Selectable } from 'kysely';
 import type { Database, WishlistsTable } from './db/schema.js';
 import type { WishlistRepository } from '../application/ports/WishlistRepository.js';
-import type { Item } from '../domain/entities/Item.js';
 import { Wishlist } from '../domain/entities/Wishlist.js';
 import { PaymentMethods } from '../domain/value-objects/PaymentMethods.js';
 import { WishlistNotFoundError } from '../domain/errors.js';
@@ -32,12 +31,6 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     for (const item of wishlist.items) await this.items.insert(item);
   }
 
-  async insertItem(item: Item): Promise<void> {
-    const list = await this.db.selectFrom('wishlists').select('id').where('id', '=', item.wishlistId.value).executeTakeFirst();
-    if (list === undefined) throw new WishlistNotFoundError(item.wishlistId.value);
-    await this.items.insert(item);
-  }
-
   async findBySlug(slug: string, now: Date): Promise<Wishlist | null> {
     const row = await this.db.selectFrom('wishlists').selectAll().where('slug', '=', slug).executeTakeFirst();
     return row ? this.hydrate(row, now) : null;
@@ -48,8 +41,16 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     return row ? this.hydrate(row, now) : null;
   }
 
-  async saveItemState(item: Item): Promise<void> {
-    await this.items.saveState(item);
+  async save(wishlist: Wishlist): Promise<void> {
+    const list = await this.db.selectFrom('wishlists').select('id').where('id', '=', wishlist.id.value).executeTakeFirst();
+    if (list === undefined) throw new WishlistNotFoundError(wishlist.id.value);
+    const storedSeq = new Map((await this.items.findAllByWishlistId(wishlist.id.value)).map((item) => [item.id.value, item.seq]));
+    // Writes only items the domain added or moved on, so an untouched row keeps its updated_at.
+    for (const item of wishlist.items) {
+      const seq = storedSeq.get(item.id.value);
+      if (seq === undefined) await this.items.insert(item);
+      else if (seq !== item.seq) await this.items.saveState(item);
+    }
   }
 
   /**

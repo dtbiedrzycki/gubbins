@@ -52,7 +52,7 @@ export class PledgeContribution {
       // The contribution's pii_ref foreign key needs this row first.
       await ctx.guestPii.insert(piiRef, details);
       await ctx.contributions.insert(contribution);
-      await ctx.wishlists.saveItemState(item);
+      await ctx.wishlists.save(wishlist);
 
       return toResponse(contribution);
     });

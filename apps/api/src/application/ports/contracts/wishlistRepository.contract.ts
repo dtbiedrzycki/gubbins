@@ -1,10 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Wishlist } from '../../../domain/entities/Wishlist.js';
-import { Item } from '../../../domain/entities/Item.js';
 import { PaymentMethods } from '../../../domain/value-objects/PaymentMethods.js';
-import { ItemNotFoundError, WishlistNotFoundError } from '../../../domain/errors.js';
+import { WishlistNotFoundError } from '../../../domain/errors.js';
 import {
-  ITEM_A, ITEM_B, LIST_A, LIST_B, NOW,
+  ITEM_A, ITEM_B, LIST_A, NOW,
   holdFixture, later, seedTwoLists, type PersistenceFactory, type PersistenceFixture,
 } from './fixture.js';
 
@@ -73,12 +72,12 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(justAfter?.itemStatus(ITEM_A)).toBe('available');
     });
 
-    it('saveItemState writes seq exactly as the domain left it', async () => {
-      const item = (await fx.wishlists.findById(LIST_A, NOW))!.getItem(ITEM_A);
-      item.recordEvent();
-      item.recordEvent();
+    it('save writes each item\'s seq exactly as the domain left it', async () => {
+      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+      wishlist.getItem(ITEM_A).recordEvent();
+      wishlist.getItem(ITEM_A).recordEvent();
 
-      await fx.wishlists.saveItemState(item);
+      await fx.wishlists.save(wishlist);
 
       expect((await fx.wishlists.findById(LIST_A, NOW))?.items[0]?.seq).toBe(2);
     });
@@ -97,14 +96,14 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(reloaded?.itemStatus(ITEM_A)).toBe('purchased');
     });
 
-    it('an unsaved purchase does not count: saveItemState alone persists only seq', async () => {
+    it('an unsaved purchase does not count: save persists the items, not the holds', async () => {
       const hold = holdFixture();
       await fx.holds.insert(hold);
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
-      const { item } = wishlist.purchaseHold(wishlist.findHold(hold.id.value)!);
+      wishlist.purchaseHold(wishlist.findHold(hold.id.value)!);
       expect(wishlist.purchasedCountOf(ITEM_A)).toBe(1);
 
-      await fx.wishlists.saveItemState(item);
+      await fx.wishlists.save(wishlist);
 
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
       expect(reloaded?.items[0]?.seq).toBe(1);
@@ -125,17 +124,6 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(reloaded?.itemStatus(ITEM_A)).toBe('available');
     });
 
-    it('saveItemState refuses an item claiming another list, and changes nothing', async () => {
-      const impostor = Item.reconstitute({ id: ITEM_A, wishlistId: LIST_B, type: 'single', title: 'Cot', quantity: 1, seq: 9 });
-      await expect(fx.wishlists.saveItemState(impostor)).rejects.toThrow(ItemNotFoundError);
-      expect((await fx.wishlists.findById(LIST_A, NOW))?.items[0]?.seq).toBe(0);
-    });
-
-    it('saveItemState refuses an item that does not exist', async () => {
-      const ghost = Item.reconstitute({ id: '00000000-0000-7000-8000-999999999999', wishlistId: LIST_A, type: 'single', title: 'Ghost', quantity: 1, seq: 1 });
-      await expect(fx.wishlists.saveItemState(ghost)).rejects.toThrow(ItemNotFoundError);
-    });
-
     it('round-trips payment methods and item fields', async () => {
       const wishlist = Wishlist.create({ id: LIST_C, slug: 'list-c', title: 'C', ownerToken: 'o', key: 'k', asOf: NOW,
         paymentMethods: PaymentMethods.from({ venmoHandle: 'my-venmo', zelleHandle: 'me@example.com' }) });
@@ -151,20 +139,23 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(loaded?.getItem(ITEM_C2)).toMatchObject({ type: 'group', quantity: 1, priceMinor: 45000 });
     });
 
-    it('insertItem adds an item to an existing list, with its stream at seq 0', async () => {
+    it('save adds a new item to the list, with its stream at seq 0', async () => {
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
-      const item = wishlist.addItem({ type: 'single', title: 'Bib' }, { generateEntityId: () => ITEM_A2 });
+      wishlist.addItem({ type: 'single', title: 'Bib' }, { generateEntityId: () => ITEM_A2 });
 
-      await fx.wishlists.insertItem(item);
+      await fx.wishlists.save(wishlist);
 
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
       expect(reloaded?.items.map((i) => i.id.value)).toEqual([ITEM_A, ITEM_A2]);
       expect(reloaded?.getItem(ITEM_A2).seq).toBe(0);
     });
 
-    it('insertItem refuses an item whose list does not exist', async () => {
-      const orphan = Item.reconstitute({ id: ITEM_A2, wishlistId: LIST_C, type: 'single', title: 'Bib', quantity: 1, seq: 0 });
-      await expect(fx.wishlists.insertItem(orphan)).rejects.toThrow(WishlistNotFoundError);
+    it('save refuses a list that was never inserted, and stores none of its items', async () => {
+      const unsaved = Wishlist.create({ id: LIST_C, slug: 'list-c', title: 'C', ownerToken: 'o', key: 'k', asOf: NOW });
+      unsaved.addItem({ type: 'single', title: 'Bib' }, { generateEntityId: () => ITEM_C1 });
+
+      await expect(fx.wishlists.save(unsaved)).rejects.toThrow(WishlistNotFoundError);
+      expect(await fx.wishlists.findById(LIST_C, NOW)).toBeNull();
     });
   });
 }

@@ -70,7 +70,7 @@ We will treat `Wishlist` as the aggregate root.
   serialized by `BEGIN IMMEDIATE`
   ([backend architecture](../spec/backend-architecture.md)).
 - The write path persists only what the domain decided
-  (`saveItemState`) and never recomputes it.
+  (`WishlistRepository.save`) and never recomputes it.
 - A list with very many active holds makes each command's load larger.
   That is acceptable at the scale the
   [performance & resource budget](../spec/performance-and-resource-budget.md)
