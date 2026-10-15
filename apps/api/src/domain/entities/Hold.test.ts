@@ -3,11 +3,11 @@ import { Hold } from './Hold.js';
 import { DomainValidationError, HoldAlreadyExtendedError, HoldNotActiveError } from '../errors.js';
 
 describe('Hold.create', () => {
-  const now = new Date('2026-01-01T00:00:00Z');
+  const at = new Date('2026-01-01T00:00:00Z');
   const validProps = {
     id: '55555555-5555-7555-8555-555555555555', itemId: '33333333-3333-7333-8333-333333333333',
     secret: 'hold-secret', sessionHash: 'a'.repeat(64),
-    idempotencyKey: 'idem-1', expiresAt: new Date('2026-01-04T00:00:00Z'), now,
+    idempotencyKey: 'idem-1', expiresAt: new Date('2026-01-04T00:00:00Z'), at,
   };
 
   it('creates a hold', () => {
@@ -40,8 +40,8 @@ describe('Hold.create', () => {
     expect(() => Hold.create({ ...validProps, idempotencyKey: '' })).toThrow(DomainValidationError);
   });
 
-  it('rejects an expiresAt that is not in the future relative to now', () => {
-    expect(() => Hold.create({ ...validProps, expiresAt: now })).toThrow(DomainValidationError);
+  it('rejects an expiresAt that is not after the hold is placed', () => {
+    expect(() => Hold.create({ ...validProps, expiresAt: at })).toThrow(DomainValidationError);
   });
 
   it('rejects an id that is not a valid UUID', () => {
@@ -107,7 +107,7 @@ describe('Hold.statusAt — the one definition of hold state', () => {
     const at = new Date('2026-01-01T00:00:00.000Z');
     const hold = Hold.create({
       id: HOLD_ID, itemId: ITEM_ID, secret: 'hold-secret', sessionHash: 'a'.repeat(64),
-      idempotencyKey: 'idem-1', expiresAt: EXPIRES_AT, now: at,
+      idempotencyKey: 'idem-1', expiresAt: EXPIRES_AT, at,
     });
     expect(hold.statusAt(at)).toBe('active');
     expect([hold.extendedAt, hold.releasedAt, hold.purchasedAt]).toEqual([null, null, null]);
