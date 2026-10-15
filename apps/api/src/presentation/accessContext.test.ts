@@ -1,14 +1,14 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import type { FastifyRequest } from 'fastify';
-import { accessContextFor, readSignedSession, SESSION_COOKIE } from './accessContext.js';
+import { accessContextFor, OWNER_COOKIE, readOwnerSession, readSignedSession, SESSION_COOKIE } from './accessContext.js';
 import { HasherSha256 } from '../infrastructure/HasherSha256.js';
 
 const list = { id: '11111111-1111-7111-8111-111111111111', keyGen: 1 };
 
-function requestWith(cookie: string | undefined, unsigned: { valid: boolean; value: string | null }): FastifyRequest {
+function requestWith(cookie: string | undefined, unsigned: { valid: boolean; value: string | null }, name = SESSION_COOKIE): FastifyRequest {
   return {
-    cookies: cookie === undefined ? {} : { [SESSION_COOKIE]: cookie },
+    cookies: cookie === undefined ? {} : { [name]: cookie },
     unsignCookie: () => unsigned,
   } as unknown as FastifyRequest;
 }
@@ -35,13 +35,33 @@ describe('readSignedSession — what the cookie says, before any list is looked 
   });
 });
 
+describe('readOwnerSession — the owner cookie, before any list is looked at', () => {
+  const ownerRequest = (cookie: string | undefined, unsigned: { valid: boolean; value: string | null }) =>
+    requestWith(cookie, unsigned, OWNER_COOKIE);
+
+  it('reads a validly signed payload', () => {
+    const owner = readOwnerSession(ownerRequest('signed', { valid: true, value: JSON.stringify({ wishlistId: list.id }) }));
+
+    expect(owner).toEqual({ wishlistId: list.id });
+  });
+
+  it.each([
+    ['no cookie', ownerRequest(undefined, { valid: false, value: null })],
+    ['a cookie with a bad signature', ownerRequest('forged', { valid: false, value: null })],
+    ['a payload without a list id', ownerRequest('signed', { valid: true, value: '{}' })],
+    ['a cookie that is not JSON', ownerRequest('signed', { valid: true, value: 'not json' })],
+  ])('reads no owner session from %s', (_name, request) => {
+    expect(readOwnerSession(request)).toBeNull();
+  });
+});
+
 describe('accessContextFor — the one place a session becomes credentials', () => {
   const session = { wishlistId: list.id, keyGen: 1, sessionId: 'session-abc' };
 
   it('hashes a session for this list, so the raw session id goes no further', () => {
-    const access = accessContextFor(session, list, new HasherSha256());
+    const access = accessContextFor({ guest: session, owner: null }, list, new HasherSha256());
 
-    expect(access).toEqual({ guestSession: { sessionHash: createHash('sha256').update('session-abc').digest('hex') } });
+    expect(access).toEqual({ guestSession: { sessionHash: createHash('sha256').update('session-abc').digest('hex') }, owner: false });
     expect(JSON.stringify(access)).not.toContain('session-abc');
   });
 
@@ -50,6 +70,14 @@ describe('accessContextFor — the one place a session becomes credentials', () 
     ['a session for another list', { ...session, wishlistId: '22222222-2222-7222-8222-222222222222' }],
     ['a session from before the key was rotated', { ...session, keyGen: 0 }],
   ])('gives no guest credential for %s', (_name, given) => {
-    expect(accessContextFor(given, list, new HasherSha256())).toEqual({ guestSession: null });
+    expect(accessContextFor({ guest: given, owner: null }, list, new HasherSha256())).toEqual({ guestSession: null, owner: false });
+  });
+
+  it('marks the owner for an owner cookie on this list', () => {
+    expect(accessContextFor({ guest: null, owner: { wishlistId: list.id } }, list, new HasherSha256()).owner).toBe(true);
+  });
+
+  it('ignores an owner cookie for another list', () => {
+    expect(accessContextFor({ guest: null, owner: { wishlistId: 'other' } }, list, new HasherSha256()).owner).toBe(false);
   });
 });

@@ -49,7 +49,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     if (!session) return null;
     const wishlist = await deps.wishlists.findBySlug(slug, deps.clock.now());
     if (!wishlist) return null;
-    const access = accessContextFor(session, { id: wishlist.id.value, keyGen: wishlist.keyGen }, deps.hasher);
+    const access = accessContextFor({ guest: session, owner: null }, { id: wishlist.id.value, keyGen: wishlist.keyGen }, deps.hasher);
     return access.guestSession ? { wishlist, access } : null;
   }
 

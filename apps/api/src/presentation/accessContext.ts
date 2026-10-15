@@ -24,14 +24,25 @@ export interface SessionPayload {
  * list is `accessContextFor`'s question.
  */
 export function readSignedSession(request: FastifyRequest): SessionPayload | null {
-  const raw = request.cookies[SESSION_COOKIE];
+  const payload = readSignedJson<SessionPayload>(request, SESSION_COOKIE);
+  if (typeof payload?.wishlistId !== 'string' || typeof payload.keyGen !== 'number' || typeof payload.sessionId !== 'string') return null;
+  return { wishlistId: payload.wishlistId, keyGen: payload.keyGen, sessionId: payload.sessionId };
+}
+
+/** The signed owner cookie's payload, if validly signed and well formed. */
+export function readOwnerSession(request: FastifyRequest): OwnerSessionPayload | null {
+  const payload = readSignedJson<OwnerSessionPayload>(request, OWNER_COOKIE);
+  return typeof payload?.wishlistId === 'string' ? { wishlistId: payload.wishlistId } : null;
+}
+
+/** A signed cookie's JSON, unchecked; null if missing, badly signed or not JSON. */
+function readSignedJson<T>(request: FastifyRequest, name: string): Partial<T> | null {
+  const raw = request.cookies[name];
   if (!raw) return null;
   const unsigned = request.unsignCookie(raw);
   if (!unsigned.valid || !unsigned.value) return null;
   try {
-    const payload = JSON.parse(unsigned.value) as Partial<SessionPayload> | null;
-    if (typeof payload?.wishlistId !== 'string' || typeof payload.keyGen !== 'number' || typeof payload.sessionId !== 'string') return null;
-    return { wishlistId: payload.wishlistId, keyGen: payload.keyGen, sessionId: payload.sessionId };
+    return JSON.parse(unsigned.value) as Partial<T> | null;
   } catch {
     return null;
   }
@@ -41,13 +52,18 @@ export function readSignedSession(request: FastifyRequest): SessionPayload | nul
  * The one place a session becomes an AccessContext. A session from before a
  * key rotation, or for another list, counts as no session at all. The
  * session id is hashed here, so application/ only ever sees the hash that
- * `holds.session_hash` stores — never the raw value.
+ * `holds.session_hash` stores — never the raw value. An owner cookie counts
+ * only for the list it was issued for.
  */
 export function accessContextFor(
-  session: SessionPayload | null,
+  sessions: { guest: SessionPayload | null; owner: OwnerSessionPayload | null },
   list: { id: string; keyGen: number },
   hasher: Hasher,
 ): AccessContext {
+  const session = sessions.guest;
   const valid = session && session.wishlistId === list.id && session.keyGen === list.keyGen;
-  return { guestSession: valid ? { sessionHash: hasher.hash(session.sessionId) } : null };
+  return {
+    guestSession: valid ? { sessionHash: hasher.hash(session.sessionId) } : null,
+    owner: sessions.owner?.wishlistId === list.id,
+  };
 }
