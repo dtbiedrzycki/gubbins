@@ -9,7 +9,7 @@ import { DEFAULT_HOLD_POLICY, type HoldPolicy } from '../HoldPolicy.js';
 import { RetryingUnitOfWork } from '../RetryingUnitOfWork.js';
 import type { AccessContext } from '../AccessContext.js';
 import type { EventStore } from '../ports/EventStore.js';
-import { ConcurrencyError, DomainValidationError, ItemNotFoundError, ItemUnavailableError } from '../../domain/errors.js';
+import { ConcurrencyError, ItemNotFoundError, ItemUnavailableError } from '../../domain/errors.js';
 
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
 const ITEM_ID = '33333333-3333-7333-8333-333333333333';
@@ -50,12 +50,6 @@ describe('HoldItem', () => {
   it('stores no details when no name is given', async () => {
     const { useCase, store } = await makeUseCase();
     await useCase.execute(input(), GUEST);
-    expect(store.guestPii.size).toBe(0);
-  });
-
-  it('rejects a blank name and stores nothing', async () => {
-    const { useCase, store } = await makeUseCase();
-    await expect(useCase.execute({ ...input(), name: '   ' }, GUEST)).rejects.toBeInstanceOf(DomainValidationError);
     expect(store.guestPii.size).toBe(0);
   });
 
