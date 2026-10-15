@@ -40,7 +40,7 @@ describe('Hold.create', () => {
     expect(() => Hold.create({ ...validProps, idempotencyKey: '' })).toThrow(DomainValidationError);
   });
 
-  it('rejects an expiresAt that is not in the future relative to at', () => {
+  it('rejects an expiresAt that is not after the hold is placed', () => {
     expect(() => Hold.create({ ...validProps, expiresAt: at })).toThrow(DomainValidationError);
   });
 
