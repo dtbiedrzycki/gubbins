@@ -33,21 +33,31 @@ function renderListPage() {
 }
 
 describe('ListPage', () => {
-  it('shows the list title and a card per item, with both titles available to "Your holds"', async () => {
-    const two: ListViewResponse = {
-      ...view(false),
-      items: [
-        ...view(false).items!,
-        { id: 'item-2', title: 'Cot', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null },
-      ],
-      myHolds: [{ ...hold, itemId: 'item-2' }],
-    };
-    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(two)));
+  const twoItems: ListViewResponse = {
+    ...view(false),
+    items: [
+      ...view(false).items!,
+      { id: 'item-2', title: 'Cot', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null },
+    ],
+    myHolds: [{ ...hold, itemId: 'item-2' }],
+  };
+
+  it('shows the list title and a card for each item', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(twoItems)));
     renderListPage();
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Baby Shower' })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Hold this item' })).toHaveLength(2);
-    expect(within(screen.getByRole('region', { name: 'Your holds' })).getByRole('heading', { name: 'Cot' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Stroller' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Cot' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^Hold this item/ })).toHaveLength(2);
+  });
+
+  it('names a held item under "Your holds" even when it is not the first', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(twoItems)));
+    renderListPage();
+
+    const holds = await screen.findByRole('region', { name: 'Your holds' });
+    expect(within(holds).getByRole('heading', { name: 'Cot' })).toBeInTheDocument();
   });
 
   it('holds the item, then shows it held and under "Your holds" with its actions', async () => {
@@ -59,7 +69,7 @@ describe('ListPage', () => {
     const user = userEvent.setup();
     renderListPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Hold this item' }));
+    await user.click(await screen.findByRole('button', { name: /^Hold this item/ }));
     expect(screen.getByText('Held for you for 3 days.')).toBeInTheDocument();
     await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
@@ -81,7 +91,7 @@ describe('ListPage', () => {
     const user = userEvent.setup();
     renderListPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Hold this item' }));
+    await user.click(await screen.findByRole('button', { name: /^Hold this item/ }));
     // Screen readers miss a live region that arrives already holding its text.
     const statuses = screen.getAllByRole('status');
     for (const status of statuses) expect(status).toBeEmptyDOMElement();
@@ -106,7 +116,7 @@ describe('ListPage', () => {
     const user = userEvent.setup();
     renderListPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Hold this item' }));
+    await user.click(await screen.findByRole('button', { name: /^Hold this item/ }));
     await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
@@ -125,7 +135,7 @@ describe('ListPage', () => {
     const user = userEvent.setup();
     renderListPage();
 
-    await user.click(await screen.findByRole('button', { name: 'Hold this item' }));
+    await user.click(await screen.findByRole('button', { name: /^Hold this item/ }));
     await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
     await waitFor(() => expect(screen.getByText('Stroller is held.')).toBeInTheDocument());
@@ -161,7 +171,7 @@ describe('ListPage', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Try again' }));
 
-    expect(await screen.findByRole('button', { name: 'Hold this item' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /^Hold this item/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
   });
 
