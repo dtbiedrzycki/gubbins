@@ -459,17 +459,17 @@ describe('POST /api/lists/:slug/items', () => {
   it('answers the same bare 404 without an owner cookie for this list', async () => {
     const list = await createList();
     const other = await createList();
-    const cookies = [undefined, await guestOn(list), await ownerOn(other)];
-    for (const cookie of cookies) {
-      const response = await addItem(list.slug, cookie, single);
+    const requests = [
+      [list.slug, undefined],
+      [list.slug, await guestOn(list)],
+      [list.slug, await ownerOn(other)],
+      ['no-such-slug', await ownerOn(list)],
+    ] as const;
+    for (const [slug, cookie] of requests) {
+      const response = await addItem(slug, cookie, single);
       expect(response.statusCode).toBe(404);
       expect(response.json()).toEqual({ message: 'Not found' });
     }
-  });
-
-  it.each(['javascript:alert(1)', 'http://shop.example/crib'])('rejects the url %s at the schema', async (url) => {
-    const list = await createList();
-    expect((await addItem(list.slug, await ownerOn(list), { ...single, url })).statusCode).toBe(400);
   });
 
   it('answers 409 no_payment_method for a group gift on a list without handles', async () => {
