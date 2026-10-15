@@ -297,3 +297,13 @@ describe('Item.pledge', () => {
     expect(() => single.pledge({ ...props, amountMinor: 100 }, ids)).toThrow(ItemUnavailableError);
   });
 });
+
+describe('Item lookups', () => {
+  it('finds its own hold and contribution by idempotency key, or null', () => {
+    const hold = holdOn({ idempotencyKey: 'tap-1' });
+    const item = Item.reconstitute({ ...base, holds: [hold] });
+    expect(item.holdWithKey('tap-1')).toBe(hold);
+    expect(item.holdWithKey('tap-2')).toBeNull();
+    expect(item.contributionWithKey('tap-1')).toBeNull();
+  });
+});

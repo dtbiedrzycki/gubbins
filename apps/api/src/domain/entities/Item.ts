@@ -126,6 +126,14 @@ export class Item {
     return this._holds.find((hold) => hold.id.value === holdId) ?? null;
   }
 
+  holdWithKey(idempotencyKey: string): Hold | null {
+    return this._holds.find((hold) => hold.idempotencyKey.value === idempotencyKey) ?? null;
+  }
+
+  contributionWithKey(idempotencyKey: string): Contribution | null {
+    return this._contributions.find((c) => c.idempotencyKey.value === idempotencyKey) ?? null;
+  }
+
   /** Units bought: its holds marked purchased. Derived, never stored. */
   purchasedCount(): number {
     return this.holdsThatAre('purchased');
