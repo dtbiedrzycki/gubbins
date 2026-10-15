@@ -7,6 +7,7 @@ import {
   holdFixture, later, seedTwoLists, type PersistenceFactory, type PersistenceFixture,
 } from './fixture.js';
 
+const PII_REF = '00000000-0000-7000-8000-00000000aaaa';
 const LIST_C = '55555555-5555-7555-8555-555555555500';
 const ITEM_C1 = '55555555-5555-7555-8555-555555555501';
 const ITEM_C2 = '55555555-5555-7555-8555-555555555502';
@@ -152,6 +153,34 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
       expect(reloaded?.items.map((i) => i.id.value)).toEqual([ITEM_A, ITEM_A2]);
       expect(reloaded?.getItem(ITEM_A2).seq).toBe(0);
+    });
+
+    it('save inserts a pledge the aggregate made, once: a second save inserts nothing', async () => {
+      await fx.seedGuestPii(PII_REF);
+      const list = Wishlist.create({ id: LIST_C, slug: 'list-c', title: 'C', ownerToken: 'o', key: 'k', asOf: NOW,
+        paymentMethods: PaymentMethods.from({ venmoHandle: 'my-venmo' }) });
+      list.addItem({ type: 'group', title: 'Mixer', priceMinor: 45_000 }, { generateEntityId: () => ITEM_C2 });
+      await fx.wishlists.insert(list);
+      const wishlist = (await fx.wishlists.findById(LIST_C, NOW))!;
+      wishlist.pledge({ itemId: ITEM_C2, amountMinor: 2_500, sessionHash: SESSION, idempotencyKey: 'p-1', piiRef: PII_REF },
+        { generateEntityId: () => '00000000-0000-7000-8000-888888888888' });
+
+      await fx.wishlists.save(wishlist);
+      await fx.wishlists.save(wishlist);
+
+      expect((await fx.wishlists.findById(LIST_C, NOW))?.getItem(ITEM_C2).pledgedTotal().amountMinor).toBe(2_500);
+    });
+
+    it('save keeps every hold it loaded as it was: released and expired holds come back unchanged', async () => {
+      const released = holdFixture({ releasedAt: later(-5) });
+      const expired = holdFixture({ expiresAt: later(-1) });
+      for (const hold of [released, expired]) await fx.holds.insert(hold);
+
+      await fx.wishlists.save((await fx.wishlists.findById(LIST_A, NOW))!);
+
+      const reloaded = await fx.wishlists.findById(LIST_A, NOW);
+      expect(reloaded?.findHold(released.id.value)?.releasedAt).toEqual(later(-5));
+      expect(reloaded?.findHold(expired.id.value)?.expiresAt).toEqual(later(-1));
     });
 
     it('save refuses a list that was never inserted, and stores none of its items', async () => {

@@ -18,22 +18,8 @@ export interface HoldCommand {
 }
 
 /**
- * Resolves `holdId` to a hold on this wishlist, or throws HoldNotFoundError.
- * An active or purchased hold comes from the aggregate's own snapshot, so
- * the command mutates the very instance the wishlist counts. A hold outside
- * it — released or expired — is loaded by id, and then must be on this
- * wishlist's item. Unknown, foreign and malformed ids all fail
- * alike: another list's hold id is a 404 like any other (IDOR).
- */
-export async function findOwnedHold(ctx: TransactionContext, wishlist: Wishlist, holdId: string): Promise<Hold> {
-  const hold = wishlist.findHold(holdId) ?? (await ctx.holds.findById(holdId));
-  if (!hold || !wishlist.owns(hold)) throw new HoldNotFoundError(holdId);
-  return hold;
-}
-
-/**
  * The body every hold command shares, run inside a unit of work: load the
- * list, find the caller's hold, check permission, let the wishlist decide,
+ * list, find the hold on it, check permission, let the wishlist decide,
  * then persist the outcome and answer with the hold's view. A command supplies
  * only its permission check and its wishlist call. `now` is the clock reading
  * the list is loaded at; the wishlist then decides everything as of it.
@@ -48,7 +34,9 @@ export async function runHoldCommand<E extends LedgerEvent>(
 ): Promise<HoldView> {
   const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
   if (!wishlist) throw new HoldNotFoundError(input.holdId);
-  const hold = await findOwnedHold(ctx, wishlist, input.holdId);
+  // Unknown, malformed and another list's hold ids all fail alike (IDOR): the aggregate only finds its own.
+  const hold = wishlist.findHold(input.holdId);
+  if (!hold) throw new HoldNotFoundError(input.holdId);
   // Not permitted looks exactly like not found: a guest learns nothing
   // about holds that are not theirs.
   const actor = permit(hold, access);

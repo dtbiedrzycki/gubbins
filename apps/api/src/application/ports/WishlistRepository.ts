@@ -20,7 +20,8 @@ export interface WishlistRepository {
    * Stores what the domain decided on a list already inserted: items it
    * added, at their `seq`, and each existing item's `seq` exactly as the
    * domain left it, with no arithmetic of its own; then holds it placed,
-   * and each of its holds' lifecycle as the domain left it. The purchased
+   * and each of its holds' lifecycle as the domain left it, then contributions
+   * it pledged that are not yet stored. A contribution is never updated. The purchased
    * count is not written: the aggregate counts it from the purchased holds
    * it loads. Throws WishlistNotFoundError unless the list exists.
    */

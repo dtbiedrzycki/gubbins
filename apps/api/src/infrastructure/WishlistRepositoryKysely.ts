@@ -63,6 +63,13 @@ export class WishlistRepositoryKysely implements WishlistRepository {
       if (storedHolds.has(hold.id.value)) await this.holds.save(hold);
       else await this.holds.insert(hold);
     }
+    // After the items, so a new contribution's item row already exists. Pledges are never updated, only added.
+    const contributionIds = wishlist.contributions.map((c) => c.id.value);
+    const storedContributions = contributionIds.length === 0 ? new Set<string>()
+      : new Set((await this.db.selectFrom('contributions').select('id').where('id', 'in', contributionIds).execute()).map((row) => row.id));
+    for (const contribution of wishlist.contributions) {
+      if (!storedContributions.has(contribution.id.value)) await this.contributions.insert(contribution);
+    }
   }
 
   /**

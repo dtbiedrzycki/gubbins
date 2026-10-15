@@ -92,6 +92,10 @@ export class InMemoryWishlistRepository implements WishlistRepository {
       if (this.store.holds.has(hold.id.value)) await holds.save(hold);
       else await holds.insert(hold);
     }
+    const contributions = new InMemoryContributionRepository(this.store);
+    for (const contribution of wishlist.contributions) {
+      if (!this.store.contributions.has(contribution.id.value)) await contributions.insert(contribution);
+    }
   }
 
   private hydrate(wishlist: Wishlist | undefined, now: Date): Wishlist | null {
