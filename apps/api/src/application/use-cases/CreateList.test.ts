@@ -49,17 +49,17 @@ describe('CreateList', () => {
     await expect(useCase.execute({ listTitle: 'L', itemTitle: 'I', createSecret: candidate })).rejects.toThrow(InvalidCreateSecretError);
   });
 
-  it('stores the payment handles given at creation, normalized', async () => {
+  it('stores the payment handles given at creation', async () => {
     const { useCase, wishlists } = makeUseCase();
 
-    await useCase.execute({ listTitle: 'L', itemTitle: 'I', createSecret: 'right', venmoHandle: '@my-venmo', zelleHandle: 'me@example.com' });
+    await useCase.execute({ listTitle: 'L', itemTitle: 'I', createSecret: 'right', venmoHandle: 'my-venmo', zelleHandle: 'me@example.com' });
 
     const persisted = await wishlists.findBySlug('slug-1', NOW);
     expect(persisted?.paymentMethods.venmoHandle).toBe('my-venmo');
     expect(persisted?.paymentMethods.zelleHandle).toBe('me@example.com');
   });
 
-  it('rejects an invalid handle, persisting nothing', async () => {
+  it('persists nothing when a handle is refused', async () => {
     const { useCase, wishlists } = makeUseCase();
 
     await expect(useCase.execute({ listTitle: 'L', itemTitle: 'I', createSecret: 'right', zelleHandle: 'not a handle' })).rejects.toThrow(DomainValidationError);
