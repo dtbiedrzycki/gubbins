@@ -16,9 +16,9 @@
 ## Global Constraints
 
 - **Ten files per PR:** every PR (= branch) changes **at most 10 files**. Check with `git diff --stat <base>...HEAD | tail -1` before pushing.
-- **Branches:** each branch stacks on the previous one: `feat/launch/34b-boundary-spec` → `35-adr-0078-boundary` → `36-load-all-holds` → `37-holds-under-item` → `37b-replay-in-domain` → `38-commands-via-aggregate` → `39-list-view-from-aggregate` → `40a-tests-read-rows` → `40b-drop-hold-ports`.
+- **Branches:** each branch stacks on the previous one: `feat/launch/34b-boundary-spec` → `35-adr-0078-boundary` → `36-load-all-holds` → `37-holds-under-item` → `37a-money-total-cap` → `37b-replay-in-domain` → `38-commands-via-aggregate` → `39-list-view-from-aggregate` → `40a-tests-read-rows` → `40b-drop-hold-ports`.
 - **Fixes to a lower branch** reach the branches above it by `git merge`. Never rebase or force-push.
-- **No behaviour change:** route tests (`apps/api/src/presentation/*.test.ts`) and e2e are not edited and must stay green.
+- **No behaviour change:** route tests (`apps/api/src/presentation/*.test.ts`) and e2e are not edited and must stay green. The one deliberate exception is Task 3a: a pledge that would take an item's pledged total past `MAX_MONEY_MINOR` (10¹² minor units) is refused (ADR-0061, amended in Task 1).
 - **No schema change or migration.**
 - **Events:** commands keep returning their ledger events. Don't add pending-event lists to entities.
 - **Use cases keep:** minting `piiRef`, and calling `ctx.guestPii.insert` before `ctx.wishlists.save`.
@@ -42,6 +42,8 @@
 3. **Contribution replay:** a pledge replayed with the same key must not insert a second row. `save` inserts only contributions not yet stored. Pinned in Task 5 (contract: a second `save` inserts nothing).
 4. **Commands on another list's hold:** extend, release or purchase on another list's hold still give `HoldNotFoundError` after `findOwnedHold` is deleted. Pinned by the existing `onOtherList` use-case tests, which Task 5 must not edit, plus Task 3's `findHold` test.
 5. **Reconstitute rejects outsiders:** a loaded hold or contribution whose `itemId` is another item's is rejected when the item is built. This moves from `Wishlist` to `Item` in Task 3.
+
+Task 3a's own risk, a $0 pledge slipping through once `Money` allows 0, is pinned at both layers that refuse it: `Item.pledge` (the guest-facing `ContributionAmountError`) and the `Contribution` constructor (a stored row).
 
 ---
 
@@ -70,6 +72,7 @@ Expected: PASS.
 **Files:**
 - Modify: `docs/adr/0078-wishlist-is-the-aggregate-root.md`
 - Modify: `docs/adr/README.md`
+- Modify: `docs/adr/0061-currency-validation-minor-unit-storage-and-the-ceiling.md`
 
 **Interfaces:** none.
 
@@ -142,11 +145,27 @@ In `docs/adr/README.md`, after the bullet "An accepted ADR is immutable. …", a
   After the first release, supersede it as above.
 ```
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: Amend ADR-0061: the guard bounds an item's total**
+
+Add this line under `- **Date:** 2026-09-09`:
+```markdown
+- **Amended:** 2026-10-15. The arithmetic guard also bounds each item's pledged total, and zero is a valid amount.
+```
+Append to "Consequences":
+```markdown
+- The arithmetic guard (`MAX_MONEY_MINOR`, 10¹² minor units) bounds an
+  item's pledged total as well as each pledge: a pledge that would take
+  the total past it is refused like an oversized pledge. Sums of stored
+  amounts then stay in safe-integer range, which is what the guard is
+  for. An amount may be zero (an item with no pledges totals zero); a
+  pledge itself must still be more than zero.
+```
+
+- [ ] **Step 8: Commit**
 
 ```bash
-git add docs/adr/0078-wishlist-is-the-aggregate-root.md docs/adr/README.md
-git commit -m "docs(adr): holds and contributions sit inside the wishlist aggregate"
+git add docs/adr/0078-wishlist-is-the-aggregate-root.md docs/adr/README.md docs/adr/0061-currency-validation-minor-unit-storage-and-the-ceiling.md
+git commit -m "docs(adr): holds and contributions sit inside the wishlist; the money guard bounds totals"
 ```
 
 ---
@@ -644,6 +663,154 @@ git commit -m "refactor(api): holds and contributions live under their item"
 
 ---
 
+### Task 3a: Money allows zero; the limit bounds an item's pledged total (branch `37a-money-total-cap`)
+
+`Money` stops refusing 0, so an item with no pledges can total `Money.usd(0)`. A pledge still can't be $0: `Item.pledge` refuses it with `ContributionAmountError` (pinned already by its `refuses amount 0` case), and the `Contribution` constructor refuses it so a stored row can't bring one in. `MAX_MONEY_MINOR` moves from a per-pledge bound to a bound on each item's total too, so `pledgedTotal()` is always a valid `Money`. Item prices are unaffected: `Item` checks `priceMinor >= 1` itself (`Item.ts`, the price check).
+
+Two pledges racing past the limit together are covered already: both append at the same `expectedSeq`, one conflicts, and `RetryingUnitOfWork` reloads and re-checks with the first counted (ADR-0010).
+
+**Files:**
+- Modify: `apps/api/src/domain/value-objects/Money.ts`
+- Modify: `apps/api/src/domain/entities/Contribution.ts`
+- Modify: `apps/api/src/domain/entities/Item.ts`
+- Test: `apps/api/src/domain/value-objects/Money.test.ts`
+- Create: `apps/api/src/domain/entities/Contribution.test.ts`
+- Test: `apps/api/src/domain/entities/Item.test.ts`
+
+**Interfaces:**
+- Consumes: Task 3's `Item` (`_contributions`, `reconstitute({ …, contributions })`).
+- Produces:
+  - `Money.usd(amountMinor)` accepts `0 … MAX_MONEY_MINOR`.
+  - `item.pledgedTotal(): Money`. The sum of its contributions, `Money.usd(0)` with none.
+  - `Item.reconstitute` throws `DomainValidationError` when its contributions total more than `MAX_MONEY_MINOR`; `Contribution.create` and `reconstitute` throw it for an amount of 0.
+  - `item.pledge` throws `ContributionAmountError` for a pledge that would take the total past `MAX_MONEY_MINOR`.
+
+- [ ] **Step 1: Create the branch**
+
+```bash
+git switch -c feat/launch/37a-money-total-cap
+```
+
+- [ ] **Step 2: Write the failing tests**
+
+`Money.test.ts`, replace the body of `describe('Money.usd')`:
+```ts
+it.each([-1, 1.5, 10 ** 12 + 1, Number.NaN])('refuses %j', (v) => {
+  expect(() => Money.usd(v)).toThrow(DomainValidationError);
+});
+it.each([0, 2500, 10 ** 12])('keeps %j', (v) => {
+  expect(Money.usd(v).amountMinor).toBe(v);
+});
+```
+
+`Contribution.test.ts` (new):
+```ts
+import { describe, expect, it } from 'vitest';
+import { DomainValidationError } from '../errors.js';
+import { Contribution } from './Contribution.js';
+
+const row = {
+  id: '44444444-4444-7444-8444-444444444444', itemId: '33333333-3333-7333-8333-333333333333', sessionHash: 'a'.repeat(64),
+  idempotencyKey: 'k1', piiRef: '55555555-5555-7555-8555-555555555555', pledgedAt: new Date('2026-10-13T10:00:00Z'),
+};
+
+describe('Contribution', () => {
+  it('refuses a pledge of zero, even from a stored row', () => {
+    expect(() => Contribution.reconstitute({ ...row, amountMinor: 0 })).toThrow(DomainValidationError);
+  });
+  it('keeps a pledge of one cent', () => {
+    expect(Contribution.reconstitute({ ...row, amountMinor: 1 }).amount.amountMinor).toBe(1);
+  });
+});
+```
+
+`Item.test.ts`, inside `describe('Item.pledge')`, add a helper and cases. `pledged(amountMinor)` builds a stored contribution on `ITEM_ID`, and `fundedGroup(...amounts)` reconstitutes a group item priced at `MAX_MONEY_MINOR`, so one pledge may be as large as the limit:
+```ts
+const pledged = (amountMinor: number, n = 1) => Contribution.reconstitute({
+  id: `66666666-6666-7666-8666-${String(n).padStart(12, '0')}`, itemId: ITEM_ID, amountMinor,
+  sessionHash: 'a'.repeat(64), idempotencyKey: `stored-${n}`, piiRef: PII, pledgedAt: T0,
+});
+const fundedGroup = (...amounts: number[]) => Item.reconstitute({
+  ...base, type: 'group', priceMinor: MAX_MONEY_MINOR, contributions: amounts.map((a, i) => pledged(a, i + 1)),
+});
+
+it('totals its pledges, zero with none', () => {
+  const item = group();
+  expect(item.pledgedTotal().amountMinor).toBe(0);
+  item.pledge({ ...props, amountMinor: 2_500 }, ids);
+  expect(item.pledgedTotal().amountMinor).toBe(2_500);
+});
+it('accepts a pledge that brings the total exactly to the limit, and refuses one cent more', () => {
+  const item = fundedGroup(MAX_MONEY_MINOR - 100);
+  expect(() => item.pledge({ ...props, amountMinor: 100 }, ids)).not.toThrow();
+  expect(() => item.pledge({ ...props, idempotencyKey: 'k2', amountMinor: 1 }, ids)).toThrow(ContributionAmountError);
+});
+it('rejects loaded pledges that total more than the limit', () => {
+  expect(() => fundedGroup(MAX_MONEY_MINOR, 1)).toThrow(DomainValidationError);
+});
+```
+Import `Contribution` from `./Contribution.js` and `MAX_MONEY_MINOR` from `../value-objects/Money.js`. `T0` comes from Task 3.
+
+- [ ] **Step 3: Run them to see them fail**
+
+Run: `npm test -w @gubbins/api -- Money.test Contribution.test Item.test`
+Expected: FAIL (`Money.usd(0)` throws; no `pledgedTotal`; the over-limit cases don't throw).
+
+- [ ] **Step 4: Implement**
+
+`Money.ts`:
+```ts
+if (!Number.isSafeInteger(amountMinor) || amountMinor < 0 || amountMinor > MAX_MONEY_MINOR) {
+  throw new DomainValidationError('Money must be a whole number of minor units from zero to the limit');
+}
+```
+
+`Contribution.ts`, give the constructor a body:
+```ts
+) {
+  // Money allows zero, for totals; a pledge of nothing is not a pledge.
+  if (amount.amountMinor === 0) throw new DomainValidationError('A pledge must be more than zero');
+}
+```
+Import `DomainValidationError` from `../errors.js`.
+
+`Item.ts`:
+- **Constructor**, after the other-item check from Task 3:
+  ```ts
+  if (sumMinor(_contributions) > MAX_MONEY_MINOR) throw new DomainValidationError('Pledges on an item total more than the limit');
+  ```
+- **`pledge`**, after the per-pledge check:
+  ```ts
+  // ADR-0061: the guard bounds the total too, so pledgedTotal() is always a valid Money.
+  if (sumMinor(this._contributions) + props.amountMinor > MAX_MONEY_MINOR) throw new ContributionAmountError(this.id.value);
+  ```
+- **New query:**
+  ```ts
+  /** The sum of its pledges. Derived, never stored. */
+  pledgedTotal(): Money {
+    return Money.usd(sumMinor(this._contributions));
+  }
+  ```
+- **Module-level helper**, below the constants:
+  ```ts
+  const sumMinor = (contributions: readonly Contribution[]): number => contributions.reduce((sum, c) => sum + c.amount.amountMinor, 0);
+  ```
+- Update the `pledge` doc comment: overfunding is allowed up to `MAX_CONTRIBUTION_TARGET_MULTIPLE` times the price per pledge (ADR-0047), and the item's total stays within `MAX_MONEY_MINOR` (ADR-0061).
+
+- [ ] **Step 5: Run everything**
+
+Run: `npm run build -w @gubbins/shared-types && npm run build -w @gubbins/api && npm test -w @gubbins/api`
+Expected: PASS. Check the count: `git diff --stat feat/launch/37-holds-under-item...HEAD | tail -1` must show ≤ 10 files (6 expected).
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add apps/api/src/domain
+git commit -m "feat(api): an item's pledged total stays within the money limit"
+```
+
+---
+
 ### Task 4: Replay and session queries in the domain (branch `37b-replay-in-domain`)
 
 The first callers arrive in Tasks 5 and 6. Say so in the PR body.
@@ -660,7 +827,6 @@ The first callers arrive in Tasks 5 and 6. Say so in the PR body.
 - Produces:
   - `item.holdWithKey(idempotencyKey: string): Hold | null`
   - `item.contributionWithKey(idempotencyKey: string): Contribution | null`
-  - `item.pledgedTotalMinor(): number`. The sum of its contributions' `amount.amountMinor`, as a plain number, because a sum of pledges may exceed `MAX_MONEY_MINOR`, which `Money` refuses.
   - `wishlist.replayHold(itemId: string, idempotencyKey: string, sessionHash: string): Hold | null`
   - `wishlist.replayContribution(itemId: string, idempotencyKey: string, sessionHash: string): Contribution | null`
   - `wishlist.holdsForSession(sessionHash: string): Hold[]`
@@ -682,13 +848,6 @@ describe('Item lookups', () => {
     expect(item.holdWithKey('tap-1')).toBe(hold);
     expect(item.holdWithKey('tap-2')).toBeNull();
     expect(item.contributionWithKey('tap-1')).toBeNull();
-  });
-
-  it('totals its pledges in minor units, zero with none', () => {
-    const item = Item.reconstitute({ ...base, type: 'group', priceMinor: 10_000 });
-    expect(item.pledgedTotalMinor()).toBe(0);
-    item.pledge({ amountMinor: 2_500, sessionHash: 'a'.repeat(64), idempotencyKey: 'p-1', piiRef: '66666666-6666-7666-8666-666666666666' }, ids);
-    expect(item.pledgedTotalMinor()).toBe(2_500);
   });
 });
 ```
@@ -763,11 +922,6 @@ holdWithKey(idempotencyKey: string): Hold | null {
 
 contributionWithKey(idempotencyKey: string): Contribution | null {
   return this._contributions.find((c) => c.idempotencyKey.value === idempotencyKey) ?? null;
-}
-
-/** Sum of its pledges in minor units. A plain number: overfunded pledges may sum past what `Money` allows. Derived, never stored. */
-pledgedTotalMinor(): number {
-  return this._contributions.reduce((sum, c) => sum + c.amount.amountMinor, 0);
 }
 ```
 `Wishlist.ts`:
@@ -851,7 +1005,7 @@ it('save inserts a pledge the aggregate made, once: a second save inserts nothin
   await fx.wishlists.save(wishlist);
   await fx.wishlists.save(wishlist);
 
-  expect((await fx.wishlists.findById(LIST_C, NOW))?.getItem(ITEM_C2).pledgedTotalMinor()).toBe(2_500);
+  expect((await fx.wishlists.findById(LIST_C, NOW))?.getItem(ITEM_C2).pledgedTotal().amountMinor).toBe(2_500);
 });
 
 it('save keeps every hold it loaded as it was: released and expired holds come back unchanged', async () => {
@@ -947,7 +1101,7 @@ git commit -m "refactor(api): hold and pledge commands persist through the wishl
 - Test: `apps/api/src/application/use-cases/GetListView.test.ts` (only if it seeds through ports that this change bypasses)
 
 **Interfaces:**
-- Consumes: `wishlist.holdsForSession`, `item.pledgedTotalMinor()` (Task 4).
+- Consumes: `wishlist.holdsForSession` (Task 4), `item.pledgedTotal()` (Task 3a).
 
 - [ ] **Step 1: Create the branch**
 
@@ -968,7 +1122,7 @@ const mine = access.guestSession ? wishlist.holdsForSession(access.guestSession.
 ```
 and in the item mapping:
 ```ts
-pledgedMinor: i.type === 'group' ? i.pledgedTotalMinor() : null,
+pledgedMinor: i.type === 'group' ? i.pledgedTotal().amountMinor : null,
 ```
 Delete the `pledged` variable.
 

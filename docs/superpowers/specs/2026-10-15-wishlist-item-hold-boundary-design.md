@@ -27,7 +27,8 @@ boundary should be drawn around that data.
   make one `wishlists.save(wishlist)` per command.
 - Every rule lives in the domain, including the idempotency-replay
   rule ("another session's key never hands over that session's hold").
-- No behaviour change. Route and e2e tests pass unchanged.
+- No behaviour change, except that a pledge taking an item's total past
+  `MAX_MONEY_MINOR` is refused. Route and e2e tests pass unchanged.
 
 ## Non-goals
 
@@ -68,7 +69,11 @@ Wishlist (root)   authorizes: getItem, owns; rules that span items
     same way.
   - `holdsForSession(sessionHash)`: every hold that session placed on
     the list.
-  - `Item.pledgedTotal()`: derived from its contributions.
+  - `Item.pledgedTotal()`: a `Money`, derived from its contributions.
+    `Money` allows 0 (an item with no pledges), a pledge itself must
+    still be more than 0, and `MAX_MONEY_MINOR` bounds the item's total
+    as well as each pledge, so the total is always valid (ADR-0061,
+    amended).
 
 ## Loading and saving
 
