@@ -26,7 +26,7 @@ export function OwnerTokenGate({ slug, onSuccess, notice }: OwnerTokenGateProps)
   }
 
   const message = error
-    ? (error instanceof ApiError && error.status === 404 ? "That token doesn't match this list." : error.message)
+    ? (error instanceof ApiError && error.status === 404 ? "That isn't the owner token for this list." : error.message)
     : '';
   return (
     <form onSubmit={handleSubmit} className="max-w-sm space-y-4">

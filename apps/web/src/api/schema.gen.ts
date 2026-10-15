@@ -222,7 +222,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description The create secret was missing or wrong (ADR-0080). */
+            /** @description The create secret was missing or wrong. */
             403: {
                 headers: {
                     [name: string]: unknown;
