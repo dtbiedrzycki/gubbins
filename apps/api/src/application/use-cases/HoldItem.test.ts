@@ -27,6 +27,8 @@ async function makeUseCase(policy: HoldPolicy = DEFAULT_HOLD_POLICY) {
 
 const input = (idempotencyKey = 'idem-1') => ({ wishlistId: WISHLIST_ID, itemId: ITEM_ID, idempotencyKey, name: 'Ada' });
 
+const storedHold = (store: ReturnType<typeof inMemoryPersistence>['store']) => [...store.holds.values()].find((h) => h.idempotencyKey.value === 'idem-1');
+
 describe('HoldItem', () => {
   it('holds an available item for the configured duration and returns its view', async () => {
     const { useCase } = await makeUseCase();
@@ -38,12 +40,12 @@ describe('HoldItem', () => {
   });
 
   it('stores the holder\'s details and references them from the hold and the event', async () => {
-    const { useCase, store, holds, eventStore } = await makeUseCase();
+    const { useCase, store, eventStore } = await makeUseCase();
     await useCase.execute({ ...input(), name: '  Ada ', message: 'Congrats' }, GUEST);
 
     const rows = [...store.guestPii.values()];
     expect(rows).toEqual([{ id: expect.any(String), name: 'Ada', message: 'Congrats' }]);
-    expect((await holds.findByIdempotencyKey(ITEM_ID, 'idem-1'))?.piiRef?.value).toBe(rows[0]!.id);
+    expect(storedHold(store)?.piiRef?.value).toBe(rows[0]!.id);
     expect(eventStore.recorded(ITEM_ID)[0]!.event).toMatchObject({ piiRef: rows[0]!.id });
   });
 
@@ -60,9 +62,9 @@ describe('HoldItem', () => {
   });
 
   it("stores the hold under the session's hash, as presentation computed it", async () => {
-    const { useCase, holds } = await makeUseCase();
+    const { useCase, store } = await makeUseCase();
     await useCase.execute(input(), GUEST);
-    expect((await holds.findByIdempotencyKey(ITEM_ID, 'idem-1'))?.sessionHash.value).toBe('a'.repeat(64));
+    expect(storedHold(store)?.sessionHash.value).toBe('a'.repeat(64));
   });
 
   it('appends ItemHeld to the item stream as the guest (ADR-0075)', async () => {
@@ -79,12 +81,12 @@ describe('HoldItem', () => {
   });
 
   it("refuses another session's idempotency key as ItemUnavailableError and writes nothing", async () => {
-    const { useCase, eventStore, holds } = await makeUseCase();
+    const { useCase, eventStore, store } = await makeUseCase();
     await useCase.execute(input(), GUEST);
 
     await expect(useCase.execute(input(), OTHER_GUEST)).rejects.toThrow(ItemUnavailableError);
     expect(eventStore.recorded(ITEM_ID)).toHaveLength(1);
-    expect((await holds.findByIdempotencyKey(ITEM_ID, 'idem-1'))?.sessionHash.value).toBe('a'.repeat(64));
+    expect(storedHold(store)?.sessionHash.value).toBe('a'.repeat(64));
   });
 
   it('throws ItemNotFoundError without a guest session, for an unknown wishlist, or an item not on it', async () => {

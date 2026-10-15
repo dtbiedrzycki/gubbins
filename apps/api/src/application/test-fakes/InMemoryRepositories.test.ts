@@ -40,15 +40,15 @@ describe('in-memory fakes never share instances with the store', () => {
     expect(fresh?.items[0]?.seq).toBe(0);
   });
 
-  it('does not let a caller change a stored hold through the instance it inserted', async () => {
-    const { wishlists, holds } = inMemoryPersistence();
+  it('does not let a caller change a stored hold through the instance it saved', async () => {
+    const { wishlists } = inMemoryPersistence();
     await wishlists.insert(aWishlist().withItem({ id: ITEM_ID, title: 'Stroller' }).build());
     const wishlist = (await wishlists.findById(WISHLIST_ID, T0))!;
     const { hold } = wishlist.holdItem(holdProps, tokens, hasher);
-    await holds.insert(hold);
+    await wishlists.save(wishlist);
 
     wishlist.releaseHold(hold);
 
-    expect((await holds.findById(hold.id.value))?.releasedAt).toBeNull();
+    expect((await wishlists.findById(WISHLIST_ID, T0))?.findHold(hold.id.value)?.releasedAt).toBeNull();
   });
 });

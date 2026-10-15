@@ -112,7 +112,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
 
       await fx.wishlists.save(wishlist);
 
-      expect((await fx.holds.findById(hold.id.value))?.expiresAt).toEqual(later(60_000));
+      expect((await fx.wishlists.findById(LIST_A, NOW))?.findHold(hold.id.value)?.expiresAt).toEqual(later(60_000));
       expect((await fx.wishlists.findById(LIST_A, NOW))?.itemStatus(ITEM_A)).toBe('held');
     });
 

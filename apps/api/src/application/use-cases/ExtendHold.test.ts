@@ -27,12 +27,12 @@ describe('ExtendHold', () => {
   });
 
   it('persists the extension and records HoldExtended as the guest on the item stream', async () => {
-    const { placeHold, extend, holds, eventStore, wishlists } = await setup();
+    const { placeHold, extend, store, eventStore, wishlists } = await setup();
     const { holdId } = await placeHold();
 
     await extend(holdId);
 
-    expect((await holds.findById(holdId))?.extendedAt).toEqual(T0);
+    expect(store.holds.get(holdId)?.extendedAt).toEqual(T0);
     expect(eventStore.recorded(ITEM_ID).map(({ event, actor }) => [event.type, actor])).toEqual([['ItemHeld', 'guest'], ['HoldExtended', 'guest']]);
     expect((await wishlists.findById(WISHLIST_ID, T0))?.items[0]?.seq).toBe(2);
   });
