@@ -56,7 +56,8 @@ export default function ListPage() {
       <div className="max-w-sm space-y-8">
         <h1 className="text-2xl font-semibold">{query.data.title}</h1>
         <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn't refresh the list, so it may be out of date." : ''}</p>
-        <ul className="space-y-4">
+        {/* explicit role: Safari/VoiceOver drops list semantics under list-style none */}
+        <ul role="list" className="space-y-4">
           {items.map((item) => (
             <li key={item.id} className="rounded border border-slate-200 bg-white p-4">
               <ItemView
