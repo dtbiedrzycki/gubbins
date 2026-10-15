@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { mock } from '../../test/msw/mock';
 import { server } from '../../test/msw/server';
@@ -13,17 +14,19 @@ function renderWithQueryClient(ui: ReactElement) {
 
 describe('OwnerTokenGate', () => {
   it('hides the token as it is typed and calls onSuccess once it is accepted', async () => {
-    server.use(mock('post', '/api/lists/{slug}/owner-session', 200, { ok: true }));
+    let body: unknown;
+    server.use(http.post('/api/lists/:slug/owner-session', async ({ request }) => { body = await request.json(); return HttpResponse.json({ ok: true }); }));
     const onSuccess = vi.fn();
     const user = userEvent.setup();
     renderWithQueryClient(<OwnerTokenGate slug="abc123" onSuccess={onSuccess} />);
 
     const input = screen.getByLabelText('Owner token');
     expect(input).toHaveAttribute('type', 'password');
-    await user.type(input, 'the-token');
+    await user.type(input, ' the-token ');
     await user.click(screen.getByRole('button', { name: 'Manage list' }));
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    expect(body).toEqual({ ownerToken: 'the-token' });
   });
 
   it('says the token does not match when the server answers 404', async () => {
