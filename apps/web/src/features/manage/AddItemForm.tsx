@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import type { AddItemRequest } from '@gubbins/shared-types';
 import { api, ApiError } from '../../api/client';
@@ -21,6 +21,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
   const [url, setUrl] = useState('');
   const [priceError, setPriceError] = useState('');
   const [added, setAdded] = useState('');
+  const priceInput = useRef<HTMLInputElement>(null);
   const { mutate, error, isPending, reset } = useMutation({
     mutationFn: (input: AddItemRequest) => api.addItem(slug, input),
   });
@@ -32,6 +33,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
     const priceMinor = price.trim() === '' ? undefined : parseUsd(price);
     if (priceMinor === null || (type === 'group' && priceMinor === undefined)) {
       setPriceError('Enter a price like 25 or 25.50.');
+      priceInput.current?.focus();
       return;
     }
     setPriceError('');
@@ -41,7 +43,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       : { type, ...common, quantity: Number(quantity), ...(priceMinor !== undefined && { priceMinor }) };
     mutate(body, {
       onSuccess: () => {
-        setAdded(`Added "${title}".`);
+        setAdded(`Added "${title.trim()}".`);
         setTitle(''); setQuantity('1'); setPrice(''); setUrl('');
       },
       onError: (e) => { if (e instanceof ApiError && e.status === 404) onUnauthorized(); },
@@ -77,7 +79,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       <div>
         <label htmlFor="item-price" className="block text-sm font-medium">Price (USD)</label>
         <input
-          id="item-price" inputMode="decimal" required={type === 'group'} value={price}
+          ref={priceInput} id="item-price" aria-invalid={!!priceError} aria-describedby={priceError ? 'item-error' : undefined} inputMode="decimal" required={type === 'group'} value={price}
           onChange={(e) => setPrice(e.target.value)} className={field}
         />
       </div>
@@ -85,7 +87,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
         <label htmlFor="item-url" className="block text-sm font-medium">Store link</label>
         <input id="item-url" type="url" value={url} onChange={(e) => setUrl(e.target.value)} className={field} />
       </div>
-      <p role="alert" className="text-red-600 empty:mb-0">{priceError || error?.message}</p>
+      <p id="item-error" role="alert" className="text-red-600 empty:mb-0">{priceError || error?.message}</p>
       <p role="status" aria-live="polite" className="text-green-800 empty:mb-0">{added}</p>
       <button type="submit" disabled={isPending} className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50">
         {isPending ? 'Adding…' : 'Add item'}

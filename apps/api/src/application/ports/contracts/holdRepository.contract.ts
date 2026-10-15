@@ -24,6 +24,10 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
       expect((await fx.holds.findById(hold.id.value))?.piiRef?.value).toBe(piiRef);
     });
 
+    it('refuses a hold whose piiRef has no guest_pii row', async () => {
+      await expect(fx.holds.insert(holdFixture({ piiRef: '00000000-0000-7000-8000-00000000bbbb' }))).rejects.toThrow();
+    });
+
     it('returns null for an unknown or malformed id', async () => {
       expect(await fx.holds.findById('00000000-0000-7000-8000-999999999999')).toBeNull();
       expect(await fx.holds.findById('not-a-uuid')).toBeNull();
