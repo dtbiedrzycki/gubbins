@@ -13,10 +13,10 @@ function renderWithQueryClient(ui: ReactElement) {
   return render(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>);
 }
 
-async function fillAndSubmit(beforeSubmit: () => void | Promise<void> = () => {}) {
+async function fillAndSubmit(beforeSubmit: (user: ReturnType<typeof userEvent.setup>) => void | Promise<void> = () => {}) {
   const user = userEvent.setup();
   renderWithQueryClient(<CreateListForm />);
-  await beforeSubmit();
+  await beforeSubmit(user);
   await user.type(screen.getByLabelText('List title'), 'Baby Shower');
   await user.type(screen.getByLabelText('First item'), 'Stroller');
   await user.type(screen.getByLabelText('Create secret'), 'the-secret');
@@ -72,8 +72,7 @@ describe('CreateListForm', () => {
       body = await request.json();
       return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k', itemId: 'i' }, { status: 201 });
     }));
-    await fillAndSubmit(async () => {
-      const user = userEvent.setup();
+    await fillAndSubmit(async (user) => {
       await user.type(screen.getByLabelText('Venmo username'), '@my-venmo');
       await user.type(screen.getByLabelText('Zelle email or US phone'), 'me@example.com');
     });
