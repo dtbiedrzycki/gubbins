@@ -34,8 +34,8 @@ export class HoldItem {
     if (!guest) throw new ItemNotFoundError(input.itemId);
 
     return this.unitOfWork.execute(async (ctx) => {
-      // Read once: the aggregate is loaded as of this instant, its active
-      // holds included, and decides everything below at the same one.
+      // Read once: the aggregate is loaded as of this instant, every hold on
+      // the list included, and decides everything below at the same one.
       const now = this.clock.now();
       const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
       if (!wishlist) throw new ItemNotFoundError(input.itemId);
