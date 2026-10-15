@@ -41,7 +41,7 @@ describe('OwnerTokenGate', () => {
     await user.type(screen.getByLabelText('Owner token'), 'wrong');
     await user.click(screen.getByRole('button', { name: 'Manage list' }));
 
-    await waitFor(() => expect(alert).toHaveTextContent("That token doesn't match this list."));
+    await waitFor(() => expect(alert).toHaveTextContent("That isn't the owner token for this list."));
   });
 
   it('focuses the token field and describes it with the notice when sent back', () => {
