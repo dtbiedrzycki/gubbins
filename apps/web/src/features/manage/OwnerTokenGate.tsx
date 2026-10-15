@@ -15,7 +15,7 @@ export function OwnerTokenGate({ slug, onSuccess, notice }: OwnerTokenGateProps)
   const [ownerToken, setOwnerToken] = useState('');
   const input = useRef<HTMLInputElement>(null);
   const { mutate, error, isPending } = useMutation({
-    mutationFn: () => api.enterOwnerToken(slug, { ownerToken }),
+    mutationFn: () => api.enterOwnerToken(slug, { ownerToken: ownerToken.trim() }),
   });
   // Sent back here by the page: put focus where the next step is.
   useEffect(() => { if (notice) input.current?.focus(); }, [notice]);
@@ -33,12 +33,12 @@ export function OwnerTokenGate({ slug, onSuccess, notice }: OwnerTokenGateProps)
       <div>
         <label htmlFor="owner-token" className="block text-sm font-medium">Owner token</label>
         <input
-          ref={input} id="owner-token" type="password" required autoComplete="off" value={ownerToken}
+          ref={input} id="owner-token" type="password" required autoComplete="off" aria-describedby="owner-token-message" value={ownerToken}
           onChange={(e) => setOwnerToken(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>
-      <p role="alert" className="text-red-600 empty:mb-0">{message || notice}</p>
+      <p id="owner-token-message" role="alert" className="text-red-600 empty:mb-0">{message || notice}</p>
       <button
         type="submit" disabled={isPending}
         className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50"
