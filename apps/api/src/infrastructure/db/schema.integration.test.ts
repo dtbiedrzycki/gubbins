@@ -43,6 +43,23 @@ describe('0001_init schema', () => {
       .rejects.toThrow(/CHECK constraint failed/);
   });
 
+  it.each([
+    ['of an unknown type', { type: 'bundle' }],
+    ['that is a group gift without a price', { type: 'group', price_minor: null }],
+    ['that is a group gift for more than one unit', { type: 'group', price_minor: 45000, quantity: 2 }],
+  ])('refuses an item %s', async (_case, overrides) => {
+    const row = { id: '44444444-4444-7444-8444-444444444444', wishlist_id: W1, title: 'Mixer', quantity: 1, created_at: NOW, ...overrides };
+    await expect(db.insertInto('items').values(row).execute()).rejects.toThrow(/CHECK constraint failed/);
+  });
+
+  it.each([
+    ['name over 100 characters', { name: 'x'.repeat(101), message: null }],
+    ['message over 300 characters', { name: 'Ada', message: 'x'.repeat(301) }],
+  ])('refuses a guest %s', async (_case, fields) => {
+    await expect(db.insertInto('guest_pii').values({ id: 'pii-1', ...fields, redacted_at: null, created_at: NOW }).execute())
+      .rejects.toThrow(/CHECK constraint failed/);
+  });
+
   it('indexes holds by item and by session', async () => {
     const { rows } = await sql<{ name: string }>`select name from pragma_index_list('holds')`.execute(db);
 

@@ -1,4 +1,5 @@
 import { describeEventStoreContract } from '../application/ports/contracts/eventStore.contract.js';
+import { describeGuestPiiRepositoryContract } from '../application/ports/contracts/guestPiiRepository.contract.js';
 import { describeHoldRepositoryContract } from '../application/ports/contracts/holdRepository.contract.js';
 import { describeWishlistRepositoryContract } from '../application/ports/contracts/wishlistRepository.contract.js';
 import type { PersistenceFactory } from '../application/ports/contracts/fixture.js';
@@ -6,6 +7,7 @@ import type { LedgerEvent } from '../domain/events/LedgerEvent.js';
 import { createDb } from './db/createDb.js';
 import { migrateToLatest } from './db/migrate.js';
 import { EventStoreKysely } from './EventStoreKysely.js';
+import { GuestPiiRepositoryKysely } from './GuestPiiRepositoryKysely.js';
 import { HoldRepositoryKysely } from './HoldRepositoryKysely.js';
 import { WishlistRepositoryKysely } from './WishlistRepositoryKysely.js';
 
@@ -27,3 +29,8 @@ const kysely: PersistenceFactory = async () => {
 describeWishlistRepositoryContract('Kysely/SQLite', kysely);
 describeHoldRepositoryContract('Kysely/SQLite', kysely);
 describeEventStoreContract('Kysely/SQLite', kysely);
+describeGuestPiiRepositoryContract('Kysely/SQLite', async () => {
+  const db = createDb(':memory:');
+  await migrateToLatest(db);
+  return { guestPii: new GuestPiiRepositoryKysely(db), dispose: () => db.destroy() };
+});
