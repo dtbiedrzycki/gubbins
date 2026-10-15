@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { domainErrorResponse } from './domainErrorResponse.js';
 import {
-  ConcurrencyError, HoldAlreadyExtendedError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError,
+  ConcurrencyError, DomainValidationError, NoPaymentMethodError, HoldAlreadyExtendedError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError,
   InvalidCreateSecretError, InvalidGuestKeyError, ItemNotFoundError, ItemUnavailableError, WishlistNotFoundError,
 } from '../domain/errors.js';
 
@@ -23,8 +23,15 @@ describe('domainErrorResponse', () => {
     ['HoldLapsedError', new HoldLapsedError('x'), 'item_unavailable', 'Your hold expired and this gift has since been held or bought by someone else.'],
     ['HoldNotActiveError', new HoldNotActiveError('x'), 'hold_not_active', 'This hold is no longer active.'],
     ['HoldAlreadyExtendedError', new HoldAlreadyExtendedError('x'), 'hold_already_extended', 'This hold has already been extended.'],
+    ['NoPaymentMethodError', new NoPaymentMethodError(), 'no_payment_method', 'Add a Venmo or Zelle handle to this list before adding a group gift.'],
   ])('answers %s with 409 and a code the client can branch on', (_name, err, code, message) => {
     expect(domainErrorResponse(err)).toEqual({ status: 409, body: { message, code } });
+  });
+
+  it('answers a DomainValidationError with 400 and its own message', () => {
+    expect(domainErrorResponse(new DomainValidationError('Venmo handle is invalid'))).toEqual({
+      status: 400, body: { message: 'Venmo handle is invalid' },
+    });
   });
 
   it('answers a ConcurrencyError that outlived its retries with a 409 and no code', () => {
