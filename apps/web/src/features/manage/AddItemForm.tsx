@@ -80,7 +80,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
         <label htmlFor="item-price" className="block text-sm font-medium">Price (USD)</label>
         <input
           ref={priceInput} id="item-price" aria-invalid={!!priceError} aria-describedby={priceError ? 'item-error' : undefined} inputMode="decimal" required={type === 'group'} value={price}
-          onChange={(e) => setPrice(e.target.value)} className={field}
+          onChange={(e) => { setPrice(e.target.value); setPriceError(''); }} className={field}
         />
       </div>
       <div>
