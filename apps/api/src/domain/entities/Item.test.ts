@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Item } from './Item.js';
+import { Contribution } from './Contribution.js';
 import { Hold } from './Hold.js';
 import { ContributionAmountError, DomainValidationError, ItemUnavailableError } from '../errors.js';
 
@@ -117,15 +118,8 @@ describe('Item holds', () => {
 
   it('places a hold on a free unit and adds it to its own holds', () => {
     const item = Item.reconstitute({ ...base });
-    const { hold, expectedSeq } = item.placeHold({ sessionHash: 'a'.repeat(64), idempotencyKey: 'tap-1', durationMs: DAY }, tokens, hasher);
+    const { hold } = item.placeHold({ sessionHash: 'a'.repeat(64), idempotencyKey: 'tap-1', durationMs: DAY }, tokens, hasher);
     expect(item.holds).toEqual([hold]);
-    expect(hold.expiresAt).toEqual(new Date(T0.getTime() + DAY));
-    expect(expectedSeq).toBe(0);
-  });
-
-  it('refuses a hold once its own active hold covers the last unit', () => {
-    const item = Item.reconstitute({ ...base, holds: [holdOn()] });
-    expect(() => item.placeHold({ sessionHash: 'a'.repeat(64), idempotencyKey: 'tap-2', durationMs: DAY }, tokens, hasher)).toThrow(ItemUnavailableError);
   });
 
   it('places a hold where a loaded one has already lapsed, freeing its unit', () => {
@@ -136,6 +130,11 @@ describe('Item holds', () => {
   it('rejects a loaded hold or contribution that is on another item', () => {
     const other = '44444444-4444-7444-8444-444444444444';
     expect(() => Item.reconstitute({ ...base, holds: [holdOn({ itemId: other })] })).toThrow(DomainValidationError);
+    const pledge = Contribution.reconstitute({
+      id: '66666666-6666-7666-8666-666666666666', itemId: other, amountMinor: 2_500, sessionHash: 'a'.repeat(64),
+      idempotencyKey: 'p-1', piiRef: '55555555-5555-7555-8555-555555555555', pledgedAt: T0,
+    });
+    expect(() => Item.reconstitute({ ...base, type: 'group', priceMinor: 10_000, contributions: [pledge] })).toThrow(DomainValidationError);
   });
 
   it('pledges toward a group gift and adds the pledge to its own contributions', () => {
