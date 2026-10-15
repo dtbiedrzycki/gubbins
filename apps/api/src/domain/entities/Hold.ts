@@ -50,12 +50,12 @@ export class Hold {
 
   static create(props: {
     id: string; itemId: string; secret: string; sessionHash: string;
-    idempotencyKey: string; expiresAt: Date; now: Date; piiRef?: string | null;
+    idempotencyKey: string; expiresAt: Date; at: Date; piiRef?: string | null;
   }): Hold {
     const secret = HoldSecret.from(props.secret);
     const sessionHash = SessionHash.from(props.sessionHash);
     const idempotencyKey = IdempotencyKey.from(props.idempotencyKey);
-    if (props.expiresAt.getTime() <= props.now.getTime()) {
+    if (props.expiresAt.getTime() <= props.at.getTime()) {
       throw new DomainValidationError('Hold expiresAt must be in the future');
     }
     return new Hold(

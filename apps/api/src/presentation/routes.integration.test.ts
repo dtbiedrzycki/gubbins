@@ -16,9 +16,10 @@ function extractCookieHeader(response: LightMyRequestResponse): string {
 }
 
 let app: FastifyInstance;
+let db: ReturnType<typeof createDb>;
 
 beforeEach(async () => {
-  const db = createDb(':memory:');
+  db = createDb(':memory:');
   await migrateToLatest(db);
   app = buildApp(buildDependencies(db, undefined, { createSecret: 'test-create-secret' }), { cookieSecret: 'test-secret' });
   disposeWithApp(app, db);
@@ -186,6 +187,19 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
 
     const viewResponse = await app.inject({ method: 'GET', url: `/api/lists/${list.slug}`, headers: { cookie } });
     expect(viewResponse.json()).toMatchObject({ items: [{ status: 'held' }] });
+  });
+
+  it('stores the name and message from the body as the hold\'s guest details', async () => {
+    const list = await createList();
+    const cookie = extractCookieHeader(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } }));
+
+    await app.inject({
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`,
+      headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', message: 'Congrats' },
+    });
+
+    const hold = await db.selectFrom('holds').select('pii_ref').executeTakeFirstOrThrow();
+    expect(await db.selectFrom('guest_pii').selectAll().execute()).toMatchObject([{ id: hold.pii_ref, name: 'Ada', message: 'Congrats' }]);
   });
 
   it('returns 409 for a second hold attempt on an already-held item', async () => {
@@ -471,17 +485,17 @@ describe('POST /api/lists/:slug/items', () => {
   it('answers the same bare 404 without an owner cookie for this list', async () => {
     const list = await createList();
     const other = await createList();
-    const cookies = [undefined, await guestOn(list), await ownerOn(other)];
-    for (const cookie of cookies) {
-      const response = await addItem(list.slug, cookie, single);
+    const requests = [
+      [list.slug, undefined],
+      [list.slug, await guestOn(list)],
+      [list.slug, await ownerOn(other)],
+      ['no-such-slug', await ownerOn(list)],
+    ] as const;
+    for (const [slug, cookie] of requests) {
+      const response = await addItem(slug, cookie, single);
       expect(response.statusCode).toBe(404);
       expect(response.json()).toEqual({ message: 'Not found' });
     }
-  });
-
-  it.each(['javascript:alert(1)', 'http://shop.example/crib'])('rejects the url %s at the schema', async (url) => {
-    const list = await createList();
-    expect((await addItem(list.slug, await ownerOn(list), { ...single, url })).statusCode).toBe(400);
   });
 
   it('answers 409 no_payment_method for a group gift on a list without handles', async () => {

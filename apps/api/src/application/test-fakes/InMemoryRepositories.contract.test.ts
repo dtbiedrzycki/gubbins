@@ -5,13 +5,14 @@ import { describeHoldRepositoryContract } from '../ports/contracts/holdRepositor
 import { describeWishlistRepositoryContract } from '../ports/contracts/wishlistRepository.contract.js';
 import type { PersistenceFactory } from '../ports/contracts/fixture.js';
 import { InMemoryContributionRepository, InMemoryGuestPiiRepository, InMemoryWishlistRepository, InMemoryStore, inMemoryPersistence } from './InMemoryRepositories.js';
+import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
 
 const inMemory: PersistenceFactory = async () => {
-  const { wishlists, holds, eventStore } = inMemoryPersistence();
+  const { wishlists, holds, eventStore, guestPii } = inMemoryPersistence();
   return {
     wishlists, holds, eventStore,
     recordedEvents: async (itemId) => eventStore.recorded(itemId).map(({ event, actor }) => ({ type: event.type, actor, payload: event })),
-    seedGuestPii: async () => {},
+    seedGuestPii: (id) => guestPii.insert(id, GuestDetails.from({ name: 'Guest' })),
     dispose: async () => {},
   };
 };
