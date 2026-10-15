@@ -6,11 +6,13 @@ export function CreateListForm() {
   const [listTitle, setListTitle] = useState('');
   const [itemTitle, setItemTitle] = useState('');
   const [createSecret, setCreateSecret] = useState('');
+  const [venmoHandle, setVenmoHandle] = useState('');
+  const [zelleHandle, setZelleHandle] = useState('');
   const { mutate, data, error, isPending } = useCreateList();
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    mutate({ listTitle, itemTitle, createSecret });
+    mutate({ listTitle, itemTitle, createSecret, venmoHandle, zelleHandle });
   }
 
   if (data) {
@@ -32,6 +34,8 @@ export function CreateListForm() {
           <p className="text-sm font-medium">Owner token — keep this private</p>
           <p data-testid="owner-token" className="break-all font-mono">{data.ownerToken}</p>
         </div>
+        <p>Save your owner token now: you'll need it to manage the list, and it isn't shown again.</p>
+        <a className="text-blue-600 underline" href={`/${data.slug}/manage`}>Manage your list</a>
       </div>
     );
   }
@@ -60,6 +64,21 @@ export function CreateListForm() {
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>
+      <div>
+        <label htmlFor="venmo-handle" className="block text-sm font-medium">Venmo username</label>
+        <input
+          id="venmo-handle" aria-describedby="handles-hint" value={venmoHandle} onChange={(e) => setVenmoHandle(e.target.value)}
+          className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
+        />
+      </div>
+      <div>
+        <label htmlFor="zelle-handle" className="block text-sm font-medium">Zelle email or US phone</label>
+        <input
+          id="zelle-handle" aria-describedby="handles-hint" value={zelleHandle} onChange={(e) => setZelleHandle(e.target.value)}
+          className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
+        />
+      </div>
+      <p id="handles-hint" className="text-sm text-gray-600">Group gifts need at least one handle. Handles can't be changed later.</p>
       <p role="alert" className="text-red-600 empty:mb-0">{error?.message}</p>
       <button
         type="submit" disabled={isPending}

@@ -13,10 +13,10 @@ function renderWithQueryClient(ui: ReactElement) {
   return render(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>);
 }
 
-async function fillAndSubmit(beforeSubmit = () => {}) {
+async function fillAndSubmit(beforeSubmit: (user: ReturnType<typeof userEvent.setup>) => void | Promise<void> = () => {}) {
   const user = userEvent.setup();
   renderWithQueryClient(<CreateListForm />);
-  beforeSubmit();
+  await beforeSubmit(user);
   await user.type(screen.getByLabelText('List title'), 'Baby Shower');
   await user.type(screen.getByLabelText('First item'), 'Stroller');
   await user.type(screen.getByLabelText('Create secret'), 'the-secret');
@@ -64,5 +64,35 @@ describe('CreateListForm', () => {
     await fillAndSubmit();
     await screen.findByText('k');
     expect(body).toMatchObject({ createSecret: 'the-secret' });
+  });
+
+  it('sends the Venmo and Zelle handles when filled', async () => {
+    let body: unknown;
+    server.use(http.post('/api/lists', async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k', itemId: 'i' }, { status: 201 });
+    }));
+    await fillAndSubmit(async (user) => {
+      await user.type(screen.getByLabelText('Venmo username'), '@my-venmo');
+      await user.type(screen.getByLabelText('Zelle email or US phone'), 'me@example.com');
+    });
+    await screen.findByText('k');
+    expect(body).toMatchObject({ venmoHandle: '@my-venmo', zelleHandle: 'me@example.com' });
+  });
+
+  it('explains that group gifts need a handle and handles are permanent', () => {
+    renderWithQueryClient(<CreateListForm />);
+    const hint = "Group gifts need at least one handle. Handles can't be changed later.";
+    expect(screen.getByLabelText('Venmo username')).toHaveAccessibleDescription(hint);
+    expect(screen.getByLabelText('Zelle email or US phone')).toHaveAccessibleDescription(hint);
+  });
+
+  it('links to the manage page without the owner token and tells the owner to save it', async () => {
+    server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'owner-secret-token', key: 'guest-key-value', itemId: 'item-1' }));
+    await fillAndSubmit();
+
+    const link = await screen.findByRole('link', { name: 'Manage your list' });
+    expect(link).toHaveAttribute('href', '/abc123/manage');
+    expect(screen.getByText("Save your owner token now: you'll need it to manage the list, and it isn't shown again.")).toBeInTheDocument();
   });
 });

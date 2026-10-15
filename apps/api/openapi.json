@@ -56,6 +56,14 @@
                   },
                   "createSecret": {
                     "type": "string"
+                  },
+                  "venmoHandle": {
+                    "type": "string",
+                    "maxLength": 254
+                  },
+                  "zelleHandle": {
+                    "type": "string",
+                    "maxLength": 254
                   }
                 },
                 "required": [

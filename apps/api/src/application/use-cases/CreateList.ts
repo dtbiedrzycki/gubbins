@@ -3,12 +3,15 @@ import type { UnitOfWork } from '../ports/UnitOfWork.js';
 import type { TokenGenerator } from '../ports/TokenGenerator.js';
 import type { Clock } from '../ports/Clock.js';
 import type { SecretComparer } from '../ports/SecretComparer.js';
+import { PaymentMethods } from '../../domain/value-objects/PaymentMethods.js';
 import { InvalidCreateSecretError } from '../../domain/errors.js';
 
 export interface CreateListInput {
   listTitle: string;
   itemTitle: string;
   createSecret?: string;
+  venmoHandle?: string;
+  zelleHandle?: string;
 }
 
 export interface CreateListOutput {
@@ -40,6 +43,7 @@ export class CreateList {
         ownerToken: this.tokenGenerator.generateOwnerToken(),
         key: this.tokenGenerator.generateGuestKey(),
         asOf: this.clock.now(),
+        paymentMethods: PaymentMethods.from({ venmoHandle: input.venmoHandle, zelleHandle: input.zelleHandle }),
       });
       // Wishlist mints its own item id via the generator it's handed.
       const item = wishlist.addItem({ type: 'single', title: input.itemTitle }, this.tokenGenerator);
