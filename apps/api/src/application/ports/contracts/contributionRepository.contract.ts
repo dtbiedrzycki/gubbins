@@ -4,7 +4,7 @@ import { Wishlist } from '../../../domain/entities/Wishlist.js';
 import { PaymentMethods } from '../../../domain/value-objects/PaymentMethods.js';
 import type { ContributionRepository } from '../ContributionRepository.js';
 import type { WishlistRepository } from '../WishlistRepository.js';
-import { NOW, SESSION } from './fixture.js';
+import { later, NOW, SESSION } from './fixture.js';
 
 export interface ContributionFixture {
   contributions: ContributionRepository;
@@ -23,10 +23,10 @@ const OTHER_LIST_ITEM = '66666666-6666-7666-8666-666666666701';
 const PII = '77777777-7777-7777-8777-777777777700';
 
 let count = 0;
-function pledge(itemId: string, amountMinor: number, idempotencyKey = `idem-${++count}`): Contribution {
+function pledge(itemId: string, amountMinor: number, idempotencyKey = `idem-${++count}`, pledgedAt = NOW): Contribution {
   return Contribution.reconstitute({
     id: `00000000-0000-7000-8000-${String(++count).padStart(12, '0')}`, itemId, amountMinor, sessionHash: SESSION,
-    idempotencyKey, piiRef: PII, pledgedAt: NOW,
+    idempotencyKey, piiRef: PII, pledgedAt,
   });
 }
 
@@ -72,9 +72,10 @@ export function describeContributionRepositoryContract(adapter: string, factory:
     });
 
     it("findForWishlist returns every contribution on the list's items, oldest pledge first, and none from another list", async () => {
-      const first = pledge(MIXER, 2500);
-      const second = pledge(STROLLER, 1500);
-      for (const c of [first, second, pledge(OTHER_LIST_ITEM, 1000)]) await fx.contributions.insert(c);
+      // The later pledge gets the smaller id and goes in first, so only pledgedAt can put the earlier one ahead.
+      const second = pledge(MIXER, 2500, undefined, later(60_000));
+      const first = pledge(STROLLER, 1500);
+      for (const c of [second, first, pledge(OTHER_LIST_ITEM, 1000)]) await fx.contributions.insert(c);
 
       const found = await fx.contributions.findForWishlist(LIST_X);
 
