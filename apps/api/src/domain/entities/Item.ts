@@ -8,7 +8,7 @@ import { UuidId } from '../value-objects/UuidId.js';
 
 export type ItemType = 'single' | 'group';
 export const MAX_CONTRIBUTION_TARGET_MULTIPLE = 5; // shortcut: constant, not the MAX_CONTRIBUTION_TARGET_MULTIPLE env var; add the env var when an operator needs another value
-const MAX_URL_LENGTH = 2048;
+const MAX_URL_LENGTH = 2048; // the de facto browser/CDN limit; bounds stored input
 
 export type ItemStatus = 'available' | 'held' | 'purchased';
 
@@ -48,7 +48,7 @@ export class Item {
     if (title.length > 120) throw new DomainValidationError('Item title must be at most 120 characters');
     if (type !== 'single' && type !== 'group') throw new DomainValidationError('Item type must be "single" or "group"');
     if (!Number.isInteger(quantity) || quantity < 1) throw new DomainValidationError('Item quantity must be a positive integer');
-    if (url !== null && !isHttpsUrl(url)) throw new DomainValidationError('Item URL must be an https URL of at most 2048 characters');
+    if (url !== null && !isHttpsUrl(url)) throw new DomainValidationError(`Item URL must be an https URL of at most ${MAX_URL_LENGTH} characters`);
     if (priceMinor !== null && (!Number.isSafeInteger(priceMinor) || priceMinor < 1 || priceMinor > MAX_MONEY_MINOR)) {
       throw new DomainValidationError('Item price must be a positive whole number of minor units within the limit');
     }
