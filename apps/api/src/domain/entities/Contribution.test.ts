@@ -11,7 +11,7 @@ describe('Contribution', () => {
   it('refuses a pledge of zero, even from a stored row', () => {
     expect(() => Contribution.reconstitute({ ...row, amountMinor: 0 })).toThrow(DomainValidationError);
   });
-  it('keeps a pledge of one cent', () => {
+  it('accepts a pledge of one cent', () => {
     expect(Contribution.reconstitute({ ...row, amountMinor: 1 }).amount.amountMinor).toBe(1);
   });
 });
