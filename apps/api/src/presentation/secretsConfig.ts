@@ -5,7 +5,7 @@
  */
 export function parseCreateSecret(env: Record<string, string | undefined>): string {
   const value = env.CREATE_SECRET;
-  if (!value) throw new Error('CREATE_SECRET must be set: list creation always requires it (ADR-0080). Generate one with `openssl rand -base64 32`.');
+  if (!value) throw new Error('CREATE_SECRET must be set: list creation always requires it. Generate one with `openssl rand -base64 32`.');
   return value;
 }
 
