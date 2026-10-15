@@ -1,3 +1,4 @@
+import { DomainValidationError } from '../errors.js';
 import { IdempotencyKey } from '../value-objects/IdempotencyKey.js';
 import { Money } from '../value-objects/Money.js';
 import { SessionHash } from '../value-objects/SessionHash.js';
@@ -13,7 +14,10 @@ export class Contribution {
     readonly idempotencyKey: IdempotencyKey,
     readonly piiRef: UuidId,
     readonly pledgedAt: Date,
-  ) {}
+  ) {
+    // Money allows zero, for totals; a pledge of nothing is not a pledge.
+    if (amount.amountMinor === 0) throw new DomainValidationError('A pledge must be more than zero');
+  }
 
   static create(props: {
     id: string; itemId: string; amount: Money; sessionHash: string; idempotencyKey: string; piiRef: string; pledgedAt: Date;

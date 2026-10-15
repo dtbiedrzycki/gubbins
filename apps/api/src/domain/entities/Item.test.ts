@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Item } from './Item.js';
 import { Contribution } from './Contribution.js';
 import { Hold } from './Hold.js';
+import { MAX_MONEY_MINOR } from '../value-objects/Money.js';
 import { ContributionAmountError, DomainValidationError, ItemUnavailableError } from '../errors.js';
 
 const ITEM_ID = '33333333-3333-7333-8333-333333333333';
@@ -268,6 +269,28 @@ describe('Item.pledge', () => {
   });
   it.each([0, -100, 12.5, 45000 * 5 + 1])('refuses amount %j', (amountMinor) => {
     expect(() => group().pledge({ ...props, amountMinor }, ids)).toThrow(ContributionAmountError);
+  });
+  const pledged = (amountMinor: number, n = 1) => Contribution.reconstitute({
+    id: `66666666-6666-7666-8666-${String(n).padStart(12, '0')}`, itemId: ITEM_ID, amountMinor,
+    sessionHash: 'a'.repeat(64), idempotencyKey: `stored-${n}`, piiRef: PII, pledgedAt: T0,
+  });
+  const fundedGroup = (...amounts: number[]) => Item.reconstitute({
+    ...base, type: 'group', priceMinor: MAX_MONEY_MINOR, contributions: amounts.map((a, i) => pledged(a, i + 1)),
+  });
+
+  it('totals its pledges, zero with none', () => {
+    const item = group();
+    expect(item.pledgedTotal().amountMinor).toBe(0);
+    item.pledge({ ...props, amountMinor: 2_500 }, ids);
+    expect(item.pledgedTotal().amountMinor).toBe(2_500);
+  });
+  it('accepts a pledge that brings the total exactly to the limit, and refuses one cent more', () => {
+    const item = fundedGroup(MAX_MONEY_MINOR - 100);
+    expect(() => item.pledge({ ...props, amountMinor: 100 }, ids)).not.toThrow();
+    expect(() => item.pledge({ ...props, idempotencyKey: 'k2', amountMinor: 1 }, ids)).toThrow(ContributionAmountError);
+  });
+  it('rejects loaded pledges that total more than the limit', () => {
+    expect(() => fundedGroup(MAX_MONEY_MINOR, 1)).toThrow(DomainValidationError);
   });
   it('refuses a pledge on a single item', () => {
     const single = Item.createSingle({ asOf: T0, id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Crib' });

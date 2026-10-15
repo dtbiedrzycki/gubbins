@@ -9,8 +9,8 @@ export class Money {
   private constructor(readonly amountMinor: number) {}
 
   static usd(amountMinor: number): Money {
-    if (!Number.isSafeInteger(amountMinor) || amountMinor < 1 || amountMinor > MAX_MONEY_MINOR) {
-      throw new DomainValidationError('Money must be a positive whole number of minor units within the limit');
+    if (!Number.isSafeInteger(amountMinor) || amountMinor < 0 || amountMinor > MAX_MONEY_MINOR) {
+      throw new DomainValidationError('Money must be a whole number of minor units from zero to the limit');
     }
     return new Money(amountMinor);
   }

@@ -12,6 +12,8 @@ const MAX_URL_LENGTH = 2048; // the de facto browser/CDN limit; bounds stored in
 
 export type ItemStatus = 'available' | 'held' | 'purchased';
 
+const sumMinor = (contributions: readonly Contribution[]): number => contributions.reduce((sum, c) => sum + c.amount.amountMinor, 0);
+
 function isNonNegativeInteger(value: number): boolean {
   return Number.isInteger(value) && value >= 0;
 }
@@ -60,6 +62,7 @@ export class Item {
     if ([..._holds, ..._contributions].some((member) => member.itemId.value !== id.value)) {
       throw new DomainValidationError('A hold or contribution belongs to another item');
     }
+    if (sumMinor(_contributions) > MAX_MONEY_MINOR) throw new DomainValidationError('Pledges on an item total more than the limit');
   }
 
   static createSingle(props: {
@@ -185,9 +188,15 @@ export class Item {
     return { hold, event, expectedSeq: this.recordEvent() };
   }
 
+  /** The sum of its pledges. Derived, never stored. */
+  pledgedTotal(): Money {
+    return Money.usd(sumMinor(this._contributions));
+  }
+
   /**
    * A guest's pledge toward a group gift. Overfunding is allowed up to
-   * `MAX_CONTRIBUTION_TARGET_MULTIPLE` times the price (ADR-0047). It
+   * `MAX_CONTRIBUTION_TARGET_MULTIPLE` times the price per pledge (ADR-0047),
+   * and the item's total stays within `MAX_MONEY_MINOR` (ADR-0061). It
    * decides at the item's `asOf` and adds the pledge to its own. Reach it
    * through `Wishlist.pledge`, which authorizes the item.
    */
@@ -200,6 +209,8 @@ export class Item {
     if (!Number.isSafeInteger(props.amountMinor) || props.amountMinor <= 0 || props.amountMinor > max) {
       throw new ContributionAmountError(this.id.value);
     }
+    // ADR-0061: the guard bounds the total too, so pledgedTotal() is always a valid Money.
+    if (sumMinor(this._contributions) + props.amountMinor > MAX_MONEY_MINOR) throw new ContributionAmountError(this.id.value);
     const contribution = Contribution.create({
       id: ids.generateEntityId(),
       itemId: this.id.value,
