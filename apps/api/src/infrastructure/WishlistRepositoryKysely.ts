@@ -70,7 +70,8 @@ export class WishlistRepositoryKysely implements WishlistRepository {
    * (ADR-0078). `now` is the aggregate's `asOf`, the one instant it decides at.
    */
   private async hydrate(row: Selectable<WishlistsTable>, now: Date): Promise<Wishlist> {
-    const [holds, contributions] = [await this.holds.findForWishlist(row.id), await this.contributions.findForWishlist(row.id)];
+    const holds = await this.holds.findForWishlist(row.id);
+    const contributions = await this.contributions.findForWishlist(row.id);
     const items = await this.items.findAllByWishlistId(row.id, { asOf: now, holds, contributions });
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
