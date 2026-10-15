@@ -55,11 +55,11 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       <fieldset className="flex gap-4">
         <legend className="text-sm font-medium">Kind of item</legend>
         <label className="flex min-h-11 items-center gap-2">
-          <input type="radio" name="type" checked={type === 'single'} onChange={() => setType('single')} />
+          <input type="radio" name="type" checked={type === 'single'} onChange={() => { setType('single'); setPriceError(''); }} />
           Single item
         </label>
         <label className="flex min-h-11 items-center gap-2">
-          <input type="radio" name="type" checked={type === 'group'} onChange={() => setType('group')} />
+          <input type="radio" name="type" checked={type === 'group'} onChange={() => { setType('group'); setPriceError(''); }} />
           Group gift
         </label>
       </fieldset>
@@ -80,7 +80,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
         <label htmlFor="item-price" className="block text-sm font-medium">Price (USD)</label>
         <input
           ref={priceInput} id="item-price" aria-invalid={!!priceError} aria-describedby={priceError ? 'item-error' : undefined} inputMode="decimal" required={type === 'group'} value={price}
-          onChange={(e) => setPrice(e.target.value)} className={field}
+          onChange={(e) => { setPrice(e.target.value); setPriceError(''); }} className={field}
         />
       </div>
       <div>
