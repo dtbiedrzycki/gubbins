@@ -40,4 +40,12 @@ describe('OwnerTokenGate', () => {
 
     await waitFor(() => expect(alert).toHaveTextContent("That token doesn't match this list."));
   });
+
+  it('focuses the token field and describes it with the notice when sent back', () => {
+    renderWithQueryClient(<OwnerTokenGate slug="abc123" onSuccess={() => {}} notice="Enter your owner token again." />);
+
+    const input = screen.getByLabelText('Owner token');
+    expect(input).toHaveFocus();
+    expect(input).toHaveAccessibleDescription('Enter your owner token again.');
+  });
 });
