@@ -13,20 +13,21 @@ import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
 import type { TransactionContext, UnitOfWork } from '../ports/UnitOfWork.js';
 import type { WishlistRepository } from '../ports/WishlistRepository.js';
 
+/** An item's stored columns: items are kept as rows, and rebuilt with their members on each load. */
+type ItemRow = { id: string; wishlistId: string; type: string; title: string; quantity: number; url: string | null; priceMinor: number | null; seq: number };
+
+const toRow = (item: Item): ItemRow => ({
+  id: item.id.value, wishlistId: item.wishlistId.value, type: item.type, title: item.title,
+  quantity: item.quantity, url: item.url, priceMinor: item.priceMinor, seq: item.seq,
+});
+
 /**
  * Copies through `reconstitute`, the way a real repository rebuilds rows.
  * Neither reads nor writes may share an instance with the store: the
- * domain mutates items and holds in place, so a shared instance would let
- * an unpersisted decision show up on the next read — which a SELECT never
+ * domain mutates holds in place, so a shared instance would let an
+ * unpersisted decision show up on the next read — which a SELECT never
  * could.
  */
-function copyItem(item: Item): Item {
-  return Item.reconstitute({
-    id: item.id.value, wishlistId: item.wishlistId.value, type: item.type, title: item.title,
-    quantity: item.quantity, url: item.url, priceMinor: item.priceMinor, seq: item.seq,
-  });
-}
-
 function copyHold(hold: Hold): Hold {
   return Hold.reconstitute({
     id: hold.id.value, itemId: hold.itemId.value, secret: hold.secret.value, sessionHash: hold.sessionHash.value,
@@ -43,15 +44,14 @@ function copyHold(hold: Hold): Hold {
  */
 export class InMemoryStore {
   readonly wishlists = new Map<string, Wishlist>();
-  /** Item rows. */
-  readonly items = new Map<string, Item>();
+  readonly items = new Map<string, ItemRow>();
   readonly holds = new Map<string, Hold>();
   readonly contributions = new Map<string, Contribution>();
   readonly guestPii = new Map<string, { id: string; name: string; message: string | null }>();
   readonly streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
 
   holdsOnList(wishlistId: string): Hold[] {
-    return [...this.holds.values()].filter((hold) => this.items.get(hold.itemId.value)?.wishlistId.value === wishlistId);
+    return [...this.holds.values()].filter((hold) => this.items.get(hold.itemId.value)?.wishlistId === wishlistId);
   }
 
   /**
@@ -72,7 +72,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
 
   async insert(wishlist: Wishlist): Promise<void> {
     this.store.wishlists.set(wishlist.id.value, wishlist);
-    for (const item of wishlist.items) this.store.items.set(item.id.value, copyItem(item));
+    for (const item of wishlist.items) this.store.items.set(item.id.value, toRow(item));
   }
 
   async findBySlug(slug: string, now: Date): Promise<Wishlist | null> {
@@ -86,7 +86,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   async save(wishlist: Wishlist): Promise<void> {
     if (!this.store.wishlists.has(wishlist.id.value)) throw new WishlistNotFoundError(wishlist.id.value);
     // The purchased count is derived from the holds, never stored.
-    for (const item of wishlist.items) this.store.items.set(item.id.value, copyItem(item));
+    for (const item of wishlist.items) this.store.items.set(item.id.value, toRow(item));
     const holds = new InMemoryHoldRepository(this.store);
     for (const hold of wishlist.holds) {
       if (this.store.holds.has(hold.id.value)) await holds.save(hold);
@@ -96,13 +96,18 @@ export class InMemoryWishlistRepository implements WishlistRepository {
 
   private hydrate(wishlist: Wishlist | undefined, now: Date): Wishlist | null {
     if (wishlist === undefined) return null;
-    const items = [...this.store.items.values()].filter((i) => i.wishlistId.value === wishlist.id.value).map(copyItem);
     const holds = this.store.holdsOnList(wishlist.id.value).map(copyHold);
+    const contributions = [...this.store.contributions.values()].filter((c) => this.store.items.get(c.itemId.value)?.wishlistId === wishlist.id.value);
+    const items = [...this.store.items.values()].filter((row) => row.wishlistId === wishlist.id.value).map((row) => Item.reconstitute({
+      ...row, asOf: now,
+      holds: holds.filter((h) => h.itemId.value === row.id),
+      contributions: contributions.filter((c) => c.itemId.value === row.id),
+    }));
     return Wishlist.reconstitute({
       id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
       ownerToken: wishlist.ownerToken.value, key: wishlist.key.value, keyGen: wishlist.keyGen, asOf: now,
       paymentMethods: wishlist.paymentMethods,
-      items, holds,
+      items,
     });
   }
 }
@@ -195,7 +200,7 @@ export class InMemoryContributionRepository implements ContributionRepository {
 
   async findForWishlist(wishlistId: string): Promise<Contribution[]> {
     return [...this.store.contributions.values()]
-      .filter((c) => this.store.items.get(c.itemId.value)?.wishlistId.value === wishlistId)
+      .filter((c) => this.store.items.get(c.itemId.value)?.wishlistId === wishlistId)
       .sort((a, b) => a.pledgedAt.getTime() - b.pledgedAt.getTime() || a.id.value.localeCompare(b.id.value));
   }
 
@@ -206,7 +211,7 @@ export class InMemoryContributionRepository implements ContributionRepository {
   async pledgedTotals(wishlistId: string): Promise<Map<string, number>> {
     const totals = new Map<string, number>();
     for (const c of this.store.contributions.values()) {
-      if (this.store.items.get(c.itemId.value)?.wishlistId.value !== wishlistId) continue;
+      if (this.store.items.get(c.itemId.value)?.wishlistId !== wishlistId) continue;
       totals.set(c.itemId.value, (totals.get(c.itemId.value) ?? 0) + c.amount.amountMinor);
     }
     return totals;

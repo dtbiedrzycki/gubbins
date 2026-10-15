@@ -43,6 +43,9 @@ export class Item {
     readonly url: string | null,
     readonly priceMinor: number | null,
     private _seq: number,
+    private readonly asOf: Date,
+    private _holds: Hold[],
+    private _contributions: Contribution[],
   ) {
     if (title.trim().length === 0) throw new DomainValidationError('Item title must not be empty');
     if (title.length > 120) throw new DomainValidationError('Item title must be at most 120 characters');
@@ -54,21 +57,24 @@ export class Item {
     }
     if (type === 'group' && (priceMinor === null || quantity !== 1)) throw new DomainValidationError('A group gift is one unit with a price');
     if (!isNonNegativeInteger(_seq)) throw new DomainValidationError('Item seq must be a non-negative integer');
+    if ([..._holds, ..._contributions].some((member) => member.itemId.value !== id.value)) {
+      throw new DomainValidationError('A hold or contribution belongs to another item');
+    }
   }
 
   static createSingle(props: {
-    id: string; wishlistId: string; title: string; quantity?: number; url?: string | null; priceMinor?: number | null;
+    id: string; wishlistId: string; title: string; quantity?: number; url?: string | null; priceMinor?: number | null; asOf: Date;
   }): Item {
     return new Item(
       UuidId.from(props.id), UuidId.from(props.wishlistId), 'single', props.title.trim(), props.quantity ?? 1,
-      props.url ?? null, props.priceMinor ?? null, 0,
+      props.url ?? null, props.priceMinor ?? null, 0, new Date(props.asOf.getTime()), [], [],
     );
   }
 
-  static createGroup(props: { id: string; wishlistId: string; title: string; priceMinor: number; url?: string | null }): Item {
+  static createGroup(props: { id: string; wishlistId: string; title: string; priceMinor: number; url?: string | null; asOf: Date }): Item {
     return new Item(
       UuidId.from(props.id), UuidId.from(props.wishlistId), 'group', props.title.trim(), 1,
-      props.url ?? null, props.priceMinor, 0,
+      props.url ?? null, props.priceMinor, 0, new Date(props.asOf.getTime()), [], [],
     );
   }
 
@@ -76,14 +82,18 @@ export class Item {
    * Reconstructs an Item from persisted fields. `type` stays a `string` so
    * infrastructure can pass `row.type` straight through; the constructor
    * rejects anything but a known type, so the cast below weakens nothing.
+   * `asOf` is the instant its aggregate was loaded at; `holds` and
+   * `contributions` are this item's own.
    */
   static reconstitute(props: {
     id: string; wishlistId: string; type: string; title: string; quantity: number;
     url?: string | null; priceMinor?: number | null; seq: number;
+    asOf: Date; holds?: readonly Hold[]; contributions?: readonly Contribution[];
   }): Item {
     return new Item(
       UuidId.from(props.id), UuidId.from(props.wishlistId), props.type as ItemType,
       props.title, props.quantity, props.url ?? null, props.priceMinor ?? null, props.seq,
+      new Date(props.asOf.getTime()), [...(props.holds ?? [])], [...(props.contributions ?? [])],
     );
   }
 
@@ -96,45 +106,58 @@ export class Item {
     return this._seq;
   }
 
-  /**
-   * Units no one holds or has bought, given how many holds on this item are
-   * active at the wishlist's instant and how many have been purchased. Both
-   * counts come from the caller — the Wishlist, which carries the list's
-   * holds — because they are facts about hold rows, never counters kept
-   * here. Never negative: quantity may drop below what is already committed
-   * (ADR-0019).
-   */
-  availableUnits(activeHolds: number, purchasedCount: number): number {
-    return Math.max(0, this.quantity - activeHolds - purchasedCount);
+  get holds(): readonly Hold[] {
+    return this._holds;
   }
 
-  statusGiven(activeHolds: number, purchasedCount: number): ItemStatus {
-    if (this.availableUnits(activeHolds, purchasedCount) > 0) return 'available';
-    return purchasedCount >= this.quantity ? 'purchased' : 'held';
+  get contributions(): readonly Contribution[] {
+    return this._contributions;
+  }
+
+  /** Whether this item decides at `at`: its aggregate's instant, set when it was built or loaded. */
+  isLoadedAt(at: Date): boolean {
+    return this.asOf.getTime() === at.getTime();
+  }
+
+  findHold(holdId: string): Hold | null {
+    return this._holds.find((hold) => hold.id.value === holdId) ?? null;
+  }
+
+  /** Units bought: its holds marked purchased. Derived, never stored. */
+  purchasedCount(): number {
+    return this.holdsThatAre('purchased');
+  }
+
+  /** Units no one holds or has bought. Never negative: quantity may drop below what is already committed (ADR-0019). */
+  availableUnits(): number {
+    return Math.max(0, this.quantity - this.holdsThatAre('active') - this.purchasedCount());
+  }
+
+  status(): ItemStatus {
+    if (this.availableUnits() > 0) return 'available';
+    return this.purchasedCount() >= this.quantity ? 'purchased' : 'held';
   }
 
   /**
    * Decides whether a unit is free, mints the Hold — its id and secret
    * belong to a hold that does not exist yet, so they are not the caller's
    * to supply — and the event recording it, then advances this item's
-   * stream. Reach it through `Wishlist.holdItem`, which supplies
-   * both hold counts, authorizes the caller and passes as `at` the instant it
-   * was loaded at; application code never calls this directly.
+   * stream, adding the hold to its own. It decides at the item's `asOf`.
+   * Reach it through `Wishlist.holdItem`, which authorizes the caller;
+   * application code never calls this directly.
    *
    * Collaborators are structural types: domain/ may not import
    * application/ (ADR-0012), and the application layer's TokenGenerator and
    * Hasher already satisfy these shapes.
    */
   placeHold(
-    props: { sessionHash: string; idempotencyKey: string; at: Date; durationMs: number; piiRef?: string },
-    activeHolds: number,
-    purchasedCount: number,
+    props: { sessionHash: string; idempotencyKey: string; durationMs: number; piiRef?: string },
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): { hold: Hold; event: ItemHeldEvent; expectedSeq: number } {
     // Group gifts take pledges, never holds; the UI never offers one.
     if (this.type === 'group') throw new ItemUnavailableError(this.id.value);
-    if (this.availableUnits(activeHolds, purchasedCount) === 0) throw new ItemUnavailableError(this.id.value);
+    if (this.availableUnits() === 0) throw new ItemUnavailableError(this.id.value);
 
     const hold = Hold.create({
       id: tokens.generateEntityId(),
@@ -143,8 +166,8 @@ export class Item {
       sessionHash: props.sessionHash,
       idempotencyKey: props.idempotencyKey,
       piiRef: props.piiRef ?? null,
-      expiresAt: new Date(props.at.getTime() + props.durationMs),
-      at: props.at,
+      expiresAt: new Date(this.asOf.getTime() + props.durationMs),
+      at: this.asOf,
     });
     const event: ItemHeldEvent = {
       type: 'ItemHeld',
@@ -156,18 +179,20 @@ export class Item {
       idempotencyKey: hold.idempotencyKey.value,
       piiRef: hold.piiRef?.value ?? null,
       expiresAt: hold.expiresAt.toISOString(),
-      occurredAt: props.at.toISOString(),
+      occurredAt: this.asOf.toISOString(),
     };
+    this._holds.push(hold);
     return { hold, event, expectedSeq: this.recordEvent() };
   }
 
   /**
    * A guest's pledge toward a group gift. Overfunding is allowed up to
-   * `MAX_CONTRIBUTION_TARGET_MULTIPLE` times the price (ADR-0047). Reach it
-   * through `Wishlist.pledge`, which authorizes the item and passes `at`.
+   * `MAX_CONTRIBUTION_TARGET_MULTIPLE` times the price (ADR-0047). It
+   * decides at the item's `asOf` and adds the pledge to its own. Reach it
+   * through `Wishlist.pledge`, which authorizes the item.
    */
   pledge(
-    props: { amountMinor: number; sessionHash: string; idempotencyKey: string; piiRef: string; at: Date },
+    props: { amountMinor: number; sessionHash: string; idempotencyKey: string; piiRef: string },
     ids: { generateEntityId(): string },
   ): { contribution: Contribution; event: ContributionPledgedEvent; expectedSeq: number } {
     if (this.type !== 'group') throw new ItemUnavailableError(this.id.value);
@@ -182,7 +207,7 @@ export class Item {
       sessionHash: props.sessionHash,
       idempotencyKey: props.idempotencyKey,
       piiRef: props.piiRef,
-      pledgedAt: props.at,
+      pledgedAt: this.asOf,
     });
     const event: ContributionPledgedEvent = {
       type: 'ContributionPledged',
@@ -193,8 +218,9 @@ export class Item {
       sessionHash: contribution.sessionHash.value,
       idempotencyKey: contribution.idempotencyKey.value,
       piiRef: contribution.piiRef.value,
-      occurredAt: props.at.toISOString(),
+      occurredAt: this.asOf.toISOString(),
     };
+    this._contributions.push(contribution);
     return { contribution, event, expectedSeq: this.recordEvent() };
   }
 
@@ -207,5 +233,10 @@ export class Item {
     const expectedSeq = this._seq;
     this._seq += 1;
     return expectedSeq;
+  }
+
+  /** Re-checked at `asOf` rather than trusted from the load: only `statusAt` defines a hold's state. */
+  private holdsThatAre(status: 'active' | 'purchased'): number {
+    return this._holds.filter((hold) => hold.statusAt(this.asOf) === status).length;
   }
 }

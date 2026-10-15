@@ -44,7 +44,12 @@ export class WishlistBuilder {
       sessionHash: 'a'.repeat(64), idempotencyKey: `purchased-${i + 1}`,
       expiresAt: new Date(this.instant.getTime() + 60_000), extendedAt: null, releasedAt: null, purchasedAt: this.instant,
     }));
-    return Wishlist.reconstitute({ ...this.props, keyGen: wishlist.keyGen, asOf: this.instant, paymentMethods: this.paymentMethods, items, holds });
+    const rebuilt = Item.reconstitute({
+      id, wishlistId: this.props.id, type: 'single', title: this.itemProps[0].title, quantity: 1, seq: 0, asOf: this.instant, holds,
+    });
+    return Wishlist.reconstitute({
+      ...this.props, keyGen: wishlist.keyGen, asOf: this.instant, paymentMethods: this.paymentMethods, items: [rebuilt, ...items.slice(1)],
+    });
   }
 }
 
@@ -54,7 +59,7 @@ export function aWishlist(): WishlistBuilder {
 
 export class ItemBuilder {
   private props = {
-    id: DEFAULT_ITEM_ID, wishlistId: DEFAULT_WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0,
+    id: DEFAULT_ITEM_ID, wishlistId: DEFAULT_WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0, asOf: DEFAULT_AS_OF,
   };
 
   withId(id: string): this { this.props.id = id; return this; }
@@ -63,6 +68,8 @@ export class ItemBuilder {
   withType(type: string): this { this.props.type = type; return this; }
   withQuantity(quantity: number): this { this.props.quantity = quantity; return this; }
   withSeq(seq: number): this { this.props.seq = seq; return this; }
+  /** The instant the built item decides at, as its aggregate's load would set it. */
+  asOf(at: Date): this { this.props.asOf = at; return this; }
 
   build(): Item {
     return Item.reconstitute({ ...this.props });
