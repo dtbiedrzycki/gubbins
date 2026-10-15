@@ -16,9 +16,10 @@ function extractCookieHeader(response: LightMyRequestResponse): string {
 }
 
 let app: FastifyInstance;
+let db: ReturnType<typeof createDb>;
 
 beforeEach(async () => {
-  const db = createDb(':memory:');
+  db = createDb(':memory:');
   await migrateToLatest(db);
   app = buildApp(buildDependencies(db, undefined, { createSecret: 'test-create-secret' }), { cookieSecret: 'test-secret' });
   disposeWithApp(app, db);
@@ -187,6 +188,19 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
 
     const viewResponse = await app.inject({ method: 'GET', url: `/api/lists/${list.slug}`, headers: { cookie } });
     expect(viewResponse.json()).toMatchObject({ item: { status: 'held' } });
+  });
+
+  it('stores the name and message from the body as the hold\'s guest details', async () => {
+    const list = await createList();
+    const cookie = extractCookieHeader(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } }));
+
+    await app.inject({
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`,
+      headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', message: 'Congrats' },
+    });
+
+    const hold = await db.selectFrom('holds').select('pii_ref').executeTakeFirstOrThrow();
+    expect(await db.selectFrom('guest_pii').selectAll().execute()).toMatchObject([{ id: hold.pii_ref, name: 'Ada', message: 'Congrats' }]);
   });
 
   it('returns 409 for a second hold attempt on an already-held item', async () => {
