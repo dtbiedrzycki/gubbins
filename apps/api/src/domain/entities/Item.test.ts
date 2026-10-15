@@ -112,13 +112,13 @@ describe('Item.placeHold', () => {
     expect(event).not.toHaveProperty('secret');
   });
 
-  it('placeHold records the piiRef on the hold and on ItemHeld', () => {
+  it('records the piiRef on the hold and on ItemHeld', () => {
     const piiRef = '66666666-6666-7666-8666-666666666666';
     const { hold, event } = available().placeHold({ ...holdProps, piiRef }, 0, 0, fakeTokens, fakeHasher);
     expect(hold.piiRef?.value).toBe(piiRef);
     expect(event.piiRef).toBe(piiRef);
-    expect(Object.keys(event)).not.toEqual(expect.arrayContaining(['name']));
-    expect(Object.keys(event)).not.toEqual(expect.arrayContaining(['message']));
+    expect(event).not.toHaveProperty('name');
+    expect(event).not.toHaveProperty('message');
   });
 
   it('throws ItemUnavailableError when active holds cover the quantity, without advancing seq', () => {
