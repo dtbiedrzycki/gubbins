@@ -50,14 +50,8 @@ describe('ListPage', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Stroller' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Cot' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /^Hold this item/ })).toHaveLength(2);
-  });
-
-  it('names a held item under "Your holds" even when it is not the first', async () => {
-    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(twoItems)));
-    renderListPage();
-
-    const holds = await screen.findByRole('region', { name: 'Your holds' });
-    expect(within(holds).getByRole('heading', { name: 'Cot' })).toBeInTheDocument();
+    // The hold is on the second item, so its title comes from the hold's itemId.
+    expect(within(screen.getByRole('region', { name: 'Your holds' })).getByRole('heading', { name: 'Cot' })).toBeInTheDocument();
   });
 
   it('holds the item, then shows it held and under "Your holds" with its actions', async () => {

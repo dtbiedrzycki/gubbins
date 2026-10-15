@@ -117,7 +117,7 @@
             }
           },
           "403": {
-            "description": "The create secret was missing or wrong (ADR-0080).",
+            "description": "The create secret was missing or wrong.",
             "content": {
               "application/json": {
                 "schema": {
