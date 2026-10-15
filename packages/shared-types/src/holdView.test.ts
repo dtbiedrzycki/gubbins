@@ -41,7 +41,7 @@ describe('listViewResponseSchema', () => {
     expect(listViewResponseSchema.safeParse({ ...list, payment: undefined }).success).toBe(false);
   });
 
-  it('rejects malformed payment handles', () => {
+  it('requires both payment handles, with null for one that is unset', () => {
     expect(listViewResponseSchema.safeParse({ ...list, payment: { venmoHandle: null } }).success).toBe(false);
   });
 

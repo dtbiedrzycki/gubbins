@@ -1,4 +1,3 @@
-import type { ReactElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -23,7 +22,7 @@ const single = (over: Partial<Item> = {}): Item => ({
 
 function renderItem(status: Item['status'] | Partial<Item> = 'available'): void {
   const item = typeof status === 'string' ? single({ status }) : single(status);
-  const ui: ReactElement = <ItemView slug="abc123" holdDurationDays={3} item={item} payment={payment} />;
+  const ui = <ItemView slug="abc123" holdDurationDays={3} item={item} payment={payment} />;
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}>{ui}</QueryClientProvider>);
 }
 
@@ -42,9 +41,9 @@ describe('ItemView', () => {
   it('opens the hold dialog from an available item and closes it once the hold succeeds', async () => {
     holdEndpoint(201);
     const user = userEvent.setup();
-    renderItem('available');
+    renderItem();
 
-    await user.click(screen.getByRole('button', { name: 'Hold this item' }));
+    await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
     expect(screen.getByText('Held for you for 3 days.')).toBeInTheDocument();
     await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
@@ -55,9 +54,9 @@ describe('ItemView', () => {
   it('sends the key minted at opening on every retry — not a fresh one per tap (ADR-0048)', async () => {
     const keys = holdEndpoint(503, 201);
     const user = userEvent.setup();
-    renderItem('available');
+    renderItem();
 
-    await user.click(screen.getByRole('button', { name: 'Hold this item' }));
+    await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
     await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
     await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
@@ -70,14 +69,14 @@ describe('ItemView', () => {
   it('mints a new key for a new opening, and forgets the old error', async () => {
     const keys = holdEndpoint(503, 503);
     const user = userEvent.setup();
-    renderItem('available');
+    renderItem();
 
-    await user.click(screen.getByRole('button', { name: 'Hold this item' }));
+    await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
     await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
     await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
-    await user.click(screen.getByRole('button', { name: 'Hold this item' }));
+    await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
     expect(screen.getByRole('alert')).toBeEmptyDOMElement();
     await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
@@ -88,26 +87,26 @@ describe('ItemView', () => {
 
   it('returns focus to the Hold button when the dialog is cancelled', async () => {
     const user = userEvent.setup();
-    renderItem('available');
+    renderItem();
 
-    await user.click(screen.getByRole('button', { name: 'Hold this item' }));
+    await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(screen.getByRole('button', { name: 'Hold this item' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: /^Hold this item/ })).toHaveFocus();
   });
 
   it.each([
     ['held', 'Stroller is held.'],
     ['purchased', 'Stroller has been purchased.'],
   ] as const)('shows a %s item as such, with no Hold button', (status, message) => {
-    renderItem(status);
+    renderItem({ status });
     expect(screen.getByRole('status')).toHaveTextContent(message);
-    expect(screen.queryByRole('button', { name: 'Hold this item' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Hold this item/ })).not.toBeInTheDocument();
   });
 
   it('keeps the Hold button last in its stack, so space-y adds no margin below it', () => {
-    renderItem('available');
-    const button = screen.getByRole('button', { name: 'Hold this item' });
+    renderItem();
+    const button = screen.getByRole('button', { name: /^Hold this item/ });
     expect(button.parentElement?.lastElementChild).toBe(button);
   });
 
@@ -135,26 +134,42 @@ describe('ItemView', () => {
     expect(screen.getByText('$450.00')).toBeInTheDocument();
   });
 
-  it('links to the store in a new tab, and only when there is a url', () => {
-    const { unmount } = render(<QueryClientProvider client={new QueryClient()}><ItemView slug="abc123" holdDurationDays={3} item={single({ url: 'https://shop.example/stroller' })} payment={payment} /></QueryClientProvider>);
-    const link = screen.getByRole('link', { name: 'View in store' });
+  it('links to the store in a new tab, naming the item', () => {
+    renderItem({ url: 'https://shop.example/stroller' });
+    const link = screen.getByRole('link', { name: 'View in store for Stroller (opens in a new tab)' });
     expect(link).toHaveAttribute('href', 'https://shop.example/stroller');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-    unmount();
-    renderItem();
-    expect(screen.queryByRole('link', { name: 'View in store' })).not.toBeInTheDocument();
   });
 
-  it('shows the units left for a single', () => {
+  it('has no store link without a url', () => {
+    renderItem();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('names the item in the Hold button', () => {
+    renderItem();
+    expect(screen.getByRole('button', { name: 'Hold this item: Stroller' })).toBeInTheDocument();
+  });
+
+  it('shows the units left only when more than one is available', () => {
     renderItem({ availableUnits: 2 });
     expect(screen.getByText('2 left')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['one unit is left', { availableUnits: 1 }],
+    ['held', { status: 'held', availableUnits: 0 }],
+    ['purchased', { status: 'purchased', availableUnits: 0 }],
+  ] as const)('hides the units left when %s', (_, over) => {
+    renderItem(over);
+    expect(screen.queryByText(/left$/)).not.toBeInTheDocument();
   });
 
   it('gives a group gift its price and no Hold button or units', () => {
     renderItem({ type: 'group', priceMinor: 20000, availableUnits: 0 });
     expect(screen.getByText('$200.00')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Hold this item' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Hold this item/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/left$/)).not.toBeInTheDocument();
   });
 
