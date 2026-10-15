@@ -54,6 +54,7 @@ export class HoldItem {
       }
 
       const details = input.name === undefined ? null : GuestDetails.from({ name: input.name, message: input.message });
+      // The ref keys a guest_pii row outside the aggregate that the domain never sees (ADR-0057); void-and-re-record (ADR-0060) reuses a ref, so the use case mints it beside the insert.
       const piiRef = details ? this.tokenGenerator.generateEntityId() : undefined;
 
       const { hold, item, event, expectedSeq } = wishlist.holdItem({
