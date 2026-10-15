@@ -52,7 +52,7 @@ export async function rebuildProjections(db: Kysely<Database>): Promise<{ events
           await trx.insertInto('holds').values({
             id: event.holdId, item_id: row.item_id, secret, session_hash: event.sessionHash,
             idempotency_key: event.idempotencyKey, expires_at: event.expiresAt,
-            extended_at: null, released_at: null, purchased_at: null, pii_ref: event.piiRef ?? null, created_at: event.occurredAt,
+            extended_at: null, released_at: null, purchased_at: null, pii_ref: event.piiRef, created_at: event.occurredAt,
           }).execute();
           break;
         }
