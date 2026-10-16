@@ -19,7 +19,8 @@ function toHold(row: Selectable<HoldsTable>): Hold {
 /**
  * The lifecycle columns as the domain left them. Every instant goes through
  * toISOString(), so the stored text has one fixed shape (UTC, milliseconds,
- * `Z`) and string comparison in SQL is time order.
+ * `Z`) and sorting it as text is time order, which `findForWishlist`'s
+ * order by `expires_at` relies on.
  */
 function lifecycleColumns(hold: Hold) {
   return {
