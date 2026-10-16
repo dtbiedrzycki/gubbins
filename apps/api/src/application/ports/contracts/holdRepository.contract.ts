@@ -64,14 +64,18 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
       expect(reloaded).toEqual(hold);
     });
 
-    it("findForWishlist returns every hold on the list's items, whatever its state, and none from another list", async () => {
-      const mine = [holdFixture(), holdFixture({ expiresAt: later(-1) }), holdFixture({ releasedAt: later(-5) }), holdFixture({ purchasedAt: later(-5) })];
-      for (const hold of mine) await fx.holds.insert(hold);
+    it("findForWishlist returns every hold on the list's items, whatever its state, oldest expiry first, and none from another list", async () => {
+      // Each hold expires before the one created ahead of it, so only expires_at can put them in this order.
+      const released = holdFixture({ expiresAt: later(120_000), releasedAt: later(-5) });
+      const active = holdFixture();
+      const expired = holdFixture({ expiresAt: later(-1) });
+      const purchased = holdFixture({ expiresAt: later(-2), purchasedAt: later(-5) });
+      for (const hold of [released, active, expired, purchased]) await fx.holds.insert(hold);
       await fx.holds.insert(holdFixture({ itemId: ITEM_B }));
 
       const found = await fx.holds.findForWishlist(LIST_A);
 
-      expect(found.map((h) => h.id.value).sort()).toEqual(mine.map((h) => h.id.value).sort());
+      expect(found.map((h) => h.id.value)).toEqual([purchased, expired, active, released].map((h) => h.id.value));
     });
 
     describe('findActiveOrPurchasedForWishlist', () => {
