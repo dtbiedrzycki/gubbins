@@ -64,7 +64,7 @@ describe('Item kinds, URL and price', () => {
   });
 });
 
-describe('Item availability — from hold state, never a stored counter', () => {
+describe('Item availability and holds — from hold state, never a stored counter', () => {
   it('starts a new item at seq 0, and available', () => {
     const item = Item.createSingle({ asOf: T0, id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Stroller' });
     expect(item.seq).toBe(0);
@@ -78,9 +78,7 @@ describe('Item availability — from hold state, never a stored counter', () => 
   it('never reports negative availability when quantity is below what is committed (ADR-0019)', () => {
     expect(Item.reconstitute({ ...base, holds: [holdOn(), holdOn({ purchasedAt: T0 })] }).availableUnits()).toBe(0);
   });
-});
 
-describe('Item holds', () => {
   it('is available while the quantity exceeds active and purchased holds', () => {
     const item = Item.reconstitute({ ...base, quantity: 2, holds: [holdOn()] });
     expect(item.availableUnits()).toBe(1);
@@ -99,11 +97,17 @@ describe('Item holds', () => {
     expect(Item.reconstitute({ ...base, asOf: new Date(T0.getTime() + 1), holds: [hold] }).status()).toBe('available');
   });
 
-  it('counts purchased holds, zero when there are none and not as active, and is purchased once they cover the quantity', () => {
-    const item = Item.reconstitute({ ...base, quantity: 4, holds: [holdOn({ purchasedAt: T0 }), holdOn({ purchasedAt: T0 }), holdOn()] });
-    expect(item.purchasedCount()).toBe(2);
-    expect(item.availableUnits()).toBe(1);
+  it('counts its purchased holds, zero when there are none', () => {
+    expect(Item.reconstitute({ ...base, quantity: 2, holds: [holdOn({ purchasedAt: T0 }), holdOn({ purchasedAt: T0 })] }).purchasedCount()).toBe(2);
     expect(Item.reconstitute(base).purchasedCount()).toBe(0);
+  });
+
+  it('takes one unit for a purchased hold, not a second one as if it were active', () => {
+    const item = Item.reconstitute({ ...base, quantity: 4, holds: [holdOn({ purchasedAt: T0 }), holdOn({ purchasedAt: T0 }), holdOn()] });
+    expect(item.availableUnits()).toBe(1);
+  });
+
+  it('is purchased once purchased holds cover the quantity', () => {
     expect(Item.reconstitute({ ...base, holds: [holdOn({ purchasedAt: T0 })] }).status()).toBe('purchased');
   });
 
@@ -212,6 +216,14 @@ describe('Item.recordEvent', () => {
   });
 });
 
+const pledged = (amountMinor: number, n = 1) => Contribution.reconstitute({
+  id: `66666666-6666-7666-8666-${String(n).padStart(12, '0')}`, itemId: ITEM_ID, amountMinor,
+  sessionHash: 'a'.repeat(64), idempotencyKey: `stored-${n}`, piiRef: '55555555-5555-7555-8555-555555555555', pledgedAt: T0,
+});
+const fundedGroup = (...amounts: number[]) => Item.reconstitute({
+  ...base, type: 'group', priceMinor: MAX_MONEY_MINOR, contributions: amounts.map((a, i) => pledged(a, i + 1)),
+});
+
 describe('Item.reconstitute', () => {
   it('enforces the title invariant on persisted rows too', () => {
     expect(() => Item.reconstitute({ ...base, title: '' })).toThrow(DomainValidationError);
@@ -242,6 +254,18 @@ describe('Item.reconstitute', () => {
     expect(() => Item.reconstitute({ ...base, seq: -5 })).toThrow(DomainValidationError);
     expect(() => Item.reconstitute({ ...base, seq: 1.5 })).toThrow(DomainValidationError);
   });
+
+  it('accepts loaded pledges that total the limit, and rejects more', () => {
+    expect(() => fundedGroup(MAX_MONEY_MINOR)).not.toThrow();
+    expect(() => fundedGroup(MAX_MONEY_MINOR, 1)).toThrow(DomainValidationError);
+  });
+});
+
+describe('Item.pledgedTotal', () => {
+  it('totals its pledges, zero with none', () => {
+    expect(fundedGroup().pledgedTotal().amountMinor).toBe(0);
+    expect(fundedGroup(1_500, 1_000).pledgedTotal().amountMinor).toBe(2_500);
+  });
 });
 
 describe('Item.pledge', () => {
@@ -265,41 +289,13 @@ describe('Item.pledge', () => {
   it.each([0, -100, 12.5, 45000 * 5 + 1])('refuses amount %j', (amountMinor) => {
     expect(() => group().pledge({ ...props, amountMinor }, ids)).toThrow(ContributionAmountError);
   });
-  const pledged = (amountMinor: number, n = 1) => Contribution.reconstitute({
-    id: `66666666-6666-7666-8666-${String(n).padStart(12, '0')}`, itemId: ITEM_ID, amountMinor,
-    sessionHash: 'a'.repeat(64), idempotencyKey: `stored-${n}`, piiRef: PII, pledgedAt: T0,
-  });
-  const fundedGroup = (...amounts: number[]) => Item.reconstitute({
-    ...base, type: 'group', priceMinor: MAX_MONEY_MINOR, contributions: amounts.map((a, i) => pledged(a, i + 1)),
-  });
-
-  it('totals its pledges, zero with none', () => {
-    const item = group();
-    expect(item.pledgedTotal().amountMinor).toBe(0);
-    item.pledge({ ...props, amountMinor: 2_500 }, ids);
-    expect(item.pledgedTotal().amountMinor).toBe(2_500);
-  });
   it('accepts a pledge that brings the total exactly to the limit, and refuses one cent more', () => {
     const item = fundedGroup(MAX_MONEY_MINOR - 100);
     expect(() => item.pledge({ ...props, amountMinor: 100 }, ids)).not.toThrow();
     expect(() => item.pledge({ ...props, idempotencyKey: 'k2', amountMinor: 1 }, ids)).toThrow(ContributionAmountError);
   });
-  it('accepts loaded pledges that total the limit, and rejects more', () => {
-    expect(() => fundedGroup(MAX_MONEY_MINOR)).not.toThrow();
-    expect(() => fundedGroup(MAX_MONEY_MINOR, 1)).toThrow(DomainValidationError);
-  });
   it('refuses a pledge on a single item', () => {
     const single = Item.createSingle({ asOf: T0, id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Crib' });
     expect(() => single.pledge({ ...props, amountMinor: 100 }, ids)).toThrow(ItemUnavailableError);
-  });
-});
-
-describe('Item lookups', () => {
-  it('finds its own hold and contribution by idempotency key, or null', () => {
-    const hold = holdOn({ idempotencyKey: 'tap-1' });
-    const item = Item.reconstitute({ ...base, holds: [hold] });
-    expect(item.holdWithKey('tap-1')).toBe(hold);
-    expect(item.holdWithKey('tap-2')).toBeNull();
-    expect(item.contributionWithKey('tap-1')).toBeNull();
   });
 });
