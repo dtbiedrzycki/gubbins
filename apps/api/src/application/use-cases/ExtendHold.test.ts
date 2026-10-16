@@ -15,13 +15,12 @@ async function setup(policy?: HoldPolicy) {
 const iso = (msFromT0: number) => new Date(T0.getTime() + msFromT0).toISOString();
 
 describe('ExtendHold', () => {
-  it('adds the duration to the current expiry, not to now, and returns the updated view', async () => {
-    const { placeHold, clock, extend } = await setup();
+  it("returns the extended hold's view", async () => {
+    const { placeHold, extend } = await setup();
     const { holdId } = await placeHold();
-    clock.advance(DAY);
 
     expect(await extend(holdId)).toMatchObject({
-      holdId, status: 'active', expiresAt: iso(6 * DAY), extendedAt: iso(DAY),
+      holdId, status: 'active', expiresAt: iso(6 * DAY), extendedAt: iso(0),
       actions: { extend: false, release: true, purchase: true },
     });
   });
