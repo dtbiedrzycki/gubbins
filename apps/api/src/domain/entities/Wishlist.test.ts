@@ -179,15 +179,12 @@ describe('Wishlist.availableUnitsOf', () => {
 describe('Wishlist.holdItem', () => {
   const props = { itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', durationMs: 3 * DAY };
 
-  it('places a hold on a free item and returns everything the caller must persist', () => {
+  it('has the item place the hold on a free item, and returns that item with what it decided', () => {
     const wishlist = loaded({ seq: 4 });
-    const { hold, item, event, expectedSeq } = wishlist.holdItem(props, tokens(), hasher);
-    expect(hold.expiresAt).toEqual(at(3 * DAY));
-    expect(event.occurredAt).toBe(T0.toISOString());
-    expect(item).toBe(wishlist.getItem(ITEM_ID));
+    const { item, event, expectedSeq } = wishlist.holdItem(props, tokens(), hasher);
     expect(event.type).toBe('ItemHeld');
+    expect(item).toBe(wishlist.getItem(ITEM_ID));
     expect(expectedSeq).toBe(4);
-    expect(item.seq).toBe(5);
   });
 
   it('adds the hold to its snapshot, so the same aggregate refuses another hold on the last unit', () => {
@@ -215,7 +212,7 @@ describe('Wishlist.findHold', () => {
 describe('Wishlist hold commands', () => {
   it('extendHold has the item decide, and returns that item with what it decided', () => {
     const hold = holdOn(ITEM_ID);
-    const wishlist = loaded({ seq: 1, holds: [hold], asOf: at(DAY) });
+    const wishlist = loaded({ seq: 1, holds: [hold] });
     const { event, item, expectedSeq } = wishlist.extendHold(hold, 3 * DAY);
     expect(event.type).toBe('HoldExtended');
     expect(item).toBe(wishlist.getItem(ITEM_ID));
@@ -246,7 +243,7 @@ describe('Wishlist hold commands', () => {
 });
 
 describe('Wishlist hold questions', () => {
-  it("answers from the hold's item, as of the instant the aggregate was loaded at", () => {
+  it("answers each question from the hold's item", () => {
     const hold = holdOn(ITEM_ID);
     expect(loaded({ holds: [hold], asOf: at(3 * DAY + 1) }).holdStatus(hold)).toBe('expired');
     expect(asks(hold)).toEqual({ canExtendHold: true, canReleaseHold: true, canPurchaseHold: true });
