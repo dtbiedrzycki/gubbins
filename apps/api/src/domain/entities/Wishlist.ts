@@ -1,4 +1,4 @@
-import { DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError, NoPaymentMethodError } from '../errors.js';
+import { DomainValidationError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError, NoPaymentMethodError } from '../errors.js';
 import type { ContributionPledgedEvent } from '../events/ContributionPledgedEvent.js';
 import type { HoldExtendedEvent } from '../events/HoldExtendedEvent.js';
 import type { HoldReleasedEvent } from '../events/HoldReleasedEvent.js';
@@ -183,17 +183,22 @@ export class Wishlist {
    * loaded at. Throws HoldNotFoundError for a hold it did not load.
    */
   holdStatus(hold: Hold): HoldStatus {
-    return this.memberOf(hold).own.statusAt(this.asOf);
+    return this.memberOf(hold).holdStatus(hold);
   }
 
   /** `extendHold`'s rule as a question; false for a hold it did not load. */
   canExtendHold(hold: Hold): boolean {
-    return this.lookup(hold)?.own.canExtendAt(this.asOf) ?? false;
+    return this.lookup(hold)?.canExtendHold(hold) ?? false;
   }
 
   /** `releaseHold`'s rule as a question; false for a hold it did not load. */
   canReleaseHold(hold: Hold): boolean {
-    return this.lookup(hold)?.own.canReleaseAt(this.asOf) ?? false;
+    return this.lookup(hold)?.canReleaseHold(hold) ?? false;
+  }
+
+  /** `purchaseHold`'s rule as a question, for views that offer the action only when it would succeed; false for a hold it did not load. */
+  canPurchaseHold(hold: Hold): boolean {
+    return this.lookup(hold)?.canPurchaseHold(hold) ?? false;
   }
 
   holdItem(
@@ -214,44 +219,18 @@ export class Wishlist {
   }
 
   extendHold(hold: Hold, durationMs: number): HoldCommandResult<HoldExtendedEvent> {
-    const { item, own } = this.memberOf(hold);
-    const event = own.extend(this.asOf, durationMs);
-    return { hold: own, item, event, expectedSeq: item.recordEvent() };
+    const item = this.memberOf(hold);
+    return { item, ...item.extendHold(hold, durationMs) };
   }
 
   releaseHold(hold: Hold): HoldCommandResult<HoldReleasedEvent> {
-    const { item, own } = this.memberOf(hold);
-    const event = own.release(this.asOf);
-    return { hold: own, item, event, expectedSeq: item.recordEvent() };
+    const item = this.memberOf(hold);
+    return { item, ...item.releaseHold(hold) };
   }
 
-  /**
-   * An active hold may always be purchased — its unit is already its own.
-   * An expired one may be too, so a guest who bought the gift after their
-   * hold lapsed need not re-hold it — but only while a unit is still
-   * free, or they would be buying one someone else now holds.
-   */
   purchaseHold(hold: Hold): HoldCommandResult<ItemPurchasedEvent> {
-    const { item, own } = this.memberOf(hold);
-    const refusal = this.purchaseRefusal(own);
-    if (refusal === 'closed') throw new HoldNotActiveError(own.id.value);
-    if (refusal === 'lapsed') throw new HoldLapsedError(item.id.value);
-    const event = own.markPurchased(this.asOf);
-    return { hold: own, item, event, expectedSeq: item.recordEvent() };
-  }
-
-  /** `purchaseHold`'s rule as a question, for views that offer the action only when it would succeed; false for a hold it did not load. */
-  canPurchaseHold(hold: Hold): boolean {
-    const found = this.lookup(hold);
-    return found !== null && this.purchaseRefusal(found.own) === null;
-  }
-
-  /** Why `purchaseHold` would refuse `hold`, or null when it would succeed. Takes the aggregate's own instance. */
-  private purchaseRefusal(hold: Hold): 'closed' | 'lapsed' | null {
-    const status = hold.statusAt(this.asOf);
-    if (status === 'active') return null;
-    if (status !== 'expired') return 'closed';
-    return this.availableUnitsOf(hold.itemId.value) === 0 ? 'lapsed' : null;
+    const item = this.memberOf(hold);
+    return { item, ...item.purchaseHold(hold) };
   }
 
   /** Units of the item neither under an active hold nor bought. */
@@ -259,17 +238,15 @@ export class Wishlist {
     return this.getItem(itemId).availableUnits();
   }
 
-  /** The aggregate's own instance of `hold`, and its item; HoldNotFoundError when no item on this list has it. */
-  private memberOf(hold: Hold): { item: Item; own: Hold } {
-    const found = this.lookup(hold);
-    if (!found) throw new HoldNotFoundError(hold.id.value);
-    return found;
+  /** The item on this list that `hold` is on; HoldNotFoundError when it is not on one. */
+  private memberOf(hold: Hold): Item {
+    const item = this.lookup(hold);
+    if (!item) throw new HoldNotFoundError(hold.id.value);
+    return item;
   }
 
-  /** The aggregate's own instance of `hold`, and its item, or null when it did not load it: every hold question and command decides on this. */
-  private lookup(hold: Hold): { item: Item; own: Hold } | null {
-    const item = this._items.find((i) => i.id.value === hold.itemId.value);
-    const own = item?.findHold(hold.id.value);
-    return item && own ? { item, own } : null;
+  /** The item on this list that `hold` is on, or null: the authorization step every hold question and command takes before its item decides. */
+  private lookup(hold: Hold): Item | null {
+    return this._items.find((i) => i.id.value === hold.itemId.value) ?? null;
   }
 }

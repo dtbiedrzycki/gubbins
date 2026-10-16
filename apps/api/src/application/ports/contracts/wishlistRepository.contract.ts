@@ -68,9 +68,11 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
     });
 
     it('save writes each item\'s seq exactly as the domain left it', async () => {
+      const hold = holdFixture();
+      await fx.holds.insert(hold);
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
-      wishlist.getItem(ITEM_A).recordEvent();
-      wishlist.getItem(ITEM_A).recordEvent();
+      wishlist.extendHold(wishlist.findHold(hold.id.value)!, 60_000);
+      wishlist.releaseHold(wishlist.findHold(hold.id.value)!);
 
       await fx.wishlists.save(wishlist);
 
