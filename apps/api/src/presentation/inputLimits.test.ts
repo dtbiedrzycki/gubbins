@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { addItemRequestSchema, createListRequestSchema, holdItemRequestSchema, pledgeRequestSchema } from '@gubbins/shared-types';
 import { Item } from '../domain/entities/Item.js';
 import { Wishlist } from '../domain/entities/Wishlist.js';
+import { Contribution } from '../domain/entities/Contribution.js';
 import { DomainValidationError } from '../domain/errors.js';
 import { GuestDetails } from '../domain/value-objects/GuestDetails.js';
 
@@ -25,6 +26,9 @@ function accepts(build: () => unknown): boolean {
 
 const single = (props: { title?: string; quantity?: number; url?: string; priceMinor?: number }) => () =>
   Item.createSingle({ id: ID, wishlistId: ID, title: 'Cot', asOf: T0, ...props });
+const pledgeRow = {
+  id: ID, itemId: ID, sessionHash: 'a'.repeat(64), idempotencyKey: 'k', piiRef: ID, pledgedAt: T0,
+};
 const guest = (props: { name?: string; message?: string }) => () => GuestDetails.from({ name: 'Ann', ...props });
 
 /** Per maximum: whether the schema, and the domain, accept the value of size `n`. */
@@ -93,6 +97,25 @@ const minimums: { field: string; schema: (n: number) => boolean; domain: (n: num
     schema: (n) => addItemRequestSchema.safeParse({ type: 'single', title: 'Cot', priceMinor: n }).success,
     domain: (n) => accepts(single({ priceMinor: n })),
   },
+  {
+    field: 'pledge amount',
+    schema: (n) => pledgeRequestSchema.safeParse({ idempotencyKey: 'k', amountMinor: n, name: 'Ann' }).success,
+    domain: (n) => accepts(() => Contribution.reconstitute({ ...pledgeRow, amountMinor: n })),
+  },
+];
+
+/** Per text trimmed before its maximum is checked: whether the schema, and the domain, accept `t`. */
+const trimmed: { field: string; limit: number; schema: (t: string) => boolean; domain: (t: string) => boolean }[] = [
+  {
+    field: 'hold message', limit: 300,
+    schema: (t) => holdItemRequestSchema.safeParse({ idempotencyKey: 'k', name: 'Ann', message: t }).success,
+    domain: (t) => accepts(guest({ message: t })),
+  },
+  {
+    field: 'pledge message', limit: 300,
+    schema: (t) => pledgeRequestSchema.safeParse({ idempotencyKey: 'k', amountMinor: 100, name: 'Ann', message: t }).success,
+    domain: (t) => accepts(guest({ message: t })),
+  },
 ];
 
 /** Per text that must not be blank once trimmed: whether the schema, and the domain, accept `t`. */
@@ -138,6 +161,10 @@ describe('input limits shared by the request schemas and the domain', () => {
   it.each(minimums)('$field: both accept 1 and both refuse 0', ({ schema, domain }) => {
     expect([schema(1), domain(1)]).toEqual([true, true]);
     expect([schema(0), domain(0)]).toEqual([false, false]);
+  });
+
+  it.each(trimmed)('$field: both accept a value at $limit followed by a space', ({ limit, schema, domain }) => {
+    expect([schema(text(limit) + ' '), domain(text(limit) + ' ')]).toEqual([true, true]);
   });
 
   it.each(nonBlank)('$field: both accept a single letter and both refuse only spaces', ({ schema, domain }) => {

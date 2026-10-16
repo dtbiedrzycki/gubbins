@@ -5,7 +5,7 @@ export const pledgeRequestSchema = z.object({
   // Zero or less is never a pledge, so it is a 400 here. The upper bound depends on the item, so it is the domain's 409.
   amountMinor: z.number().int().positive(),
   name: z.string().trim().min(1).max(100),
-  message: z.string().max(300).optional(),
+  message: z.string().trim().max(300).optional(),
 });
 export type PledgeRequest = z.infer<typeof pledgeRequestSchema>;
 
