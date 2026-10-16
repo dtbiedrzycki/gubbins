@@ -1,9 +1,7 @@
 import type { Kysely } from 'kysely';
 import type { Database } from './db/schema.js';
-import type { ItemRepository } from '../application/ports/ItemRepository.js';
-import type { Contribution } from '../domain/entities/Contribution.js';
-import type { Hold } from '../domain/entities/Hold.js';
-import { Item } from '../domain/entities/Item.js';
+import type { ItemRepository, ItemRow } from '../application/ports/ItemRepository.js';
+import type { Item } from '../domain/entities/Item.js';
 import { ItemNotFoundError } from '../domain/errors.js';
 
 export class ItemRepositoryKysely implements ItemRepository {
@@ -20,7 +18,7 @@ export class ItemRepositoryKysely implements ItemRepository {
     }).execute();
   }
 
-  async findAllByWishlistId(wishlistId: string, members: { asOf: Date; holds: readonly Hold[]; contributions: readonly Contribution[] }): Promise<Item[]> {
+  async findAllByWishlistId(wishlistId: string): Promise<ItemRow[]> {
     const rows = await this.db.selectFrom('items')
       .innerJoin('item_state', 'item_state.item_id', 'items.id')
       .selectAll('items')
@@ -29,11 +27,9 @@ export class ItemRepositoryKysely implements ItemRepository {
       // created_at ties within a millisecond; monotonic v7 ids (ADR-0076) break the tie in insertion order.
       .orderBy('items.created_at').orderBy('items.id')
       .execute();
-    return rows.map((row) => Item.reconstitute({
+    return rows.map((row) => ({
       id: row.id, wishlistId: row.wishlist_id, type: row.type, title: row.title, quantity: row.quantity, url: row.url, priceMinor: row.price_minor,
-      seq: row.seq, asOf: members.asOf,
-      holds: members.holds.filter((hold) => hold.itemId.value === row.id),
-      contributions: members.contributions.filter((contribution) => contribution.itemId.value === row.id),
+      seq: row.seq,
     }));
   }
 
