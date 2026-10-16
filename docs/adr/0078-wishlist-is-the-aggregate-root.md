@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-09-13
 - **Amended:** 2026-10-15. Holds and contributions moved inside the aggregate, and the whole list is now loaded.
+- **Amended:** 2026-10-16. An item decides extending, releasing and purchasing its holds; the wishlist resolves the item and delegates, and the item refuses a hold it did not load.
 - **Deciders:** dtbiedrzycki
 
 ## Context

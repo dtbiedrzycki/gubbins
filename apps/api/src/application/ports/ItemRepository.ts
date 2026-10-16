@@ -1,7 +1,10 @@
 import type { Item } from '../../domain/entities/Item.js';
 
 /** An item's stored fields, without the holds, contributions and instant its aggregate supplies. */
-export type ItemRow = Omit<Parameters<typeof Item.reconstitute>[0], 'asOf' | 'holds' | 'contributions'>;
+export type ItemRow = {
+  id: string; wishlistId: string; type: string; title: string; quantity: number;
+  url: string | null; priceMinor: number | null; seq: number;
+};
 
 /**
  * Not a use-case-facing port: use cases reach an item only through the
