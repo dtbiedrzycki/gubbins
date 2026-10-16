@@ -214,7 +214,7 @@ export class Item {
   ): { contribution: Contribution; event: ContributionPledgedEvent; expectedSeq: number } {
     if (this.type !== 'group') throw new ItemUnavailableError(this.id.value);
     const max = Math.min((this.priceMinor ?? 0) * MAX_CONTRIBUTION_TARGET_MULTIPLE, MAX_MONEY_MINOR);
-    if (!Number.isSafeInteger(props.amountMinor) || props.amountMinor <= 0 || props.amountMinor > max) {
+    if (!Number.isSafeInteger(props.amountMinor) || props.amountMinor > max) {
       throw new ContributionAmountError(this.id.value);
     }
     // ADR-0061: the guard bounds the total too, so pledgedTotal() is always a valid Money.
