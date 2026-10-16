@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 export const createListRequestSchema = z.object({
-  listTitle: z.string().trim().min(1).max(120),
-  itemTitle: z.string().trim().min(1).max(120),
+  listTitle: z.string().min(1).max(120),
+  itemTitle: z.string().min(1).max(120),
   createSecret: z.string().optional(),
   venmoHandle: z.string().max(254).optional(),
   zelleHandle: z.string().max(254).optional(),

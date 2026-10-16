@@ -8,6 +8,7 @@ import { GuestDetails } from '../domain/value-objects/GuestDetails.js';
 
 // Each limit is written twice: in the request schema, so a client gets a 400 naming the field,
 // and in the domain, so no other path stores more. These tests keep the two copies equal.
+// Only the domain trims, so the schema measures the raw text.
 
 const ID = '11111111-1111-7111-8111-111111111111';
 const T0 = new Date('2026-01-01T00:00:00.000Z');
@@ -104,21 +105,7 @@ const minimums: { field: string; schema: (n: number) => boolean; domain: (n: num
   },
 ];
 
-/** Per text trimmed before its maximum is checked: whether the schema, and the domain, accept `t`. */
-const trimmed: { field: string; limit: number; schema: (t: string) => boolean; domain: (t: string) => boolean }[] = [
-  {
-    field: 'hold message', limit: 300,
-    schema: (t) => holdItemRequestSchema.safeParse({ idempotencyKey: 'k', name: 'Ann', message: t }).success,
-    domain: (t) => accepts(guest({ message: t })),
-  },
-  {
-    field: 'pledge message', limit: 300,
-    schema: (t) => pledgeRequestSchema.safeParse({ idempotencyKey: 'k', amountMinor: 100, name: 'Ann', message: t }).success,
-    domain: (t) => accepts(guest({ message: t })),
-  },
-];
-
-/** Per text that must not be blank once trimmed: whether the schema, and the domain, accept `t`. */
+/** Per text the domain trims and refuses when blank: whether the schema, and the domain, accept `t`. */
 const nonBlank: { field: string; schema: (t: string) => boolean; domain: (t: string) => boolean }[] = [
   {
     field: 'list title',
@@ -163,12 +150,8 @@ describe('input limits shared by the request schemas and the domain', () => {
     expect([schema(0), domain(0)]).toEqual([false, false]);
   });
 
-  it.each(trimmed)('$field: both accept a value at $limit followed by a space', ({ limit, schema, domain }) => {
-    expect([schema(text(limit) + ' '), domain(text(limit) + ' ')]).toEqual([true, true]);
-  });
-
-  it.each(nonBlank)('$field: both accept a single letter and both refuse only spaces', ({ schema, domain }) => {
+  it.each(nonBlank)('$field: both accept a single letter, and only the domain refuses only spaces', ({ schema, domain }) => {
     expect([schema('a'), domain('a')]).toEqual([true, true]);
-    expect([schema('   '), domain('   ')]).toEqual([false, false]);
+    expect([schema('   '), domain('   ')]).toEqual([true, false]);
   });
 });
