@@ -147,9 +147,10 @@ export class Wishlist {
   }
 
   /**
-   * The hold an earlier tap with this key placed, or null, so a replay
-   * answers with it rather than placing another. Another session's key never hands over that
-   * session's hold: it is refused like a unit someone else holds.
+   * The hold an earlier tap with this key placed on the item, or null if
+   * no tap used it. A replay answers with that hold rather than placing
+   * another. Another session's key never hands over that session's hold:
+   * it is refused like a unit someone else holds.
    */
   findHoldForReplay(itemId: string, idempotencyKey: string, sessionHash: string): Hold | null {
     return this.replayOf(this.getItem(itemId).holdWithKey(idempotencyKey), itemId, sessionHash);

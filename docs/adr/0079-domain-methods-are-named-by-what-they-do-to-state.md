@@ -32,7 +32,7 @@ state:
 | **Command:** changes state, may return events | imperative verb + object | `holdItem`, `extendHold`, `purchaseHold`, `addItem`, `placeHold`, `recordEvent`; on the entity itself the object is implied: `Hold.extend`, `Hold.release` |
 | **Query:** returns a value, changes nothing | noun phrase, no `get` prefix | `itemStatus`, `holdStatus`, `availableUnits`, `seq` |
 | **Predicate:** returns a boolean | `can…`, `is…`, `has…`, or a verb in the third person | `canExtendHold`, `owns`, `belongsToSession` |
-| **Lookup by id** | `get…` throws when absent; `find…` returns `null`; either may also refuse a caller it must not answer | `getItem` throws `ItemNotFoundError`; `findHold` returns `Hold \| null`; `findHoldForReplay` refuses another session's key |
+| **Lookup** | `get…` throws when absent; `find…` returns `null` when the thing sought is absent; either may also throw for an argument it can't resolve or a caller it must not answer | `getItem` throws `ItemNotFoundError`; `findHold` returns `Hold \| null`; `findHoldForReplay` refuses another session's key |
 | **Factory** | static `create…` for new instances; static `reconstitute` for persisted ones | `Wishlist.create`, `Item.createSingle`, `Hold.reconstitute` |
 
 Three refinements:
