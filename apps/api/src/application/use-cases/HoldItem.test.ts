@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { HoldItem } from './HoldItem.js';
 import { aWishlist } from '../test-fakes/builders.js';
-import { InMemoryUnitOfWork, inMemoryPersistence } from '../test-fakes/InMemoryRepositories.js';
+import { InMemoryUnitOfWork, inMemoryPersistence, type InMemoryStore } from '../test-fakes/InMemoryRepositories.js';
 import { SequentialTokenGenerator } from '../test-fakes/SequentialTokenGenerator.js';
 import { FixedClock } from '../test-fakes/FixedClock.js';
 import { FakeHasher } from '../test-fakes/FakeHasher.js';
@@ -26,7 +26,7 @@ async function makeUseCase(policy: HoldPolicy = DEFAULT_HOLD_POLICY) {
 
 const input = (idempotencyKey = 'idem-1') => ({ wishlistId: WISHLIST_ID, itemId: ITEM_ID, idempotencyKey, name: 'Ada' });
 
-const storedHold = (store: ReturnType<typeof inMemoryPersistence>['store']) => [...store.holds.values()].find((h) => h.idempotencyKey.value === 'idem-1');
+const storedHold = (store: InMemoryStore, idempotencyKey = 'idem-1') => [...store.holds.values()].find((h) => h.idempotencyKey.value === idempotencyKey);
 
 describe('HoldItem', () => {
   it('holds an available item for the configured duration and returns its view', async () => {
