@@ -274,6 +274,11 @@ describe('Item.pledge', () => {
   it.each([12.5, 45000 * 5 + 1])('refuses amount %j', (amountMinor) => {
     expect(() => group().pledge({ ...props, amountMinor }, ids)).toThrow(ContributionAmountError);
   });
+  it.each([0, -100])('refuses amount %j and adds nothing', (amountMinor) => {
+    const item = group();
+    expect(() => item.pledge({ ...props, amountMinor }, ids)).toThrow();
+    expect([item.contributions, item.seq]).toEqual([[], 0]);
+  });
   it('accepts a pledge that brings the total exactly to the limit, and refuses one cent more', () => {
     const item = fundedGroup(MAX_MONEY_MINOR - 100);
     expect(() => item.pledge({ ...props, amountMinor: 100 }, ids)).not.toThrow();
