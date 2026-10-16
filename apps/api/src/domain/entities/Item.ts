@@ -267,17 +267,16 @@ export class Item {
     return own !== null && this.purchaseRefusal(own) === null;
   }
 
-  /**
-   * Each hold command acts on the item's own instance of `hold`, at the
-   * item's `asOf`, and advances its stream. Reach them through `Wishlist`,
-   * which authorizes the hold.
-   */
+  // Each hold command acts on the item's own instance of `hold`, at the item's `asOf`, and advances its stream.
+
+  /** Reach it through `Wishlist.extendHold`, which authorizes the hold. */
   extendHold(hold: Hold, durationMs: number): { hold: Hold; event: HoldExtendedEvent; expectedSeq: number } {
     const own = this.ownHold(hold);
     const event = own.extend(this.asOf, durationMs);
     return { hold: own, event, expectedSeq: this.recordEvent() };
   }
 
+  /** Reach it through `Wishlist.releaseHold`, which authorizes the hold. */
   releaseHold(hold: Hold): { hold: Hold; event: HoldReleasedEvent; expectedSeq: number } {
     const own = this.ownHold(hold);
     const event = own.release(this.asOf);
@@ -288,7 +287,8 @@ export class Item {
    * An active hold may always be purchased — its unit is already its own.
    * An expired one may be too, so a guest who bought the gift after their
    * hold lapsed need not re-hold it — but only while a unit is still
-   * free, or they would be buying one someone else now holds.
+   * free, or they would be buying one someone else now holds. Reach it
+   * through `Wishlist.purchaseHold`, which authorizes the hold.
    */
   purchaseHold(hold: Hold): { hold: Hold; event: ItemPurchasedEvent; expectedSeq: number } {
     const own = this.ownHold(hold);
