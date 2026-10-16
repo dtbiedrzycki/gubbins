@@ -31,9 +31,7 @@ not about who enforces invariants.
 We will treat `Wishlist` as the aggregate root.
 
 - An `Item` is reachable only through the wishlist that owns it, and
-  `Wishlist.getItem` is the authorization step. Repositories load and
-  store the whole aggregate. There is no use-case-facing item
-  repository.
+  `Wishlist.getItem` is the authorization step.
 - The boundary is `Wishlist → Item → Hold / Contribution`. `Hold` and
   `Contribution` are entities nested under their `Item`, not aggregates
   of their own. The wishlist authorizes (`getItem`, `owns`) and owns
@@ -43,7 +41,7 @@ We will treat `Wishlist` as the aggregate root.
   purchase is a terminal state of a `Hold`.
 - Repositories load and save the whole aggregate: the list, every item,
   and every hold and contribution on it. There are no use-case-facing
-  hold or contribution repositories. A command's only other port calls
+  item, hold or contribution repositories. A command's only other writes
   are the event append and records outside the aggregate.
 - Event streams stay per item. The aggregate decides; each item's
   stream records the decision and is where seq-based concurrency
@@ -75,14 +73,10 @@ We will treat `Wishlist` as the aggregate root.
 - Loading the aggregate loads every hold and contribution on the list,
   as it loads every item. Expired holds are never closed (lazy expiry),
   so the load grows with a list's history; at the scale the
-  performance & resource budget assumes this is small. Revisit if a
-  list's history grows large.
+  [performance & resource budget](../spec/performance-and-resource-budget.md)
+  assumes this is small. Revisit if a list's history grows large.
 - Cross-item rules are read inside the same transaction as the append,
   serialized by `BEGIN IMMEDIATE`
   ([backend architecture](../spec/backend-architecture.md)).
 - The write path persists only what the domain decided
   (`WishlistRepository.save`) and never recomputes it.
-- A list with a long hold history makes each command's load larger.
-  That is acceptable at the scale the
-  [performance & resource budget](../spec/performance-and-resource-budget.md)
-  assumes; revisit if measurement says otherwise.
