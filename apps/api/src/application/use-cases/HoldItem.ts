@@ -53,6 +53,7 @@ export class HoldItem {
         return toHoldView(wishlist, existing);
       }
 
+      // A message sent without a name is dropped, because the details record needs a name, until the name becomes required.
       const details = input.name === undefined ? null : GuestDetails.from({ name: input.name, message: input.message });
       // The ref keys a guest_pii row outside the aggregate that the domain never sees (ADR-0057), so the use case mints it beside the insert.
       const pii = details && { id: this.tokenGenerator.generateEntityId(), name: details.name, message: details.message };
