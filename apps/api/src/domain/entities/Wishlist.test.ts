@@ -272,27 +272,27 @@ describe('Wishlist.itemStatus', () => {
   });
 });
 
-describe('Wishlist.replayHold', () => {
+describe('Wishlist.findHoldForReplay', () => {
   it("returns the session's own hold for a key it already used, even once that hold has expired", () => {
     const hold = holdOn(ITEM_ID, { idempotencyKey: 'tap-1', expiresAt: at(-1) });
-    expect(loaded({ holds: [hold] }).replayHold(ITEM_ID, 'tap-1', SESSION)).toBe(hold);
+    expect(loaded({ holds: [hold] }).findHoldForReplay(ITEM_ID, 'tap-1', SESSION)).toBe(hold);
   });
 
   it("refuses another session's key with ItemUnavailableError", () => {
     const hold = holdOn(ITEM_ID, { idempotencyKey: 'tap-1' });
-    expect(() => loaded({ holds: [hold] }).replayHold(ITEM_ID, 'tap-1', OTHER_SESSION)).toThrow(ItemUnavailableError);
+    expect(() => loaded({ holds: [hold] }).findHoldForReplay(ITEM_ID, 'tap-1', OTHER_SESSION)).toThrow(ItemUnavailableError);
   });
 
   it('returns null for a key not used on that item', () => {
-    expect(loaded().replayHold(ITEM_ID, 'tap-1', SESSION)).toBeNull();
+    expect(loaded().findHoldForReplay(ITEM_ID, 'tap-1', SESSION)).toBeNull();
   });
 
   it('throws ItemNotFoundError for an item not on this list', () => {
-    expect(() => loaded().replayHold(OTHER_ITEM_ID, 'tap-1', SESSION)).toThrow(ItemNotFoundError);
+    expect(() => loaded().findHoldForReplay(OTHER_ITEM_ID, 'tap-1', SESSION)).toThrow(ItemNotFoundError);
   });
 });
 
-describe('Wishlist.replayContribution', () => {
+describe('Wishlist.findContributionForReplay', () => {
   const pledged = Contribution.reconstitute({
     id: '77777777-7777-7777-8777-777777777777', itemId: ITEM_ID, amountMinor: 2_500, sessionHash: SESSION,
     idempotencyKey: 'p-1', piiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
@@ -303,15 +303,15 @@ describe('Wishlist.replayContribution', () => {
   });
 
   it("returns the session's own pledge for a key it already used", () => {
-    expect(withPledge().replayContribution(ITEM_ID, 'p-1', SESSION)).toBe(pledged);
+    expect(withPledge().findContributionForReplay(ITEM_ID, 'p-1', SESSION)).toBe(pledged);
   });
 
   it("refuses another session's key with ItemUnavailableError", () => {
-    expect(() => withPledge().replayContribution(ITEM_ID, 'p-1', OTHER_SESSION)).toThrow(ItemUnavailableError);
+    expect(() => withPledge().findContributionForReplay(ITEM_ID, 'p-1', OTHER_SESSION)).toThrow(ItemUnavailableError);
   });
 
   it('returns null for a key not used on that item', () => {
-    expect(withPledge().replayContribution(ITEM_ID, 'p-2', SESSION)).toBeNull();
+    expect(withPledge().findContributionForReplay(ITEM_ID, 'p-2', SESSION)).toBeNull();
   });
 });
 

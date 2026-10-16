@@ -30,7 +30,7 @@ export class PledgeContribution {
 
       // Before pledging, so a replayed key answers with the original pledge
       // rather than falling through to the UNIQUE index (a 500).
-      const replay = wishlist.replayContribution(input.itemId, input.idempotencyKey, guest.sessionHash);
+      const replay = wishlist.findContributionForReplay(input.itemId, input.idempotencyKey, guest.sessionHash);
       if (replay) return toResponse(replay);
 
       const details = GuestDetails.from({ name: input.name, message: input.message });
