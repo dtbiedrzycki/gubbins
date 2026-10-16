@@ -26,6 +26,12 @@ arithmetic guard rather than a currency-denominated bound, since a money
 threshold in minor units means a different amount on every list and no
 currency-independent answer to "how much is too much" exists.
 
+The arithmetic guard (`MAX_MONEY_MINOR`, 10¹² minor units) bounds an
+item's pledged total as well as each pledge: a pledge that would take
+the total past it is refused like an oversized pledge. An amount may be
+zero (an item with no pledges totals zero); a pledge itself must still
+be more than zero.
+
 ## Alternatives considered
 
 - **A `DECIMAL`/`NUMERIC` storage column** — rejected: SQLite has no
@@ -87,9 +93,5 @@ currency-independent answer to "how much is too much" exists.
   with [threat model summary](../spec/threat-model-summary.md)'s
   existing stance that detection-and-reversal, not prevention, is the
   answer to a keyed guest.
-- The arithmetic guard (`MAX_MONEY_MINOR`, 10¹² minor units) bounds an
-  item's pledged total as well as each pledge: a pledge that would take
-  the total past it is refused like an oversized pledge. Sums of stored
-  amounts then stay in safe-integer range, which is what the guard is
-  for. An amount may be zero (an item with no pledges totals zero); a
-  pledge itself must still be more than zero.
+- Because each item's pledged total is bounded too, sums of stored
+  amounts stay in safe-integer range, which is what the guard is for.

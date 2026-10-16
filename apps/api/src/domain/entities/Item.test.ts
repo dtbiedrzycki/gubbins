@@ -64,7 +64,7 @@ describe('Item kinds, URL and price', () => {
   });
 });
 
-describe('Item availability — from hold state, never a stored counter', () => {
+describe('Item availability and holds — from hold state, never a stored counter', () => {
   it('starts a new item at seq 0, and available', () => {
     const item = Item.createSingle({ asOf: T0, id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Stroller' });
     expect(item.seq).toBe(0);
@@ -78,9 +78,7 @@ describe('Item availability — from hold state, never a stored counter', () => 
   it('never reports negative availability when quantity is below what is committed (ADR-0019)', () => {
     expect(Item.reconstitute({ ...base, holds: [holdOn(), holdOn({ purchasedAt: T0 })] }).availableUnits()).toBe(0);
   });
-});
 
-describe('Item holds', () => {
   it('is available while the quantity exceeds active and purchased holds', () => {
     const item = Item.reconstitute({ ...base, quantity: 2, holds: [holdOn()] });
     expect(item.availableUnits()).toBe(1);
@@ -99,11 +97,17 @@ describe('Item holds', () => {
     expect(Item.reconstitute({ ...base, asOf: new Date(T0.getTime() + 1), holds: [hold] }).status()).toBe('available');
   });
 
-  it('counts purchased holds, zero when there are none and not as active, and is purchased once they cover the quantity', () => {
-    const item = Item.reconstitute({ ...base, quantity: 4, holds: [holdOn({ purchasedAt: T0 }), holdOn({ purchasedAt: T0 }), holdOn()] });
-    expect(item.purchasedCount()).toBe(2);
-    expect(item.availableUnits()).toBe(1);
+  it('counts its purchased holds, zero when there are none', () => {
+    expect(Item.reconstitute({ ...base, quantity: 2, holds: [holdOn({ purchasedAt: T0 }), holdOn({ purchasedAt: T0 })] }).purchasedCount()).toBe(2);
     expect(Item.reconstitute(base).purchasedCount()).toBe(0);
+  });
+
+  it('takes one unit for a purchased hold, not a second one as if it were active', () => {
+    const item = Item.reconstitute({ ...base, quantity: 4, holds: [holdOn({ purchasedAt: T0 }), holdOn({ purchasedAt: T0 }), holdOn()] });
+    expect(item.availableUnits()).toBe(1);
+  });
+
+  it('is purchased once purchased holds cover the quantity', () => {
     expect(Item.reconstitute({ ...base, holds: [holdOn({ purchasedAt: T0 })] }).status()).toBe('purchased');
   });
 
