@@ -122,7 +122,7 @@ export class Wishlist {
     return this._items.flatMap((item) => item.holds);
   }
 
-  /** Every contribution on the list's items: what `save` writes. */
+  /** Every contribution on the list's items. */
   get contributions(): readonly Contribution[] {
     return this._items.flatMap((item) => item.contributions);
   }
