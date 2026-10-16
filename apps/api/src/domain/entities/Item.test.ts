@@ -193,7 +193,7 @@ const at = (ms: number) => new Date(T0.getTime() + ms);
 /** An item loaded at `asOf` (T0 unless given) with the given holds. */
 const holding = (holds: Hold[], overrides: { quantity?: number; seq?: number; asOf?: Date } = {}) => Item.reconstitute({ ...base, ...overrides, holds });
 
-describe('Item.extendHold and releaseHold', () => {
+describe('Item hold commands', () => {
   it('extendHold extends its own hold at the instant it was loaded at, and records one event on its stream', () => {
     const hold = holdOn();
     const item = holding([hold], { seq: 1, asOf: at(DAY) });
@@ -216,6 +216,7 @@ describe('Item.extendHold and releaseHold', () => {
   it('refuses a command on a hold it did not load, with HoldNotFoundError', () => {
     expect(() => holding([]).releaseHold(holdOn())).toThrow(HoldNotFoundError);
     expect(() => holding([]).extendHold(holdOn(), DAY)).toThrow(HoldNotFoundError);
+    expect(() => holding([]).purchaseHold(holdOn())).toThrow(HoldNotFoundError);
   });
 
   it('does not advance seq when the hold refuses the command', () => {

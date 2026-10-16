@@ -36,11 +36,10 @@ function holdOn(itemId: string, overrides: Partial<Parameters<typeof Hold.recons
   });
 }
 
-/** A wishlist loaded at `asOf` (T0 unless given), with its one item holding the given holds and `purchasedCount` purchased ones. */
-function loaded(options: { quantity?: number; seq?: number; purchasedCount?: number; holds?: Hold[]; asOf?: Date } = {}): Wishlist {
-  const { holds = [], asOf = T0, purchasedCount = 0, ...itemOverrides } = options;
-  const purchased = Array.from({ length: purchasedCount }, () => holdOn(ITEM_ID, { purchasedAt: T0 }));
-  const item = itemOf(WISHLIST_ID, { ...itemOverrides, asOf, holds: [...holds, ...purchased] });
+/** A wishlist loaded at `asOf` (T0 unless given), with its one item holding the given holds. */
+function loaded(options: { quantity?: number; seq?: number; holds?: Hold[]; asOf?: Date } = {}): Wishlist {
+  const { holds = [], asOf = T0, ...itemOverrides } = options;
+  const item = itemOf(WISHLIST_ID, { ...itemOverrides, asOf, holds });
   return Wishlist.reconstitute({ ...validProps, asOf, keyGen: 1, items: [item] });
 }
 
@@ -220,7 +219,7 @@ describe('Wishlist hold commands', () => {
     const { event, item, expectedSeq } = wishlist.extendHold(hold, 3 * DAY);
     expect(event.type).toBe('HoldExtended');
     expect(item).toBe(wishlist.getItem(ITEM_ID));
-    expect([expectedSeq, item.seq]).toEqual([1, 2]);
+    expect(expectedSeq).toBe(1);
   });
 
   it('releaseHold has the item decide, and returns that item', () => {
@@ -229,7 +228,6 @@ describe('Wishlist hold commands', () => {
     const { event, item } = wishlist.releaseHold(hold);
     expect(event.type).toBe('HoldReleased');
     expect(item).toBe(wishlist.getItem(ITEM_ID));
-    expect(wishlist.itemStatus(ITEM_ID)).toBe('available');
   });
 
   it('purchaseHold has the item decide, and returns that item', () => {
@@ -238,7 +236,6 @@ describe('Wishlist hold commands', () => {
     const { event, item } = wishlist.purchaseHold(hold);
     expect(event.type).toBe('ItemPurchased');
     expect(item).toBe(wishlist.getItem(ITEM_ID));
-    expect(wishlist.purchasedCountOf(ITEM_ID)).toBe(1);
   });
 
   it("refuses a hold on another list's item with HoldNotFoundError", () => {

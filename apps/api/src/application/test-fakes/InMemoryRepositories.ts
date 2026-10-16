@@ -9,12 +9,10 @@ import type { ContributionRepository } from '../ports/ContributionRepository.js'
 import type { EventStore } from '../ports/EventStore.js';
 import type { HoldRepository } from '../ports/HoldRepository.js';
 import type { GuestPiiRepository } from '../ports/GuestPiiRepository.js';
+import type { ItemRow } from '../ports/ItemRepository.js';
 import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
 import type { TransactionContext, UnitOfWork } from '../ports/UnitOfWork.js';
 import type { WishlistRepository } from '../ports/WishlistRepository.js';
-
-/** An item's stored columns: items are kept as rows, and rebuilt with their members on each load. */
-type ItemRow = { id: string; wishlistId: string; type: string; title: string; quantity: number; url: string | null; priceMinor: number | null; seq: number };
 
 const toRow = (item: Item): ItemRow => ({
   id: item.id.value, wishlistId: item.wishlistId.value, type: item.type, title: item.title,
