@@ -36,9 +36,11 @@ We will treat `Wishlist` as the aggregate root.
   `Contribution` are entities nested under their `Item`, not aggregates
   of their own. The wishlist authorizes (`getItem`, `owns`) and owns
   rules that span items; an item decides on its own holds and
-  contributions (availability, purchased count, placing a hold,
-  pledging); a hold or contribution records its own lifecycle. A
-  purchase is a terminal state of a `Hold`.
+  contributions (availability, purchased count, placing, extending,
+  releasing and purchasing a hold, pledging); a hold or contribution
+  records its own lifecycle. The wishlist's command for each resolves
+  the item and delegates to it. A purchase is a terminal state of a
+  `Hold`.
 - Repositories load and save the whole aggregate: the list, every item,
   and every hold and contribution on it. There are no use-case-facing
   item, hold or contribution repositories. A command's only other writes
