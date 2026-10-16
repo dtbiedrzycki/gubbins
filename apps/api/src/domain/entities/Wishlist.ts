@@ -137,18 +137,13 @@ export class Wishlist {
     return item;
   }
 
-  /** The hold with this id on one of the list's items, or null: a hold on another list is never found. */
+  /** The hold with this id on one of the list's items, or null: a hold on another list is never found. The authorization step for holds, as `getItem` is for items. */
   findHold(holdId: string): Hold | null {
     for (const item of this._items) {
       const hold = item.findHold(holdId);
       if (hold) return hold;
     }
     return null;
-  }
-
-  /** Whether this wishlist loaded `hold` on one of its items: the authorization step for holds, as `getItem` is for items. */
-  owns(hold: Hold): boolean {
-    return this.lookup(hold) !== null;
   }
 
   /**

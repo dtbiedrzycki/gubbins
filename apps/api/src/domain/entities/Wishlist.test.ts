@@ -204,20 +204,12 @@ describe('Wishlist.holdItem', () => {
   });
 });
 
-describe('Wishlist.findHold and owns', () => {
+describe('Wishlist.findHold', () => {
   it('findHold returns its own instance of a hold it loaded, whatever its state, and null for an id it did not load', () => {
     const holds = [holdOn(ITEM_ID), holdOn(ITEM_ID, { expiresAt: at(-1) }), holdOn(ITEM_ID, { releasedAt: T0 }), holdOn(ITEM_ID, { purchasedAt: T0 })];
     const wishlist = loaded({ quantity: 2, holds });
     for (const hold of holds) expect(wishlist.findHold(hold.id.value)).toBe(hold);
     expect(wishlist.findHold(holdOn(ITEM_ID).id.value)).toBeNull();
-  });
-
-  it("owns a hold it loaded, not one it did not load, on its own item or another list's", () => {
-    const hold = holdOn(ITEM_ID);
-    const wishlist = loaded({ holds: [hold] });
-    expect(wishlist.owns(hold)).toBe(true);
-    expect(wishlist.owns(holdOn(ITEM_ID))).toBe(false);
-    expect(wishlist.owns(holdOn(OTHER_ITEM_ID))).toBe(false);
   });
 });
 

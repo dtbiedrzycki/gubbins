@@ -10,9 +10,6 @@ const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
 const DAY = 86_400_000;
 const T0 = new Date('2026-01-01T00:00:00.000Z');
 const base = { id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0, asOf: T0 };
-const tokens = { generateEntityId: () => '55555555-5555-7555-8555-555555555555', generateHoldSecret: () => 'hold-secret' };
-const hasher = { hash: () => 'f'.repeat(64) };
-const ids = { generateEntityId: () => '77777777-7777-7777-8777-777777777777' };
 
 let holdCount = 0;
 function holdOn(overrides: Partial<Parameters<typeof Hold.reconstitute>[0]> = {}): Hold {
@@ -91,12 +88,6 @@ describe('Item availability and holds — from hold state, never a stored counte
     expect(item.status()).toBe('held');
   });
 
-  it('is held up to and including the instant its last hold expires, available 1 ms later', () => {
-    const hold = holdOn({ expiresAt: T0 });
-    expect(Item.reconstitute({ ...base, asOf: T0, holds: [hold] }).status()).toBe('held');
-    expect(Item.reconstitute({ ...base, asOf: new Date(T0.getTime() + 1), holds: [hold] }).status()).toBe('available');
-  });
-
   it('counts its purchased holds, zero when there are none', () => {
     expect(Item.reconstitute({ ...base, quantity: 2, holds: [holdOn({ purchasedAt: T0 }), holdOn({ purchasedAt: T0 })] }).purchasedCount()).toBe(2);
     expect(Item.reconstitute(base).purchasedCount()).toBe(0);
@@ -116,17 +107,6 @@ describe('Item availability and holds — from hold state, never a stored counte
     expect(item.availableUnits()).toBe(1);
   });
 
-  it('places a hold on a free unit and adds it to its own holds', () => {
-    const item = Item.reconstitute({ ...base });
-    const { hold } = item.placeHold({ sessionHash: 'a'.repeat(64), idempotencyKey: 'tap-1', durationMs: DAY }, tokens, hasher);
-    expect(item.holds).toEqual([hold]);
-  });
-
-  it('places a hold where a loaded one has already lapsed, freeing its unit', () => {
-    const item = Item.reconstitute({ ...base, holds: [holdOn({ expiresAt: new Date(T0.getTime() - 1) })] });
-    expect(() => item.placeHold({ sessionHash: 'a'.repeat(64), idempotencyKey: 'tap-3', durationMs: DAY }, tokens, hasher)).not.toThrow();
-  });
-
   it('rejects a loaded hold or contribution that is on another item', () => {
     const other = '44444444-4444-7444-8444-444444444444';
     expect(() => Item.reconstitute({ ...base, holds: [holdOn({ itemId: other })] })).toThrow(DomainValidationError);
@@ -135,13 +115,6 @@ describe('Item availability and holds — from hold state, never a stored counte
       idempotencyKey: 'p-1', piiRef: '55555555-5555-7555-8555-555555555555', pledgedAt: T0,
     });
     expect(() => Item.reconstitute({ ...base, type: 'group', priceMinor: 10_000, contributions: [pledge] })).toThrow(DomainValidationError);
-  });
-
-  it('pledges toward a group gift and adds the pledge to its own contributions', () => {
-    const item = Item.reconstitute({ ...base, type: 'group', priceMinor: 10_000 });
-    const { contribution } = item.pledge({ amountMinor: 2_500, sessionHash: 'a'.repeat(64), idempotencyKey: 'p-1', piiRef: '66666666-6666-7666-8666-666666666666' }, ids);
-    expect(item.contributions).toEqual([contribution]);
-    expect(contribution.pledgedAt).toEqual(T0);
   });
 });
 
@@ -160,6 +133,12 @@ describe('Item.placeHold', () => {
     expect(hold.secret.value).toBe(GENERATED_SECRET);
     expect(hold.itemId.value).toBe(ITEM_ID);
     expect(hold.expiresAt).toEqual(new Date(at.getTime() + 3 * DAY));
+  });
+
+  it('adds the hold to its own holds', () => {
+    const item = available();
+    const { hold } = item.placeHold(holdProps, fakeTokens, fakeHasher);
+    expect(item.holds).toEqual([hold]);
   });
 
   it('returns the seq the caller must append against, and advances past it', () => {
@@ -282,6 +261,12 @@ describe('Item.pledge', () => {
     expect(event.piiRef).toBe(PII);
     expect(event).not.toHaveProperty('name');
     expect(event).not.toHaveProperty('message');
+  });
+  it('adds the pledge to its own contributions, pledged at the instant the item was loaded at', () => {
+    const item = group();
+    const { contribution } = item.pledge({ ...props, amountMinor: 2_500 }, ids);
+    expect(item.contributions).toEqual([contribution]);
+    expect(contribution.pledgedAt).toEqual(T0);
   });
   it('allows overfunding up to five times the price', () => {
     expect(() => group().pledge({ ...props, amountMinor: 45000 * 5 }, ids)).not.toThrow();

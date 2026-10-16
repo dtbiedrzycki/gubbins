@@ -26,7 +26,7 @@ async function makeUseCase(policy: HoldPolicy = DEFAULT_HOLD_POLICY) {
 
 const input = (idempotencyKey = 'idem-1') => ({ wishlistId: WISHLIST_ID, itemId: ITEM_ID, idempotencyKey, name: 'Ada' });
 
-const storedHold = (store: InMemoryStore, idempotencyKey = 'idem-1') => [...store.holds.values()].find((h) => h.idempotencyKey.value === idempotencyKey);
+const storedHold = (store: InMemoryStore) => [...store.holds.values()].find((h) => h.idempotencyKey.value === 'idem-1');
 
 describe('HoldItem', () => {
   it('holds an available item for the configured duration and returns its view', async () => {
