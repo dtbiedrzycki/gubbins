@@ -210,7 +210,7 @@ export class Item {
       throw new ContributionAmountError(this.id.value);
     }
     // ADR-0061: the guard bounds the total too, so pledgedTotal() is always a valid Money.
-    if (sumMinor(this._contributions) + props.amountMinor > MAX_MONEY_MINOR) throw new ContributionAmountError(this.id.value);
+    if (this.pledgedTotal().amountMinor + props.amountMinor > MAX_MONEY_MINOR) throw new ContributionAmountError(this.id.value);
     const contribution = Contribution.create({
       id: ids.generateEntityId(),
       itemId: this.id.value,
