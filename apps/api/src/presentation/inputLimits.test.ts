@@ -23,12 +23,12 @@ function accepts(build: () => unknown): boolean {
   }
 }
 
-const single = (props: { title?: string; url?: string; priceMinor?: number }) => () =>
+const single = (props: { title?: string; quantity?: number; url?: string; priceMinor?: number }) => () =>
   Item.createSingle({ id: ID, wishlistId: ID, title: 'Cot', asOf: T0, ...props });
 const guest = (props: { name?: string; message?: string }) => () => GuestDetails.from({ name: 'Ann', ...props });
 
-/** Per limit: whether the schema, and the domain, accept the value of size `n`. */
-const limits: { field: string; limit: number; schema: (n: number) => boolean; domain: (n: number) => boolean }[] = [
+/** Per maximum: whether the schema, and the domain, accept the value of size `n`. */
+const maximums: { field: string; limit: number; schema: (n: number) => boolean; domain: (n: number) => boolean }[] = [
   {
     field: 'hold name', limit: 100,
     schema: (n) => holdItemRequestSchema.safeParse({ idempotencyKey: 'k', name: text(n) }).success,
@@ -81,9 +81,67 @@ const limits: { field: string; limit: number; schema: (n: number) => boolean; do
   },
 ];
 
+/** Per field whose least value is 1: whether the schema, and the domain, accept `n`. */
+const minimums: { field: string; schema: (n: number) => boolean; domain: (n: number) => boolean }[] = [
+  {
+    field: 'item quantity',
+    schema: (n) => addItemRequestSchema.safeParse({ type: 'single', title: 'Cot', quantity: n }).success,
+    domain: (n) => accepts(single({ quantity: n })),
+  },
+  {
+    field: 'item price',
+    schema: (n) => addItemRequestSchema.safeParse({ type: 'single', title: 'Cot', priceMinor: n }).success,
+    domain: (n) => accepts(single({ priceMinor: n })),
+  },
+];
+
+/** Per text that must not be blank once trimmed: whether the schema, and the domain, accept `t`. */
+const nonBlank: { field: string; schema: (t: string) => boolean; domain: (t: string) => boolean }[] = [
+  {
+    field: 'list title',
+    schema: (t) => createListRequestSchema.safeParse({ listTitle: t, itemTitle: 'Cot' }).success,
+    domain: (t) => accepts(() => Wishlist.create({ id: ID, slug: 'abc123', title: t, ownerToken: 'o', key: 'k', asOf: T0 })),
+  },
+  {
+    field: 'first item title',
+    schema: (t) => createListRequestSchema.safeParse({ listTitle: 'List', itemTitle: t }).success,
+    domain: (t) => accepts(single({ title: t })),
+  },
+  {
+    field: 'item title',
+    schema: (t) => addItemRequestSchema.safeParse({ type: 'single', title: t }).success,
+    domain: (t) => accepts(single({ title: t })),
+  },
+  {
+    field: 'group gift title',
+    schema: (t) => addItemRequestSchema.safeParse({ type: 'group', title: t, priceMinor: 100 }).success,
+    domain: (t) => accepts(() => Item.createGroup({ id: ID, wishlistId: ID, title: t, priceMinor: 100, asOf: T0 })),
+  },
+  {
+    field: 'hold name',
+    schema: (t) => holdItemRequestSchema.safeParse({ idempotencyKey: 'k', name: t }).success,
+    domain: (t) => accepts(guest({ name: t })),
+  },
+  {
+    field: 'pledge name',
+    schema: (t) => pledgeRequestSchema.safeParse({ idempotencyKey: 'k', amountMinor: 100, name: t }).success,
+    domain: (t) => accepts(guest({ name: t })),
+  },
+];
+
 describe('input limits shared by the request schemas and the domain', () => {
-  it.each(limits)('$field: both accept a value at $limit and both refuse one past it', ({ limit, schema, domain }) => {
+  it.each(maximums)('$field: both accept a value at $limit and both refuse one past it', ({ limit, schema, domain }) => {
     expect([schema(limit), domain(limit)]).toEqual([true, true]);
     expect([schema(limit + 1), domain(limit + 1)]).toEqual([false, false]);
+  });
+
+  it.each(minimums)('$field: both accept 1 and both refuse 0', ({ schema, domain }) => {
+    expect([schema(1), domain(1)]).toEqual([true, true]);
+    expect([schema(0), domain(0)]).toEqual([false, false]);
+  });
+
+  it.each(nonBlank)('$field: both accept a single letter and both refuse only spaces', ({ schema, domain }) => {
+    expect([schema('a'), domain('a')]).toEqual([true, true]);
+    expect([schema('   '), domain('   ')]).toEqual([false, false]);
   });
 });
