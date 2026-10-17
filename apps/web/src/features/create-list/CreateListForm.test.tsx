@@ -66,6 +66,26 @@ describe('CreateListForm', () => {
     expect(body).toMatchObject({ createSecret: 'the-secret' });
   });
 
+  it('trims each field before sending it', async () => {
+    let body: unknown;
+    server.use(http.post('/api/lists', async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k', itemId: 'i' } satisfies CreateListResponse, { status: 201 });
+    }));
+    const user = userEvent.setup();
+    renderWithQueryClient(<CreateListForm />);
+    await user.type(screen.getByLabelText('List title'), ' Baby Shower ');
+    await user.type(screen.getByLabelText('First item'), ' Stroller ');
+    await user.type(screen.getByLabelText('Create secret'), ' the-secret ');
+    await user.type(screen.getByLabelText('Venmo username'), ' @my-venmo ');
+    await user.type(screen.getByLabelText('Zelle email or US phone'), ' me@example.com ');
+    await user.click(screen.getByRole('button', { name: 'Create list' }));
+    await screen.findByText('k');
+    expect(body).toMatchObject({
+      listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'the-secret', venmoHandle: '@my-venmo', zelleHandle: 'me@example.com',
+    });
+  });
+
   it('sends the Venmo and Zelle handles when filled', async () => {
     let body: unknown;
     server.use(http.post('/api/lists', async ({ request }) => {

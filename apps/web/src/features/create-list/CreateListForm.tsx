@@ -12,7 +12,10 @@ export function CreateListForm() {
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    mutate({ listTitle, itemTitle, createSecret, venmoHandle, zelleHandle });
+    mutate({
+      listTitle: listTitle.trim(), itemTitle: itemTitle.trim(), createSecret: createSecret.trim(),
+      venmoHandle: venmoHandle.trim(), zelleHandle: zelleHandle.trim(),
+    });
   }
 
   if (data) {

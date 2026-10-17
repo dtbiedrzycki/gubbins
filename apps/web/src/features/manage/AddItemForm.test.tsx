@@ -48,6 +48,22 @@ describe('AddItemForm', () => {
     expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
   });
 
+  it('trims the title and store link before sending them', async () => {
+    let body: unknown;
+    server.use(http.post('/api/lists/:slug/items', async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ itemId: 'i1' }, { status: 201 });
+    }));
+    const user = userEvent.setup();
+    renderForm(<AddItemForm slug="abc123" onUnauthorized={() => {}} />);
+
+    await user.type(screen.getByLabelText('Title'), ' Crib ');
+    await user.type(screen.getByLabelText('Store link'), ' https://shop.example/crib ');
+    await user.click(screen.getByRole('button', { name: 'Add item' }));
+
+    await waitFor(() => expect(body).toMatchObject({ title: 'Crib', url: 'https://shop.example/crib' }));
+  });
+
   it('posts a group gift without a quantity', async () => {
     let body: unknown;
     server.use(http.post('/api/lists/:slug/items', async ({ request }) => {

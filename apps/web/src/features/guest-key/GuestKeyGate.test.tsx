@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
 import { mock } from '../../test/msw/mock';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server } from '../../test/msw/server';
@@ -22,6 +23,23 @@ describe('GuestKeyGate', () => {
     await user.click(screen.getByRole('button', { name: 'View list' }));
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+  });
+
+  it('sends the key trimmed', async () => {
+    let body: unknown;
+    server.use(http.post('/api/lists/:slug/session', async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ ok: true });
+    }));
+    const onSuccess = vi.fn();
+    const user = userEvent.setup();
+    renderWithQueryClient(<GuestKeyGate slug="abc123" onSuccess={onSuccess} />);
+
+    await user.type(screen.getByLabelText('Enter the guest key'), ' correct-key ');
+    await user.click(screen.getByRole('button', { name: 'View list' }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    expect(body).toEqual({ key: 'correct-key' });
   });
 
   it('shows the same generic not-found message on a wrong key as on any other failure', async () => {
