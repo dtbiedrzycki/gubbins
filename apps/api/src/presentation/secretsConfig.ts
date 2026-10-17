@@ -4,7 +4,8 @@
  * create lists on (ADR-0080) or whose cookies anyone can forge.
  */
 export function parseCreateSecret(env: Record<string, string | undefined>): string {
-  const value = env.CREATE_SECRET;
+  // Trimmed like the candidate it is compared with, so a pasted newline can't lock everyone out.
+  const value = env.CREATE_SECRET?.trim();
   if (!value) throw new Error('CREATE_SECRET must be set: list creation always requires it. Generate one with `openssl rand -base64 32`.');
   return value;
 }

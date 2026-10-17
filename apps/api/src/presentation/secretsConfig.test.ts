@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { parseCookieSecret, parseCreateSecret } from './secretsConfig.js';
 
 describe('parseCreateSecret', () => {
-  it('returns the configured value untouched', () => {
-    expect(parseCreateSecret({ CREATE_SECRET: ' s3cret ' })).toBe(' s3cret ');
+  it('returns the configured value trimmed', () => {
+    expect(parseCreateSecret({ CREATE_SECRET: ' s3cret\n' })).toBe('s3cret');
   });
 
-  it.each([undefined, ''])('refuses to start without one (%j)', (value) => {
+  it.each([undefined, '', '  '])('refuses to start without one (%j)', (value) => {
     expect(() => parseCreateSecret({ CREATE_SECRET: value })).toThrow(/CREATE_SECRET/);
   });
 });
