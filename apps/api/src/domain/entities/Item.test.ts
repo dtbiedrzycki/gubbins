@@ -49,6 +49,10 @@ describe('Item kinds, URL and price', () => {
   it('accepts an https store URL', () => {
     expect(Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'T', url: 'https://shop.example/x' }).url).toBe('https://shop.example/x');
   });
+  it('trims the store URL', () => {
+    expect(Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'T', url: ' https://shop.example/x ' }).url).toBe('https://shop.example/x');
+    expect(Item.createGroup({ asOf: T0, id: ID, wishlistId: WL, title: 'T', priceMinor: 100, url: ' https://shop.example/x ' }).url).toBe('https://shop.example/x');
+  });
   it.each([0, -1, 1.5, 10 ** 12 + 1])('refuses price %j', (priceMinor) => {
     expect(() => Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'T', priceMinor })).toThrow(DomainValidationError);
   });

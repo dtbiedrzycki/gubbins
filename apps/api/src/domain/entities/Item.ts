@@ -73,14 +73,14 @@ export class Item {
   }): Item {
     return new Item(
       UuidId.from(props.id), UuidId.from(props.wishlistId), 'single', props.title.trim(), props.quantity ?? 1,
-      props.url ?? null, props.priceMinor ?? null, 0, new Date(props.asOf.getTime()), [], [],
+      props.url?.trim() ?? null, props.priceMinor ?? null, 0, new Date(props.asOf.getTime()), [], [],
     );
   }
 
   static createGroup(props: { id: string; wishlistId: string; title: string; priceMinor: number; url?: string | null; asOf: Date }): Item {
     return new Item(
       UuidId.from(props.id), UuidId.from(props.wishlistId), 'group', props.title.trim(), 1,
-      props.url ?? null, props.priceMinor, 0, new Date(props.asOf.getTime()), [], [],
+      props.url?.trim() ?? null, props.priceMinor, 0, new Date(props.asOf.getTime()), [], [],
     );
   }
 

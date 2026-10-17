@@ -9,12 +9,20 @@ describe.each([
   ['HoldSecret', HoldSecret],
   ['OwnerToken', OwnerToken],
 ] as const)('%s', (_name, Secret) => {
-  it('keeps the raw value untrimmed — bearer secrets are opaque', () => {
-    expect(Secret.from(' secret ').value).toBe(' secret ');
+  it('trims the value', () => {
+    expect(Secret.from(' secret ').value).toBe('secret');
   });
 
-  it('rejects an empty value', () => {
+  it('rejects an empty or blank value', () => {
     expect(() => Secret.from('')).toThrow(DomainValidationError);
+    expect(() => Secret.from('   ')).toThrow(DomainValidationError);
+  });
+
+  it('trims the candidate before comparing', () => {
+    const calls: Array<[string, string]> = [];
+    const comparer = { compareInConstantTime: (a: string, b: string) => { calls.push([a, b]); return a === b; } };
+    expect(Secret.from('secret').matches(' secret\n', comparer)).toBe(true);
+    expect(calls).toEqual([['secret', 'secret']]);
   });
 
   it('leaves the comparison to the comparer it is given', () => {
