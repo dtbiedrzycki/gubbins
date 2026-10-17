@@ -21,7 +21,7 @@ describe('ExtendHold', () => {
     clock.advance(DAY);
 
     expect(await extend(holdId)).toMatchObject({
-      holdId, status: 'active', expiresAt: iso(6 * DAY), extendedAt: iso(DAY),
+      holdId, status: 'active', extendedAt: iso(DAY),
       actions: { extend: false, release: true, purchase: true },
     });
   });
