@@ -48,14 +48,14 @@ export function CreateListForm() {
       <div>
         <label htmlFor="list-title" className="block text-sm font-medium">List title</label>
         <input
-          id="list-title" required value={listTitle} onChange={(e) => setListTitle(e.target.value)}
+          id="list-title" required maxLength={120} value={listTitle} onChange={(e) => setListTitle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>
       <div>
         <label htmlFor="item-title" className="block text-sm font-medium">First item</label>
         <input
-          id="item-title" required value={itemTitle} onChange={(e) => setItemTitle(e.target.value)}
+          id="item-title" required maxLength={120} value={itemTitle} onChange={(e) => setItemTitle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>
@@ -69,15 +69,16 @@ export function CreateListForm() {
       </div>
       <div>
         <label htmlFor="venmo-handle" className="block text-sm font-medium">Venmo username</label>
+        {/* A Venmo username is at most 30 characters, plus the "@" people often type first. */}
         <input
-          id="venmo-handle" aria-describedby="handles-hint" value={venmoHandle} onChange={(e) => setVenmoHandle(e.target.value)}
+          id="venmo-handle" aria-describedby="handles-hint" maxLength={31} value={venmoHandle} onChange={(e) => setVenmoHandle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>
       <div>
         <label htmlFor="zelle-handle" className="block text-sm font-medium">Zelle email or US phone</label>
         <input
-          id="zelle-handle" aria-describedby="handles-hint" value={zelleHandle} onChange={(e) => setZelleHandle(e.target.value)}
+          id="zelle-handle" aria-describedby="handles-hint" maxLength={254} value={zelleHandle} onChange={(e) => setZelleHandle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>

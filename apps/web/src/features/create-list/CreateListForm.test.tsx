@@ -100,6 +100,14 @@ describe('CreateListForm', () => {
     expect(body).toMatchObject({ venmoHandle: '@my-venmo', zelleHandle: 'me@example.com' });
   });
 
+  it('limits each field to what the list accepts', () => {
+    renderWithQueryClient(<CreateListForm />);
+    expect(screen.getByLabelText('List title')).toHaveAttribute('maxlength', '120');
+    expect(screen.getByLabelText('First item')).toHaveAttribute('maxlength', '120');
+    expect(screen.getByLabelText('Venmo username')).toHaveAttribute('maxlength', '31');
+    expect(screen.getByLabelText('Zelle email or US phone')).toHaveAttribute('maxlength', '254');
+  });
+
   it('explains that group gifts need a handle and handles are permanent', () => {
     renderWithQueryClient(<CreateListForm />);
     const hint = "Group gifts need at least one handle. Handles can't be changed later.";

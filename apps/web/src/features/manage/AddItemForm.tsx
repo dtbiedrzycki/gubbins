@@ -85,7 +85,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       </div>
       <div>
         <label htmlFor="item-url" className="block text-sm font-medium">Store link</label>
-        <input id="item-url" type="url" value={url} onChange={(e) => setUrl(e.target.value)} className={field} />
+        <input id="item-url" type="url" maxLength={2048} value={url} onChange={(e) => setUrl(e.target.value)} className={field} />
       </div>
       <p id="item-error" role="alert" className="text-red-600 empty:mb-0">{priceError || error?.message}</p>
       <p role="status" aria-live="polite" className="text-green-800 empty:mb-0">{added}</p>

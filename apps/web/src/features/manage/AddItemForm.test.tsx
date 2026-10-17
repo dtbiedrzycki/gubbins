@@ -64,6 +64,12 @@ describe('AddItemForm', () => {
     await waitFor(() => expect(body).toMatchObject({ title: 'Crib', url: 'https://shop.example/crib' }));
   });
 
+  it('limits the title and store link to what an item accepts', () => {
+    renderForm(<AddItemForm slug="abc123" onUnauthorized={() => {}} />);
+    expect(screen.getByLabelText('Title')).toHaveAttribute('maxlength', '120');
+    expect(screen.getByLabelText('Store link')).toHaveAttribute('maxlength', '2048');
+  });
+
   it('posts a group gift without a quantity', async () => {
     let body: unknown;
     server.use(http.post('/api/lists/:slug/items', async ({ request }) => {
