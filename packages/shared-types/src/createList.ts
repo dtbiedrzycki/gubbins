@@ -1,9 +1,11 @@
 import { z } from 'zod';
+import { text } from './textCeiling.js';
 
 export const createListRequestSchema = z.object({
-  listTitle: z.string().min(1).max(120),
-  itemTitle: z.string().min(1).max(120),
-  createSecret: z.string().optional(),
+  listTitle: text().min(1),
+  itemTitle: text().min(1),
+  createSecret: text().optional(),
+  // Capped tightly here: the domain checks only a handle's format, and its email pattern is slow on long input.
   venmoHandle: z.string().max(254).optional(),
   zelleHandle: z.string().max(254).optional(),
 });

@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { text } from './textCeiling.js';
 
 export const ownerSessionRequestSchema = z.object({
-  ownerToken: z.string().min(1),
+  ownerToken: text().min(1),
 });
 export type OwnerSessionRequest = z.infer<typeof ownerSessionRequestSchema>;
 

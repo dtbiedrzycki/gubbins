@@ -2,8 +2,8 @@
  * Wire-format contracts shared by the web app and the API: zod schemas for
  * the shape of each HTTP request and response, and nothing else.
  *
- * These schemas are not where invariants live. A check here (such as a
- * title's length) only rejects a malformed payload early, at the boundary.
+ * These schemas are not where invariants live. A check here (such as the
+ * text ceiling) only rejects a malformed payload early, at the boundary.
  * The rules that define a valid wishlist, item or hold belong to the API's
  * domain layer (`apps/api/src/domain`: entity constructors and value
  * objects). The domain enforces them on every construction path, including

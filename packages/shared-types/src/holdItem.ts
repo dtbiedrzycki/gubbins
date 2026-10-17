@@ -1,10 +1,11 @@
 import { z } from 'zod';
+import { text } from './textCeiling.js';
 import { holdViewSchema, type HoldView } from './holdView.js';
 
 export const holdItemRequestSchema = z.object({
-  idempotencyKey: z.string().min(1),
-  name: z.string().min(1).max(100),
-  message: z.string().max(300).optional(),
+  idempotencyKey: text().min(1),
+  name: text().min(1),
+  message: text().optional(),
 });
 export type HoldItemRequest = z.infer<typeof holdItemRequestSchema>;
 

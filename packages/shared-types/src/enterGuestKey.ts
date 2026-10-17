@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { text } from './textCeiling.js';
 
 export const enterGuestKeyRequestSchema = z.object({
-  key: z.string().min(1),
+  key: text().min(1),
 });
 export type EnterGuestKeyRequest = z.infer<typeof enterGuestKeyRequestSchema>;
 
