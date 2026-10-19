@@ -13,6 +13,12 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-15-wishlist-item-hold-boundary-design.md`
 
+**As built:** this plan was executed as written in #74–#82. Review then changed the following, so where a task below disagrees, the code and the spec follow these:
+- `Item` decides extend, release and purchase, including `purchaseRefusal`, and `recordEvent` is private. `Wishlist`'s hold commands and `can…` predicates resolve the item and delegate (#84).
+- `Wishlist.owns` is removed (#80).
+- `ItemRepository` returns plain `ItemRow`s, and `hydrate` assembles each item with its holds and contributions (#85).
+- The replay lookups are `findHoldForReplay` / `findContributionForReplay`, and the item's key lookups are `findHoldWithKey` / `findContributionWithKey` (#86). This plan uses those names throughout.
+
 ## Global Constraints
 
 - **Ten files per PR:** every PR (= branch) changes **at most 10 files**. Check with `git diff --stat <base>...HEAD | tail -1` before pushing.
@@ -37,7 +43,7 @@
 
 ## Review Focus
 
-1. **Replay after the original hold expired:** a replayed `HoldItem` key whose hold has since expired returns that hold's view. It must not give `ItemUnavailableError`. Pinned in Task 4 (`replayHold` returns an expired hold).
+1. **Replay after the original hold expired:** a replayed `HoldItem` key whose hold has since expired returns that hold's view. It must not give `ItemUnavailableError`. Pinned in Task 4 (`findHoldForReplay` returns an expired hold).
 2. **Purchase of an expired hold:** an expired hold purchased after it lapsed must be persisted, with the count right on the next load, now that `keep()` is gone. Pinned in Task 3 (contract case rewritten to use the aggregate's own instance).
 3. **Contribution replay:** a pledge replayed with the same key must not insert a second row. `save` inserts only contributions not yet stored. Pinned in Task 5 (contract: a second `save` inserts nothing).
 4. **Commands on another list's hold:** extend, release or purchase on another list's hold still give `HoldNotFoundError` after `findOwnedHold` is deleted. Pinned by the existing `onOtherList` use-case tests, which Task 5 must not edit, plus Task 3's `findHold` test.
@@ -825,10 +831,10 @@ The first callers arrive in Tasks 5 and 6. Say so in the PR body.
 **Interfaces:**
 - Consumes: Task 3's `Item` and `Wishlist`.
 - Produces:
-  - `item.holdWithKey(idempotencyKey: string): Hold | null`
-  - `item.contributionWithKey(idempotencyKey: string): Contribution | null`
-  - `wishlist.replayHold(itemId: string, idempotencyKey: string, sessionHash: string): Hold | null`
-  - `wishlist.replayContribution(itemId: string, idempotencyKey: string, sessionHash: string): Contribution | null`
+  - `item.findHoldWithKey(idempotencyKey: string): Hold | null`
+  - `item.findContributionWithKey(idempotencyKey: string): Contribution | null`
+  - `wishlist.findHoldForReplay(itemId: string, idempotencyKey: string, sessionHash: string): Hold | null`
+  - `wishlist.findContributionForReplay(itemId: string, idempotencyKey: string, sessionHash: string): Contribution | null`
   - `wishlist.holdsForSession(sessionHash: string): Hold[]`
 
 - [ ] **Step 1: Create the branch**
@@ -845,35 +851,35 @@ describe('Item lookups', () => {
   it('finds its own hold and contribution by idempotency key, or null', () => {
     const hold = holdOn({ idempotencyKey: 'tap-1' });
     const item = Item.reconstitute({ ...base, holds: [hold] });
-    expect(item.holdWithKey('tap-1')).toBe(hold);
-    expect(item.holdWithKey('tap-2')).toBeNull();
-    expect(item.contributionWithKey('tap-1')).toBeNull();
+    expect(item.findHoldWithKey('tap-1')).toBe(hold);
+    expect(item.findHoldWithKey('tap-2')).toBeNull();
+    expect(item.findContributionWithKey('tap-1')).toBeNull();
   });
 });
 ```
 `Wishlist.test.ts`:
 ```ts
-describe('Wishlist.replayHold', () => {
+describe('Wishlist.findHoldForReplay', () => {
   it("returns the session's own hold for a key it already used, even once that hold has expired", () => {
     const hold = holdOn(ITEM_ID, { idempotencyKey: 'tap-1', expiresAt: at(-1) });
-    expect(loaded({ holds: [hold] }).replayHold(ITEM_ID, 'tap-1', SESSION)).toBe(hold);
+    expect(loaded({ holds: [hold] }).findHoldForReplay(ITEM_ID, 'tap-1', SESSION)).toBe(hold);
   });
 
   it("refuses another session's key with ItemUnavailableError", () => {
     const hold = holdOn(ITEM_ID, { idempotencyKey: 'tap-1' });
-    expect(() => loaded({ holds: [hold] }).replayHold(ITEM_ID, 'tap-1', OTHER_SESSION)).toThrow(ItemUnavailableError);
+    expect(() => loaded({ holds: [hold] }).findHoldForReplay(ITEM_ID, 'tap-1', OTHER_SESSION)).toThrow(ItemUnavailableError);
   });
 
   it('returns null for a key not used on that item', () => {
-    expect(loaded().replayHold(ITEM_ID, 'tap-1', SESSION)).toBeNull();
+    expect(loaded().findHoldForReplay(ITEM_ID, 'tap-1', SESSION)).toBeNull();
   });
 
   it('throws ItemNotFoundError for an item not on this list', () => {
-    expect(() => loaded().replayHold(OTHER_ITEM_ID, 'tap-1', SESSION)).toThrow(ItemNotFoundError);
+    expect(() => loaded().findHoldForReplay(OTHER_ITEM_ID, 'tap-1', SESSION)).toThrow(ItemNotFoundError);
   });
 });
 
-describe('Wishlist.replayContribution', () => {
+describe('Wishlist.findContributionForReplay', () => {
   const pledged = Contribution.reconstitute({
     id: '77777777-7777-7777-8777-777777777777', itemId: ITEM_ID, amountMinor: 2_500, sessionHash: SESSION,
     idempotencyKey: 'p-1', piiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
@@ -884,15 +890,15 @@ describe('Wishlist.replayContribution', () => {
   });
 
   it("returns the session's own pledge for a key it already used", () => {
-    expect(withPledge().replayContribution(ITEM_ID, 'p-1', SESSION)).toBe(pledged);
+    expect(withPledge().findContributionForReplay(ITEM_ID, 'p-1', SESSION)).toBe(pledged);
   });
 
   it("refuses another session's key with ItemUnavailableError", () => {
-    expect(() => withPledge().replayContribution(ITEM_ID, 'p-1', OTHER_SESSION)).toThrow(ItemUnavailableError);
+    expect(() => withPledge().findContributionForReplay(ITEM_ID, 'p-1', OTHER_SESSION)).toThrow(ItemUnavailableError);
   });
 
   it('returns null for a key not used on that item', () => {
-    expect(withPledge().replayContribution(ITEM_ID, 'p-2', SESSION)).toBeNull();
+    expect(withPledge().findContributionForReplay(ITEM_ID, 'p-2', SESSION)).toBeNull();
   });
 });
 
@@ -916,11 +922,11 @@ Expected: FAIL (methods missing; a type error at build).
 
 `Item.ts`:
 ```ts
-holdWithKey(idempotencyKey: string): Hold | null {
+findHoldWithKey(idempotencyKey: string): Hold | null {
   return this._holds.find((hold) => hold.idempotencyKey.value === idempotencyKey) ?? null;
 }
 
-contributionWithKey(idempotencyKey: string): Contribution | null {
+findContributionWithKey(idempotencyKey: string): Contribution | null {
   return this._contributions.find((c) => c.idempotencyKey.value === idempotencyKey) ?? null;
 }
 ```
@@ -931,13 +937,13 @@ contributionWithKey(idempotencyKey: string): Contribution | null {
  * rather than placing another. Another session's key never hands over that
  * session's hold: it is refused like a unit someone else holds.
  */
-replayHold(itemId: string, idempotencyKey: string, sessionHash: string): Hold | null {
-  return this.replayOf(this.getItem(itemId).holdWithKey(idempotencyKey), itemId, sessionHash);
+findHoldForReplay(itemId: string, idempotencyKey: string, sessionHash: string): Hold | null {
+  return this.replayOf(this.getItem(itemId).findHoldWithKey(idempotencyKey), itemId, sessionHash);
 }
 
-/** `replayHold`'s rule for a pledge. */
-replayContribution(itemId: string, idempotencyKey: string, sessionHash: string): Contribution | null {
-  return this.replayOf(this.getItem(itemId).contributionWithKey(idempotencyKey), itemId, sessionHash);
+/** `findHoldForReplay`'s rule for a pledge. */
+findContributionForReplay(itemId: string, idempotencyKey: string, sessionHash: string): Contribution | null {
+  return this.replayOf(this.getItem(itemId).findContributionWithKey(idempotencyKey), itemId, sessionHash);
 }
 
 /** Every hold `sessionHash` placed on the list, whatever its state. */
@@ -979,7 +985,7 @@ git commit -m "feat(api): the wishlist decides idempotent replays and a session'
 - Test: `apps/api/src/application/use-cases/PledgeContribution.test.ts` (only if a case reads through `ctx.contributions`)
 
 **Interfaces:**
-- Consumes: `wishlist.replayHold`, `wishlist.replayContribution`, `wishlist.findHold`, `wishlist.contributions` (Tasks 3–4).
+- Consumes: `wishlist.findHoldForReplay`, `wishlist.findContributionForReplay`, `wishlist.findHold`, `wishlist.contributions` (Tasks 3–4).
 - Produces: `WishlistRepository.save` also inserts contributions not yet stored. `findOwnedHold` is deleted.
 
 - [ ] **Step 1: Create the branch**
@@ -1055,16 +1061,16 @@ for (const contribution of wishlist.contributions) {
 ```ts
 // Before placing a hold, so a replayed key answers with the hold it placed,
 // not ItemUnavailableError on that very hold.
-const replay = wishlist.replayHold(input.itemId, input.idempotencyKey, guest.sessionHash);
+const replay = wishlist.findHoldForReplay(input.itemId, input.idempotencyKey, guest.sessionHash);
 if (replay) return toHoldView(wishlist, replay);
 ```
-Delete the now-redundant `wishlist.getItem(input.itemId);` line above it, since `replayHold` resolves the item. Drop the `ItemUnavailableError` import if unused.
+Delete the now-redundant `wishlist.getItem(input.itemId);` line above it, since `findHoldForReplay` resolves the item. Drop the `ItemUnavailableError` import if unused.
 
 `PledgeContribution.ts`:
 - Replace the `existing` block with:
   ```ts
   // Before pledging, so a replayed key answers with the original pledge.
-  const replay = wishlist.replayContribution(input.itemId, input.idempotencyKey, guest.sessionHash);
+  const replay = wishlist.findContributionForReplay(input.itemId, input.idempotencyKey, guest.sessionHash);
   if (replay) return toResponse(replay);
   ```
 - Delete `wishlist.getItem(input.itemId);` and `await ctx.contributions.insert(contribution);`. `save` writes it now.
