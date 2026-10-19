@@ -1,7 +1,7 @@
 # Wishlist → Item → Hold / Contribution boundary
 
 - **Date:** 2026-10-15
-- **Status:** Approved design, awaiting implementation plan
+- **Status:** Implemented in #74–#82, then refined by review in #83–#86. This document describes the design as built.
 - **Builds on:** `feat/launch/34-wishlist-save-holds` (`wishlists.save(wishlist)` already writes items and holds)
 
 ## Why
@@ -44,8 +44,9 @@ boundary should be drawn around that data.
 ## Domain model
 
 ```
-Wishlist (root)   authorizes: getItem, owns; rules that span items
- └─ Item          decides: placeHold, pledge, availability, purchased count
+Wishlist (root)   authorizes: getItem, findHold; rules that span items
+ └─ Item          decides: placeHold, pledge, extend, release, purchase,
+                  availability, purchased count
      ├─ holds          every hold on the item
      └─ contributions  every contribution on the item
         Hold / Contribution record their own lifecycle
@@ -59,14 +60,17 @@ Wishlist (root)   authorizes: getItem, owns; rules that span items
   is called with that instant.
 - `Wishlist` keeps the command entry points (`holdItem`, `extendHold`,
   `releaseHold`, `purchaseHold`, `pledge`). Each resolves the item and
-  delegates to it. `Wishlist._holds` is removed, and `findHold(id)`
+  delegates to it, and the item makes the decision, refusals included.
+  The item's event-sequence bookkeeping (`recordEvent`) is private.
+  `Wishlist._holds` and `Wishlist.owns` are removed, and `findHold(id)`
   searches the items, so a hold on another list is never found.
 - New domain methods:
-  - `replayHold(itemId, idempotencyKey, sessionHash)`: returns the
-    original hold for the same session, throws `ItemUnavailableError`
-    for another session's key, or returns null when there is none.
-  - `replayContribution(itemId, idempotencyKey, sessionHash)` works the
-    same way.
+  - `findHoldForReplay(itemId, idempotencyKey, sessionHash)`: returns
+    the original hold for the same session, throws
+    `ItemUnavailableError` for another session's key, or returns null
+    when there is none. It uses `Item.findHoldWithKey(idempotencyKey)`.
+  - `findContributionForReplay(itemId, idempotencyKey, sessionHash)`
+    works the same way, using `Item.findContributionWithKey`.
   - `holdsForSession(sessionHash)`: every hold that session placed on
     the list.
   - `Item.pledgedTotal()`: a `Money`, derived from its contributions.
@@ -80,7 +84,9 @@ Wishlist (root)   authorizes: getItem, owns; rules that span items
 - `WishlistRepository.findById(id, now)` and `findBySlug(slug, now)`
   load the list, every item, and **every** hold and contribution on the
   list, the same way items are loaded today. There is no partial load
-  and no load options.
+  and no load options. `ItemRepository` returns plain `ItemRow`s, and
+  the wishlist repository's `hydrate` assembles each `Item` with its
+  holds and contributions.
 - `save(wishlist)` writes each item's `seq` as the domain left it,
   inserts new holds, saves the lifecycle of existing holds, and inserts
   new contributions (contributions are never updated). It recomputes
@@ -96,11 +102,11 @@ Wishlist (root)   authorizes: getItem, owns; rules that span items
 
 ## Use-case flow
 
-- `HoldItem`: load the wishlist, then `replayHold`. On a replay, return
-  its view. Otherwise call `holdItem`, append the event, insert the
-  guest PII, and `save`.
-- `PledgeContribution`: the same shape with `replayContribution` and
-  `pledge`.
+- `HoldItem`: load the wishlist, then `findHoldForReplay`. On a
+  replay, return its view. Otherwise call `holdItem`, append the event,
+  insert the guest PII, and `save`.
+- `PledgeContribution`: the same shape with `findContributionForReplay`
+  and `pledge`.
 - `runHoldCommand` (extend, release, purchase): load, then
   `wishlist.findHold(holdId)`. Not found means `HoldNotFoundError`. Then
   permit, decide, append, and `save`, as today.
@@ -142,12 +148,15 @@ unchanged.
 Each rule is tested once, at the layer that decides it.
 
 - **`Item.test`:** availability and purchased count from its own
-  holds, and pledge refusals. These tests move from `Wishlist.test`.
+  holds, pledge refusals, and the extend, release and purchase
+  refusals. These tests move from `Wishlist.test`.
 - **`Wishlist.test`:**
   - A hold on another list is not found.
-  - `replayHold` and `replayContribution`: the same session gets the
-    original back, another session gets `ItemUnavailableError`, and
-    no match gives null.
+  - `findHoldForReplay` and `findContributionForReplay`: the same
+    session gets the original back, another session gets
+    `ItemUnavailableError`, and no match gives null.
+  - The hold commands check only what the wishlist adds: resolving the
+    item and passing the result through.
   - `holdsForSession`.
   - Rules that span items.
 - **Use-case tests:** one success path each, checking what is
@@ -165,12 +174,21 @@ Each PR changes at most 10 files and passes typecheck and tests on its own.
 
 | Branch | Change |
 |---|---|
-| `35-adr-0078-boundary` | ADR-0078 amendment and the README pre-release note |
-| `36-load-all-holds` | Repositories load every hold and contribution on the list; the bounded query stays until the last PR |
-| `37-holds-under-item` | `Item` owns holds and contributions, with `asOf` passed in at load; `Wishlist` delegates; `reconstitute` changes |
-| `38-commands-via-aggregate` | Replay rules in `Wishlist`; `HoldItem`, `PledgeContribution` and `runHoldCommand` use only the aggregate; `findOwnedHold` is removed; `save` writes contributions |
-| `39-list-view-from-aggregate` | `GetListView` reads from the aggregate |
-| `40-drop-hold-ports` | `holds` and `contributions` leave `TransactionContext`; unused port methods and their contract cases are deleted |
+| `35-adr-0078-boundary` (#74) | ADR-0078 amendment and the README pre-release note |
+| `36-load-all-holds` (#75) | Repositories load every hold and contribution on the list; the bounded query stays until the last PR |
+| `37-holds-under-item` (#76) | `Item` owns holds and contributions, with `asOf` passed in at load; `Wishlist` delegates; `reconstitute` changes |
+| `37a-money-total-cap` (#77) | `Money` allows 0; `MAX_MONEY_MINOR` bounds an item's pledged total |
+| `37b-replay-in-domain` (#78) | Replay and session lookups in the domain |
+| `38-commands-via-aggregate` (#79) | `HoldItem`, `PledgeContribution` and `runHoldCommand` use only the aggregate; `findOwnedHold` is removed; `save` writes contributions |
+| `39-list-view-from-aggregate` (#80) | `GetListView` reads from the aggregate; `Wishlist.owns` is removed |
+| `40a-tests-read-rows` (#81) | Tests read stored rows without the port lookups |
+| `40b-drop-hold-ports` (#82) | `holds` and `contributions` leave `TransactionContext`; unused port methods and their contract cases are deleted |
 
-The PRs open after 33 and 34, and only while the stack has fewer than
-8 open PRs.
+Review then refined the design in follow-up PRs:
+
+| PR | Change |
+|---|---|
+| #83 | Drops an unused holds index and unused fixture exports |
+| #84 | `Item` decides extend, release and purchase; `recordEvent` is private; ADR-0078 names those commands |
+| #85 | `ItemRepository` returns `ItemRow`, and `hydrate` assembles the items |
+| #86 | The replay lookups are named `findHoldForReplay` and `findContributionForReplay` (ADR-0079) |
