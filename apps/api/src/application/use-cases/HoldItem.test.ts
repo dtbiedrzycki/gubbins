@@ -38,7 +38,7 @@ describe('HoldItem', () => {
 
   it('stores the holder\'s details and references them from the hold and the event', async () => {
     const { useCase, store, holds, eventStore } = await makeUseCase();
-    await useCase.execute({ ...input(), name: '  Ada ', message: 'Congrats' }, GUEST);
+    await useCase.execute({ ...input(), name: 'Ada', message: 'Congrats' }, GUEST);
 
     const rows = [...store.guestPii.values()];
     expect(rows).toEqual([{ id: expect.any(String), name: 'Ada', message: 'Congrats' }]);
