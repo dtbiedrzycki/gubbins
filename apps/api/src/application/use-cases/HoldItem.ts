@@ -53,22 +53,23 @@ export class HoldItem {
         return toHoldView(wishlist, existing);
       }
 
+      // A message sent without a name is dropped, because the details record needs a name, until the name becomes required.
       const details = input.name === undefined ? null : GuestDetails.from({ name: input.name, message: input.message });
       // The ref keys a guest_pii row outside the aggregate that the domain never sees (ADR-0057), so the use case mints it beside the insert.
-      const piiRef = details ? this.tokenGenerator.generateEntityId() : undefined;
+      const pii = details && { id: this.tokenGenerator.generateEntityId(), name: details.name, message: details.message };
 
       const { hold, item, event, expectedSeq } = wishlist.holdItem({
         itemId: input.itemId,
         sessionHash: guest.sessionHash,
         idempotencyKey: input.idempotencyKey,
         durationMs: holdDurationMs(this.policy),
-        piiRef,
+        piiRef: pii?.id,
       }, this.tokenGenerator, this.hasher);
 
       // Placing a hold is guest-only (ADR-0075), so the actor is fixed.
       await ctx.eventStore.append(item.id.value, expectedSeq, [event], 'guest');
       // The hold's pii_ref foreign key needs this row to exist first.
-      if (details && piiRef) await ctx.guestPii.insert({ id: piiRef, name: details.name, message: details.message });
+      if (pii) await ctx.guestPii.insert(pii);
       await ctx.holds.insert(hold);
       // Persist exactly what the domain decided — the write path never
       // decides availability itself.
