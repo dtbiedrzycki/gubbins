@@ -35,6 +35,17 @@ SQLite lives on the `gubbins-data` volume. The server refuses to start without
 
 Leave `TRUSTED_PROXY_HOPS` unset. Nothing reads it yet.
 
+## Payment handles
+
+Guests pay for group gifts with the Venmo or Zelle handle you enter when you
+create the list. Enter them carefully: nothing in the app changes them
+afterwards, and a group gift needs at least one.
+
+- **Venmo:** your username, 5 to 30 letters, digits, `_` or `-`. A leading `@`
+  is optional and is dropped.
+- **Zelle:** an email address, or a US phone number with 10 digits (a leading
+  `1` is fine). Spaces, dashes and brackets in the number are ignored.
+
 ## Upgrading
 
 Pull the new code and rerun the `up -d --build` command. The volume persists.
