@@ -35,7 +35,7 @@ We will treat `Wishlist` as the aggregate root.
   `Wishlist.getItem` is the authorization step.
 - The boundary is `Wishlist → Item → Hold / Contribution`. `Hold` and
   `Contribution` are entities nested under their `Item`, not aggregates
-  of their own. The wishlist authorizes (`getItem`, `owns`) and owns
+  of their own. The wishlist authorizes (`getItem`, `findHold`) and owns
   rules that span items; an item decides on its own holds and
   contributions (availability, purchased count, placing, extending,
   releasing and purchasing a hold, pledging); a hold or contribution
