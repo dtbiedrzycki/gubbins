@@ -5,7 +5,7 @@ import { aWishlist } from './builders.js';
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
 const ITEM_ID = '33333333-3333-7333-8333-333333333333';
 const T0 = new Date('2026-01-01T00:00:00.000Z');
-const holdProps = { itemId: ITEM_ID, sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', durationMs: 60_000 };
+const holdProps = { itemId: ITEM_ID, sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', durationMs: 60_000, piiRef: '66666666-6666-7666-8666-666666666666' };
 const tokens = { generateEntityId: () => '44444444-4444-7444-8444-444444444444', generateHoldSecret: () => 'hold-secret-1' };
 const hasher = { hash: (value: string) => value };
 
@@ -41,8 +41,9 @@ describe('in-memory fakes never share instances with the store', () => {
   });
 
   it('does not let a caller change a stored hold through the instance it inserted', async () => {
-    const { wishlists, holds } = inMemoryPersistence();
+    const { wishlists, holds, guestPii } = inMemoryPersistence();
     await wishlists.insert(aWishlist().withItem({ id: ITEM_ID, title: 'Stroller' }).build());
+    await guestPii.insert({ id: holdProps.piiRef, name: 'Ada', message: null });
     const wishlist = (await wishlists.findById(WISHLIST_ID, T0))!;
     const { hold } = wishlist.holdItem(holdProps, tokens, hasher);
     await holds.insert(hold);
