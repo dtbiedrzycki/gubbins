@@ -73,7 +73,7 @@ describe('HoldDialog', () => {
     expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAccessibleDescription('To change your details, cancel and start again.');
   });
 
-  it('limits the fields and says who sees the name', () => {
+  it('limits the name to 100 characters and the message to 300, and says who sees the name', () => {
     renderDialog();
     expect(screen.getByLabelText('Your name')).toHaveAttribute('maxlength', '100');
     expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAttribute('maxlength', '300');
