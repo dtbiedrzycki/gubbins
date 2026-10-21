@@ -58,6 +58,20 @@ describe('HoldDialog', () => {
     expect(props.onConfirm).toHaveBeenCalledWith(expect.anything(), { name: 'Amara', message: 'Happy to collect Friday' });
   });
 
+  it('locks the name and message once sent, so a retry sends what was sent', async () => {
+    const user = userEvent.setup();
+    const { props } = renderDialog();
+
+    await user.type(screen.getByLabelText('Your name'), 'Amra');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+    await user.type(screen.getByLabelText('Your name'), 'a');
+    await user.type(screen.getByLabelText('Message to the owner (optional)'), 'Hi');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+    expect(vi.mocked(props.onConfirm).mock.calls[1][1]).toEqual({ name: 'Amra', message: '' });
+    expect(screen.getByText('To change your details, cancel and start again.')).toBeInTheDocument();
+  });
+
   it('limits the fields and says who sees the name', () => {
     renderDialog();
     expect(screen.getByLabelText('Your name')).toHaveAttribute('maxlength', '100');
