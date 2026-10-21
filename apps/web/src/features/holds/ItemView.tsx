@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ListViewResponse } from '@gubbins/shared-types';
 import { useHoldItem } from './useHoldItem';
 import { HoldDialog } from './HoldDialog';
-import { HeldAnnouncement } from './HeldAnnouncement';
+import { ItemAnnouncement } from './ItemAnnouncement';
 import { formatMoney } from '../../lib/formatMoney';
 import { ContributeDialog } from '../contribute/ContributeDialog';
 
@@ -68,7 +68,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
       {item.url && <p><a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2.5 text-blue-700 underline">View in store <span className="sr-only">for {item.title} (opens in a new tab)</span></a></p>}
       {item.type === 'single' && item.status === 'available' && item.availableUnits > 1 && <p>{item.availableUnits} left</p>}
       {/* Mounted while available too: screen readers miss a live region that arrives already filled. */}
-      <HeldAnnouncement message={thanks || (item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is held.` : `${item.title} has been purchased.`)} />
+      <ItemAnnouncement message={thanks || (item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is held.` : `${item.title} has been purchased.`)} />
       {group && (
         <>
           <progress max={group.price} value={Math.min(group.pledged, group.price)} aria-label={progress!} className="h-3 w-full" />

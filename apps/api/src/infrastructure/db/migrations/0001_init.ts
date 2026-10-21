@@ -88,6 +88,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .execute();
 
   // A pledge toward a group gift. The running total is summed from these rows, never stored.
+  // The amount CHECK is a backstop: the domain already refuses a pledge of zero or less.
   await schema.createTable('contributions').ifNotExists()
     .addColumn('id', 'text', (col) => col.primaryKey())
     .addColumn('item_id', 'text', (col) => col.notNull().references('items.id'))

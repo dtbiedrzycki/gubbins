@@ -1,4 +1,4 @@
-/** Carries only `piiRef`: the holder's name and message live in `guest_pii`, never in the immutable log (ADR-0057). */
+/** Carries only `piiRef`: the contributor's name and message live in `guest_pii`, never in the immutable log (ADR-0057). */
 export interface ContributionPledgedEvent {
   type: 'ContributionPledged';
   v: 1;

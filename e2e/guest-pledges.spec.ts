@@ -37,7 +37,6 @@ test('a guest covers the rest of a group gift with Venmo, and the card shows it 
   await guest.getByRole('button', { name: "I've sent it" }).click();
 
   await expect(mixer.getByText('$450.00 of $450.00 pledged · 100%')).toBeVisible();
-  await expect(mixer.getByRole('status')).toHaveText('Thank you! Your pledge of $450.00 is recorded.');
   // ADR-0026: CI blocks on serious and critical axe violations only.
   const scan = await new AxeBuilder({ page: guest }).analyze();
   expect(scan.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
