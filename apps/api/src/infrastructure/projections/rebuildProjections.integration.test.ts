@@ -116,6 +116,7 @@ describe('rebuildProjections', () => {
     const incremental = await projections();
     await db.updateTable('item_state').set({ seq: 99 }).execute();
     await db.updateTable('holds').set({ released_at: null, purchased_at: null, extended_at: '2000-01-01T00:00:00.000Z' }).execute();
+    await db.deleteFrom('contributions').execute();
 
     await rebuildProjections(db);
 
