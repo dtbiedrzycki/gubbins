@@ -24,7 +24,10 @@ const field = 'mb-1 min-h-11 w-full rounded border px-2';
 /**
  * A real <dialog> (ADR-0024) in the HoldDialog style, mounted only while
  * open: opening it mints the pledge's idempotency key, so a retry on slow
- * wifi records one pledge. It cannot be dismissed while the pledge is in flight.
+ * wifi records one pledge. The first send locks the amount, name and message,
+ * so a retry carries exactly what the key was first sent with; the server
+ * would keep the first pledge anyway. It cannot be dismissed while the pledge
+ * is in flight.
  */
 export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, payment, onPledged, onClose }: ContributeDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -37,7 +40,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState('');
   const queryClient = useQueryClient();
-  const { mutate, isPending, error } = useMutation({
+  const { mutate, isPending, isIdle, error } = useMutation({
     mutationFn: (input: PledgeRequest) => api.pledgeContribution(slug, itemId, input),
     // Settled, not success: a 409 also means the pledged total moved. Returning
     // the promise keeps the mutation pending until the fresh total lands.
@@ -61,6 +64,8 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
     else onClose();
   }
 
+  const sent = !isIdle;
+  const lockedHint = sent ? 'contribute-locked' : undefined;
   const chosen = coverRest ? remainingMinor : parseUsd(other);
   const amount = parseUsd(amountText);
 
@@ -95,8 +100,8 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
       ) : (
         <>
           <label className="mb-1 block" htmlFor="contribute-amount">Amount (USD)</label>
-          <input id="contribute-amount" inputMode="decimal" value={amountText} onChange={(e) => setAmountText(e.target.value)} disabled={isPending}
-            aria-invalid={amount === null} aria-describedby="contribute-amount-error" className={field} />
+          <input id="contribute-amount" inputMode="decimal" value={amountText} onChange={(e) => setAmountText(e.target.value)} disabled={isPending} readOnly={sent}
+            aria-invalid={amount === null} aria-describedby={sent ? 'contribute-amount-error contribute-locked' : 'contribute-amount-error'} className={field} />
           <p id="contribute-amount-error" className="mb-4 text-sm text-red-600">{amount === null ? invalidAmount : ''}</p>
           {payment.venmoHandle && amount !== null && (
             <p className="mb-4 flex flex-wrap items-center gap-4">
@@ -112,9 +117,10 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           )}
           <p role="status" aria-live="polite" className="mb-4 text-sm empty:mb-0">{copied}</p>
           <label className="mb-1 block" htmlFor="contribute-name">Your name</label>
-          <input id="contribute-name" required value={name} onChange={(e) => setName(e.target.value)} maxLength={100} disabled={isPending} className={`${field} mb-4`} />
+          <input id="contribute-name" required value={name} onChange={(e) => setName(e.target.value)} maxLength={100} disabled={isPending} readOnly={sent} aria-describedby={lockedHint} className={`${field} mb-4`} />
           <label className="mb-1 block" htmlFor="contribute-message">Message to the owner (optional)</label>
-          <textarea id="contribute-message" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={300} disabled={isPending} className="mb-4 w-full rounded border px-2 py-1" />
+          <textarea id="contribute-message" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={300} disabled={isPending} readOnly={sent} aria-describedby={lockedHint} className="mb-4 w-full rounded border px-2 py-1" />
+          {sent && <p id="contribute-locked" className="mb-4 text-sm text-slate-700">To change your details, cancel and start again.</p>}
           <p role="alert" className="mb-4 text-red-600 empty:mb-0">{error?.message}</p>
           <div className="flex gap-2">
             <button type="button" onClick={send} disabled={isPending || amount === null || !name.trim()} className={`${button} bg-slate-900 text-white`}>I&apos;ve sent it</button>

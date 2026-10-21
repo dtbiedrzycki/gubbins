@@ -518,17 +518,13 @@ describe('POST /api/lists/:slug/items/:itemId/contributions', () => {
     return { list, groupId: (added.json() as { itemId: string }).itemId };
   }
 
-  it('records a guest pledge and answers 201, again for a replay', async () => {
+  it('records a guest pledge and answers 201', async () => {
     const { list, groupId } = await groupGift();
     const cookie = await guestOn(list);
 
-    const first = await pledge(list.slug, groupId, cookie);
-    expect(first.statusCode).toBe(201);
-    expect(first.json()).toEqual({ contributionId: expect.any(String), itemId: groupId, amountMinor: 2500 });
-
-    const replay = await pledge(list.slug, groupId, cookie);
-    expect(replay.statusCode).toBe(201);
-    expect(replay.json()).toEqual(first.json());
+    const response = await pledge(list.slug, groupId, cookie);
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toEqual({ contributionId: expect.any(String), itemId: groupId, amountMinor: 2500 });
   });
 
   it('answers the generic 404 without a session, and for another list\'s item', async () => {

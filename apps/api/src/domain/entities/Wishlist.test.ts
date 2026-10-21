@@ -177,7 +177,7 @@ describe('Wishlist.availableUnitsOf', () => {
 });
 
 describe('Wishlist.holdItem', () => {
-  const props = { itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', durationMs: 3 * DAY };
+  const props = { itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', durationMs: 3 * DAY, piiRef: '66666666-6666-7666-8666-666666666666' };
 
   it('has the item place the hold on a free item, and returns that item with what it decided', () => {
     const wishlist = loaded({ seq: 4 });
