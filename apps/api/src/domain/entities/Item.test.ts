@@ -94,6 +94,7 @@ describe('Item.placeHold', () => {
     expect(hold.secret.value).toBe(GENERATED_SECRET);
     expect(hold.itemId.value).toBe(ITEM_ID);
     expect(hold.expiresAt).toEqual(new Date(at.getTime() + 3 * DAY));
+    expect(hold.piiRef?.value).toBe(holdProps.piiRef);
   });
 
   it('returns the seq the caller must append against, and advances past it', () => {
@@ -110,15 +111,6 @@ describe('Item.placeHold', () => {
       expiresAt: new Date(at.getTime() + 3 * DAY).toISOString(), occurredAt: at.toISOString(),
     });
     expect(event).not.toHaveProperty('secret');
-  });
-
-  it('records the piiRef on the hold and on ItemHeld', () => {
-    const piiRef = '66666666-6666-7666-8666-666666666666';
-    const { hold, event } = available().placeHold({ ...holdProps, piiRef }, 0, 0, fakeTokens, fakeHasher);
-    expect(hold.piiRef?.value).toBe(piiRef);
-    expect(event.piiRef).toBe(piiRef);
-    expect(event).not.toHaveProperty('name');
-    expect(event).not.toHaveProperty('message');
   });
 
   it('throws ItemUnavailableError when active holds cover the quantity, without advancing seq', () => {
