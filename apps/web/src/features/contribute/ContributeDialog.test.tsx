@@ -131,7 +131,7 @@ describe('ContributeDialog', () => {
     expect(bodies).toHaveLength(1);
   });
 
-  it("shows the server's reason in the alert region", async () => {
+  it("shows the server's reason in the alert region, and keeps what was sent locked for a retry", async () => {
     const message = 'That amount is more than this gift can take. Try a smaller amount.';
     server.use(mock('post', '/api/lists/{slug}/items/{itemId}/contributions', 409, { code: 'amount_out_of_range', message }));
     const user = userEvent.setup();
@@ -143,5 +143,10 @@ describe('ContributeDialog', () => {
     await user.click(screen.getByRole('button', { name: "I've sent it" }));
 
     await vi.waitFor(() => expect(alert).toHaveTextContent(message));
+    for (const label of ['Amount (USD)', 'Your name', 'Message to the owner (optional)']) {
+      expect(screen.getByLabelText(label)).toHaveAttribute('readonly');
+      expect(screen.getByLabelText(label)).toHaveAccessibleDescription(expect.stringContaining('To change your details, cancel and start again.'));
+    }
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
   });
 });
