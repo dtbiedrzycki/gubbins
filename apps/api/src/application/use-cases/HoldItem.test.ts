@@ -37,6 +37,29 @@ describe('HoldItem', () => {
     });
   });
 
+  it('stores the holder\'s details and references them from the hold and the event', async () => {
+    const { useCase, store, holds, eventStore } = await makeUseCase();
+    await useCase.execute({ ...input(), name: 'Ada', message: 'Congrats' }, GUEST);
+
+    const rows = [...store.guestPii.values()];
+    expect(rows).toEqual([{ id: expect.any(String), name: 'Ada', message: 'Congrats' }]);
+    expect((await holds.findByIdempotencyKey(ITEM_ID, 'idem-1'))?.piiRef?.value).toBe(rows[0]!.id);
+    expect(eventStore.recorded(ITEM_ID)[0]!.event).toMatchObject({ piiRef: rows[0]!.id });
+  });
+
+  it('stores no details when no name is given', async () => {
+    const { useCase, store } = await makeUseCase();
+    await useCase.execute(input(), GUEST);
+    expect(store.guestPii.size).toBe(0);
+  });
+
+  it('inserts no second details row for a replayed key', async () => {
+    const { useCase, store } = await makeUseCase();
+    await useCase.execute({ ...input(), name: 'Ada' }, GUEST);
+    await useCase.execute({ ...input(), name: 'Ada' }, GUEST);
+    expect(store.guestPii.size).toBe(1);
+  });
+
   it('reads HOLD_DURATION_DAYS from the policy', async () => {
     const { useCase } = await makeUseCase({ durationDays: 1 });
     expect((await useCase.execute(input(), GUEST)).expiresAt).toBe(new Date(NOW.getTime() + DAY).toISOString());

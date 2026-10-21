@@ -205,7 +205,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     try {
       // The use case loads the wishlist this slug resolved to and asks it for
       // the item, so another list's item id is ItemNotFoundError — a 404.
-      const view = await deps.holdItem.execute({ wishlistId: guest.wishlist.id.value, itemId, idempotencyKey: request.body.idempotencyKey }, guest.access);
+      const view = await deps.holdItem.execute({ wishlistId: guest.wishlist.id.value, itemId, idempotencyKey: request.body.idempotencyKey, name: request.body.name, message: request.body.message }, guest.access);
       return reply.code(201).send(view);
     } catch (err) {
       return sendDomainError(reply, err);
