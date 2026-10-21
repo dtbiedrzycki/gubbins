@@ -102,9 +102,11 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
     });
 
     it('save inserts a hold the aggregate placed', async () => {
+      const piiRef = '00000000-0000-7000-8000-888888888888';
+      await fx.seedGuestPii(piiRef);
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
       const { hold } = wishlist.holdItem(
-        { itemId: ITEM_A, sessionHash: SESSION, idempotencyKey: 'idem-placed', durationMs: 60_000 },
+        { itemId: ITEM_A, sessionHash: SESSION, idempotencyKey: 'idem-placed', durationMs: 60_000, piiRef },
         { generateEntityId: () => '00000000-0000-7000-8000-777777777777', generateHoldSecret: () => 'secret-placed' },
         { hash: (value) => `hashed-${value}` },
       );
