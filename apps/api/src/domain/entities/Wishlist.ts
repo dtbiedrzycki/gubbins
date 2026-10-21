@@ -174,7 +174,7 @@ export class Wishlist {
   }
 
   holdItem(
-    props: { itemId: string; sessionHash: string; idempotencyKey: string; durationMs: number; piiRef?: string },
+    props: { itemId: string; sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string },
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): HoldCommandResult<ItemHeldEvent> {
