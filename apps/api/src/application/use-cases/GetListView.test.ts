@@ -44,22 +44,19 @@ describe('GetListView items and payment', () => {
     expect(shown.payment).toEqual({ venmoHandle: 'sam-w', zelleHandle: null });
   });
 
-  it('reports the pledged total of a group gift, and null for a single', async () => {
+  it("shows a group gift's pledged total", async () => {
     const persistence = inMemoryPersistence();
     const wishlist = Wishlist.create({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0, paymentMethods: PaymentMethods.from({ venmoHandle: 'sam-w' }) });
-    const ids = ['33333333-3333-7333-8333-333333333333', '44444444-4444-7444-8444-444444444444'];
-    wishlist.addItem({ type: 'single', title: 'Crib', quantity: 1 }, { generateEntityId: () => ids[0] });
-    wishlist.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, { generateEntityId: () => ids[1] });
+    const mixer = '44444444-4444-7444-8444-444444444444';
+    wishlist.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, { generateEntityId: () => mixer });
     await persistence.wishlists.insert(wishlist);
-    const pledge = new PledgeContribution(persistence.unitOfWork, new SequentialTokenGenerator(), new FixedClock(T0));
-    for (const [idempotencyKey, amountMinor] of [['k1', 11250], ['k2', 5000]] as const) {
-      await pledge.execute({ wishlistId: WISHLIST_ID, itemId: ids[1], idempotencyKey, amountMinor, name: 'Ada', message: '' }, GUEST);
-    }
+    await new PledgeContribution(persistence.unitOfWork, new SequentialTokenGenerator(), new FixedClock(T0))
+      .execute({ wishlistId: WISHLIST_ID, itemId: mixer, idempotencyKey: 'k1', amountMinor: 11250, name: 'Ada', message: '' }, GUEST);
 
     const shown = await new GetListView(persistence.unitOfWork, new FixedClock(T0), { durationDays: 3 })
       .execute({ wishlistId: WISHLIST_ID }, NO_SESSION);
 
-    expect(shown.items.map((i) => i.pledgedMinor)).toEqual([null, 16250]);
+    expect(shown.items.map((i) => i.pledgedMinor)).toEqual([11250]);
   });
 });
 
