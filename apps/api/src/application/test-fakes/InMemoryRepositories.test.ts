@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { inMemoryPersistence } from './InMemoryRepositories.js';
 import { aWishlist } from './builders.js';
+import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
 
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
 const ITEM_ID = '33333333-3333-7333-8333-333333333333';
@@ -43,7 +44,7 @@ describe('in-memory fakes never share instances with the store', () => {
   it('does not let a caller change a stored hold through the instance it inserted', async () => {
     const { wishlists, holds, guestPii } = inMemoryPersistence();
     await wishlists.insert(aWishlist().withItem({ id: ITEM_ID, title: 'Stroller' }).build());
-    await guestPii.insert({ id: holdProps.piiRef, name: 'Ada', message: null });
+    await guestPii.insert(holdProps.piiRef, GuestDetails.from({ name: 'Ada' }));
     const wishlist = (await wishlists.findById(WISHLIST_ID, T0))!;
     const { hold } = wishlist.holdItem(holdProps, tokens, hasher);
     await holds.insert(hold);
