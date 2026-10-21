@@ -54,3 +54,7 @@ export class InvalidCreateSecretError extends Error {
 export class NoPaymentMethodError extends Error {
   constructor() { super('A group gift needs at least one payment method on the list'); }
 }
+/** A pledge amount that is not a whole positive sum within the gift's bounds. */
+export class ContributionAmountError extends Error {
+  constructor(itemId: string) { super(`Contribution amount out of range for item ${itemId}`); }
+}

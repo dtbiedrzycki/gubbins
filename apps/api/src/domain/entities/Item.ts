@@ -1,10 +1,13 @@
-import { DomainValidationError, ItemUnavailableError } from '../errors.js';
+import { ContributionAmountError, DomainValidationError, ItemUnavailableError } from '../errors.js';
+import type { ContributionPledgedEvent } from '../events/ContributionPledgedEvent.js';
 import type { ItemHeldEvent } from '../events/ItemHeldEvent.js';
+import { Contribution } from './Contribution.js';
 import { Hold } from './Hold.js';
+import { MAX_MONEY_MINOR, Money } from '../value-objects/Money.js';
 import { UuidId } from '../value-objects/UuidId.js';
 
 export type ItemType = 'single' | 'group';
-export const MAX_MONEY_MINOR = 10 ** 12; // ADR-0061: keeps sums in safe-integer range
+export const MAX_CONTRIBUTION_TARGET_MULTIPLE = 5; // shortcut: constant, not the MAX_CONTRIBUTION_TARGET_MULTIPLE env var; add the env var when an operator needs another value
 const MAX_URL_LENGTH = 2048; // the de facto browser/CDN limit; bounds stored input
 
 export type ItemStatus = 'available' | 'held' | 'purchased';
@@ -156,6 +159,44 @@ export class Item {
       occurredAt: props.at.toISOString(),
     };
     return { hold, event, expectedSeq: this.recordEvent() };
+  }
+
+  /**
+   * A guest's pledge toward a group gift. Overfunding is allowed up to
+   * `MAX_CONTRIBUTION_TARGET_MULTIPLE` times the price (ADR-0047). Reach it
+   * through `Wishlist.pledge`, which authorizes the item and passes `at`.
+   */
+  pledge(
+    props: { amountMinor: number; sessionHash: string; idempotencyKey: string; piiRef: string; at: Date },
+    ids: { generateEntityId(): string },
+  ): { contribution: Contribution; event: ContributionPledgedEvent; expectedSeq: number } {
+    if (this.type !== 'group') throw new ItemUnavailableError(this.id.value);
+    // A group always has a price (the constructor enforces it); `?? 0` only satisfies the type.
+    const max = Math.min((this.priceMinor ?? 0) * MAX_CONTRIBUTION_TARGET_MULTIPLE, MAX_MONEY_MINOR);
+    if (!Number.isSafeInteger(props.amountMinor) || props.amountMinor <= 0 || props.amountMinor > max) {
+      throw new ContributionAmountError(this.id.value);
+    }
+    const contribution = Contribution.create({
+      id: ids.generateEntityId(),
+      itemId: this.id.value,
+      amount: Money.usd(props.amountMinor),
+      sessionHash: props.sessionHash,
+      idempotencyKey: props.idempotencyKey,
+      piiRef: props.piiRef,
+      pledgedAt: props.at,
+    });
+    const event: ContributionPledgedEvent = {
+      type: 'ContributionPledged',
+      v: 1,
+      itemId: this.id.value,
+      contributionId: contribution.id.value,
+      amountMinor: props.amountMinor,
+      sessionHash: contribution.sessionHash.value,
+      idempotencyKey: contribution.idempotencyKey.value,
+      piiRef: contribution.piiRef.value,
+      occurredAt: props.at.toISOString(),
+    };
+    return { contribution, event, expectedSeq: this.recordEvent() };
   }
 
   /**
