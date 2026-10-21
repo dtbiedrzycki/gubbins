@@ -22,10 +22,11 @@ const STROLLER = '66666666-6666-7666-8666-666666666602';
 const OTHER_LIST_ITEM = '66666666-6666-7666-8666-666666666701';
 const PII = '77777777-7777-7777-8777-777777777700';
 
-let count = 0;
-function pledge(itemId: string, amountMinor: number, idempotencyKey = `idem-${++count}`): Contribution {
+let ids = 0;
+let keys = 0;
+function pledge(itemId: string, amountMinor: number, idempotencyKey = `idem-${++keys}`): Contribution {
   return Contribution.reconstitute({
-    id: `00000000-0000-7000-8000-${String(++count).padStart(12, '0')}`, itemId, amountMinor, sessionHash: SESSION,
+    id: `00000000-0000-7000-8000-${String(++ids).padStart(12, '0')}`, itemId, amountMinor, sessionHash: SESSION,
     idempotencyKey, piiRef: PII, pledgedAt: NOW,
   });
 }
