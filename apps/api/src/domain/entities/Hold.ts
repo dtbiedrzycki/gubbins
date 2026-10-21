@@ -50,7 +50,7 @@ export class Hold {
 
   static create(props: {
     id: string; itemId: string; secret: string; sessionHash: string;
-    idempotencyKey: string; expiresAt: Date; at: Date; piiRef?: string | null;
+    idempotencyKey: string; expiresAt: Date; at: Date; piiRef: string;
   }): Hold {
     const secret = HoldSecret.from(props.secret);
     const sessionHash = SessionHash.from(props.sessionHash);
@@ -60,7 +60,7 @@ export class Hold {
     }
     return new Hold(
       UuidId.from(props.id), UuidId.from(props.itemId), secret, sessionHash, idempotencyKey,
-      props.piiRef == null ? null : UuidId.from(props.piiRef),
+      UuidId.from(props.piiRef),
       props.expiresAt, null, null, null,
     );
   }
