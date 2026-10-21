@@ -20,9 +20,8 @@ const single = (over: Partial<Item> = {}): Item => ({
   id: 'item-1', title: 'Stroller', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null, pledgedMinor: null, ...over,
 });
 
-function renderItem(status: Item['status'] | Partial<Item> = 'available'): void {
-  const item = typeof status === 'string' ? single({ status }) : single(status);
-  const ui = <ItemView slug="abc123" holdDurationDays={3} item={item} payment={payment} />;
+function renderItem(over: Partial<Item> = {}): void {
+  const ui = <ItemView slug="abc123" holdDurationDays={3} item={single(over)} payment={payment} />;
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}>{ui}</QueryClientProvider>);
 }
 
