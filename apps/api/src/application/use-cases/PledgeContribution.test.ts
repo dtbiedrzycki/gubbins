@@ -24,15 +24,17 @@ async function makeUseCase() {
 const input = { wishlistId: WISHLIST_ID, itemId: ITEM_ID, idempotencyKey: 'idem-1', amountMinor: 2_500, name: 'Ada', message: 'Congrats' };
 
 describe('PledgeContribution', () => {
-  it('stores the contribution, the guest\'s details and a guest-actor event', async () => {
+  it('stores the contribution, the guest\'s details and a guest-actor event, both referencing the details', async () => {
     const { useCase, store, eventStore } = await makeUseCase();
 
     const result = await useCase.execute(input, GUEST);
 
     expect(result).toEqual({ contributionId: expect.any(String), itemId: ITEM_ID, amountMinor: 2_500 });
-    expect([...store.contributions.values()].map((c) => [c.id.value, c.amount.amountMinor])).toEqual([[result.contributionId, 2_500]]);
-    expect([...store.guestPii.values()]).toEqual([{ id: expect.any(String), name: 'Ada', message: 'Congrats' }]);
+    const rows = [...store.guestPii.values()];
+    expect(rows).toEqual([{ id: expect.any(String), name: 'Ada', message: 'Congrats' }]);
+    expect([...store.contributions.values()].map((c) => [c.id.value, c.amount.amountMinor, c.piiRef.value])).toEqual([[result.contributionId, 2_500, rows[0]!.id]]);
     expect(eventStore.recorded(ITEM_ID).map(({ event, actor }) => [event.type, actor])).toEqual([['ContributionPledged', 'guest']]);
+    expect(eventStore.recorded(ITEM_ID)[0]!.event).toMatchObject({ piiRef: rows[0]!.id });
   });
 
   it('replays the original for the same key and session, writing nothing more', async () => {
