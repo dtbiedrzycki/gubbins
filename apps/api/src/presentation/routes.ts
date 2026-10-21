@@ -222,7 +222,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
         201: json('The pledge was recorded; a replayed idempotency key returns the original.', pledgeResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
         404: json('No such list or item, or no valid session for the list. These are deliberately indistinguishable (ADR-0016, ADR-0054).', errorResponseSchema),
-        409: json('The item is not a group gift (item_unavailable), the amount is out of range (amount_out_of_range), or a concurrent change won (no code).', errorResponseSchema),
+        409: json('The item is not a group gift, or this idempotency key belongs to another guest (item_unavailable); the amount is more than the gift can take (amount_out_of_range); or a concurrent change won (no code).', errorResponseSchema),
       },
     },
   }, async (request, reply) => {
