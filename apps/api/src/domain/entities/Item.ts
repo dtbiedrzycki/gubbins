@@ -165,7 +165,7 @@ export class Item {
    * Hasher already satisfy these shapes.
    */
   placeHold(
-    props: { sessionHash: string; idempotencyKey: string; durationMs: number; piiRef?: string },
+    props: { sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string },
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): { hold: Hold; event: ItemHeldEvent; expectedSeq: number } {
@@ -179,7 +179,7 @@ export class Item {
       secret: tokens.generateHoldSecret(),
       sessionHash: props.sessionHash,
       idempotencyKey: props.idempotencyKey,
-      piiRef: props.piiRef ?? null,
+      piiRef: props.piiRef,
       expiresAt: new Date(this.asOf.getTime() + props.durationMs),
       at: this.asOf,
     });
@@ -216,6 +216,7 @@ export class Item {
     ids: { generateEntityId(): string },
   ): { contribution: Contribution; event: ContributionPledgedEvent; expectedSeq: number } {
     if (this.type !== 'group') throw new ItemUnavailableError(this.id.value);
+    // A group always has a price (the constructor enforces it); `?? 0` only satisfies the type.
     const max = Math.min((this.priceMinor ?? 0) * MAX_CONTRIBUTION_TARGET_MULTIPLE, MAX_MONEY_MINOR);
     if (!Number.isSafeInteger(props.amountMinor) || props.amountMinor > max) {
       throw new ContributionAmountError(this.id.value);
