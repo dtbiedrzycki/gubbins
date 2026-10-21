@@ -56,6 +56,18 @@ async function holdOnNewList() {
   return { act };
 }
 
+async function pledgeOnNewList() {
+  const list = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'G', itemTitle: 'I', venmoHandle: 'my-venmo', createSecret: 'test-create-secret' } })).json() as { slug: string; ownerToken: string; key: string };
+  const owner = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } }));
+  const { itemId } = (await app.inject({
+    method: 'POST', url: `/api/lists/${list.slug}/items`, headers: { cookie: owner }, payload: { type: 'group', title: 'Pram', priceMinor: 50000 },
+  })).json() as { itemId: string };
+  const cookie = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } }));
+  return app.inject({
+    method: 'POST', url: `/api/lists/${list.slug}/items/${itemId}/contributions`, headers: { cookie }, payload: { idempotencyKey: 'k', amountMinor: 2500, name: 'Ada' },
+  });
+}
+
 /** Every event type, through the real write path. */
 async function raiseEveryEventType(): Promise<void> {
   const bought = await holdOnNewList();
@@ -63,13 +75,7 @@ async function raiseEveryEventType(): Promise<void> {
   expect((await bought.act('purchase')).statusCode).toBe(200);
   const dropped = await holdOnNewList();
   expect((await dropped.act('release')).statusCode).toBe(200);
-  // No route pledges yet, so the event is appended as the pledge write path will.
-  const { item_id: itemId, seq } = await db.selectFrom('event_log').select(['item_id', 'seq']).orderBy('id', 'desc').executeTakeFirstOrThrow();
-  const occurredAt = new Date().toISOString();
-  await db.insertInto('event_log').values({
-    item_id: itemId, seq: seq + 1, event_type: 'ContributionPledged', actor: 'guest', recorded_at: occurredAt,
-    payload: JSON.stringify({ type: 'ContributionPledged', v: 1, itemId, contributionId: 'c', amountMinor: 1, sessionHash: 'h', idempotencyKey: 'k', piiRef: 'p', occurredAt }),
-  }).execute();
+  expect((await pledgeOnNewList()).statusCode).toBe(201);
 }
 
 describe('ledger events and their actors (ADR-0075)', () => {
