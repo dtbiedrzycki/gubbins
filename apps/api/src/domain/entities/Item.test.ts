@@ -191,7 +191,12 @@ describe('Item.pledge', () => {
   it('allows overfunding up to five times the price', () => {
     expect(() => group().pledge({ ...props, amountMinor: 45000 * 5 }, ids)).not.toThrow();
   });
-  it.each([0, -100, 12.5, 45000 * 5 + 1])('refuses amount %j', (amountMinor) => {
+  it.each([
+    ['zero', 0],
+    ['a negative amount', -100],
+    ['a fractional amount', 12.5],
+    ['more than five times the price', 45000 * 5 + 1],
+  ])('refuses %s', (_, amountMinor) => {
     expect(() => group().pledge({ ...props, amountMinor }, ids)).toThrow(ContributionAmountError);
   });
   it('refuses a pledge on a single item', () => {
