@@ -603,7 +603,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description The item is not a group gift (item_unavailable), the amount is out of range (amount_out_of_range), or a concurrent change won (no code). */
+            /** @description The item is not a group gift, or this idempotency key belongs to another guest (item_unavailable); the amount is more than the gift can take (amount_out_of_range); or a concurrent change won (no code). */
             409: {
                 headers: {
                     [name: string]: unknown;
