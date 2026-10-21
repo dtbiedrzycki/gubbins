@@ -26,11 +26,58 @@ describe('HoldDialog', () => {
     const user = userEvent.setup();
     const { props } = renderDialog();
 
+    await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     const [[first], [second]] = vi.mocked(props.onConfirm).mock.calls;
     expect(second.idempotencyKey).toBe(first.idempotencyKey);
+  });
+
+  it('cannot confirm until a non-blank name is typed', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    const confirm = screen.getByRole('button', { name: 'Yes, hold it' });
+    expect(confirm).toBeDisabled();
+
+    await user.type(screen.getByLabelText('Your name'), '   ');
+    expect(confirm).toBeDisabled();
+
+    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    expect(confirm).toBeEnabled();
+  });
+
+  it('confirms with the trimmed name and message', async () => {
+    const user = userEvent.setup();
+    const { props } = renderDialog();
+
+    await user.type(screen.getByLabelText('Your name'), '  Amara ');
+    await user.type(screen.getByLabelText('Message to the owner (optional)'), ' Happy to collect Friday ');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+    expect(props.onConfirm).toHaveBeenCalledWith(expect.anything(), { name: 'Amara', message: 'Happy to collect Friday' });
+  });
+
+  it('locks the name and message once sent, so a retry sends what was sent', async () => {
+    const user = userEvent.setup();
+    const { props } = renderDialog();
+
+    await user.type(screen.getByLabelText('Your name'), 'Amra');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+    await user.type(screen.getByLabelText('Your name'), 'a');
+    await user.type(screen.getByLabelText('Message to the owner (optional)'), 'Hi');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+    expect(vi.mocked(props.onConfirm).mock.calls[1][1]).toEqual({ name: 'Amra', message: '' });
+    expect(screen.getByLabelText('Your name')).toHaveAccessibleDescription('To change your details, cancel and start again.');
+    expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAccessibleDescription('To change your details, cancel and start again.');
+  });
+
+  it('limits the name to 100 characters and the message to 300, and says who sees the name', () => {
+    renderDialog();
+    expect(screen.getByLabelText('Your name')).toHaveAttribute('maxlength', '100');
+    expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAttribute('maxlength', '300');
+    expect(screen.getByText('Your name is only shared with the list owner.')).toBeInTheDocument();
   });
 
   it('cannot be cancelled or escaped while the hold is in flight', () => {

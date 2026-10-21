@@ -1,4 +1,4 @@
-import { useEffect, useRef, type SyntheticEvent } from 'react';
+import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { useHoldCredential, type HoldCredential } from './useHoldCredential';
 
 export interface HoldDialogProps {
@@ -6,20 +6,25 @@ export interface HoldDialogProps {
   holdDurationDays: number;
   isPending: boolean;
   error: Error | null;
-  onConfirm: (credential: HoldCredential) => void;
+  onConfirm: (credential: HoldCredential, details: { name: string; message: string }) => void;
   onClose: () => void;
 }
 
 /**
  * A real <dialog> (ADR-0024), mounted only while open: opening it is what
  * mints the hold's credential, so a guest who taps "Yes, hold it" twice on
- * slow venue wifi sends one key twice and gets one hold. It cannot be
+ * slow venue wifi sends one key twice and gets one hold. The first send locks
+ * the name and message, so a retry carries exactly what the key was first
+ * sent with; the server would keep the first details anyway. It cannot be
  * dismissed while the hold is in flight, so the outcome lands where the
  * guest is looking.
  */
 export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onConfirm, onClose }: HoldDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const credential = useHoldCredential();
+  const [name, setName] = useState('');
+  const [message, setMessage] = useState('');
+  const [sent, setSent] = useState(false);
 
   function show() {
     const dialog = dialogRef.current;
@@ -52,9 +57,15 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
     <dialog ref={dialogRef} onCancel={handleCancel} onClose={handleClose} aria-labelledby="hold-dialog-title" className="rounded-lg p-6 backdrop:bg-black/50">
       <p id="hold-dialog-title" className="mb-2">Hold &ldquo;{itemTitle}&rdquo; for yourself?</p>
       <p className="mb-4 text-slate-700">Held for you for {duration}.</p>
+      <label className="mb-1 block" htmlFor="hold-name">Your name</label>
+      <input id="hold-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} disabled={isPending} readOnly={sent} aria-describedby={sent ? 'hold-details-locked' : undefined} className="mb-1 min-h-11 w-full rounded border px-2" />
+      <p className="mb-4 text-sm text-slate-700">Your name is only shared with the list owner.</p>
+      <label className="mb-1 block" htmlFor="hold-message">Message to the owner (optional)</label>
+      <textarea id="hold-message" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={300} disabled={isPending} readOnly={sent} aria-describedby={sent ? 'hold-details-locked' : undefined} className="mb-4 w-full rounded border px-2 py-1" />
+      {sent && <p id="hold-details-locked" className="mb-4 text-sm text-slate-700">To change your details, cancel and start again.</p>}
       <p role="alert" className="mb-4 text-red-600 empty:mb-0">{error?.message}</p>
       <div className="flex gap-2">
-        <button type="button" onClick={() => onConfirm(credential)} disabled={isPending} className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50">
+        <button type="button" onClick={() => { setSent(true); onConfirm(credential, { name: name.trim(), message: message.trim() }); }} disabled={isPending || !name.trim()} className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50">
           {isPending ? 'Holding…' : 'Yes, hold it'}
         </button>
         <button type="button" onClick={onClose} disabled={isPending} className="min-h-11 rounded border px-4 py-2 disabled:opacity-50">

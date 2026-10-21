@@ -25,59 +25,65 @@ function renderItem(over: Partial<Item> = {}): void {
   );
 }
 
-/** Records the idempotency key of every hold request; answers each with the next status given. */
+/** Records the body of every hold request; answers each with the next status given. */
 function holdEndpoint(...statuses: number[]) {
-  const keys: string[] = [];
+  const bodies: { idempotencyKey: string; name?: string; message?: string }[] = [];
   server.use(http.post('/api/lists/abc123/items/item-1/hold', async ({ request }) => {
-    keys.push(((await request.json()) as { idempotencyKey: string }).idempotencyKey);
-    const status = statuses[keys.length - 1] ?? 201;
+    bodies.push((await request.json()) as (typeof bodies)[number]);
+    const status = statuses[bodies.length - 1] ?? 201;
     return status === 201 ? HttpResponse.json(heldView, { status }) : HttpResponse.json({ message: 'Request failed' }, { status });
   }));
-  return keys;
+  return bodies;
 }
 
 describe('ItemView', () => {
-  it('opens the hold dialog from an available item and closes it once the hold succeeds', async () => {
-    holdEndpoint(201);
+  it('opens the hold dialog from an available item, sends the details and closes once the hold succeeds', async () => {
+    const bodies = holdEndpoint(201);
     const user = userEvent.setup();
     renderItem();
 
     await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
     expect(screen.getByText('Held for you for 3 days.')).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.type(screen.getByLabelText('Message to the owner (optional)'), 'Collecting Friday');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     await vi.waitFor(() => expect(screen.queryByRole('dialog', { hidden: true })).not.toBeInTheDocument());
+    expect(bodies).toEqual([{ idempotencyKey: expect.any(String), name: 'Amara', message: 'Collecting Friday' }]);
   });
 
   it('sends the key minted at opening on every retry — not a fresh one per tap (ADR-0048)', async () => {
-    const keys = holdEndpoint(503, 201);
+    const bodies = holdEndpoint(503, 201);
     const user = userEvent.setup();
     renderItem();
 
     await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
+    await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
     await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
-    await vi.waitFor(() => expect(keys).toHaveLength(2));
-    expect(keys[1]).toBe(keys[0]);
+    await vi.waitFor(() => expect(bodies).toHaveLength(2));
+    expect(bodies[1].idempotencyKey).toBe(bodies[0].idempotencyKey);
   });
 
   it('mints a new key for a new opening, and forgets the old error', async () => {
-    const keys = holdEndpoint(503, 503);
+    const bodies = holdEndpoint(503, 503);
     const user = userEvent.setup();
     renderItem();
 
     await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
+    await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
     await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
     expect(screen.getByRole('alert')).toBeEmptyDOMElement();
+    await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
-    await vi.waitFor(() => expect(keys).toHaveLength(2));
-    expect(keys[1]).not.toBe(keys[0]);
+    await vi.waitFor(() => expect(bodies).toHaveLength(2));
+    expect(bodies[1].idempotencyKey).not.toBe(bodies[0].idempotencyKey);
   });
 
   it('returns focus to the Hold button when the dialog is cancelled', async () => {
