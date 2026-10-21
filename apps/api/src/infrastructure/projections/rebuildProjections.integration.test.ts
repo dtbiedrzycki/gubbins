@@ -41,11 +41,14 @@ async function projections() {
     holds: await db.selectFrom('holds')
       .select(['id', 'item_id', 'secret', 'session_hash', 'idempotency_key', 'expires_at', 'extended_at', 'released_at', 'purchased_at'])
       .orderBy('id').execute(),
+    contributions: await db.selectFrom('contributions')
+      .select(['id', 'item_id', 'amount_minor', 'session_hash', 'idempotency_key', 'pii_ref', 'pledged_at'])
+      .orderBy('id').execute(),
     itemState: await db.selectFrom('item_state').select(['item_id', 'seq']).orderBy('item_id').execute(),
     purchasedCounts: await Promise.all(
       wishlistIds.map(async ({ id }) => {
         const wishlist = await deps.wishlists.findById(id, clock.now());
-        return wishlist?.items[0] ? wishlist.purchasedCountOf(wishlist.items[0].id.value) : undefined;
+        return wishlist?.items.map((item) => wishlist.purchasedCountOf(item.id.value));
       }),
     ),
   };
@@ -60,8 +63,18 @@ async function newList() {
   return { hold, command };
 }
 
+async function aGroupGift() {
+  const { slug } = await deps.createList.execute({ listTitle: 'G', itemTitle: 'I', createSecret: 'test-create-secret', venmoHandle: 'my-venmo' });
+  const wishlistId = (await deps.wishlists.findBySlug(slug, clock.now()))!.id.value;
+  const { itemId } = await deps.addItem.execute({ wishlistId, type: 'group', title: 'Pram', priceMinor: 50_000 }, { guestSession: null, owner: true });
+  const pledge = (access: AccessContext, idempotencyKey: string) =>
+    deps.pledgeContribution.execute({ wishlistId, itemId, idempotencyKey, amountMinor: 2_500, name: 'Ada' }, access);
+  return { pledge };
+}
+
 /** Every event type and every hold state, through the real write path. */
 async function aBusyLedger(): Promise<void> {
+  const groupGift = await aGroupGift();
   const extendedThenBought = await newList();
   const releasedThenReheld = await newList();
   const lapsedThenBought = await newList();
@@ -72,6 +85,8 @@ async function aBusyLedger(): Promise<void> {
   const b = await releasedThenReheld.hold(GUEST, 'b');
   const c = await lapsedThenBought.hold(GUEST, 'c');
   await stillActive.hold(GUEST, 'd');
+  await groupGift.pledge(GUEST, 'p');
+  await groupGift.pledge(OTHER_GUEST, 'p2');
 
   clock.advance(DAY);
   await deps.extendHold.execute({ ...extendedThenBought.command, holdId: a.holdId }, GUEST);
@@ -101,6 +116,7 @@ describe('rebuildProjections', () => {
     const incremental = await projections();
     await db.updateTable('item_state').set({ seq: 99 }).execute();
     await db.updateTable('holds').set({ released_at: null, purchased_at: null, extended_at: '2000-01-01T00:00:00.000Z' }).execute();
+    await db.deleteFrom('contributions').execute();
 
     await rebuildProjections(db);
 
@@ -129,36 +145,6 @@ describe('rebuildProjections', () => {
     await rebuildProjections(db);
 
     expect(await db.selectFrom('holds').select('pii_ref').where('id', '=', placed.holdId).executeTakeFirstOrThrow()).toEqual({ pii_ref: piiRef });
-    expect(await db.selectFrom('guest_pii').selectAll().execute()).toEqual(piiBefore);
-  });
-
-  it('re-folds a pledged contribution from the ledger and leaves guest_pii untouched', async () => {
-    const { hold } = await newList();
-    await hold(GUEST, 'k');
-    const { item_id: itemId, seq } = await db.selectFrom('event_log').select(['item_id', 'seq']).executeTakeFirstOrThrow();
-    const piiRef = '00000000-0000-7000-8000-00000000bbbb';
-    const pledgedAt = '2026-01-02T03:04:05.000Z';
-    await db.insertInto('guest_pii').values({ id: piiRef, name: 'Guest', message: null, redacted_at: null, created_at: pledgedAt }).execute();
-    const contribution = {
-      id: '00000000-0000-7000-8000-00000000cccc', item_id: itemId, amount_minor: 2500, session_hash: 'a'.repeat(64),
-      idempotency_key: 'pledge-1', pii_ref: piiRef, pledged_at: pledgedAt,
-    };
-    await db.insertInto('contributions').values({ ...contribution, created_at: pledgedAt }).execute();
-    await db.insertInto('event_log').values({
-      item_id: itemId, seq: seq + 1, event_type: 'ContributionPledged', actor: 'guest', recorded_at: pledgedAt,
-      payload: JSON.stringify({
-        type: 'ContributionPledged', v: 1, itemId, contributionId: contribution.id, amountMinor: 2500,
-        sessionHash: contribution.session_hash, idempotencyKey: 'pledge-1', piiRef, occurredAt: pledgedAt,
-      }),
-    }).execute();
-    const piiBefore = await db.selectFrom('guest_pii').selectAll().execute();
-    await db.deleteFrom('contributions').execute();
-
-    await rebuildProjections(db);
-
-    const refolded = await db.selectFrom('contributions')
-      .select(['id', 'item_id', 'amount_minor', 'session_hash', 'idempotency_key', 'pii_ref', 'pledged_at']).executeTakeFirstOrThrow();
-    expect(refolded).toEqual(contribution);
     expect(await db.selectFrom('guest_pii').selectAll().execute()).toEqual(piiBefore);
   });
 
