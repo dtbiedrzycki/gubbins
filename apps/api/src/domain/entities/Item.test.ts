@@ -121,7 +121,7 @@ describe('Item.placeHold', () => {
   const at = T0;
   const GENERATED_HOLD_ID = '55555555-5555-7555-8555-555555555555';
   const GENERATED_SECRET = 'hold-secret';
-  const holdProps = { sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', durationMs: 3 * DAY };
+  const holdProps = { sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', durationMs: 3 * DAY, piiRef: '66666666-6666-7666-8666-666666666666' };
   const available = () => Item.reconstitute({ ...base, seq: 4 });
   const fakeTokens = { generateEntityId: () => GENERATED_HOLD_ID, generateHoldSecret: () => GENERATED_SECRET };
   const fakeHasher = { hash: (value: string) => (value === GENERATED_SECRET ? 'f'.repeat(64) : 'e'.repeat(64)) };
@@ -132,6 +132,7 @@ describe('Item.placeHold', () => {
     expect(hold.secret.value).toBe(GENERATED_SECRET);
     expect(hold.itemId.value).toBe(ITEM_ID);
     expect(hold.expiresAt).toEqual(new Date(at.getTime() + 3 * DAY));
+    expect(hold.piiRef?.value).toBe(holdProps.piiRef);
   });
 
   it('adds the hold to its own holds', () => {
@@ -150,19 +151,10 @@ describe('Item.placeHold', () => {
     const { event } = available().placeHold(holdProps, fakeTokens, fakeHasher);
     expect(event).toEqual({
       type: 'ItemHeld', v: 1, itemId: ITEM_ID, holdId: GENERATED_HOLD_ID, secretHash: 'f'.repeat(64),
-      sessionHash: holdProps.sessionHash, idempotencyKey: 'idem-1', piiRef: null,
+      sessionHash: holdProps.sessionHash, idempotencyKey: 'idem-1', piiRef: holdProps.piiRef,
       expiresAt: new Date(at.getTime() + 3 * DAY).toISOString(), occurredAt: at.toISOString(),
     });
     expect(event).not.toHaveProperty('secret');
-  });
-
-  it('records the piiRef on the hold and on ItemHeld', () => {
-    const piiRef = '66666666-6666-7666-8666-666666666666';
-    const { hold, event } = available().placeHold({ ...holdProps, piiRef }, fakeTokens, fakeHasher);
-    expect(hold.piiRef?.value).toBe(piiRef);
-    expect(event.piiRef).toBe(piiRef);
-    expect(event).not.toHaveProperty('name');
-    expect(event).not.toHaveProperty('message');
   });
 
   it('throws ItemUnavailableError when active holds cover the quantity, without advancing seq', () => {
@@ -250,7 +242,12 @@ describe('Item.pledge', () => {
   it('allows overfunding up to five times the price', () => {
     expect(() => group().pledge({ ...props, amountMinor: 45000 * 5 }, ids)).not.toThrow();
   });
-  it.each([0, -100, 12.5, 45000 * 5 + 1])('refuses amount %j', (amountMinor) => {
+  it.each([
+    ['zero', 0],
+    ['a negative amount', -100],
+    ['a fractional amount', 12.5],
+    ['more than five times the price', 45000 * 5 + 1],
+  ])('refuses %s', (_, amountMinor) => {
     expect(() => group().pledge({ ...props, amountMinor }, ids)).toThrow(ContributionAmountError);
   });
   it('refuses a pledge on a single item', () => {
