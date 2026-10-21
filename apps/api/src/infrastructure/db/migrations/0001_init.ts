@@ -53,13 +53,12 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     // The holder's details; null for a hold placed without any. guest_pii is created below: SQLite resolves the reference at write time.
     .addColumn('pii_ref', 'text', (col) => col.references('guest_pii.id'))
     .addColumn('created_at', 'text', (col) => col.notNull())
+    // Its index starts with item_id, so lookups by item need no index of their own.
     .addUniqueConstraint('holds_item_idempotency_key_unique', ['item_id', 'idempotency_key'])
     // A hold ends one way or the other, never both. A backstop: the domain
     // already refuses it.
     .addCheckConstraint('holds_released_or_purchased', sql`released_at IS NULL OR purchased_at IS NULL`)
     .execute();
-
-  await schema.createIndex('holds_item_id_idx').ifNotExists().on('holds').column('item_id').execute();
 
   await schema.createTable('event_log').ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
@@ -97,8 +96,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn('pii_ref', 'text', (col) => col.notNull().references('guest_pii.id'))
     .addColumn('pledged_at', 'text', (col) => col.notNull())
     .addColumn('created_at', 'text', (col) => col.notNull())
+    // Serves lookups by item too, as for holds.
     .addUniqueConstraint('contributions_item_idempotency_key_unique', ['item_id', 'idempotency_key'])
     .execute();
-
-  await schema.createIndex('contributions_item_id_idx').ifNotExists().on('contributions').column('item_id').execute();
 }
