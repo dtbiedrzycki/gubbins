@@ -69,7 +69,8 @@ describe('HoldDialog', () => {
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     expect(vi.mocked(props.onConfirm).mock.calls[1][1]).toEqual({ name: 'Amra', message: '' });
-    expect(screen.getByText('To change your details, cancel and start again.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Your name')).toHaveAccessibleDescription('To change your details, cancel and start again.');
+    expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAccessibleDescription('To change your details, cancel and start again.');
   });
 
   it('limits the fields and says who sees the name', () => {
