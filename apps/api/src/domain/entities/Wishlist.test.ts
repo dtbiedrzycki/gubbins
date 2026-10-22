@@ -86,9 +86,8 @@ describe('Wishlist.reconstitute', () => {
     expect(wishlist.ownerToken.value).toBe('owner-tok');
   });
 
-  it('has no item when none was loaded', () => {
+  it('has no items when none were loaded', () => {
     expect(Wishlist.reconstitute(persisted).items).toEqual([]);
-    expect(Wishlist.reconstitute(persisted).item).toBeNull();
   });
 
   it('attaches the loaded item, concurrency state and all', () => {

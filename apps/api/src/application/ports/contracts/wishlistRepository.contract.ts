@@ -23,8 +23,8 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       for (const loaded of [await fx.wishlists.findBySlug('list-a', NOW), await fx.wishlists.findById(LIST_A, NOW)]) {
         expect(loaded?.id.value).toBe(LIST_A);
         expect(loaded?.title).toBe('List A');
-        expect(loaded?.item?.id.value).toBe(ITEM_A);
-        expect(loaded?.item?.seq).toBe(0);
+        expect(loaded?.items[0]?.id.value).toBe(ITEM_A);
+        expect(loaded?.items[0]?.seq).toBe(0);
         expect(loaded?.purchasedCountOf(ITEM_A)).toBe(0);
       }
     });
@@ -80,7 +80,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
 
       await fx.wishlists.saveItemState(item);
 
-      expect((await fx.wishlists.findById(LIST_A, NOW))?.item?.seq).toBe(2);
+      expect((await fx.wishlists.findById(LIST_A, NOW))?.items[0]?.seq).toBe(2);
     });
 
     it('counts the purchased holds it loads: a saved purchase counts', async () => {
@@ -107,7 +107,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       await fx.wishlists.saveItemState(item);
 
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
-      expect(reloaded?.item?.seq).toBe(1);
+      expect(reloaded?.items[0]?.seq).toBe(1);
       expect(reloaded?.purchasedCountOf(ITEM_A)).toBe(0);
       expect(reloaded?.itemStatus(ITEM_A)).toBe('held');
     });
@@ -128,7 +128,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
     it('saveItemState refuses an item claiming another list, and changes nothing', async () => {
       const impostor = Item.reconstitute({ id: ITEM_A, wishlistId: LIST_B, type: 'single', title: 'Cot', quantity: 1, seq: 9 });
       await expect(fx.wishlists.saveItemState(impostor)).rejects.toThrow(ItemNotFoundError);
-      expect((await fx.wishlists.findById(LIST_A, NOW))?.item?.seq).toBe(0);
+      expect((await fx.wishlists.findById(LIST_A, NOW))?.items[0]?.seq).toBe(0);
     });
 
     it('saveItemState refuses an item that does not exist', async () => {

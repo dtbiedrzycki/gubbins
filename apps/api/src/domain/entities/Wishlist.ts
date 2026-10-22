@@ -124,11 +124,6 @@ export class Wishlist {
     return this._items;
   }
 
-  /** First item; removed once the list view reads `items`. */
-  get item(): Item | null {
-    return this._items[0] ?? null;
-  }
-
   /**
    * Resolves `itemId` to the Item this wishlist owns, or throws
    * ItemNotFoundError — the aggregate's authorization step for items.
