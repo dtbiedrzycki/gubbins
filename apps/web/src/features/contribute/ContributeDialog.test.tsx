@@ -64,22 +64,11 @@ describe('ContributeDialog', () => {
     expect(screen.getByLabelText('Amount (USD)')).toHaveValue('25.50');
   });
 
-  it('on a phone, links to the Venmo app and the Venmo website, both with the amount', async () => {
-    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query === '(pointer: coarse)' }));
-    const user = userEvent.setup();
-    renderDialog();
-    vi.unstubAllGlobals(); // the dialog reads it once, on mount
-    await continueWithTheRest(user);
-    expect(screen.getByRole('link', { name: 'Pay $287.50 with Venmo' })).toHaveAttribute('href', 'venmo://paycharge?txn=pay&recipients=my-venmo&amount=287.50&note=Stand%20mixer');
-    expect(screen.getByRole('link', { name: 'Venmo website' })).toHaveAttribute('href', 'https://venmo.com/my-venmo?txn=pay&amount=287.50&note=Stand%20mixer');
-  });
-
-  it('on a computer, links only to the Venmo website, with the amount', async () => {
+  it("links to Venmo's payment link with the amount and the item as the note", async () => {
     const user = userEvent.setup();
     renderDialog();
     await continueWithTheRest(user);
-    expect(screen.getByRole('link')).toHaveAttribute('href', 'https://venmo.com/my-venmo?txn=pay&amount=287.50&note=Stand%20mixer');
-    expect(screen.getByRole('link')).toHaveAccessibleName('Pay $287.50 on the Venmo website');
+    expect(screen.getByRole('link', { name: 'Pay $287.50 with Venmo' })).toHaveAttribute('href', 'https://venmo.com/my-venmo?txn=pay&amount=287.50&note=Stand%20mixer');
   });
 
   it('offers no Venmo link without a Venmo handle', async () => {

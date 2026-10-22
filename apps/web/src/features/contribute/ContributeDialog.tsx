@@ -5,7 +5,7 @@ import { api } from '../../api/client';
 import { listViewKey } from '../holds/useListView';
 import { formatMoney } from '../../lib/formatMoney';
 import { parseUsd } from '../../lib/parseUsd';
-import { venmoAppLink, venmoWebLink } from './paymentLinks';
+import { venmoPayLink } from './paymentLinks';
 
 export interface ContributeDialogProps {
   slug: string;
@@ -39,8 +39,6 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState('');
-  // A computer has no app to open a venmo:// link, so it gets the website instead. jsdom has no matchMedia.
-  const [onPhone] = useState(() => window.matchMedia?.('(pointer: coarse)').matches ?? false);
   const queryClient = useQueryClient();
   const { mutate, isPending, isIdle, error } = useMutation({
     mutationFn: (input: PledgeRequest) => api.pledgeContribution(slug, itemId, input),
@@ -107,14 +105,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           <p id="contribute-amount-error" className="mb-4 text-sm text-red-600">{amount === null ? invalidAmount : ''}</p>
           {payment.venmoHandle && amount !== null && (
             <p className="mb-4 flex flex-wrap items-center gap-4">
-              {onPhone ? (
-                <>
-                  <a href={venmoAppLink(payment.venmoHandle, amount, itemTitle)} className={`${button} inline-flex items-center bg-blue-700 text-white`}>Pay {formatMoney(amount)} with Venmo</a>
-                  <a href={venmoWebLink(payment.venmoHandle, amount, itemTitle)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-blue-700 underline">Venmo website</a>
-                </>
-              ) : (
-                <a href={venmoWebLink(payment.venmoHandle, amount, itemTitle)} target="_blank" rel="noopener noreferrer" className={`${button} inline-flex items-center bg-blue-700 text-white`}>Pay {formatMoney(amount)} on the Venmo website</a>
-              )}
+              <a href={venmoPayLink(payment.venmoHandle, amount, itemTitle)} target="_blank" rel="noopener noreferrer" className={`${button} inline-flex items-center bg-blue-700 text-white`}>Pay {formatMoney(amount)} with Venmo</a>
             </p>
           )}
           {payment.zelleHandle && (
