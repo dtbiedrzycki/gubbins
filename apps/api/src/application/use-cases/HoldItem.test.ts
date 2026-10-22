@@ -111,7 +111,7 @@ describe('HoldItem', () => {
       },
     };
     const unitOfWork = new RetryingUnitOfWork(
-      new InMemoryUnitOfWork({ wishlists: persistence.wishlists, holds: persistence.holds, eventStore: flaky, guestPii: persistence.guestPii }),
+      new InMemoryUnitOfWork({ wishlists: persistence.wishlists, holds: persistence.holds, eventStore: flaky, guestPii: persistence.guestPii, contributions: persistence.contributions }),
       { logInfo: () => {}, logWarn: () => {}, logError: () => {} },
       { retries: 3, sleep: async () => {}, random: () => 0 },
     );
