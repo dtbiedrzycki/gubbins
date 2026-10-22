@@ -97,7 +97,7 @@ async function heldByGuest(on: FastifyInstance = app) {
     .json() as { slug: string; key: string; itemId: string };
   const cookie = await guestOn(list, on);
   const response = await on.inject({
-    method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1' },
+    method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada' },
   });
   return { list, cookie, response, holdId: (response.json() as { holdId: string }).holdId };
 }
@@ -181,7 +181,7 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
 
     const holdResponse = await app.inject({
       method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`,
-      headers: { cookie }, payload: { idempotencyKey: 'idem-1' },
+      headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada' },
     });
     expect(holdResponse.statusCode).toBe(201);
     expect(holdResponse.json()).toMatchObject({ itemId: list.itemId });
@@ -206,9 +206,9 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
     const list = await createList();
     const sessionResponse = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } });
     const cookie = extractCookieHeader(sessionResponse);
-    await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1' } });
+    await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada' } });
 
-    const second = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-2' } });
+    const second = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-2', name: 'Ada' } });
 
     expect(second.statusCode).toBe(409);
     expect(second.json()).toEqual({ message: 'This item is no longer available.', code: 'item_unavailable' });
@@ -318,7 +318,7 @@ describe('hold lifecycle over HTTP', () => {
     const cookie = await guestOn(list);
 
     const response = await app.inject({
-      method: 'POST', url: `/api/lists/${list.slug}/items/${other.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-x' },
+      method: 'POST', url: `/api/lists/${list.slug}/items/${other.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-x', name: 'Ada' },
     });
 
     expect(response.statusCode).toBe(404);
@@ -359,7 +359,7 @@ describe('hold lifecycle over HTTP', () => {
     const view = (await app.inject({ method: 'GET', url: `/api/lists/${list.slug}`, headers: { cookie } })).json();
     const other = await guestOn(list);
     const retry = await app.inject({
-      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie: other }, payload: { idempotencyKey: 'idem-2' },
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie: other }, payload: { idempotencyKey: 'idem-2', name: 'Ada' },
     });
 
     expect(released.json()).toMatchObject({ status: 'released' });
@@ -442,7 +442,7 @@ describe('guest access is checked before any list is loaded', () => {
       { method: 'GET', url: `/api/lists/${list.slug}`, headers: forged },
       { method: 'GET', url: '/api/lists/no-such-list' },
       { method: 'POST', url: `/api/lists/${list.slug}/holds/some-hold/extend`, headers: forged },
-      { method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: forged, payload: { idempotencyKey: 'k' } },
+      { method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: forged, payload: { idempotencyKey: 'k', name: 'Ada' } },
     ] as const;
     const responses = await Promise.all(requests.map((request) => guarded.inject(request)));
 

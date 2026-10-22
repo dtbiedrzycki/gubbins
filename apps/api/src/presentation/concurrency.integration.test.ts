@@ -47,7 +47,7 @@ describe('concurrency on a quantity-1 item (testing spec)', () => {
 
     const responses = await Promise.all(cookies.map((cookie, i) => app.inject({
       method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`,
-      headers: { cookie }, payload: { idempotencyKey: `tap-${i}` },
+      headers: { cookie }, payload: { idempotencyKey: `tap-${i}`, name: 'Ada' },
     })));
 
     expect(responses.map((r) => r.statusCode).sort()).toEqual([201, ...Array(N - 1).fill(409)]);
@@ -59,7 +59,7 @@ describe('concurrency on a quantity-1 item (testing spec)', () => {
     const { list, cookies: [cookie] } = await listWithGuests(1);
     const submit = () => app.inject({
       method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`,
-      headers: { cookie }, payload: { idempotencyKey: 'same-tap' },
+      headers: { cookie }, payload: { idempotencyKey: 'same-tap', name: 'Ada' },
     });
 
     const [first, second] = await Promise.all([submit(), submit()]);

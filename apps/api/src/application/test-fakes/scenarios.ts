@@ -38,7 +38,7 @@ export async function twoListsWithOneItemEach(policy: HoldPolicy = DEFAULT_HOLD_
   function placeHold(access: AccessContext = GUEST, onOtherList = false) {
     taps += 1;
     const target = onOtherList ? { wishlistId: OTHER_WISHLIST_ID, itemId: OTHER_ITEM_ID } : { wishlistId: WISHLIST_ID, itemId: ITEM_ID };
-    return holdItem.execute({ ...target, idempotencyKey: `tap-${taps}` }, access);
+    return holdItem.execute({ ...target, idempotencyKey: `tap-${taps}`, name: 'Ada' }, access);
   }
 
   return { ...persistence, clock, policy, placeHold };
