@@ -20,13 +20,12 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
   const [chipInOpen, setChipInOpen] = useState(false);
   const [thanks, setThanks] = useState('');
   const chipInButton = useRef<HTMLButtonElement>(null);
-  const heading = useRef<HTMLHeadingElement>(null);
-  // Focus goes back to Chip in, or to the heading once a pledge that covered the rest has removed it.
+  // The Chip in button outlives the dialog, so focus goes back to it either way.
   const chipInClosed = useRef(false);
   useEffect(() => {
     if (chipInOpen || !chipInClosed.current) return;
     chipInClosed.current = false;
-    (chipInButton.current ?? heading.current)?.focus();
+    chipInButton.current?.focus();
   }, [chipInOpen]);
   function closeChipIn() {
     chipInClosed.current = true;
@@ -64,7 +63,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
   // the moment the guest releases or buys from "Your holds".
   return (
     <div className="space-y-4">
-      <h2 ref={heading} tabIndex={-1} className="text-lg font-semibold">{item.title}</h2>
+      <h2 className="text-lg font-semibold">{item.title}</h2>
       {item.priceMinor !== null && <p>{formatMoney(item.priceMinor)}</p>}
       {item.url && <p><a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2.5 text-blue-700 underline">View in store <span className="sr-only">for {item.title} (opens in a new tab)</span></a></p>}
       {item.type === 'single' && item.status === 'available' && item.availableUnits > 1 && <p>{item.availableUnits} left</p>}
@@ -74,9 +73,9 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
         <>
           <progress max={group.price} value={Math.min(group.pledged, group.price)} aria-label={progress!} className="h-3 w-full" />
           <p>{progress}</p>
-          {group.pledged < group.price && <button ref={chipInButton} type="button" onClick={() => { setThanks(''); setChipInOpen(true); }} className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white">
+          <button ref={chipInButton} type="button" onClick={() => { setThanks(''); setChipInOpen(true); }} className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white">
             Chip in
-          </button>}
+          </button>
         </>
       )}
       {chipInOpen && group && (
