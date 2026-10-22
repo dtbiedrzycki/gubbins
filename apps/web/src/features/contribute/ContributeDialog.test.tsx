@@ -64,6 +64,17 @@ describe('ContributeDialog', () => {
     expect(screen.getByLabelText('Amount (USD)')).toHaveValue('25.50');
   });
 
+  it('lists the steps to pay and then record the gift, naming the ways to pay', async () => {
+    const user = userEvent.setup();
+    renderDialog({ payment: { venmoHandle: null, zelleHandle: 'me@example.com' } });
+    await continueWithTheRest(user);
+    expect(screen.getAllByRole('listitem').map((step) => step.textContent)).toEqual([
+      'Check the amount, then send it with Zelle.',
+      'Once it has gone through, come back to this page.',
+      'Add your name and choose \u201cI\'ve sent it\u201d, so the list shows your gift.',
+    ]);
+  });
+
   it('on a phone, links to the Venmo app and the Venmo website, both with the amount', async () => {
     vi.stubGlobal('matchMedia', (query: string) => ({ matches: query === '(pointer: coarse)' }));
     const user = userEvent.setup();
