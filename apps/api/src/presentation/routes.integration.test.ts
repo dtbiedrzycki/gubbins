@@ -505,3 +505,49 @@ describe('POST /api/lists/:slug/items', () => {
     expect(response.json()).toMatchObject({ code: 'no_payment_method' });
   });
 });
+
+describe('POST /api/lists/:slug/items/:itemId/contributions', () => {
+  const pledge = (slug: string, itemId: string, cookie: string | undefined, payload: object = { idempotencyKey: 'idem-1', amountMinor: 2500, name: 'Ada' }) =>
+    app.inject({ method: 'POST', url: `/api/lists/${slug}/items/${itemId}/contributions`, headers: cookie ? { cookie } : {}, payload });
+
+  async function groupGift() {
+    const list = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', venmoHandle: 'my-venmo', createSecret: 'test-create-secret' } }))
+      .json() as { slug: string; ownerToken: string; key: string; itemId: string };
+    const owner = extractCookieHeader(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } }));
+    const added = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/items`, headers: { cookie: owner }, payload: { type: 'group', title: 'Pram', priceMinor: 50000 } });
+    return { list, groupId: (added.json() as { itemId: string }).itemId };
+  }
+
+  it('records a guest pledge and answers 201', async () => {
+    const { list, groupId } = await groupGift();
+    const cookie = await guestOn(list);
+
+    const response = await pledge(list.slug, groupId, cookie);
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toEqual({ contributionId: expect.any(String), itemId: groupId, amountMinor: 2500 });
+  });
+
+  it('answers the generic 404 without a session, and for another list\'s item', async () => {
+    const { list, groupId } = await groupGift();
+    const other = await createList();
+
+    const bare = await pledge(list.slug, groupId, undefined);
+    expect(bare.statusCode).toBe(404);
+    expect(bare.json()).toEqual({ message: 'Not found' });
+    expect((await pledge(list.slug, other.itemId, await guestOn(list))).statusCode).toBe(404);
+  });
+
+  it.each([0, -2500])('answers an amount of %i as an invalid request, not as too much', async (amountMinor) => {
+    const { list, groupId } = await groupGift();
+    const response = await pledge(list.slug, groupId, await guestOn(list), { idempotencyKey: 'idem-1', amountMinor, name: 'Ada' });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ message: 'Invalid request' });
+  });
+
+  it('answers 409 item_unavailable for a single item', async () => {
+    const list = await createList();
+    const response = await pledge(list.slug, list.itemId, await guestOn(list));
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({ code: 'item_unavailable' });
+  });
+});
