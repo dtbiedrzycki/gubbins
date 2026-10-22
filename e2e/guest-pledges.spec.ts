@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-test.use({ viewport: { width: 375, height: 812 } });
+test.use({ viewport: { width: 375, height: 812 }, hasTouch: true });
 
 test('a guest covers the rest of a group gift with Venmo, and the card shows it pledged', async ({ page, context }) => {
   await page.goto('/');
