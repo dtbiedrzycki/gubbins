@@ -350,7 +350,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         title: string;
-                        item: {
+                        item?: {
                             id: string;
                             title: string;
                             /** @enum {string} */

@@ -41,7 +41,7 @@ describe('path parameters', () => {
     let requested = '';
     server.use(http.get('/api/lists/:slug', ({ request }) => {
       requested = new URL(request.url).pathname;
-      return HttpResponse.json({ title: 't', item: { id: 'i', title: 'x', status: 'available' } });
+      return HttpResponse.json({ title: 't', items: [], payment: { venmoHandle: null, zelleHandle: null }, myHolds: [], capabilities: { holdDurationDays: 3 } });
     }));
 
     await api.getListView('a b/c');

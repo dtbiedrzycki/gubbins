@@ -491,7 +491,6 @@
                   },
                   "required": [
                     "title",
-                    "item",
                     "myHolds",
                     "capabilities"
                   ],
