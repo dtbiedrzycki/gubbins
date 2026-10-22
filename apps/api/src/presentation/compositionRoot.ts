@@ -15,6 +15,7 @@ import { EnterOwnerToken } from '../application/use-cases/EnterOwnerToken.js';
 import { GetListView } from '../application/use-cases/GetListView.js';
 import { AddItem } from '../application/use-cases/AddItem.js';
 import { HoldItem } from '../application/use-cases/HoldItem.js';
+import { PledgeContribution } from '../application/use-cases/PledgeContribution.js';
 import { ExtendHold } from '../application/use-cases/ExtendHold.js';
 import { ReleaseHold } from '../application/use-cases/ReleaseHold.js';
 import { MarkHoldPurchased } from '../application/use-cases/MarkHoldPurchased.js';
@@ -39,6 +40,7 @@ export interface AppDependencies {
   getListView: GetListView;
   addItem: AddItem;
   holdItem: HoldItem;
+  pledgeContribution: PledgeContribution;
   extendHold: ExtendHold;
   releaseHold: ReleaseHold;
   markHoldPurchased: MarkHoldPurchased;
@@ -65,6 +67,7 @@ export function buildDependencies(db: Kysely<Database>, logger: Logger = new Con
     getListView: new GetListView(unitOfWork, clock, holdPolicy),
     addItem: new AddItem(unitOfWork, tokenGenerator, clock),
     holdItem: new HoldItem(unitOfWork, tokenGenerator, clock, hasher, holdPolicy),
+    pledgeContribution: new PledgeContribution(unitOfWork, tokenGenerator, clock),
     extendHold: new ExtendHold(unitOfWork, clock, holdPolicy),
     releaseHold: new ReleaseHold(unitOfWork, clock),
     markHoldPurchased: new MarkHoldPurchased(unitOfWork, clock),

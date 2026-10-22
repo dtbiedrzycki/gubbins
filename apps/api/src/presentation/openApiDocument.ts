@@ -19,6 +19,7 @@ const noDependencies: AppDependencies = {
   getListView: unusedDependency('getListView'),
   addItem: unusedDependency('addItem'),
   holdItem: unusedDependency('holdItem'),
+  pledgeContribution: unusedDependency('pledgeContribution'),
   extendHold: unusedDependency('extendHold'),
   releaseHold: unusedDependency('releaseHold'),
   markHoldPurchased: unusedDependency('markHoldPurchased'),
