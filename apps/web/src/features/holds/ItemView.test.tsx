@@ -184,6 +184,32 @@ describe('ItemView', () => {
     expect(progress).toHaveAttribute('value', String(value));
   });
 
+  it('offers no Chip in once a group gift is fully pledged', () => {
+    renderItem({ type: 'group', priceMinor: 45000, pledgedMinor: 45000, availableUnits: 0 });
+    expect(screen.queryByRole('button', { name: 'Chip in' })).not.toBeInTheDocument();
+  });
+
+  it('hands focus to the item heading when a pledge covers the rest and the Chip in button goes', async () => {
+    server.use(mock('post', '/api/lists/{slug}/items/{itemId}/contributions', 201, { contributionId: 'c-1', itemId: 'item-1', amountMinor: 28750 }));
+    const user = userEvent.setup();
+    const ui = (pledgedMinor: number) => (
+      <QueryClientProvider client={new QueryClient()}>
+        <ItemView slug="abc123" holdDurationDays={3} item={single({ type: 'group', priceMinor: 45000, pledgedMinor, availableUnits: 0 })} payment={payment} />
+      </QueryClientProvider>
+    );
+    const { rerender } = render(ui(16250));
+
+    await user.click(screen.getByRole('button', { name: 'Chip in' }));
+    await user.click(screen.getByLabelText('Cover the rest ($287.50)'));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    // The refetched list lands before the pledge settles.
+    rerender(ui(45000));
+    await user.click(screen.getByRole('button', { name: "I've sent it" }));
+
+    await vi.waitFor(() => expect(screen.getByRole('heading', { name: 'Stroller' })).toHaveFocus());
+  });
+
   it('lets a guest chip in toward a group gift, thanks them, and hands focus back', async () => {
     server.use(mock('post', '/api/lists/{slug}/items/{itemId}/contributions', 201, { contributionId: 'c-1', itemId: 'item-1', amountMinor: 28750 }));
     const user = userEvent.setup();
