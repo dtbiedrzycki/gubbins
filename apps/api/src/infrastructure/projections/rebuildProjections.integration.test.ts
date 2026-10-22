@@ -124,6 +124,8 @@ describe('rebuildProjections', () => {
     await db.insertInto('guest_pii').values({ id: piiRef, name: 'Guest', message: null, redacted_at: null, created_at: clock.now().toISOString() }).execute();
     const row = await db.selectFrom('event_log').select(['id', 'payload']).executeTakeFirstOrThrow();
     await db.updateTable('event_log').set({ payload: JSON.stringify({ ...JSON.parse(row.payload), piiRef }) }).where('id', '=', row.id).execute();
+    // Nothing references this row, so only the snapshot, not a foreign key, would notice a rebuild dropping it.
+    await db.insertInto('guest_pii').values({ id: '00000000-0000-7000-8000-00000000dddd', name: 'Unreferenced', message: null, redacted_at: null, created_at: clock.now().toISOString() }).execute();
     const piiBefore = await db.selectFrom('guest_pii').selectAll().execute();
 
     await rebuildProjections(db);
@@ -143,7 +145,6 @@ describe('rebuildProjections', () => {
       id: '00000000-0000-7000-8000-00000000cccc', item_id: itemId, amount_minor: 2500, session_hash: 'a'.repeat(64),
       idempotency_key: 'pledge-1', pii_ref: piiRef, pledged_at: pledgedAt,
     };
-    await db.insertInto('contributions').values({ ...contribution, created_at: pledgedAt }).execute();
     await db.insertInto('event_log').values({
       item_id: itemId, seq: seq + 1, event_type: 'ContributionPledged', actor: 'guest', recorded_at: pledgedAt,
       payload: JSON.stringify({
@@ -152,7 +153,6 @@ describe('rebuildProjections', () => {
       }),
     }).execute();
     const piiBefore = await db.selectFrom('guest_pii').selectAll().execute();
-    await db.deleteFrom('contributions').execute();
 
     await rebuildProjections(db);
 
