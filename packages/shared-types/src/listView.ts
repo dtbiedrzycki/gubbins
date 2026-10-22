@@ -12,6 +12,8 @@ export const listItemSchema = z.object({
   availableUnits: z.number().int().nonnegative(),
   url: z.string().nullable(),
   priceMinor: z.number().int().nullable(),
+  /** Total pledged toward a group gift; null for a single. */
+  pledgedMinor: z.number().int().nonnegative().nullable(),
 });
 
 export const listViewResponseSchema = z.object({

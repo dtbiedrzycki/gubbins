@@ -15,7 +15,7 @@ const hold: HoldView = {
 const view = (held: boolean): ListViewResponse => ({
   title: 'Baby Shower',
   item: { id: 'item-1', title: 'Stroller', status: held ? 'held' : 'available' },
-  items: [{ id: 'item-1', title: 'Stroller', type: 'single', status: held ? 'held' : 'available', availableUnits: held ? 0 : 1, url: null, priceMinor: null }],
+  items: [{ id: 'item-1', title: 'Stroller', type: 'single', status: held ? 'held' : 'available', availableUnits: held ? 0 : 1, url: null, priceMinor: null, pledgedMinor: null }],
   myHolds: held ? [hold] : [],
   capabilities: { holdDurationDays: 3 },
 });
@@ -37,7 +37,7 @@ describe('ListPage', () => {
     ...view(false),
     items: [
       ...view(false).items!,
-      { id: 'item-2', title: 'Cot', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null },
+      { id: 'item-2', title: 'Cot', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null, pledgedMinor: null },
     ],
     myHolds: [{ ...hold, itemId: 'item-2' }],
   };
