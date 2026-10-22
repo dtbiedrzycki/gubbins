@@ -62,6 +62,17 @@ export interface GuestPiiTable {
   created_at: string;
 }
 
+export interface ContributionsTable {
+  id: string;
+  item_id: string;
+  amount_minor: number;
+  session_hash: string;
+  idempotency_key: string;
+  pii_ref: string;
+  pledged_at: string;
+  created_at: string;
+}
+
 export interface Database {
   wishlists: WishlistsTable;
   items: ItemsTable;
@@ -69,4 +80,5 @@ export interface Database {
   holds: HoldsTable;
   event_log: EventLogTable;
   guest_pii: GuestPiiTable;
+  contributions: ContributionsTable;
 }

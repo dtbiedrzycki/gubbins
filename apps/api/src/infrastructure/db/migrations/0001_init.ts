@@ -86,4 +86,20 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn('redacted_at', 'text')
     .addColumn('created_at', 'text', (col) => col.notNull())
     .execute();
+
+  // A pledge toward a group gift. The running total is summed from these rows, never stored.
+  // The amount CHECK is a backstop: the domain already refuses a pledge of zero or less.
+  await schema.createTable('contributions').ifNotExists()
+    .addColumn('id', 'text', (col) => col.primaryKey())
+    .addColumn('item_id', 'text', (col) => col.notNull().references('items.id'))
+    .addColumn('amount_minor', 'integer', (col) => col.notNull().check(sql`amount_minor > 0`))
+    .addColumn('session_hash', 'text', (col) => col.notNull())
+    .addColumn('idempotency_key', 'text', (col) => col.notNull())
+    .addColumn('pii_ref', 'text', (col) => col.notNull().references('guest_pii.id'))
+    .addColumn('pledged_at', 'text', (col) => col.notNull())
+    .addColumn('created_at', 'text', (col) => col.notNull())
+    .addUniqueConstraint('contributions_item_idempotency_key_unique', ['item_id', 'idempotency_key'])
+    .execute();
+
+  await schema.createIndex('contributions_item_id_idx').ifNotExists().on('contributions').column('item_id').execute();
 }

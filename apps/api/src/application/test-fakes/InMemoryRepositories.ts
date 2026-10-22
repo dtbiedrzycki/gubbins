@@ -1,9 +1,11 @@
+import { Contribution } from '../../domain/entities/Contribution.js';
 import { Hold } from '../../domain/entities/Hold.js';
 import { Item } from '../../domain/entities/Item.js';
 import { Wishlist } from '../../domain/entities/Wishlist.js';
 import type { Actor } from '../../domain/Actor.js';
 import type { LedgerEvent } from '../../domain/events/LedgerEvent.js';
 import { ConcurrencyError, ItemNotFoundError, WishlistNotFoundError } from '../../domain/errors.js';
+import type { ContributionRepository } from '../ports/ContributionRepository.js';
 import type { EventStore } from '../ports/EventStore.js';
 import type { HoldRepository } from '../ports/HoldRepository.js';
 import type { GuestPiiRecord, GuestPiiRepository } from '../ports/GuestPiiRepository.js';
@@ -43,6 +45,7 @@ export class InMemoryStore {
   /** Item rows. */
   readonly items = new Map<string, Item>();
   readonly holds = new Map<string, Hold>();
+  readonly contributions = new Map<string, Contribution>();
   readonly guestPii = new Map<string, GuestPiiRecord>();
   readonly streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
 
@@ -169,6 +172,32 @@ export class InMemoryGuestPiiRepository implements GuestPiiRepository {
   async findById(id: string): Promise<GuestPiiRecord | null> {
     const record = this.store.guestPii.get(id);
     return record ? { ...record } : null;
+  }
+}
+
+export class InMemoryContributionRepository implements ContributionRepository {
+  constructor(private store: InMemoryStore) {}
+
+  /** Mirrors the table's primary key and UNIQUE (item_id, idempotency_key). */
+  async insert(c: Contribution): Promise<void> {
+    const clash = this.store.contributions.has(c.id.value) || [...this.store.contributions.values()].some(
+      (o) => o.itemId.value === c.itemId.value && o.idempotencyKey.value === c.idempotencyKey.value,
+    );
+    if (clash) throw new Error(`UNIQUE constraint failed: contributions (${c.id.value})`);
+    this.store.contributions.set(c.id.value, c); // immutable, so sharing the instance is safe
+  }
+
+  async findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<Contribution | null> {
+    return [...this.store.contributions.values()].find((c) => c.itemId.value === itemId && c.idempotencyKey.value === idempotencyKey) ?? null;
+  }
+
+  async pledgedTotals(wishlistId: string): Promise<Map<string, number>> {
+    const totals = new Map<string, number>();
+    for (const c of this.store.contributions.values()) {
+      if (this.store.items.get(c.itemId.value)?.wishlistId.value !== wishlistId) continue;
+      totals.set(c.itemId.value, (totals.get(c.itemId.value) ?? 0) + c.amount.amountMinor);
+    }
+    return totals;
   }
 }
 
