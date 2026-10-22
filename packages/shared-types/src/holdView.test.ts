@@ -24,7 +24,7 @@ describe('holdViewSchema', () => {
 describe('listViewResponseSchema', () => {
   const listItem = { id: 'i', title: 'x', type: 'single', status: 'held', availableUnits: 0, url: null, priceMinor: null, pledgedMinor: null };
   const list = {
-    title: 't', item: { id: 'i', title: 'x', status: 'held' }, items: [listItem], payment: { venmoHandle: null, zelleHandle: 'a@b.co' },
+    title: 't', items: [listItem], payment: { venmoHandle: null, zelleHandle: 'a@b.co' },
     myHolds: [view], capabilities: { holdDurationDays: 3 },
   };
 
@@ -33,7 +33,12 @@ describe('listViewResponseSchema', () => {
   });
 
   it('requires myHolds and capabilities', () => {
-    expect(listViewResponseSchema.safeParse({ title: 't', item: list.item }).success).toBe(false);
+    expect(listViewResponseSchema.safeParse({ title: 't', items: [], payment: list.payment }).success).toBe(false);
+  });
+
+  it('requires items and payment', () => {
+    expect(listViewResponseSchema.safeParse({ ...list, items: undefined }).success).toBe(false);
+    expect(listViewResponseSchema.safeParse({ ...list, payment: undefined }).success).toBe(false);
   });
 
   it('requires both payment handles, with null for one that is unset', () => {

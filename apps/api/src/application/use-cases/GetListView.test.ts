@@ -66,7 +66,6 @@ describe('GetListView', () => {
 
     expect(await view()).toEqual({
       title: 'Baby Shower',
-      item: { id: ITEM_ID, title: 'Stroller', status: 'available' },
       items: [{ id: ITEM_ID, title: 'Stroller', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null, pledgedMinor: null }],
       payment: { venmoHandle: null, zelleHandle: null },
       myHolds: [],
@@ -81,9 +80,9 @@ describe('GetListView', () => {
     const mine = await view(GUEST);
     const theirs = await view(OTHER_GUEST);
 
-    expect(mine.item.status).toBe('held');
+    expect(mine.items[0].status).toBe('held');
     expect(mine.myHolds).toEqual([placed]);
-    expect(theirs.item.status).toBe('held');
+    expect(theirs.items[0].status).toBe('held');
     expect(theirs.myHolds).toEqual([]);
   });
 
@@ -94,7 +93,7 @@ describe('GetListView', () => {
 
     const shown = await view();
 
-    expect(shown.item.status).toBe('available');
+    expect(shown.items[0].status).toBe('available');
     expect(shown.myHolds).toMatchObject([{ status: 'expired', actions: { extend: false, release: false, purchase: true } }]);
   });
 
@@ -108,7 +107,7 @@ describe('GetListView', () => {
 
     const shown = await view();
 
-    expect(shown.item.status).toBe('purchased');
+    expect(shown.items[0].status).toBe('purchased');
     expect(shown.myHolds.map((h) => [h.holdId, h.status])).toEqual([[bought.holdId, 'purchased']]);
   });
 

@@ -18,16 +18,9 @@ export const listItemSchema = z.object({
 
 export const listViewResponseSchema = z.object({
   title: z.string(),
-  /** @deprecated Read `items`. */
-  item: z.object({
-    id: z.string(),
-    title: z.string(),
-    status: itemStatusSchema,
-  }).optional(),
-  // shortcut: optional until the web reads them; make both required once every client sends them.
-  items: z.array(listItemSchema).optional(),
+  items: z.array(listItemSchema),
   /** How guests pay for a group gift. */
-  payment: z.object({ venmoHandle: z.string().nullable(), zelleHandle: z.string().nullable() }).optional(),
+  payment: z.object({ venmoHandle: z.string().nullable(), zelleHandle: z.string().nullable() }),
   /** This session's holds on the list, oldest expiry first. Released holds are left out. */
   myHolds: z.array(holdViewSchema),
   /** What this server does for guests (ops: capability flags). */

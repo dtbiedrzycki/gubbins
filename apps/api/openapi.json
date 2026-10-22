@@ -310,31 +310,6 @@
                     "title": {
                       "type": "string"
                     },
-                    "item": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "title": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string",
-                          "enum": [
-                            "available",
-                            "held",
-                            "purchased"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "title",
-                        "status"
-                      ],
-                      "additionalProperties": false
-                    },
                     "items": {
                       "type": "array",
                       "items": {
@@ -491,6 +466,8 @@
                   },
                   "required": [
                     "title",
+                    "items",
+                    "payment",
                     "myHolds",
                     "capabilities"
                   ],

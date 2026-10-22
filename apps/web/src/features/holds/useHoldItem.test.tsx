@@ -41,12 +41,12 @@ describe('useHoldItem', () => {
       mock('post', '/api/lists/{slug}/items/{itemId}/hold', 409, { message: 'Item already held' }),
     );
     const { result } = renderListAndHold();
-    await waitFor(() => expect(result.current.view.data?.items?.[0]?.status).toBe('available'));
+    await waitFor(() => expect(result.current.view.data?.items[0].status).toBe('available'));
 
     result.current.hold.mutate({ idempotencyKey: 'key-1', name: 'Ada' });
 
     await waitFor(() => expect(result.current.hold.isError).toBe(true));
-    expect(result.current.view.data?.items?.[0]?.status).toBe('held');
+    expect(result.current.view.data?.items[0].status).toBe('held');
   });
 
   it('stays pending until the refetched list view has landed', async () => {
@@ -67,7 +67,7 @@ describe('useHoldItem', () => {
       }),
     );
     const { result } = renderListAndHold();
-    await waitFor(() => expect(result.current.view.data?.items?.[0]?.status).toBe('available'));
+    await waitFor(() => expect(result.current.view.data?.items[0].status).toBe('available'));
 
     result.current.hold.mutate({ idempotencyKey: 'key-1', name: 'Ada' });
 
@@ -78,6 +78,6 @@ describe('useHoldItem', () => {
     releaseRefetch();
 
     await waitFor(() => expect(result.current.hold.isSuccess).toBe(true));
-    expect(result.current.view.data?.items?.[0]?.status).toBe('held');
+    expect(result.current.view.data?.items[0].status).toBe('held');
   });
 });
