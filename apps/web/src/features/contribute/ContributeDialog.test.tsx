@@ -79,8 +79,8 @@ describe('ContributeDialog', () => {
     vi.stubGlobal('matchMedia', (query: string) => ({ matches: query === '(pointer: coarse)' }));
     const user = userEvent.setup();
     renderDialog();
+    vi.unstubAllGlobals(); // the dialog reads it once, on mount
     await continueWithTheRest(user);
-    vi.unstubAllGlobals();
     expect(screen.getByRole('link', { name: 'Pay $287.50 with Venmo' })).toHaveAttribute('href', 'venmo://paycharge?txn=pay&recipients=my-venmo&amount=287.50&note=Stand%20mixer');
     expect(screen.getByRole('link', { name: 'Venmo website' })).toHaveAttribute('href', 'https://venmo.com/my-venmo?txn=pay&amount=287.50&note=Stand%20mixer');
   });
