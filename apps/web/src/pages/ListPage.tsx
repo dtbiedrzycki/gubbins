@@ -64,6 +64,7 @@ export default function ListPage() {
                 slug={slug}
                 item={item}
                 holdDurationDays={query.data.capabilities.holdDurationDays}
+                payment={query.data.payment}
                 // The Hold button has gone; the new hold's actions are under Your holds.
                 focusElsewhere={() => document.getElementById('your-holds-heading')?.focus()}
               />

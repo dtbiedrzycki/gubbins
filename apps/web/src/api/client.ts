@@ -1,7 +1,7 @@
 import createClient from 'openapi-fetch';
 import type {
   AddItemRequest, AddItemResponse, CreateListRequest, CreateListResponse, EnterGuestKeyRequest, EnterGuestKeyResponse,
-  HoldItemRequest, HoldItemResponse, HoldView, ListViewResponse, OwnerSessionRequest, OwnerSessionResponse,
+  HoldItemRequest, HoldItemResponse, HoldView, ListViewResponse, OwnerSessionRequest, OwnerSessionResponse, PledgeRequest, PledgeResponse,
 } from '@gubbins/shared-types';
 import type { paths } from './schema.gen';
 
@@ -73,6 +73,9 @@ export const api = {
 
   holdItem: (slug: string, itemId: string, input: HoldItemRequest): Promise<HoldItemResponse> =>
     http.POST('/api/lists/{slug}/items/{itemId}/hold', { params: { path: { slug, itemId } }, body: input }).then(unwrap),
+
+  pledgeContribution: (slug: string, itemId: string, input: PledgeRequest): Promise<PledgeResponse> =>
+    http.POST('/api/lists/{slug}/items/{itemId}/contributions', { params: { path: { slug, itemId } }, body: input }).then(unwrap),
 
   // No body: the session cookie is the credential for now. openapi-fetch
   // sets no Content-Type when there is no body, which Fastify requires.
