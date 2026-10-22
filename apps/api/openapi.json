@@ -687,7 +687,8 @@
                   }
                 },
                 "required": [
-                  "idempotencyKey"
+                  "idempotencyKey",
+                  "name"
                 ]
               }
             }

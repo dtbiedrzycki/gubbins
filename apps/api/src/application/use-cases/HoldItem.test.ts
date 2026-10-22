@@ -25,7 +25,7 @@ async function makeUseCase(policy: HoldPolicy = DEFAULT_HOLD_POLICY) {
   return { useCase, ...persistence };
 }
 
-const input = (idempotencyKey = 'idem-1') => ({ wishlistId: WISHLIST_ID, itemId: ITEM_ID, idempotencyKey });
+const input = (idempotencyKey = 'idem-1') => ({ wishlistId: WISHLIST_ID, itemId: ITEM_ID, idempotencyKey, name: 'Ada' });
 
 describe('HoldItem', () => {
   it('holds an available item for the configured duration and returns its view', async () => {
@@ -39,7 +39,7 @@ describe('HoldItem', () => {
 
   it('stores the holder\'s details and references them from the hold and the event', async () => {
     const { useCase, store, holds, eventStore } = await makeUseCase();
-    await useCase.execute({ ...input(), name: 'Ada', message: 'Congrats' }, GUEST);
+    await useCase.execute({ ...input(), message: 'Congrats' }, GUEST);
 
     const rows = [...store.guestPii.values()];
     expect(rows).toEqual([{ id: expect.any(String), name: 'Ada', message: 'Congrats' }]);
@@ -47,16 +47,10 @@ describe('HoldItem', () => {
     expect(eventStore.recorded(ITEM_ID)[0]!.event).toMatchObject({ piiRef: rows[0]!.id });
   });
 
-  it('stores no details when no name is given', async () => {
-    const { useCase, store } = await makeUseCase();
-    await useCase.execute(input(), GUEST);
-    expect(store.guestPii.size).toBe(0);
-  });
-
   it('inserts no second details row for a replayed key', async () => {
     const { useCase, store } = await makeUseCase();
-    await useCase.execute({ ...input(), name: 'Ada' }, GUEST);
-    await useCase.execute({ ...input(), name: 'Ada' }, GUEST);
+    await useCase.execute(input(), GUEST);
+    await useCase.execute(input(), GUEST);
     expect(store.guestPii.size).toBe(1);
   });
 
