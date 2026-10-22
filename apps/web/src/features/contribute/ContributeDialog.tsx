@@ -39,7 +39,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState('');
-  // A computer has no app to open a venmo:// link, so it gets the website instead.
+  // A computer has no app to open a venmo:// link, so it gets the website instead. jsdom has no matchMedia.
   const [onPhone] = useState(() => window.matchMedia?.('(pointer: coarse)').matches ?? false);
   const queryClient = useQueryClient();
   const { mutate, isPending, isIdle, error } = useMutation({
