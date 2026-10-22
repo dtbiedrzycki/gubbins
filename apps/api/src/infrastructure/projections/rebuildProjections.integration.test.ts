@@ -124,11 +124,41 @@ describe('rebuildProjections', () => {
     await db.insertInto('guest_pii').values({ id: piiRef, name: 'Guest', message: null, redacted_at: null, created_at: clock.now().toISOString() }).execute();
     const row = await db.selectFrom('event_log').select(['id', 'payload']).executeTakeFirstOrThrow();
     await db.updateTable('event_log').set({ payload: JSON.stringify({ ...JSON.parse(row.payload), piiRef }) }).where('id', '=', row.id).execute();
+    // Nothing references this row, so only the snapshot, not a foreign key, would notice a rebuild dropping it.
+    await db.insertInto('guest_pii').values({ id: '00000000-0000-7000-8000-00000000dddd', name: 'Unreferenced', message: null, redacted_at: null, created_at: clock.now().toISOString() }).execute();
     const piiBefore = await db.selectFrom('guest_pii').selectAll().execute();
 
     await rebuildProjections(db);
 
     expect(await db.selectFrom('holds').select('pii_ref').where('id', '=', placed.holdId).executeTakeFirstOrThrow()).toEqual({ pii_ref: piiRef });
+    expect(await db.selectFrom('guest_pii').selectAll().execute()).toEqual(piiBefore);
+  });
+
+  it('re-folds a pledged contribution from the ledger and leaves guest_pii untouched', async () => {
+    const { hold } = await newList();
+    await hold(GUEST, 'k');
+    const { item_id: itemId, seq } = await db.selectFrom('event_log').select(['item_id', 'seq']).executeTakeFirstOrThrow();
+    const piiRef = '00000000-0000-7000-8000-00000000bbbb';
+    const pledgedAt = '2026-01-02T03:04:05.000Z';
+    await db.insertInto('guest_pii').values({ id: piiRef, name: 'Guest', message: null, redacted_at: null, created_at: pledgedAt }).execute();
+    const contribution = {
+      id: '00000000-0000-7000-8000-00000000cccc', item_id: itemId, amount_minor: 2500, session_hash: 'a'.repeat(64),
+      idempotency_key: 'pledge-1', pii_ref: piiRef, pledged_at: pledgedAt,
+    };
+    await db.insertInto('event_log').values({
+      item_id: itemId, seq: seq + 1, event_type: 'ContributionPledged', actor: 'guest', recorded_at: pledgedAt,
+      payload: JSON.stringify({
+        type: 'ContributionPledged', v: 1, itemId, contributionId: contribution.id, amountMinor: 2500,
+        sessionHash: contribution.session_hash, idempotencyKey: 'pledge-1', piiRef, occurredAt: pledgedAt,
+      }),
+    }).execute();
+    const piiBefore = await db.selectFrom('guest_pii').selectAll().execute();
+
+    await rebuildProjections(db);
+
+    const refolded = await db.selectFrom('contributions')
+      .select(['id', 'item_id', 'amount_minor', 'session_hash', 'idempotency_key', 'pii_ref', 'pledged_at']).executeTakeFirstOrThrow();
+    expect(refolded).toEqual(contribution);
     expect(await db.selectFrom('guest_pii').selectAll().execute()).toEqual(piiBefore);
   });
 
