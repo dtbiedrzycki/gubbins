@@ -185,7 +185,7 @@ describe('ItemView', () => {
     expect(progress).toHaveAttribute('value', String(value));
   });
 
-  it('does not round a nearly funded group gift up to 100%', () => {
+  it('shows 99%, not 100%, for a group gift 99.5% pledged', () => {
     renderItem({ type: 'group', priceMinor: 100000, pledgedMinor: 99500, availableUnits: 0 });
     expect(screen.getByRole('progressbar', { name: '$995.00 of $1,000.00 pledged · 99%' })).toBeInTheDocument();
   });
