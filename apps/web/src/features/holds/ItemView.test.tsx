@@ -176,6 +176,7 @@ describe('ItemView', () => {
 
   it.each([
     [16250, 16250, '$162.50 of $450.00 pledged · 36%'],
+    [13050, 13050, '$130.50 of $450.00 pledged · 29%'],
     [52000, 45000, '$520.00 of $450.00 pledged · 115%'],
   ])('shows a group gift pledged %i toward its price as progress', (pledgedMinor, value, label) => {
     renderItem({ type: 'group', priceMinor: 45000, pledgedMinor, availableUnits: 0 });
