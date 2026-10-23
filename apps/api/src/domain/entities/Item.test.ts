@@ -43,7 +43,7 @@ describe('Item.createSingle', () => {
 describe('Item kinds, URL and price', () => {
   const ID = ITEM_ID;
   const WL = WISHLIST_ID;
-  it.each(['javascript:alert(1)', 'http://shop.example/x', 'data:text/html,hi', 'shop.example'])('refuses a store URL that is not a short https URL (%j)', (url) => {
+  it.each(['javascript:alert(1)', 'http://shop.example/x', 'data:text/html,hi', 'shop.example'])('refuses a store URL that is not an https URL (%j)', (url) => {
     expect(() => Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'T', url })).toThrow(DomainValidationError);
   });
   it('accepts a store URL of 2048 characters and refuses 2049', () => {
