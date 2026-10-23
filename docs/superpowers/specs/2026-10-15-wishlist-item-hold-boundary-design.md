@@ -32,7 +32,8 @@ boundary should be drawn around that data.
 
 ## Non-goals
 
-- No schema change or migration.
+- No new migration or table change. #83 drops an unused index from the
+  initial migration, which is edited in place until release.
 - Commands keep returning their ledger events. Collecting events on
   entities stays rejected.
 - Event streams stay per item (ADR-0008), with seq-based concurrency
@@ -53,8 +54,8 @@ Wishlist (root)   authorizes: getItem, findHold; rules that span items
 ```
 
 - `Item` owns `holds` and `contributions` and derives its counts from
-  them. `availableUnits()` and `statusGiven()` lose their count
-  arguments.
+  them. `availableUnits()` loses its count arguments, and
+  `statusGiven(...)` becomes `status()`.
 - `Item` gets the aggregate's `asOf` when it is built or loaded, never
   per call, so commands and queries still take no date. `Hold.statusAt`
   is called with that instant.
