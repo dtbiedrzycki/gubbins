@@ -124,6 +124,11 @@ export class Wishlist {
     return this._items;
   }
 
+  /** The holds it loaded, plus any placed or purchased through it since: every hold its commands changed. */
+  get holds(): readonly Hold[] {
+    return this._holds;
+  }
+
   /**
    * Resolves `itemId` to the Item this wishlist owns, or throws
    * ItemNotFoundError — the aggregate's authorization step for items.

@@ -69,7 +69,6 @@ export class HoldItem {
       await ctx.eventStore.append(item.id.value, expectedSeq, [event], 'guest');
       // The hold's pii_ref foreign key needs this row to exist first.
       await ctx.guestPii.insert(piiRef, details);
-      await ctx.holds.insert(hold);
       // Persist exactly what the domain decided — the write path never
       // decides availability itself.
       await ctx.wishlists.save(wishlist);

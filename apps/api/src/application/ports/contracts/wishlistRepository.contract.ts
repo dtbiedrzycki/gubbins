@@ -3,7 +3,7 @@ import { Wishlist } from '../../../domain/entities/Wishlist.js';
 import { PaymentMethods } from '../../../domain/value-objects/PaymentMethods.js';
 import { WishlistNotFoundError } from '../../../domain/errors.js';
 import {
-  ITEM_A, ITEM_B, LIST_A, NOW,
+  ITEM_A, ITEM_B, LIST_A, NOW, SESSION,
   holdFixture, later, seedTwoLists, type PersistenceFactory, type PersistenceFixture,
 } from './fixture.js';
 
@@ -82,33 +82,70 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect((await fx.wishlists.findById(LIST_A, NOW))?.items[0]?.seq).toBe(2);
     });
 
-    it('counts the purchased holds it loads: a saved purchase counts', async () => {
-      const hold = holdFixture();
-      await fx.holds.insert(hold);
-      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
-      const loaded = wishlist.findHold(hold.id.value)!;
-      wishlist.purchaseHold(loaded);
-      await fx.holds.save(loaded);
-
-      const reloaded = await fx.wishlists.findById(LIST_A, NOW);
-
-      expect(reloaded?.purchasedCountOf(ITEM_A)).toBe(1);
-      expect(reloaded?.itemStatus(ITEM_A)).toBe('purchased');
-    });
-
-    it('an unsaved purchase does not count: save persists the items, not the holds', async () => {
+    it('save persists a purchase, the hold and the item\'s seq together, so it counts on the next load', async () => {
       const hold = holdFixture();
       await fx.holds.insert(hold);
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
       wishlist.purchaseHold(wishlist.findHold(hold.id.value)!);
-      expect(wishlist.purchasedCountOf(ITEM_A)).toBe(1);
 
       await fx.wishlists.save(wishlist);
 
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
       expect(reloaded?.items[0]?.seq).toBe(1);
-      expect(reloaded?.purchasedCountOf(ITEM_A)).toBe(0);
-      expect(reloaded?.itemStatus(ITEM_A)).toBe('held');
+      expect(reloaded?.purchasedCountOf(ITEM_A)).toBe(1);
+      expect(reloaded?.itemStatus(ITEM_A)).toBe('purchased');
+    });
+
+    it('save persists the purchase of an expired hold, which the load left out', async () => {
+      const hold = holdFixture({ expiresAt: later(-1) });
+      await fx.holds.insert(hold);
+      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+      wishlist.purchaseHold((await fx.holds.findById(hold.id.value))!);
+
+      await fx.wishlists.save(wishlist);
+
+      expect((await fx.wishlists.findById(LIST_A, NOW))?.purchasedCountOf(ITEM_A)).toBe(1);
+    });
+
+    it('save persists an extension: the new expiry and when it was extended', async () => {
+      const hold = holdFixture();
+      await fx.holds.insert(hold);
+      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+      wishlist.extendHold(wishlist.findHold(hold.id.value)!, 30_000);
+
+      await fx.wishlists.save(wishlist);
+
+      const stored = await fx.holds.findById(hold.id.value);
+      expect(stored?.expiresAt).toEqual(later(90_000));
+      expect(stored?.extendedAt).toEqual(NOW);
+    });
+
+    it('save persists a release, so the item is available on the next load', async () => {
+      const hold = holdFixture();
+      await fx.holds.insert(hold);
+      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+      wishlist.releaseHold(wishlist.findHold(hold.id.value)!);
+
+      await fx.wishlists.save(wishlist);
+
+      expect((await fx.holds.findById(hold.id.value))?.releasedAt).toEqual(NOW);
+      expect((await fx.wishlists.findById(LIST_A, NOW))?.itemStatus(ITEM_A)).toBe('available');
+    });
+
+    it('save inserts a hold the aggregate placed', async () => {
+      const piiRef = '00000000-0000-7000-8000-888888888888';
+      await fx.seedGuestPii(piiRef);
+      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+      const { hold } = wishlist.holdItem(
+        { itemId: ITEM_A, sessionHash: SESSION, idempotencyKey: 'idem-placed', durationMs: 60_000, piiRef },
+        { generateEntityId: () => '00000000-0000-7000-8000-777777777777', generateHoldSecret: () => 'secret-placed' },
+        { hash: (value) => `hashed-${value}` },
+      );
+
+      await fx.wishlists.save(wishlist);
+
+      expect((await fx.holds.findById(hold.id.value))?.expiresAt).toEqual(later(60_000));
+      expect((await fx.wishlists.findById(LIST_A, NOW))?.itemStatus(ITEM_A)).toBe('held');
     });
 
     it('counts neither a released nor an expired hold, nor a purchase on another list', async () => {
