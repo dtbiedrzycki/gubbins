@@ -35,7 +35,8 @@ export function CreateListForm() {
           <p data-testid="owner-token" className="break-all font-mono">{data.ownerToken}</p>
         </div>
         <p>Save your owner token now: you'll need it to manage the list, and it isn't shown again.</p>
-        <a className="text-blue-600 underline" href={`/${data.slug}/manage`}>Manage your list</a>
+        {/* A new tab, so one tap cannot lose the only display of the owner token and guest key. */}
+        <a className="text-blue-600 underline" href={`/${data.slug}/manage`} target="_blank" rel="noopener noreferrer">Manage your list <span className="sr-only">(opens in a new tab)</span></a>
       </div>
     );
   }

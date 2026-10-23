@@ -69,15 +69,21 @@ describe('HoldDialog', () => {
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     expect(vi.mocked(props.onConfirm).mock.calls[1][1]).toEqual({ name: 'Amra', message: '' });
-    expect(screen.getByLabelText('Your name')).toHaveAccessibleDescription('To change your details, cancel and start again.');
+    expect(screen.getByLabelText('Your name')).toHaveAccessibleDescription('Your name is only shared with the list owner. To change your details, cancel and start again.');
     expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAccessibleDescription('To change your details, cancel and start again.');
   });
 
-  it('limits the name to 100 characters and the message to 300, and says who sees the name', () => {
+  it('limits the name to 100 characters and the message to 300', () => {
     renderDialog();
     expect(screen.getByLabelText('Your name')).toHaveAttribute('maxlength', '100');
     expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAttribute('maxlength', '300');
-    expect(screen.getByText('Your name is only shared with the list owner.')).toBeInTheDocument();
+  });
+
+  it('marks the name as required and describes it with the privacy line', () => {
+    renderDialog();
+    const name = screen.getByLabelText('Your name');
+    expect(name).toBeRequired();
+    expect(name).toHaveAccessibleDescription('Your name is only shared with the list owner.');
   });
 
   it('cannot be cancelled or escaped while the hold is in flight', () => {
