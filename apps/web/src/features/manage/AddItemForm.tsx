@@ -37,7 +37,8 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       return;
     }
     setPriceError('');
-    const common = { title: title.trim(), ...(url.trim() && { url: url.trim() }) };
+    const trimmedUrl = url.trim();
+    const common = { title: title.trim(), ...(trimmedUrl && { url: trimmedUrl }) };
     const body: AddItemRequest = type === 'group'
       ? { type, ...common, priceMinor: priceMinor! }
       : { type, ...common, quantity: Number(quantity), ...(priceMinor !== undefined && { priceMinor }) };
