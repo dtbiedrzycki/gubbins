@@ -60,4 +60,4 @@ real data.
 - [ ] The container runs behind the tunnel.
 - [ ] Create the list from a phone over HTTPS.
 - [ ] Go through the hold and pledge flows on a phone.
-- [ ] The Venmo deep link opens the app.
+- [ ] The Venmo link opens the Venmo app on a phone that has it, and the Venmo website otherwise.
