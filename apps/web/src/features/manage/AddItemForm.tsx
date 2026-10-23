@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import type { AddItemRequest } from '@gubbins/shared-types';
 import { api, ApiError } from '../../api/client';
 import { parseUsd } from '../../lib/parseUsd';
-import { lengthLimitWarning } from '../../lib/lengthLimitWarning';
+import { LengthLimitWarning } from '../../lib/LengthLimitWarning';
 
 export interface AddItemFormProps {
   slug: string;
@@ -72,7 +72,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       <div>
         <label htmlFor="item-title" className="block text-sm font-medium">Title</label>
         <input id="item-title" required maxLength={TITLE_MAX} aria-describedby="item-title-limit" value={title} onChange={(e) => setTitle(e.target.value)} className={field} />
-        <p id="item-title-limit" aria-live="polite" className="text-sm text-amber-800 empty:hidden">{lengthLimitWarning(title, TITLE_MAX)}</p>
+        <LengthLimitWarning id="item-title-limit" value={title} max={TITLE_MAX} />
       </div>
       {type === 'single' && (
         <div>
@@ -93,7 +93,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       <div>
         <label htmlFor="item-url" className="block text-sm font-medium">Store link</label>
         <input id="item-url" type="url" maxLength={URL_MAX} aria-describedby="item-url-limit" value={url} onChange={(e) => setUrl(e.target.value)} className={field} />
-        <p id="item-url-limit" aria-live="polite" className="text-sm text-amber-800 empty:hidden">{lengthLimitWarning(url, URL_MAX)}</p>
+        <LengthLimitWarning id="item-url-limit" value={url} max={URL_MAX} />
       </div>
       <p id="item-error" role="alert" className="text-red-600 empty:mb-0">{priceError || error?.message}</p>
       <p role="status" aria-live="polite" className="text-green-800 empty:mb-0">{added}</p>

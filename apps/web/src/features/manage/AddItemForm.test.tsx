@@ -67,15 +67,16 @@ describe('AddItemForm', () => {
   it.each([
     { label: 'Title', max: 120 },
     { label: 'Store link', max: 2048 },
-  ])('limits "$label" to $max characters, and once it is full warns that a paste may have been cut', async ({ label, max }) => {
+  ])('cuts a paste into "$label" at $max characters, and warns that it may have been cut', async ({ label, max }) => {
     const user = userEvent.setup();
     renderForm(<AddItemForm slug="abc123" onUnauthorized={() => {}} />);
     const input = screen.getByLabelText(label);
-    expect(input).toHaveAttribute('maxlength', String(max));
     await user.click(input);
     await user.paste('a'.repeat(max - 1));
     expect(input).not.toHaveAccessibleDescription(/cut off/);
-    await user.type(input, 'a');
+    await user.clear(input);
+    await user.paste('a'.repeat(max + 5));
+    expect(input).toHaveValue('a'.repeat(max));
     expect(input).toHaveAccessibleDescription(new RegExp(`limit of ${max} characters.*cut off`));
     expect(screen.getByText(/cut off/)).toHaveAttribute('aria-live', 'polite');
   });
