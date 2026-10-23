@@ -55,18 +55,7 @@ describe('CreateListForm', () => {
     expect(screen.getByRole('alert')).toBe(alert);
   });
 
-  it('sends the create secret with the list', async () => {
-    let body: unknown;
-    server.use(http.post('/api/lists', async ({ request }) => {
-      body = await request.json();
-      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k', itemId: 'i' } satisfies CreateListResponse, { status: 201 });
-    }));
-    await fillAndSubmit();
-    await screen.findByText('k');
-    expect(body).toMatchObject({ createSecret: 'the-secret' });
-  });
-
-  it('trims each field before sending it', async () => {
+  it('sends both titles, the create secret and both payment handles, each trimmed', async () => {
     let body: unknown;
     server.use(http.post('/api/lists', async ({ request }) => {
       body = await request.json();
@@ -84,20 +73,6 @@ describe('CreateListForm', () => {
     expect(body).toMatchObject({
       listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'the-secret', venmoHandle: '@my-venmo', zelleHandle: 'me@example.com',
     });
-  });
-
-  it('sends the Venmo and Zelle handles when filled', async () => {
-    let body: unknown;
-    server.use(http.post('/api/lists', async ({ request }) => {
-      body = await request.json();
-      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k', itemId: 'i' }, { status: 201 });
-    }));
-    await fillAndSubmit(async (user) => {
-      await user.type(screen.getByLabelText('Venmo username'), '@my-venmo');
-      await user.type(screen.getByLabelText('Zelle email or US phone'), 'me@example.com');
-    });
-    await screen.findByText('k');
-    expect(body).toMatchObject({ venmoHandle: '@my-venmo', zelleHandle: 'me@example.com' });
   });
 
   it('explains that group gifts need a handle and handles are permanent', () => {
