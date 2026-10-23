@@ -4,7 +4,7 @@ import { Item } from '../../domain/entities/Item.js';
 import { Wishlist } from '../../domain/entities/Wishlist.js';
 import type { Actor } from '../../domain/Actor.js';
 import type { LedgerEvent } from '../../domain/events/LedgerEvent.js';
-import { ConcurrencyError, ItemNotFoundError, WishlistNotFoundError } from '../../domain/errors.js';
+import { ConcurrencyError, WishlistNotFoundError } from '../../domain/errors.js';
 import type { ContributionRepository } from '../ports/ContributionRepository.js';
 import type { EventStore } from '../ports/EventStore.js';
 import type { HoldRepository } from '../ports/HoldRepository.js';
@@ -75,11 +75,6 @@ export class InMemoryWishlistRepository implements WishlistRepository {
     for (const item of wishlist.items) this.store.items.set(item.id.value, copyItem(item));
   }
 
-  async insertItem(item: Item): Promise<void> {
-    if (!this.store.wishlists.has(item.wishlistId.value)) throw new WishlistNotFoundError(item.wishlistId.value);
-    this.store.items.set(item.id.value, copyItem(item));
-  }
-
   async findBySlug(slug: string, now: Date): Promise<Wishlist | null> {
     return this.hydrate([...this.store.wishlists.values()].find((w) => w.slug.value === slug), now);
   }
@@ -88,11 +83,10 @@ export class InMemoryWishlistRepository implements WishlistRepository {
     return this.hydrate(this.store.wishlists.get(id), now);
   }
 
-  async saveItemState(item: Item): Promise<void> {
-    const stored = this.store.items.get(item.id.value);
-    if (!stored || stored.wishlistId.value !== item.wishlistId.value) throw new ItemNotFoundError(item.id.value);
-    // seq only: the purchased count is derived from holds, never stored.
-    this.store.items.set(item.id.value, copyItem(item));
+  async save(wishlist: Wishlist): Promise<void> {
+    if (!this.store.wishlists.has(wishlist.id.value)) throw new WishlistNotFoundError(wishlist.id.value);
+    // Items only: holds have their own port, and the purchased count is derived from them, never stored.
+    for (const item of wishlist.items) this.store.items.set(item.id.value, copyItem(item));
   }
 
   private hydrate(wishlist: Wishlist | undefined, now: Date): Wishlist | null {

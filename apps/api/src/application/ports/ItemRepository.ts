@@ -10,6 +10,6 @@ export interface ItemRepository {
   insert(item: Item): Promise<void>;
   /** In the order they were added. */
   findAllByWishlistId(wishlistId: string): Promise<Item[]>;
-  /** See `WishlistRepository.saveItemState`, which delegates here. */
+  /** Writes the item's `seq`; `WishlistRepository.save` calls it for each changed item. */
   saveState(item: Item): Promise<void>;
 }

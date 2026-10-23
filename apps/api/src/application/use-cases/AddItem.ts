@@ -22,7 +22,7 @@ export class AddItem {
       const wishlist = await ctx.wishlists.findById(wishlistId, this.clock.now());
       if (!wishlist) throw new WishlistNotFoundError(wishlistId);
       const item = wishlist.addItem(props, this.tokenGenerator);
-      await ctx.wishlists.insertItem(item);
+      await ctx.wishlists.save(wishlist);
       return { itemId: item.id.value };
     });
   }

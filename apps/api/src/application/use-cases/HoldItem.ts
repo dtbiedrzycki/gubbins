@@ -72,7 +72,7 @@ export class HoldItem {
       await ctx.holds.insert(hold);
       // Persist exactly what the domain decided — the write path never
       // decides availability itself.
-      await ctx.wishlists.saveItemState(item);
+      await ctx.wishlists.save(wishlist);
 
       return toHoldView(wishlist, hold);
     });
