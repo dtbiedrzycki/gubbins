@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import type { EnterGuestKeyResponse } from '@gubbins/shared-types';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -29,7 +30,7 @@ describe('GuestKeyGate', () => {
     let body: unknown;
     server.use(http.post('/api/lists/:slug/session', async ({ request }) => {
       body = await request.json();
-      return HttpResponse.json({ ok: true });
+      return HttpResponse.json({ ok: true } satisfies EnterGuestKeyResponse);
     }));
     const onSuccess = vi.fn();
     const user = userEvent.setup();

@@ -73,11 +73,21 @@ describe('HoldDialog', () => {
     expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAccessibleDescription('To change your details, cancel and start again.');
   });
 
-  it('limits the fields and says who sees the name', () => {
+  it.each([
+    { label: 'Your name', max: 100 },
+    { label: 'Message to the owner (optional)', max: 300 },
+  ])('cuts a paste into "$label" at $max characters, and warns that it may have been cut', async ({ label, max }) => {
+    const user = userEvent.setup();
     renderDialog();
-    expect(screen.getByLabelText('Your name')).toHaveAttribute('maxlength', '100');
-    expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAttribute('maxlength', '300');
-    expect(screen.getByText('Your name is only shared with the list owner.')).toBeInTheDocument();
+    const input = screen.getByLabelText(label);
+    await user.click(input);
+    await user.paste('a'.repeat(max - 1));
+    expect(input).not.toHaveAccessibleDescription(/cut off/);
+    await user.clear(input);
+    await user.paste('a'.repeat(max + 5));
+    expect(input).toHaveValue('a'.repeat(max));
+    expect(input).toHaveAccessibleDescription(new RegExp(`limit of ${max} characters.*cut off`));
+    expect(screen.getByText(/cut off/)).toHaveAttribute('aria-live', 'polite');
   });
 
   it('marks the name as required and describes it with the privacy line', () => {

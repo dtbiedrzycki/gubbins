@@ -6,6 +6,7 @@ import { listViewKey } from '../holds/useListView';
 import { formatMoney } from '../../lib/formatMoney';
 import { parseUsd } from '../../lib/parseUsd';
 import { venmoPayLink } from './paymentLinks';
+import { LengthLimitWarning, isAtLimit } from '../../lib/LengthLimitWarning';
 
 export interface ContributeDialogProps {
   slug: string;
@@ -17,6 +18,9 @@ export interface ContributeDialogProps {
   onClose: () => void;
 }
 
+/** The longest name and message the API takes. */
+const NAME_MAX = 100;
+const MESSAGE_MAX = 300;
 const invalidAmount = 'Enter an amount like 25 or 25.50.';
 const button = 'min-h-11 rounded px-4 py-2 disabled:opacity-50';
 const field = 'mb-1 min-h-11 w-full rounded border px-2';
@@ -71,8 +75,9 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
 
   function send() {
     if (amount === null || isPending) return;
+    const trimmedMessage = message.trim();
     mutate(
-      { idempotencyKey, amountMinor: amount, name: name.trim(), ...(message.trim() && { message: message.trim() }) },
+      { idempotencyKey, amountMinor: amount, name: name.trim(), ...(trimmedMessage && { message: trimmedMessage }) },
       { onSuccess: (pledge) => onPledged(pledge.amountMinor) },
     );
   }
@@ -121,9 +126,13 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           )}
           <p role="status" aria-live="polite" className="mb-4 text-sm empty:mb-0">{copied}</p>
           <label className="mb-1 block" htmlFor="contribute-name">Your name</label>
-          <input id="contribute-name" required value={name} onChange={(e) => setName(e.target.value)} maxLength={100} disabled={isPending} readOnly={sent} aria-describedby={lockedHint} className={`${field} mb-4`} />
+          <input id="contribute-name" required value={name} onChange={(e) => setName(e.target.value)} maxLength={NAME_MAX} disabled={isPending} readOnly={sent}
+            aria-describedby={[lockedHint, isAtLimit(name, NAME_MAX) && 'contribute-name-limit'].filter(Boolean).join(' ') || undefined} className={`${field} mb-4`} />
+          <LengthLimitWarning id="contribute-name-limit" value={name} max={NAME_MAX} />
           <label className="mb-1 block" htmlFor="contribute-message">Message to the owner (optional)</label>
-          <textarea id="contribute-message" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={300} disabled={isPending} readOnly={sent} aria-describedby={lockedHint} className="mb-4 w-full rounded border px-2 py-1" />
+          <textarea id="contribute-message" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={MESSAGE_MAX} disabled={isPending} readOnly={sent}
+            aria-describedby={[lockedHint, isAtLimit(message, MESSAGE_MAX) && 'contribute-message-limit'].filter(Boolean).join(' ') || undefined} className="mb-4 w-full rounded border px-2 py-1" />
+          <LengthLimitWarning id="contribute-message-limit" value={message} max={MESSAGE_MAX} />
           {sent && <p id="contribute-locked" className="mb-4 text-sm text-slate-700">To change your details, cancel and start again.</p>}
           <p role="alert" className="mb-4 text-red-600 empty:mb-0">{error?.message}</p>
           <div className="flex gap-2">
