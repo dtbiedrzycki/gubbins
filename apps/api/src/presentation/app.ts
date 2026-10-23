@@ -39,7 +39,9 @@ const withoutUnusedSchemas: typeof jsonSchemaTransformObject = (document) => {
 };
 
 export function buildApp(deps: AppDependencies, options: BuildAppOptions): FastifyInstance {
-  // Fastify's default, stated so it isn't lost: the schemas cap each text field, and this caps the whole request.
+  // The schemas cap each text field and this caps the whole request. The largest valid request is a
+  // few fields of at most 10,000 characters each, far below 1 MiB. Fastify's default is the same;
+  // it is stated here so an upgrade can't change it.
   const app = Fastify({ logger: false, bodyLimit: 1024 * 1024 });
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);

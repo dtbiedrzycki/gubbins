@@ -7,6 +7,7 @@ import type { ItemPurchasedEvent } from '../events/ItemPurchasedEvent.js';
 import { Contribution } from './Contribution.js';
 import { Hold, type HoldStatus } from './Hold.js';
 import { MAX_MONEY_MINOR, Money } from '../value-objects/Money.js';
+import { IdempotencyKey } from '../value-objects/IdempotencyKey.js';
 import { UuidId } from '../value-objects/UuidId.js';
 
 export type ItemType = 'single' | 'group';
@@ -130,11 +131,13 @@ export class Item {
   }
 
   findHoldWithKey(idempotencyKey: string): Hold | null {
-    return this._holds.find((hold) => hold.idempotencyKey.value === idempotencyKey) ?? null;
+    const key = IdempotencyKey.from(idempotencyKey).value;
+    return this._holds.find((hold) => hold.idempotencyKey.value === key) ?? null;
   }
 
   findContributionWithKey(idempotencyKey: string): Contribution | null {
-    return this._contributions.find((c) => c.idempotencyKey.value === idempotencyKey) ?? null;
+    const key = IdempotencyKey.from(idempotencyKey).value;
+    return this._contributions.find((c) => c.idempotencyKey.value === key) ?? null;
   }
 
   /** Units bought: its holds marked purchased. Derived, never stored. */

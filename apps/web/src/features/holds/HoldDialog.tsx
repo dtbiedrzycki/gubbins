@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { useHoldCredential, type HoldCredential } from './useHoldCredential';
+import { LengthLimitWarning, isAtLimit } from '../../lib/LengthLimitWarning';
+
+/** The longest name and message the API takes. */
+const NAME_MAX = 100;
+const MESSAGE_MAX = 300;
 
 export interface HoldDialogProps {
   itemTitle: string;
@@ -58,10 +63,12 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
       <p id="hold-dialog-title" className="mb-2">Hold &ldquo;{itemTitle}&rdquo; for yourself?</p>
       <p className="mb-4 text-slate-700">Held for you for {duration}.</p>
       <label className="mb-1 block" htmlFor="hold-name">Your name</label>
-      <input id="hold-name" required aria-describedby={sent ? 'hold-name-privacy hold-details-locked' : 'hold-name-privacy'} value={name} onChange={(e) => setName(e.target.value)} maxLength={100} disabled={isPending} readOnly={sent} className="mb-1 min-h-11 w-full rounded border px-2" />
+      <input id="hold-name" required aria-describedby={['hold-name-privacy', sent && 'hold-details-locked', isAtLimit(name, NAME_MAX) && 'hold-name-limit'].filter(Boolean).join(' ')} value={name} onChange={(e) => setName(e.target.value)} maxLength={NAME_MAX} disabled={isPending} readOnly={sent} className="mb-1 min-h-11 w-full rounded border px-2" />
+      <LengthLimitWarning id="hold-name-limit" value={name} max={NAME_MAX} />
       <p id="hold-name-privacy" className="mb-4 text-sm text-slate-700">Your name is only shared with the list owner.</p>
       <label className="mb-1 block" htmlFor="hold-message">Message to the owner (optional)</label>
-      <textarea id="hold-message" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={300} disabled={isPending} readOnly={sent} aria-describedby={sent ? 'hold-details-locked' : undefined} className="mb-4 w-full rounded border px-2 py-1" />
+      <textarea id="hold-message" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={MESSAGE_MAX} disabled={isPending} readOnly={sent} aria-describedby={[sent && 'hold-details-locked', isAtLimit(message, MESSAGE_MAX) && 'hold-message-limit'].filter(Boolean).join(' ') || undefined} className="mb-4 w-full rounded border px-2 py-1" />
+      <LengthLimitWarning id="hold-message-limit" value={message} max={MESSAGE_MAX} />
       {sent && <p id="hold-details-locked" className="mb-4 text-sm text-slate-700">To change your details, cancel and start again.</p>}
       <p role="alert" className="mb-4 text-red-600 empty:mb-0">{error?.message}</p>
       <div className="flex gap-2">
