@@ -100,12 +100,22 @@ describe('CreateListForm', () => {
     expect(body).toMatchObject({ venmoHandle: '@my-venmo', zelleHandle: 'me@example.com' });
   });
 
-  it('limits each field to what the list accepts', () => {
+  it.each([
+    { label: 'List title', max: 120 },
+    { label: 'First item', max: 120 },
+    { label: 'Venmo username', max: 31 },
+    { label: 'Zelle email or US phone', max: 254 },
+  ])('limits "$label" to $max characters, and once it is full warns that a paste may have been cut', async ({ label, max }) => {
+    const user = userEvent.setup();
     renderWithQueryClient(<CreateListForm />);
-    expect(screen.getByLabelText('List title')).toHaveAttribute('maxlength', '120');
-    expect(screen.getByLabelText('First item')).toHaveAttribute('maxlength', '120');
-    expect(screen.getByLabelText('Venmo username')).toHaveAttribute('maxlength', '31');
-    expect(screen.getByLabelText('Zelle email or US phone')).toHaveAttribute('maxlength', '254');
+    const input = screen.getByLabelText(label);
+    expect(input).toHaveAttribute('maxlength', String(max));
+    await user.click(input);
+    await user.paste('a'.repeat(max - 1));
+    expect(input).not.toHaveAccessibleDescription(/cut off/);
+    await user.type(input, 'a');
+    expect(input).toHaveAccessibleDescription(new RegExp(`limit of ${max} characters.*cut off`));
+    expect(screen.getByText(/cut off/)).toHaveAttribute('aria-live', 'polite');
   });
 
   it('explains that group gifts need a handle and handles are permanent', () => {

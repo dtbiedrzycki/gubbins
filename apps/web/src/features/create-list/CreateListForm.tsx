@@ -1,6 +1,13 @@
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { useCreateList } from './useCreateList';
+import { lengthLimitWarning } from '../../lib/lengthLimitWarning';
+
+const TITLE_MAX = 120;
+/** A Venmo username is at most 30 characters, plus the "@" people often type first. */
+const VENMO_MAX = 31;
+/** The longest email address there can be; the API caps the handle at the same length. */
+const ZELLE_MAX = 254;
 
 export function CreateListForm() {
   const [listTitle, setListTitle] = useState('');
@@ -8,6 +15,9 @@ export function CreateListForm() {
   const [createSecret, setCreateSecret] = useState('');
   const [venmoHandle, setVenmoHandle] = useState('');
   const [zelleHandle, setZelleHandle] = useState('');
+  // Linked only when shown, so the handles hint is read without a trailing blank.
+  const venmoWarning = lengthLimitWarning(venmoHandle, VENMO_MAX);
+  const zelleWarning = lengthLimitWarning(zelleHandle, ZELLE_MAX);
   const { mutate, data, error, isPending } = useCreateList();
 
   function handleSubmit(event: FormEvent) {
@@ -49,16 +59,18 @@ export function CreateListForm() {
       <div>
         <label htmlFor="list-title" className="block text-sm font-medium">List title</label>
         <input
-          id="list-title" required maxLength={120} value={listTitle} onChange={(e) => setListTitle(e.target.value)}
+          id="list-title" required maxLength={TITLE_MAX} aria-describedby="list-title-limit" value={listTitle} onChange={(e) => setListTitle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
+        <p id="list-title-limit" aria-live="polite" className="text-sm text-amber-800 empty:hidden">{lengthLimitWarning(listTitle, TITLE_MAX)}</p>
       </div>
       <div>
         <label htmlFor="item-title" className="block text-sm font-medium">First item</label>
         <input
-          id="item-title" required maxLength={120} value={itemTitle} onChange={(e) => setItemTitle(e.target.value)}
+          id="item-title" required maxLength={TITLE_MAX} aria-describedby="item-title-limit" value={itemTitle} onChange={(e) => setItemTitle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
+        <p id="item-title-limit" aria-live="polite" className="text-sm text-amber-800 empty:hidden">{lengthLimitWarning(itemTitle, TITLE_MAX)}</p>
       </div>
       <div>
         <label htmlFor="create-secret" className="block text-sm font-medium">Create secret</label>
@@ -70,18 +82,19 @@ export function CreateListForm() {
       </div>
       <div>
         <label htmlFor="venmo-handle" className="block text-sm font-medium">Venmo username</label>
-        {/* A Venmo username is at most 30 characters, plus the "@" people often type first. */}
         <input
-          id="venmo-handle" aria-describedby="handles-hint" maxLength={31} value={venmoHandle} onChange={(e) => setVenmoHandle(e.target.value)}
+          id="venmo-handle" aria-describedby={venmoWarning ? 'handles-hint venmo-handle-limit' : 'handles-hint'} maxLength={VENMO_MAX} value={venmoHandle} onChange={(e) => setVenmoHandle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
+        <p id="venmo-handle-limit" aria-live="polite" className="text-sm text-amber-800 empty:hidden">{venmoWarning}</p>
       </div>
       <div>
         <label htmlFor="zelle-handle" className="block text-sm font-medium">Zelle email or US phone</label>
         <input
-          id="zelle-handle" aria-describedby="handles-hint" maxLength={254} value={zelleHandle} onChange={(e) => setZelleHandle(e.target.value)}
+          id="zelle-handle" aria-describedby={zelleWarning ? 'handles-hint zelle-handle-limit' : 'handles-hint'} maxLength={ZELLE_MAX} value={zelleHandle} onChange={(e) => setZelleHandle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
+        <p id="zelle-handle-limit" aria-live="polite" className="text-sm text-amber-800 empty:hidden">{zelleWarning}</p>
       </div>
       <p id="handles-hint" className="text-sm text-gray-600">Group gifts need at least one handle. Handles can't be changed later.</p>
       <p role="alert" className="text-red-600 empty:mb-0">{error?.message}</p>

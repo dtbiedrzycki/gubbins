@@ -64,10 +64,20 @@ describe('AddItemForm', () => {
     await waitFor(() => expect(body).toMatchObject({ title: 'Crib', url: 'https://shop.example/crib' }));
   });
 
-  it('limits the title and store link to what an item accepts', () => {
+  it.each([
+    { label: 'Title', max: 120 },
+    { label: 'Store link', max: 2048 },
+  ])('limits "$label" to $max characters, and once it is full warns that a paste may have been cut', async ({ label, max }) => {
+    const user = userEvent.setup();
     renderForm(<AddItemForm slug="abc123" onUnauthorized={() => {}} />);
-    expect(screen.getByLabelText('Title')).toHaveAttribute('maxlength', '120');
-    expect(screen.getByLabelText('Store link')).toHaveAttribute('maxlength', '2048');
+    const input = screen.getByLabelText(label);
+    expect(input).toHaveAttribute('maxlength', String(max));
+    await user.click(input);
+    await user.paste('a'.repeat(max - 1));
+    expect(input).not.toHaveAccessibleDescription(/cut off/);
+    await user.type(input, 'a');
+    expect(input).toHaveAccessibleDescription(new RegExp(`limit of ${max} characters.*cut off`));
+    expect(screen.getByText(/cut off/)).toHaveAttribute('aria-live', 'polite');
   });
 
   it('posts a group gift without a quantity', async () => {
