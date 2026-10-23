@@ -35,7 +35,7 @@ describe('CreateList', () => {
     expect(persistedItem?.wishlistId.value).toBe(persistedWishlist?.id.value);
   });
 
-  it('accepts the secret with surrounding whitespace', async () => {
+  it('accepts a sent secret with surrounding whitespace', async () => {
     const { useCase } = makeUseCase();
 
     await expect(useCase.execute({ listTitle: 'L', itemTitle: 'I', createSecret: ' right\n' })).resolves.toMatchObject({ slug: 'slug-1' });
