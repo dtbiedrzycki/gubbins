@@ -156,7 +156,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(reloaded?.getItem(ITEM_A2).seq).toBe(0);
     });
 
-    it('save refuses a list that was never inserted, and stores none of its items', async () => {
+    it('save refuses a list that was never inserted, and does not create it', async () => {
       const unsaved = Wishlist.create({ id: LIST_C, slug: 'list-c', title: 'C', ownerToken: 'o', key: 'k', asOf: NOW });
       unsaved.addItem({ type: 'single', title: 'Bib' }, { generateEntityId: () => ITEM_C1 });
 
