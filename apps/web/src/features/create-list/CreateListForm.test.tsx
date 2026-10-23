@@ -55,18 +55,7 @@ describe('CreateListForm', () => {
     expect(screen.getByRole('alert')).toBe(alert);
   });
 
-  it('sends the create secret with the list', async () => {
-    let body: unknown;
-    server.use(http.post('/api/lists', async ({ request }) => {
-      body = await request.json();
-      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k', itemId: 'i' } satisfies CreateListResponse, { status: 201 });
-    }));
-    await fillAndSubmit();
-    await screen.findByText('k');
-    expect(body).toMatchObject({ createSecret: 'the-secret' });
-  });
-
-  it('trims each field before sending it', async () => {
+  it('sends both titles, the create secret and both payment handles, each trimmed', async () => {
     let body: unknown;
     server.use(http.post('/api/lists', async ({ request }) => {
       body = await request.json();
@@ -86,26 +75,23 @@ describe('CreateListForm', () => {
     });
   });
 
-  it('sends the Venmo and Zelle handles when filled', async () => {
-    let body: unknown;
-    server.use(http.post('/api/lists', async ({ request }) => {
-      body = await request.json();
-      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k', itemId: 'i' }, { status: 201 });
-    }));
-    await fillAndSubmit(async (user) => {
-      await user.type(screen.getByLabelText('Venmo username'), '@my-venmo');
-      await user.type(screen.getByLabelText('Zelle email or US phone'), 'me@example.com');
-    });
-    await screen.findByText('k');
-    expect(body).toMatchObject({ venmoHandle: '@my-venmo', zelleHandle: 'me@example.com' });
-  });
-
-  it('limits each field to what the list accepts', () => {
+  it.each([
+    { label: 'List title', max: 120 },
+    { label: 'First item', max: 120 },
+    { label: 'Venmo username', max: 31 },
+    { label: 'Zelle email or US phone', max: 254 },
+  ])('cuts a paste into "$label" at $max characters, and warns that it may have been cut', async ({ label, max }) => {
+    const user = userEvent.setup();
     renderWithQueryClient(<CreateListForm />);
-    expect(screen.getByLabelText('List title')).toHaveAttribute('maxlength', '120');
-    expect(screen.getByLabelText('First item')).toHaveAttribute('maxlength', '120');
-    expect(screen.getByLabelText('Venmo username')).toHaveAttribute('maxlength', '31');
-    expect(screen.getByLabelText('Zelle email or US phone')).toHaveAttribute('maxlength', '254');
+    const input = screen.getByLabelText(label);
+    await user.click(input);
+    await user.paste('a'.repeat(max - 1));
+    expect(input).not.toHaveAccessibleDescription(/cut off/);
+    await user.clear(input);
+    await user.paste('a'.repeat(max + 5));
+    expect(input).toHaveValue('a'.repeat(max));
+    expect(input).toHaveAccessibleDescription(new RegExp(`limit of ${max} characters.*cut off`));
+    expect(screen.getByText(/cut off/)).toHaveAttribute('aria-live', 'polite');
   });
 
   it('explains that group gifts need a handle and handles are permanent', () => {
@@ -119,9 +105,8 @@ describe('CreateListForm', () => {
     server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'owner-secret-token', key: 'guest-key-value', itemId: 'item-1' }));
     await fillAndSubmit();
 
-    const link = await screen.findByRole('link', { name: 'Manage your list' });
+    const link = await screen.findByRole('link', { name: 'Manage your list (opens in a new tab)' });
     expect(link).toHaveAttribute('href', '/abc123/manage');
-    // A new tab, so one tap cannot lose the only display of the owner token and guest key.
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(screen.getByText("Save your owner token now: you'll need it to manage the list, and it isn't shown again.")).toBeInTheDocument();

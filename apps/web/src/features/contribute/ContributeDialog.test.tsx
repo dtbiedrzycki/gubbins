@@ -100,6 +100,24 @@ describe('ContributeDialog', () => {
     expect(screen.getByRole('button', { name: "I've sent it" })).toBeDisabled();
   });
 
+  it.each([
+    { label: 'Your name', max: 100 },
+    { label: 'Message to the owner (optional)', max: 300 },
+  ])('cuts a paste into "$label" at $max characters, and warns that it may have been cut', async ({ label, max }) => {
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    const input = screen.getByLabelText(label);
+    await user.click(input);
+    await user.paste('a'.repeat(max - 1));
+    expect(input).not.toHaveAccessibleDescription(/cut off/);
+    await user.clear(input);
+    await user.paste('a'.repeat(max + 5));
+    expect(input).toHaveValue('a'.repeat(max));
+    expect(input).toHaveAccessibleDescription(new RegExp(`limit of ${max} characters.*cut off`));
+    expect(screen.getByText(/cut off/)).toHaveAttribute('aria-live', 'polite');
+  });
+
   it('records the pledge with the trimmed details and reports the amount', async () => {
     const bodies = pledgeEndpoint();
     const user = userEvent.setup();
