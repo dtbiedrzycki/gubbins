@@ -147,13 +147,13 @@ const nonBlank: { field: string; schema: (t: string) => boolean; domain: (t: str
   },
 ];
 
-describe('input limits shared by the request schemas and the domain', () => {
+describe('input limits in the request schemas and the domain', () => {
   it.each(maximums)('$field: both accept text at $limit, and only the domain refuses one past it', ({ limit, schema, domain }) => {
     expect([schema(limit), domain(limit)]).toEqual([true, true]);
     expect([schema(limit + 1), domain(limit + 1)]).toEqual([true, false]);
   });
 
-  it.each([...maximums, ...unsized])('$field: the schema refuses text past its ceiling', ({ schema }) => {
+  it.each([...maximums, ...unsized])('$field: the schema accepts 10,000 characters and refuses 10,001', ({ schema }) => {
     expect([schema(CEILING), schema(CEILING + 1)]).toEqual([true, false]);
   });
 
