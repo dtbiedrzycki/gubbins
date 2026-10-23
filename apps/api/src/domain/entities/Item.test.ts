@@ -439,3 +439,10 @@ describe('Item.pledge', () => {
     expect(() => single.pledge({ ...props, amountMinor: 100 }, ids)).toThrow(ItemUnavailableError);
   });
 });
+
+describe('Item.findHoldWithKey and findContributionWithKey', () => {
+  it('finds the hold or pledge when its key is sent with surrounding whitespace', () => {
+    expect(holding([holdOn({ idempotencyKey: 'idem-1' })]).findHoldWithKey(' idem-1\n')?.idempotencyKey.value).toBe('idem-1');
+    expect(fundedGroup(100).findContributionWithKey(' stored-1\n')?.idempotencyKey.value).toBe('stored-1');
+  });
+});
