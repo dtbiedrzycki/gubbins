@@ -36,57 +36,17 @@ const pledgeRow = {
 };
 const guest = (props: { name?: string; message?: string }) => () => GuestDetails.from({ name: 'Ann', ...props });
 
-/** Per text the domain sizes: whether the schema, and the domain, accept text of length `n`. */
-const maximums: { field: string; limit: number; schema: (n: number) => boolean; domain: (n: number) => boolean }[] = [
-  {
-    field: 'hold name', limit: 100,
-    schema: (n) => holdItemRequestSchema.safeParse({ idempotencyKey: 'k', name: text(n) }).success,
-    domain: (n) => accepts(guest({ name: text(n) })),
-  },
-  {
-    field: 'hold message', limit: 300,
-    schema: (n) => holdItemRequestSchema.safeParse({ idempotencyKey: 'k', name: 'Ann', message: text(n) }).success,
-    domain: (n) => accepts(guest({ message: text(n) })),
-  },
-  {
-    field: 'pledge name', limit: 100,
-    schema: (n) => pledgeRequestSchema.safeParse({ idempotencyKey: 'k', amountMinor: 100, name: text(n) }).success,
-    domain: (n) => accepts(guest({ name: text(n) })),
-  },
-  {
-    field: 'pledge message', limit: 300,
-    schema: (n) => pledgeRequestSchema.safeParse({ idempotencyKey: 'k', amountMinor: 100, name: 'Ann', message: text(n) }).success,
-    domain: (n) => accepts(guest({ message: text(n) })),
-  },
-  {
-    field: 'list title', limit: 120,
-    schema: (n) => createListRequestSchema.safeParse({ listTitle: text(n), itemTitle: 'Cot' }).success,
-    domain: (n) => accepts(() => Wishlist.create({ id: ID, slug: 'abc123', title: text(n), ownerToken: 'o', key: 'k', asOf: T0 })),
-  },
-  {
-    field: 'first item title', limit: 120,
-    schema: (n) => createListRequestSchema.safeParse({ listTitle: 'List', itemTitle: text(n) }).success,
-    domain: (n) => accepts(single({ title: text(n) })),
-  },
-  {
-    field: 'item title', limit: 120,
-    schema: (n) => addItemRequestSchema.safeParse({ type: 'single', title: text(n) }).success,
-    domain: (n) => accepts(single({ title: text(n) })),
-  },
-  {
-    field: 'group gift title', limit: 120,
-    schema: (n) => addItemRequestSchema.safeParse({ type: 'group', title: text(n), priceMinor: 100 }).success,
-    domain: (n) => accepts(() => Item.createGroup({ id: ID, wishlistId: ID, title: text(n), priceMinor: 100, asOf: T0 })),
-  },
-  {
-    field: 'item url', limit: 2048,
-    schema: (n) => addItemRequestSchema.safeParse({ type: 'single', title: 'Cot', url: urlOf(n) }).success,
-    domain: (n) => accepts(single({ url: urlOf(n) })),
-  },
-];
-
-/** Per text the domain takes without a length limit: whether the schema accepts text of length `n`. */
-const unsized: { field: string; schema: (n: number) => boolean }[] = [
+/** Per text field in a request: whether its schema accepts text of length `n`. The domain owns each exact length. */
+const textFields: { field: string; schema: (n: number) => boolean }[] = [
+  { field: 'hold name', schema: (n) => holdItemRequestSchema.safeParse({ idempotencyKey: 'k', name: text(n) }).success },
+  { field: 'hold message', schema: (n) => holdItemRequestSchema.safeParse({ idempotencyKey: 'k', name: 'Ann', message: text(n) }).success },
+  { field: 'pledge name', schema: (n) => pledgeRequestSchema.safeParse({ idempotencyKey: 'k', amountMinor: 100, name: text(n) }).success },
+  { field: 'pledge message', schema: (n) => pledgeRequestSchema.safeParse({ idempotencyKey: 'k', amountMinor: 100, name: 'Ann', message: text(n) }).success },
+  { field: 'list title', schema: (n) => createListRequestSchema.safeParse({ listTitle: text(n), itemTitle: 'Cot' }).success },
+  { field: 'first item title', schema: (n) => createListRequestSchema.safeParse({ listTitle: 'List', itemTitle: text(n) }).success },
+  { field: 'item title', schema: (n) => addItemRequestSchema.safeParse({ type: 'single', title: text(n) }).success },
+  { field: 'group gift title', schema: (n) => addItemRequestSchema.safeParse({ type: 'group', title: text(n), priceMinor: 100 }).success },
+  { field: 'item url', schema: (n) => addItemRequestSchema.safeParse({ type: 'single', title: 'Cot', url: urlOf(n) }).success },
   { field: 'hold idempotency key', schema: (n) => holdItemRequestSchema.safeParse({ idempotencyKey: text(n), name: 'Ann' }).success },
   { field: 'pledge idempotency key', schema: (n) => pledgeRequestSchema.safeParse({ idempotencyKey: text(n), amountMinor: 100, name: 'Ann' }).success },
   { field: 'guest key', schema: (n) => enterGuestKeyRequestSchema.safeParse({ key: text(n) }).success },
@@ -147,13 +107,8 @@ const nonBlank: { field: string; schema: (t: string) => boolean; domain: (t: str
   },
 ];
 
-describe('input limits shared by the request schemas and the domain', () => {
-  it.each(maximums)('$field: both accept text at $limit, and only the domain refuses one past it', ({ limit, schema, domain }) => {
-    expect([schema(limit), domain(limit)]).toEqual([true, true]);
-    expect([schema(limit + 1), domain(limit + 1)]).toEqual([true, false]);
-  });
-
-  it.each([...maximums, ...unsized])('$field: the schema refuses text past its ceiling', ({ schema }) => {
+describe('input limits in the request schemas and the domain', () => {
+  it.each(textFields)('$field: the schema accepts 10,000 characters and refuses 10,001', ({ schema }) => {
     expect([schema(CEILING), schema(CEILING + 1)]).toEqual([true, false]);
   });
 

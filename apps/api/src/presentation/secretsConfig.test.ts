@@ -6,18 +6,18 @@ describe('parseCreateSecret', () => {
     expect(parseCreateSecret({ CREATE_SECRET: ' s3cret\n' })).toBe('s3cret');
   });
 
-  it.each([undefined, '', '  '])('refuses to start without one (%j)', (value) => {
+  it.each([undefined, '', '  '])('refuses to start when CREATE_SECRET is unset, empty or only whitespace (%j)', (value) => {
     expect(() => parseCreateSecret({ CREATE_SECRET: value })).toThrow(/CREATE_SECRET/);
   });
 });
 
 describe('parseCookieSecret', () => {
-  it('returns the configured value', () => {
-    expect(parseCookieSecret({ SESSION_COOKIE_SECRET: 'abc', NODE_ENV: 'production' })).toBe('abc');
+  it('returns the configured value trimmed', () => {
+    expect(parseCookieSecret({ SESSION_COOKIE_SECRET: ' abc\n', NODE_ENV: 'production' })).toBe('abc');
   });
 
-  it('refuses to start in production without one', () => {
-    expect(() => parseCookieSecret({ SESSION_COOKIE_SECRET: '', NODE_ENV: 'production' })).toThrow(/SESSION_COOKIE_SECRET/);
+  it.each([undefined, '', '  '])('refuses to start in production when SESSION_COOKIE_SECRET is unset, empty or only whitespace (%j)', (value) => {
+    expect(() => parseCookieSecret({ SESSION_COOKIE_SECRET: value, NODE_ENV: 'production' })).toThrow(/SESSION_COOKIE_SECRET/);
   });
 
   it('allows the development fallback outside production', () => {

@@ -38,8 +38,9 @@ Leave `TRUSTED_PROXY_HOPS` unset. Nothing reads it yet.
 ## Payment handles
 
 Guests pay for group gifts with the Venmo or Zelle handle you enter when you
-create the list. Enter them carefully: nothing in the app changes them
-afterwards, and a group gift needs at least one.
+create the list. Enter at least one if you want group gifts: a list created
+without a handle can't have group gifts, and nothing in the app adds or changes
+handles later.
 
 - **Venmo:** your username, 5 to 30 letters, digits, `_` or `-`. A leading `@`
   is optional and is dropped.
@@ -60,4 +61,4 @@ real data.
 - [ ] The container runs behind the tunnel.
 - [ ] Create the list from a phone over HTTPS.
 - [ ] Go through the hold and pledge flows on a phone.
-- [ ] The Venmo deep link opens the app.
+- [ ] The Venmo link opens the Venmo app on a phone that has it, and the Venmo website otherwise.
