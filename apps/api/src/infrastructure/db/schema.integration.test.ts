@@ -66,6 +66,12 @@ describe('0001_init schema', () => {
     expect(rows).toEqual([]);
   });
 
+  it.each(['holds', 'contributions'])('gives %s a unique index that starts with item_id, so it serves lookups by item', async (table) => {
+    const { rows } = await sql<{ name: string }>`select ii.name from pragma_index_list(${table}) il, pragma_index_info(il.name) ii where il.origin = 'u' and ii.seqno = 0`.execute(db);
+
+    expect(rows).toEqual([{ name: 'item_id' }]);
+  });
+
   it('refuses an event row without an actor', async () => {
     await expect(sql`insert into event_log (item_id, seq, event_type, payload, recorded_at) values (${I1}, 1, 'ItemHeld', '{}', ${NOW})`.execute(db))
       .rejects.toThrow(/NOT NULL constraint failed: event_log.actor/);
