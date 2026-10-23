@@ -10,6 +10,7 @@ import { migrateToLatest } from './db/migrate.js';
 import { ContributionRepositoryKysely } from './ContributionRepositoryKysely.js';
 import { EventStoreKysely } from './EventStoreKysely.js';
 import { GuestPiiRepositoryKysely } from './GuestPiiRepositoryKysely.js';
+import { GuestDetails } from '../domain/value-objects/GuestDetails.js';
 import { HoldRepositoryKysely } from './HoldRepositoryKysely.js';
 import { WishlistRepositoryKysely } from './WishlistRepositoryKysely.js';
 
@@ -24,7 +25,7 @@ const kysely: PersistenceFactory = async () => {
       const rows = await db.selectFrom('event_log').select(['event_type', 'actor', 'payload']).where('item_id', '=', itemId).orderBy('seq').execute();
       return rows.map((row) => ({ type: row.event_type, actor: row.actor, payload: JSON.parse(row.payload) as LedgerEvent }));
     },
-    seedGuestPii: (id) => new GuestPiiRepositoryKysely(db).insert({ id, name: 'Guest', message: null }),
+    seedGuestPii: (id) => new GuestPiiRepositoryKysely(db).insert(id, GuestDetails.from({ name: 'Guest' })),
     dispose: () => db.destroy(),
   };
 };
@@ -42,7 +43,7 @@ describeContributionRepositoryContract('Kysely/SQLite', async () => {
   await migrateToLatest(db);
   return {
     contributions: new ContributionRepositoryKysely(db), wishlists: new WishlistRepositoryKysely(db),
-    seedGuestPii: (id) => new GuestPiiRepositoryKysely(db).insert({ id, name: 'Guest', message: null }),
+    seedGuestPii: (id) => new GuestPiiRepositoryKysely(db).insert(id, GuestDetails.from({ name: 'Guest' })),
     dispose: () => db.destroy(),
   };
 });

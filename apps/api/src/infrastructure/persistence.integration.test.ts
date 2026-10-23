@@ -9,6 +9,7 @@ import type { Database } from './db/schema.js';
 import { WishlistRepositoryKysely } from './WishlistRepositoryKysely.js';
 import { UnitOfWorkKysely } from './UnitOfWorkKysely.js';
 import { GuestPiiRepositoryKysely } from './GuestPiiRepositoryKysely.js';
+import { GuestDetails } from '../domain/value-objects/GuestDetails.js';
 import { Wishlist } from '../domain/entities/Wishlist.js';
 
 const W1 = '11111111-1111-7111-8111-111111111111';
@@ -38,7 +39,7 @@ describe('UnitOfWorkKysely', () => {
     await expect(
       unitOfWork.execute(async (ctx) => {
         await ctx.wishlists.insert(Wishlist.create({ id: W1, slug: 'abc123', title: 'Baby Shower', ownerToken: 'tok', key: 'key', asOf: NOW }));
-        await ctx.guestPii.insert({ id: 'pii-1', name: 'Ada', message: null });
+        await ctx.guestPii.insert('pii-1', GuestDetails.from({ name: 'Ada' }));
         throw new Error('boom');
       }),
     ).rejects.toThrow('boom');

@@ -68,7 +68,7 @@ export class HoldItem {
       // Placing a hold is guest-only (ADR-0075), so the actor is fixed.
       await ctx.eventStore.append(item.id.value, expectedSeq, [event], 'guest');
       // The hold's pii_ref foreign key needs this row to exist first.
-      await ctx.guestPii.insert({ id: piiRef, name: details.name, message: details.message });
+      await ctx.guestPii.insert(piiRef, details);
       await ctx.holds.insert(hold);
       // Persist exactly what the domain decided — the write path never
       // decides availability itself.

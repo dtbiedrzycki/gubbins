@@ -8,7 +8,8 @@ import { ConcurrencyError, ItemNotFoundError, WishlistNotFoundError } from '../.
 import type { ContributionRepository } from '../ports/ContributionRepository.js';
 import type { EventStore } from '../ports/EventStore.js';
 import type { HoldRepository } from '../ports/HoldRepository.js';
-import type { GuestPiiRecord, GuestPiiRepository } from '../ports/GuestPiiRepository.js';
+import type { GuestPiiRepository } from '../ports/GuestPiiRepository.js';
+import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
 import type { TransactionContext, UnitOfWork } from '../ports/UnitOfWork.js';
 import type { WishlistRepository } from '../ports/WishlistRepository.js';
 
@@ -46,7 +47,7 @@ export class InMemoryStore {
   readonly items = new Map<string, Item>();
   readonly holds = new Map<string, Hold>();
   readonly contributions = new Map<string, Contribution>();
-  readonly guestPii = new Map<string, GuestPiiRecord>();
+  readonly guestPii = new Map<string, { id: string; name: string; message: string | null }>();
   readonly streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
 
   holdsOnList(wishlistId: string): Hold[] {
@@ -164,14 +165,14 @@ export class InMemoryEventStore implements EventStore {
 export class InMemoryGuestPiiRepository implements GuestPiiRepository {
   constructor(private store: InMemoryStore) {}
 
-  async insert(record: GuestPiiRecord): Promise<void> {
-    if (this.store.guestPii.has(record.id)) throw new Error(`UNIQUE constraint failed: guest_pii (${record.id})`);
-    this.store.guestPii.set(record.id, { ...record });
+  async insert(id: string, details: GuestDetails): Promise<void> {
+    if (this.store.guestPii.has(id)) throw new Error(`UNIQUE constraint failed: guest_pii (${id})`);
+    this.store.guestPii.set(id, { id, name: details.name, message: details.message });
   }
 
-  async findById(id: string): Promise<GuestPiiRecord | null> {
-    const record = this.store.guestPii.get(id);
-    return record ? { ...record } : null;
+  async findById(id: string): Promise<GuestDetails | null> {
+    const row = this.store.guestPii.get(id);
+    return row ? GuestDetails.from(row) : null;
   }
 }
 

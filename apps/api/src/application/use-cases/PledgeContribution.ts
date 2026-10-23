@@ -50,7 +50,7 @@ export class PledgeContribution {
 
       await ctx.eventStore.append(item.id.value, expectedSeq, [event], 'guest');
       // The contribution's pii_ref foreign key needs this row first.
-      await ctx.guestPii.insert({ id: piiRef, name: details.name, message: details.message });
+      await ctx.guestPii.insert(piiRef, details);
       await ctx.contributions.insert(contribution);
       await ctx.wishlists.saveItemState(item);
 
