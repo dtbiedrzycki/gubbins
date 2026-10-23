@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import type { AddItemRequest } from '@gubbins/shared-types';
 import { api, ApiError } from '../../api/client';
 import { parseUsd } from '../../lib/parseUsd';
+import { LengthLimitWarning } from '../../lib/LengthLimitWarning';
 
 export interface AddItemFormProps {
   slug: string;
@@ -12,6 +13,10 @@ export interface AddItemFormProps {
 }
 
 const field = 'mt-1 block w-full rounded border border-gray-300 px-3 py-2';
+
+const TITLE_MAX = 120;
+/** The longest store link the API takes. */
+const URL_MAX = 2048;
 
 export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
   const [type, setType] = useState<'single' | 'group'>('single');
@@ -37,14 +42,15 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       return;
     }
     setPriceError('');
+    const trimmedTitle = title.trim();
     const trimmedUrl = url.trim();
-    const common = { title: title.trim(), ...(trimmedUrl && { url: trimmedUrl }) };
+    const common = { title: trimmedTitle, ...(trimmedUrl && { url: trimmedUrl }) };
     const body: AddItemRequest = type === 'group'
       ? { type, ...common, priceMinor: priceMinor! }
       : { type, ...common, quantity: Number(quantity), ...(priceMinor !== undefined && { priceMinor }) };
     mutate(body, {
       onSuccess: () => {
-        setAdded(`Added "${title.trim()}".`);
+        setAdded(`Added "${trimmedTitle}".`);
         setTitle(''); setQuantity('1'); setPrice(''); setUrl('');
       },
       onError: (e) => { if (e instanceof ApiError && e.status === 404) onUnauthorized(); },
@@ -66,7 +72,8 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       </fieldset>
       <div>
         <label htmlFor="item-title" className="block text-sm font-medium">Title</label>
-        <input id="item-title" required maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} className={field} />
+        <input id="item-title" required maxLength={TITLE_MAX} aria-describedby="item-title-limit" value={title} onChange={(e) => setTitle(e.target.value)} className={field} />
+        <LengthLimitWarning id="item-title-limit" value={title} max={TITLE_MAX} />
       </div>
       {type === 'single' && (
         <div>
@@ -86,7 +93,8 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       </div>
       <div>
         <label htmlFor="item-url" className="block text-sm font-medium">Store link</label>
-        <input id="item-url" type="url" maxLength={2048} value={url} onChange={(e) => setUrl(e.target.value)} className={field} />
+        <input id="item-url" type="url" maxLength={URL_MAX} aria-describedby="item-url-limit" value={url} onChange={(e) => setUrl(e.target.value)} className={field} />
+        <LengthLimitWarning id="item-url-limit" value={url} max={URL_MAX} />
       </div>
       <p id="item-error" role="alert" className="text-red-600 empty:mb-0">{priceError || error?.message}</p>
       <p role="status" aria-live="polite" className="text-green-800 empty:mb-0">{added}</p>
