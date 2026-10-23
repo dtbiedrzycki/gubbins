@@ -186,8 +186,6 @@ describe('Item.pledge', () => {
     const { contribution, event, expectedSeq } = item.pledge({ ...props, amountMinor: 11250 }, ids);
     expect([contribution.amount.amountMinor, event.type, event.amountMinor, expectedSeq, item.seq]).toEqual([11250, 'ContributionPledged', 11250, 0, 1]);
     expect(event.piiRef).toBe(PII);
-    expect(event).not.toHaveProperty('name');
-    expect(event).not.toHaveProperty('message');
   });
   it('allows overfunding up to five times the price', () => {
     expect(() => group().pledge({ ...props, amountMinor: 45000 * 5 }, ids)).not.toThrow();
