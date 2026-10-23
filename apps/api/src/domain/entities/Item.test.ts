@@ -43,8 +43,17 @@ describe('Item.createSingle', () => {
 describe('Item kinds, URL and price', () => {
   const ID = ITEM_ID;
   const WL = WISHLIST_ID;
-  it.each(['javascript:alert(1)', 'http://shop.example/x', 'data:text/html,hi', 'shop.example', 'https://' + 'a'.repeat(2050)])('refuses a store URL that is not a short https URL (%j)', (url) => {
+  it.each(['javascript:alert(1)', 'http://shop.example/x', 'data:text/html,hi', 'shop.example'])('refuses a store URL that is not an https URL (%j)', (url) => {
     expect(() => Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'T', url })).toThrow(DomainValidationError);
+  });
+  it('accepts a store URL of 2048 characters and refuses 2049', () => {
+    const urlOf = (length: number) => 'https://shop.example/' + 'a'.repeat(length - 'https://shop.example/'.length);
+    expect(Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'T', url: urlOf(2048) }).url).toHaveLength(2048);
+    expect(() => Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'T', url: urlOf(2049) })).toThrow(DomainValidationError);
+  });
+  it('accepts a title of 120 characters and refuses 121', () => {
+    expect(Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'a'.repeat(120) }).title).toHaveLength(120);
+    expect(() => Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'a'.repeat(121) })).toThrow(DomainValidationError);
   });
   it('accepts an https store URL', () => {
     expect(Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'T', url: 'https://shop.example/x' }).url).toBe('https://shop.example/x');
@@ -428,5 +437,12 @@ describe('Item.pledge', () => {
   it('refuses a pledge on a single item', () => {
     const single = Item.createSingle({ asOf: T0, id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Crib' });
     expect(() => single.pledge({ ...props, amountMinor: 100 }, ids)).toThrow(ItemUnavailableError);
+  });
+});
+
+describe('Item.findHoldWithKey and findContributionWithKey', () => {
+  it('finds the hold or pledge when its key is sent with surrounding whitespace', () => {
+    expect(holding([holdOn({ idempotencyKey: 'idem-1' })]).findHoldWithKey(' idem-1\n')?.idempotencyKey.value).toBe('idem-1');
+    expect(fundedGroup(100).findContributionWithKey(' stored-1\n')?.idempotencyKey.value).toBe('stored-1');
   });
 });

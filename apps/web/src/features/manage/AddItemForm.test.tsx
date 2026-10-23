@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import type { AddItemResponse } from '@gubbins/shared-types';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -52,7 +53,7 @@ describe('AddItemForm', () => {
     let body: unknown;
     server.use(http.post('/api/lists/:slug/items', async ({ request }) => {
       body = await request.json();
-      return HttpResponse.json({ itemId: 'i1' }, { status: 201 });
+      return HttpResponse.json({ itemId: 'i1' } satisfies AddItemResponse, { status: 201 });
     }));
     const user = userEvent.setup();
     renderForm(<AddItemForm slug="abc123" onUnauthorized={() => {}} />);

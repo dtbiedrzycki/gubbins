@@ -42,14 +42,15 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       return;
     }
     setPriceError('');
+    const trimmedTitle = title.trim();
     const trimmedUrl = url.trim();
-    const common = { title: title.trim(), ...(trimmedUrl && { url: trimmedUrl }) };
+    const common = { title: trimmedTitle, ...(trimmedUrl && { url: trimmedUrl }) };
     const body: AddItemRequest = type === 'group'
       ? { type, ...common, priceMinor: priceMinor! }
       : { type, ...common, quantity: Number(quantity), ...(priceMinor !== undefined && { priceMinor }) };
     mutate(body, {
       onSuccess: () => {
-        setAdded(`Added "${title.trim()}".`);
+        setAdded(`Added "${trimmedTitle}".`);
         setTitle(''); setQuantity('1'); setPrice(''); setUrl('');
       },
       onError: (e) => { if (e instanceof ApiError && e.status === 404) onUnauthorized(); },

@@ -68,9 +68,13 @@ describe('Wishlist.create', () => {
     expect(Wishlist.create({ ...validProps, title: '  Baby Shower  ' }).title).toBe('Baby Shower');
   });
 
-  it('rejects an empty or over-long title, an empty secret, or a bad id', () => {
-    expect(() => Wishlist.create({ ...validProps, title: '   ' })).toThrow(DomainValidationError);
+  it('accepts a title of 120 characters and refuses 121', () => {
+    expect(Wishlist.create({ ...validProps, title: 'a'.repeat(120) }).title).toHaveLength(120);
     expect(() => Wishlist.create({ ...validProps, title: 'a'.repeat(121) })).toThrow(DomainValidationError);
+  });
+
+  it('rejects an empty title, an empty secret, or a bad id', () => {
+    expect(() => Wishlist.create({ ...validProps, title: '   ' })).toThrow(DomainValidationError);
     expect(() => Wishlist.create({ ...validProps, ownerToken: '' })).toThrow(DomainValidationError);
     expect(() => Wishlist.create({ ...validProps, key: '' })).toThrow(DomainValidationError);
     expect(() => Wishlist.create({ ...validProps, id: 'w1' })).toThrow(DomainValidationError);
