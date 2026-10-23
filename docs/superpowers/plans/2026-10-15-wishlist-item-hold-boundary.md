@@ -16,6 +16,8 @@
 **As built:** this plan was executed as written in #74–#82. Review then changed the following, so where a task below disagrees, the code and the spec follow these:
 - `Item` decides extend, release and purchase, including `purchaseRefusal`, and `recordEvent` is private. `Wishlist`'s hold commands and `can…` predicates resolve the item and delegate (#84).
 - `Wishlist.owns` is removed (#80).
+- A pledge of zero is refused only by the `Contribution` constructor; `Item.pledge` keeps the checks that need the item (eeb5acd).
+- #83 drops an unused holds index from the initial migration, which is edited in place until release.
 - `ItemRepository` returns plain `ItemRow`s, and `hydrate` assembles each item with its holds and contributions (#85).
 - The replay lookups are `findHoldForReplay` / `findContributionForReplay`, and the item's key lookups are `findHoldWithKey` / `findContributionWithKey` (#86). This plan uses those names throughout.
 
@@ -25,7 +27,7 @@
 - **Branches:** each branch stacks on the previous one: `feat/launch/34b-boundary-spec` → `35-adr-0078-boundary` → `36-load-all-holds` → `37-holds-under-item` → `37a-money-total-cap` → `37b-replay-in-domain` → `38-commands-via-aggregate` → `39-list-view-from-aggregate` → `40a-tests-read-rows` → `40b-drop-hold-ports`.
 - **Fixes to a lower branch** reach the branches above it by `git merge`. Never rebase or force-push.
 - **No behaviour change:** route tests (`apps/api/src/presentation/*.test.ts`) and e2e are not edited and must stay green. The one deliberate exception is Task 3a: a pledge that would take an item's pledged total past `MAX_MONEY_MINOR` (10¹² minor units) is refused (ADR-0061, amended in Task 1).
-- **No schema change or migration.**
+- **No new migration or table change.**
 - **Events:** commands keep returning their ledger events. Don't add pending-event lists to entities.
 - **Use cases keep:** minting `piiRef`, and calling `ctx.guestPii.insert` before `ctx.wishlists.save`.
 - **Test names and comments** state behaviour in plain words. They contain no plan identifiers (no task numbers, branch names or "§"). ADR citations are fine.
@@ -49,7 +51,7 @@
 4. **Commands on another list's hold:** extend, release or purchase on another list's hold still give `HoldNotFoundError` after `findOwnedHold` is deleted. Pinned by the existing `onOtherList` use-case tests, which Task 5 must not edit, plus Task 3's `findHold` test.
 5. **Reconstitute rejects outsiders:** a loaded hold or contribution whose `itemId` is another item's is rejected when the item is built. This moves from `Wishlist` to `Item` in Task 3.
 
-Task 3a's own risk, a $0 pledge slipping through once `Money` allows 0, is pinned at both layers that refuse it: `Item.pledge` (the guest-facing `ContributionAmountError`) and the `Contribution` constructor (a stored row).
+Task 3a's own risk, a $0 pledge slipping through once `Money` allows 0, is pinned where it is refused: the `Contribution` constructor, which every pledge and every stored row goes through.
 
 ---
 
@@ -363,7 +365,7 @@ A hold command accepts any `Hold` with the id of a hold the aggregate loaded, an
   - `item.isLoadedAt(at: Date): boolean`
   - `item.findHold(holdId: string): Hold | null`
   - `item.purchasedCount(): number`, `item.availableUnits(): number`, `item.status(): ItemStatus`
-  - `item.placeHold(props: { sessionHash; idempotencyKey; durationMs; piiRef? }, tokens, hasher)`. It no longer takes `at` or counts, and it adds the hold to `item.holds`.
+  - `item.placeHold(props: { sessionHash; idempotencyKey; durationMs; piiRef }, tokens, hasher)`. It no longer takes `at` or counts, and it adds the hold to `item.holds`.
   - `item.pledge(props: { amountMinor; sessionHash; idempotencyKey; piiRef }, ids)`. It no longer takes `at`, and it adds the contribution to `item.contributions`.
 - Produces, on `Wishlist`:
   - `Wishlist.reconstitute({ …, asOf, items })`. There is no `holds` prop any more. It throws `DomainValidationError` for an item loaded at a different instant.
@@ -671,7 +673,7 @@ git commit -m "refactor(api): holds and contributions live under their item"
 
 ### Task 3a: Money allows zero; the limit bounds an item's pledged total (branch `37a-money-total-cap`)
 
-`Money` stops refusing 0, so an item with no pledges can total `Money.usd(0)`. A pledge still can't be $0: `Item.pledge` refuses it with `ContributionAmountError` (pinned already by its `refuses amount 0` case), and the `Contribution` constructor refuses it so a stored row can't bring one in. `MAX_MONEY_MINOR` moves from a per-pledge bound to a bound on each item's total too, so `pledgedTotal()` is always a valid `Money`. Item prices are unaffected: `Item` checks `priceMinor >= 1` itself (`Item.ts`, the price check).
+`Money` stops refusing 0, so an item with no pledges can total `Money.usd(0)`. A pledge still can't be $0: the `Contribution` constructor refuses it, for a new pledge and a stored row alike. `MAX_MONEY_MINOR` moves from a per-pledge bound to a bound on each item's total too, so `pledgedTotal()` is always a valid `Money`. Item prices are unaffected: `Item` checks `priceMinor >= 1` itself (`Item.ts`, the price check).
 
 Two pledges racing past the limit together are covered already: both append at the same `expectedSeq`, one conflicts, and `RetryingUnitOfWork` reloads and re-checks with the first counted (ADR-0010).
 
@@ -746,12 +748,12 @@ it('totals its pledges, zero with none', () => {
   item.pledge({ ...props, amountMinor: 2_500 }, ids);
   expect(item.pledgedTotal().amountMinor).toBe(2_500);
 });
-it('accepts a pledge that brings the total exactly to the limit, and refuses one cent more', () => {
+it('accepts a pledge that brings the total exactly to 10¹² minor units, and refuses one cent more', () => {
   const item = fundedGroup(MAX_MONEY_MINOR - 100);
   expect(() => item.pledge({ ...props, amountMinor: 100 }, ids)).not.toThrow();
   expect(() => item.pledge({ ...props, idempotencyKey: 'k2', amountMinor: 1 }, ids)).toThrow(ContributionAmountError);
 });
-it('rejects loaded pledges that total more than the limit', () => {
+it('rejects loaded pledges that total more than 10¹² minor units', () => {
   expect(() => fundedGroup(MAX_MONEY_MINOR, 1)).toThrow(DomainValidationError);
 });
 ```
@@ -1014,7 +1016,7 @@ it('save inserts a pledge the aggregate made, once: a second save inserts nothin
   expect((await fx.wishlists.findById(LIST_C, NOW))?.getItem(ITEM_C2).pledgedTotal().amountMinor).toBe(2_500);
 });
 
-it('save keeps every hold it loaded as it was: released and expired holds come back unchanged', async () => {
+it('save writes a released and an expired hold back unchanged', async () => {
   const released = holdFixture({ releasedAt: later(-5) });
   const expired = holdFixture({ expiresAt: later(-1) });
   for (const hold of [released, expired]) await fx.holds.insert(hold);
