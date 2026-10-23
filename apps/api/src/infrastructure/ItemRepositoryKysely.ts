@@ -4,7 +4,6 @@ import type { ItemRepository } from '../application/ports/ItemRepository.js';
 import type { Contribution } from '../domain/entities/Contribution.js';
 import type { Hold } from '../domain/entities/Hold.js';
 import { Item } from '../domain/entities/Item.js';
-import { ItemNotFoundError } from '../domain/errors.js';
 
 export class ItemRepositoryKysely implements ItemRepository {
   constructor(private db: Kysely<Database>) {}
@@ -48,13 +47,9 @@ export class ItemRepositoryKysely implements ItemRepository {
 
   /** Writes `seq` only: the purchased count is derived from holds, never stored. */
   async saveState(item: Item): Promise<void> {
-    const result = await this.db.updateTable('item_state')
+    await this.db.updateTable('item_state')
       .set({ seq: item.seq, updated_at: new Date().toISOString() })
       .where('item_id', '=', item.id.value)
-      // Scoped by wishlist as well as id: a write lands only on an item of
-      // the list the aggregate was loaded for.
-      .where('item_id', 'in', this.db.selectFrom('items').select('items.id').where('items.wishlist_id', '=', item.wishlistId.value))
-      .executeTakeFirst();
-    if (result.numUpdatedRows === 0n) throw new ItemNotFoundError(item.id.value);
+      .execute();
   }
 }

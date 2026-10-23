@@ -91,9 +91,8 @@ describe('CreateListForm', () => {
     server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'owner-secret-token', key: 'guest-key-value', itemId: 'item-1' }));
     await fillAndSubmit();
 
-    const link = await screen.findByRole('link', { name: 'Manage your list' });
+    const link = await screen.findByRole('link', { name: 'Manage your list (opens in a new tab)' });
     expect(link).toHaveAttribute('href', '/abc123/manage');
-    // A new tab, so one tap cannot lose the only display of the owner token and guest key.
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(screen.getByText("Save your owner token now: you'll need it to manage the list, and it isn't shown again.")).toBeInTheDocument();
