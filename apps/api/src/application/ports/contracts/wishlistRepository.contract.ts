@@ -198,7 +198,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect((await fx.wishlists.findById(LIST_C, NOW))?.getItem(ITEM_C2).pledgedTotal().amountMinor).toBe(2_500);
     });
 
-    it('save keeps every hold it loaded as it was: released and expired holds come back unchanged', async () => {
+    it('save leaves a released and an expired hold it loaded exactly as stored', async () => {
       const released = holdFixture({ releasedAt: later(-5) });
       const expired = holdFixture({ expiresAt: later(-1) });
       for (const hold of [released, expired]) await fx.holds.insert(hold);
@@ -206,8 +206,8 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       await fx.wishlists.save((await fx.wishlists.findById(LIST_A, NOW))!);
 
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
-      expect(reloaded?.findHold(released.id.value)?.releasedAt).toEqual(later(-5));
-      expect(reloaded?.findHold(expired.id.value)?.expiresAt).toEqual(later(-1));
+      expect(reloaded?.findHold(released.id.value)).toEqual(released);
+      expect(reloaded?.findHold(expired.id.value)).toEqual(expired);
     });
 
     it('save refuses a list that was never inserted, and does not create it', async () => {
