@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-09
+- **Amended:** 2026-10-15. The arithmetic guard also bounds each item's pledged total, and zero is a valid amount.
 - **Deciders:** dtbiedrzycki
 
 ## Context
@@ -24,6 +25,12 @@ absolute contribution ceiling only: it is reframed as a fixed
 arithmetic guard rather than a currency-denominated bound, since a money
 threshold in minor units means a different amount on every list and no
 currency-independent answer to "how much is too much" exists.
+
+The arithmetic guard (`MAX_MONEY_MINOR`, 10¹² minor units) bounds an
+item's pledged total as well as each pledge: a pledge that would take
+the total past it is refused like an oversized pledge. An amount may be
+zero (an item with no pledges totals zero); a pledge itself must still
+be more than zero.
 
 ## Alternatives considered
 
@@ -86,3 +93,5 @@ currency-independent answer to "how much is too much" exists.
   with [threat model summary](../spec/threat-model-summary.md)'s
   existing stance that detection-and-reversal, not prevention, is the
   answer to a keyed guest.
+- The guard bounds each item's pledged total too, so that total stays
+  in safe-integer range, which is what the guard is for.

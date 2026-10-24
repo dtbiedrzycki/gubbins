@@ -10,6 +10,9 @@ the choice made, and the consequences accepted.
 - Start from [`0000-adr-template.md`](0000-adr-template.md).
 - An accepted ADR is immutable. To change a decision, write a new ADR
   and mark the old one `Superseded by NNNN` (and vice-versa).
+- Until the first release, an accepted ADR may be amended in place
+  instead: add an `Amended:` line with the date and what changed.
+  After the first release, supersede it as above.
 - Keep them short. Link to code, issues, or other ADRs rather than
   restating them.
 - **Date** is the date the decision was actually made — set it to the
@@ -111,7 +114,7 @@ one-time renumbering documented in the restructuring history.
 | [075](0075-ledger-events-record-the-acting-role.md) | Ledger events record the acting role | Accepted |
 | [076](0076-uuidv7-for-domain-entity-identifiers.md) | UUIDv7 for domain entity identifiers | Accepted |
 | [077](0077-openapi-document-generated-from-route-schemas-is-the-api-contract.md) | The OpenAPI document generated from route schemas is the API contract | Accepted |
-| [078](0078-wishlist-is-the-aggregate-root.md) | Wishlist is the aggregate root for its items and holds | Accepted |
+| [078](0078-wishlist-is-the-aggregate-root.md) | Wishlist is the aggregate root for its items, holds and contributions | Accepted |
 | [079](0079-domain-methods-are-named-by-what-they-do-to-state.md) | Domain methods are named by what they do to state | Accepted |
 | [080](0080-list-creation-always-requires-createsecret.md) | List creation always requires a CREATE_SECRET | Accepted |
 | [081](0081-owner-session-keyed-by-slug-and-owner-token.md) | Owner session is keyed by slug and owner token | Accepted |
