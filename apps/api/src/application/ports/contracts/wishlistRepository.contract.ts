@@ -102,6 +102,31 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect((await fx.wishlists.findById(LIST_A, NOW))?.purchasedCountOf(ITEM_A)).toBe(1);
     });
 
+    it('save persists an extension: the new expiry and when it was extended', async () => {
+      const hold = holdFixture();
+      await fx.holds.insert(hold);
+      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+      wishlist.extendHold(wishlist.findHold(hold.id.value)!, 30_000);
+
+      await fx.wishlists.save(wishlist);
+
+      const stored = await fx.holds.findById(hold.id.value);
+      expect(stored?.expiresAt).toEqual(later(90_000));
+      expect(stored?.extendedAt).toEqual(NOW);
+    });
+
+    it('save persists a release, so the item is available on the next load', async () => {
+      const hold = holdFixture();
+      await fx.holds.insert(hold);
+      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+      wishlist.releaseHold(wishlist.findHold(hold.id.value)!);
+
+      await fx.wishlists.save(wishlist);
+
+      expect((await fx.holds.findById(hold.id.value))?.releasedAt).toEqual(NOW);
+      expect((await fx.wishlists.findById(LIST_A, NOW))?.itemStatus(ITEM_A)).toBe('available');
+    });
+
     it('save inserts a hold the aggregate placed', async () => {
       const piiRef = '00000000-0000-7000-8000-888888888888';
       await fx.seedGuestPii(piiRef);
