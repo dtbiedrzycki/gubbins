@@ -110,7 +110,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
 
       await fx.wishlists.save(wishlist);
 
-      const stored = await fx.holds.findById(hold.id.value);
+      const stored = (await fx.wishlists.findById(LIST_A, NOW))?.findHold(hold.id.value);
       expect(stored?.expiresAt).toEqual(later(90_000));
       expect(stored?.extendedAt).toEqual(NOW);
     });
@@ -123,8 +123,9 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
 
       await fx.wishlists.save(wishlist);
 
-      expect((await fx.holds.findById(hold.id.value))?.releasedAt).toEqual(NOW);
-      expect((await fx.wishlists.findById(LIST_A, NOW))?.itemStatus(ITEM_A)).toBe('available');
+      const reloaded = await fx.wishlists.findById(LIST_A, NOW);
+      expect(reloaded?.findHold(hold.id.value)?.releasedAt).toEqual(NOW);
+      expect(reloaded?.itemStatus(ITEM_A)).toBe('available');
     });
 
     it('save inserts a hold the aggregate placed', async () => {
@@ -139,8 +140,9 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
 
       await fx.wishlists.save(wishlist);
 
-      expect((await fx.wishlists.findById(LIST_A, NOW))?.findHold(hold.id.value)?.expiresAt).toEqual(later(60_000));
-      expect((await fx.wishlists.findById(LIST_A, NOW))?.itemStatus(ITEM_A)).toBe('held');
+      const reloaded = await fx.wishlists.findById(LIST_A, NOW);
+      expect(reloaded?.findHold(hold.id.value)?.expiresAt).toEqual(later(60_000));
+      expect(reloaded?.itemStatus(ITEM_A)).toBe('held');
     });
 
     it('counts neither a released nor an expired hold, nor a purchase on another list', async () => {
