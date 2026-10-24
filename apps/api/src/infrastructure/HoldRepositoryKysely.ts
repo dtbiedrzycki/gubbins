@@ -22,7 +22,7 @@ function toHold(row: Selectable<HoldsTable>): Hold {
  * `Z`) and string comparison in SQL is time order — findActiveOrPurchasedForWishlist
  * depends on that.
  */
-function lifecycleColumns(hold: Hold) {
+export function lifecycleColumns(hold: Hold) {
   return {
     expires_at: hold.expiresAt.toISOString(),
     extended_at: hold.extendedAt?.toISOString() ?? null,
