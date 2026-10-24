@@ -50,8 +50,18 @@ export class InMemoryStore {
   readonly guestPii = new Map<string, { id: string; name: string; message: string | null }>();
   readonly streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
 
+  /** Oldest expiry first, then id, the order the SQL adapter's queries return. */
   holdsOnList(wishlistId: string): Hold[] {
-    return [...this.holds.values()].filter((hold) => this.items.get(hold.itemId.value)?.wishlistId.value === wishlistId);
+    return [...this.holds.values()]
+      .filter((hold) => this.items.get(hold.itemId.value)?.wishlistId.value === wishlistId)
+      .sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime() || a.id.value.localeCompare(b.id.value));
+  }
+
+  /** Oldest pledge first, then id, the order the SQL adapter's query returns. */
+  contributionsOnList(wishlistId: string): Contribution[] {
+    return [...this.contributions.values()]
+      .filter((c) => this.items.get(c.itemId.value)?.wishlistId.value === wishlistId)
+      .sort((a, b) => a.pledgedAt.getTime() - b.pledgedAt.getTime() || a.id.value.localeCompare(b.id.value));
   }
 
   /**
@@ -97,7 +107,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   private hydrate(wishlist: Wishlist | undefined, now: Date): Wishlist | null {
     if (wishlist === undefined) return null;
     const items = [...this.store.items.values()].filter((i) => i.wishlistId.value === wishlist.id.value).map(copyItem);
-    const holds = this.store.activeOrPurchasedHoldsOnList(wishlist.id.value, now).map(copyHold);
+    const holds = this.store.holdsOnList(wishlist.id.value).map(copyHold);
     return Wishlist.reconstitute({
       id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
       ownerToken: wishlist.ownerToken.value, key: wishlist.key.value, keyGen: wishlist.keyGen, asOf: now,
@@ -133,6 +143,10 @@ export class InMemoryHoldRepository implements HoldRepository {
   async findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<Hold | null> {
     const hold = [...this.store.holds.values()].find((h) => h.itemId.value === itemId && h.idempotencyKey.value === idempotencyKey);
     return hold ? copyHold(hold) : null;
+  }
+
+  async findForWishlist(wishlistId: string): Promise<Hold[]> {
+    return this.store.holdsOnList(wishlistId).map(copyHold);
   }
 
   async findActiveOrPurchasedForWishlist(wishlistId: string, now: Date): Promise<Hold[]> {
@@ -185,6 +199,10 @@ export class InMemoryContributionRepository implements ContributionRepository {
     );
     if (clash) throw new Error(`UNIQUE constraint failed: contributions (${c.id.value})`);
     this.store.contributions.set(c.id.value, c); // immutable, so sharing the instance is safe
+  }
+
+  async findForWishlist(wishlistId: string): Promise<Contribution[]> {
+    return this.store.contributionsOnList(wishlistId);
   }
 
   async findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<Contribution | null> {

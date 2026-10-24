@@ -4,7 +4,7 @@ import { Wishlist } from '../../../domain/entities/Wishlist.js';
 import { PaymentMethods } from '../../../domain/value-objects/PaymentMethods.js';
 import type { ContributionRepository } from '../ContributionRepository.js';
 import type { WishlistRepository } from '../WishlistRepository.js';
-import { NOW, SESSION } from './fixture.js';
+import { later, NOW, SESSION } from './fixture.js';
 
 export interface ContributionFixture {
   contributions: ContributionRepository;
@@ -24,10 +24,10 @@ const PII = '77777777-7777-7777-8777-777777777700';
 
 let ids = 0;
 let keys = 0;
-function pledge(itemId: string, amountMinor: number, idempotencyKey = `idem-${++keys}`): Contribution {
+function pledge(itemId: string, amountMinor: number, idempotencyKey = `idem-${++keys}`, pledgedAt = NOW): Contribution {
   return Contribution.reconstitute({
     id: `00000000-0000-7000-8000-${String(++ids).padStart(12, '0')}`, itemId, amountMinor, sessionHash: SESSION,
-    idempotencyKey, piiRef: PII, pledgedAt: NOW,
+    idempotencyKey, piiRef: PII, pledgedAt,
   });
 }
 
@@ -84,6 +84,22 @@ export function describeContributionRepositoryContract(adapter: string, factory:
       await fx.contributions.insert(pledge(OTHER_LIST_ITEM, 9999));
 
       expect(await fx.contributions.pledgedTotals(LIST_X)).toEqual(new Map([[MIXER, 4000], [STROLLER, 7000]]));
+    });
+
+    it("findForWishlist returns every contribution on the list's items, oldest pledge first then by id, and none from another list", async () => {
+      // Ids rise in creation order. The pledge order matches neither the id order, the insertion order nor
+      // either reversed, and the two pledges made together go in larger id first, so only pledgedAt then id passes.
+      const atMinute = pledge(MIXER, 2500, undefined, later(60_000));
+      const atStart = pledge(STROLLER, 1500);
+      const atTwoMinutes = pledge(MIXER, 500, undefined, later(120_000));
+      const tiedFirst = pledge(STROLLER, 700, undefined, later(30_000));
+      const tiedSecond = pledge(MIXER, 900, undefined, later(30_000));
+      for (const c of [atMinute, atStart, atTwoMinutes, tiedSecond, tiedFirst, pledge(OTHER_LIST_ITEM, 1000)]) await fx.contributions.insert(c);
+
+      const found = await fx.contributions.findForWishlist(LIST_X);
+
+      expect(found.map((c) => c.id.value))
+        .toEqual([atStart, tiedFirst, tiedSecond, atMinute, atTwoMinutes].map((c) => c.id.value));
     });
 
     it('leaves out items with no pledges', async () => {
