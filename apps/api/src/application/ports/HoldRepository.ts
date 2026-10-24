@@ -9,6 +9,9 @@ export interface HoldRepository {
   insert(hold: Hold): Promise<void>;
   /** Persists the hold's lifecycle — expiry and its extended/released/purchased instants — as the domain left them. */
   save(hold: Hold): Promise<void>;
-  /** Every hold on the list's items, whatever its state, oldest expiry first: what the `Wishlist` aggregate loads. */
+  /**
+   * Every hold on the list's items, whatever its state, oldest expiry first: what the `Wishlist` aggregate loads.
+   * A stable order (expiry, then id), so every adapter hands the aggregate the same sequence.
+   */
   findForWishlist(wishlistId: string): Promise<Hold[]>;
 }
