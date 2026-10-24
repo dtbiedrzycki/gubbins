@@ -64,7 +64,7 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
       expect(reloaded).toEqual(hold);
     });
 
-    it("findForWishlist returns every hold on the list's items, whatever its state, oldest expiry first, and none from another list", async () => {
+    it("findForWishlist returns every hold on the list's items, whatever its state, oldest expiry first then by id, and none from another list", async () => {
       // Ids rise in creation order. The expiry order matches neither the id order, the insertion order nor
       // either reversed, and the two holds expiring together go in larger id first, so only expires_at then id passes.
       const active = holdFixture();

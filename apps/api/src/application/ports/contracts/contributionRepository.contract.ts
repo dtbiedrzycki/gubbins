@@ -86,7 +86,7 @@ export function describeContributionRepositoryContract(adapter: string, factory:
       expect(await fx.contributions.pledgedTotals(LIST_X)).toEqual(new Map([[MIXER, 4000], [STROLLER, 7000]]));
     });
 
-    it("findForWishlist returns every contribution on the list's items, oldest pledge first, and none from another list", async () => {
+    it("findForWishlist returns every contribution on the list's items, oldest pledge first then by id, and none from another list", async () => {
       // Ids rise in creation order. The pledge order matches neither the id order, the insertion order nor
       // either reversed, and the two pledges made together go in larger id first, so only pledgedAt then id passes.
       const atMinute = pledge(MIXER, 2500, undefined, later(60_000));
