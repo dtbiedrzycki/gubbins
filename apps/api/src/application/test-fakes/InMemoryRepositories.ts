@@ -50,8 +50,18 @@ export class InMemoryStore {
   readonly guestPii = new Map<string, { id: string; name: string; message: string | null }>();
   readonly streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
 
+  /** Oldest expiry first, then id, the order the SQL adapter's queries return. */
   holdsOnList(wishlistId: string): Hold[] {
-    return [...this.holds.values()].filter((hold) => this.items.get(hold.itemId.value)?.wishlistId.value === wishlistId);
+    return [...this.holds.values()]
+      .filter((hold) => this.items.get(hold.itemId.value)?.wishlistId.value === wishlistId)
+      .sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime() || a.id.value.localeCompare(b.id.value));
+  }
+
+  /** Oldest pledge first, then id, the order the SQL adapter's query returns. */
+  contributionsOnList(wishlistId: string): Contribution[] {
+    return [...this.contributions.values()]
+      .filter((c) => this.items.get(c.itemId.value)?.wishlistId.value === wishlistId)
+      .sort((a, b) => a.pledgedAt.getTime() - b.pledgedAt.getTime() || a.id.value.localeCompare(b.id.value));
   }
 
   /**
@@ -136,9 +146,7 @@ export class InMemoryHoldRepository implements HoldRepository {
   }
 
   async findForWishlist(wishlistId: string): Promise<Hold[]> {
-    return this.store.holdsOnList(wishlistId)
-      .sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime() || a.id.value.localeCompare(b.id.value))
-      .map(copyHold);
+    return this.store.holdsOnList(wishlistId).map(copyHold);
   }
 
   async findActiveOrPurchasedForWishlist(wishlistId: string, now: Date): Promise<Hold[]> {
@@ -194,9 +202,7 @@ export class InMemoryContributionRepository implements ContributionRepository {
   }
 
   async findForWishlist(wishlistId: string): Promise<Contribution[]> {
-    return [...this.store.contributions.values()]
-      .filter((c) => this.store.items.get(c.itemId.value)?.wishlistId.value === wishlistId)
-      .sort((a, b) => a.pledgedAt.getTime() - b.pledgedAt.getTime() || a.id.value.localeCompare(b.id.value));
+    return this.store.contributionsOnList(wishlistId);
   }
 
   async findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<Contribution | null> {

@@ -23,7 +23,10 @@ export interface HoldRepository {
    * what this returns is bounded by the quantity.
    */
   findActiveOrPurchasedForWishlist(wishlistId: string, now: Date): Promise<Hold[]>;
-  /** Every hold on the list's items, whatever its state, oldest expiry first: what the `Wishlist` aggregate loads. */
+  /**
+   * Every hold on the list's items, whatever its state, oldest expiry first: what the `Wishlist` aggregate loads.
+   * A stable order (expiry, then id), so every adapter hands the aggregate the same sequence.
+   */
   findForWishlist(wishlistId: string): Promise<Hold[]>;
   /** Every hold `sessionHash` placed on the list, whatever its state, for "Your holds" — expired ones included, since an expired hold can still be purchased. */
   findForSession(wishlistId: string, sessionHash: string): Promise<Hold[]>;
