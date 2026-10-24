@@ -51,18 +51,22 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
       expect(reloaded).toEqual(hold);
     });
 
-    it("findForWishlist returns every hold on the list's items, whatever its state, oldest expiry first, and none from another list", async () => {
-      // Each hold expires before the one created ahead of it, so only expires_at can put them in this order.
-      const released = holdFixture({ expiresAt: later(120_000), releasedAt: later(-5) });
+    it("findForWishlist returns every hold on the list's items, whatever its state, oldest expiry first then by id, and none from another list", async () => {
+      // Ids rise in creation order. The expiry order matches neither the id order, the insertion order nor
+      // either reversed, and the two holds expiring together go in larger id first, so only expires_at then id passes.
       const active = holdFixture();
-      const expired = holdFixture({ expiresAt: later(-1) });
       const purchased = holdFixture({ expiresAt: later(-2), purchasedAt: later(-5) });
-      for (const hold of [released, active, expired, purchased]) await fx.holds.insert(hold);
+      const released = holdFixture({ expiresAt: later(120_000), releasedAt: later(-5) });
+      const expired = holdFixture({ expiresAt: later(-1) });
+      const tiedFirst = holdFixture({ expiresAt: later(90_000) });
+      const tiedSecond = holdFixture({ expiresAt: later(90_000) });
+      for (const hold of [active, purchased, released, tiedSecond, tiedFirst, expired]) await fx.holds.insert(hold);
       await fx.holds.insert(holdFixture({ itemId: ITEM_B }));
 
       const found = await fx.holds.findForWishlist(LIST_A);
 
-      expect(found.map((h) => h.id.value)).toEqual([purchased, expired, active, released].map((h) => h.id.value));
+      expect(found.map((h) => h.id.value))
+        .toEqual([purchased, expired, active, tiedFirst, tiedSecond, released].map((h) => h.id.value));
     });
   });
 }

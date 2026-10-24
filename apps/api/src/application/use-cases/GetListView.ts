@@ -20,8 +20,8 @@ export interface ListView {
 }
 
 /**
- * The guest's view of a list, read in one unit of work so the item's status
- * and the guest's holds come from the same snapshot.
+ * The guest's view of a list. Status, holds and pledged totals all come from
+ * one load of the wishlist, so they agree.
  */
 export class GetListView {
   constructor(
