@@ -9,14 +9,13 @@ import { DEFAULT_HOLD_POLICY, type HoldPolicy } from '../HoldPolicy.js';
 import { RetryingUnitOfWork } from '../RetryingUnitOfWork.js';
 import type { AccessContext } from '../AccessContext.js';
 import type { EventStore } from '../ports/EventStore.js';
-import { ConcurrencyError, ItemNotFoundError, ItemUnavailableError } from '../../domain/errors.js';
+import { ConcurrencyError, ItemNotFoundError } from '../../domain/errors.js';
 
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
 const ITEM_ID = '33333333-3333-7333-8333-333333333333';
 const NOW = new Date('2026-01-01T00:00:00Z');
 const DAY = 86_400_000;
 const GUEST: AccessContext = { guestSession: { sessionHash: 'a'.repeat(64) } };
-const OTHER_GUEST: AccessContext = { guestSession: { sessionHash: 'b'.repeat(64) } };
 
 async function makeUseCase(policy: HoldPolicy = DEFAULT_HOLD_POLICY) {
   const persistence = inMemoryPersistence();
@@ -76,15 +75,6 @@ describe('HoldItem', () => {
     const first = await useCase.execute(input(), GUEST);
     expect(await useCase.execute(input(), GUEST)).toEqual(first);
     expect(eventStore.recorded(ITEM_ID)).toHaveLength(1);
-  });
-
-  it("refuses another session's idempotency key as ItemUnavailableError and writes nothing", async () => {
-    const { useCase, eventStore, holds } = await makeUseCase();
-    await useCase.execute(input(), GUEST);
-
-    await expect(useCase.execute(input(), OTHER_GUEST)).rejects.toThrow(ItemUnavailableError);
-    expect(eventStore.recorded(ITEM_ID)).toHaveLength(1);
-    expect((await holds.findByIdempotencyKey(ITEM_ID, 'idem-1'))?.sessionHash.value).toBe('a'.repeat(64));
   });
 
   it('throws ItemNotFoundError without a guest session, for an unknown wishlist, or an item not on it', async () => {

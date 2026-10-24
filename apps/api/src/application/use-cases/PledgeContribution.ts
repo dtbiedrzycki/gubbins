@@ -5,7 +5,7 @@ import type { Clock } from '../ports/Clock.js';
 import type { AccessContext } from '../AccessContext.js';
 import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
 import type { Contribution } from '../../domain/entities/Contribution.js';
-import { ItemNotFoundError, ItemUnavailableError } from '../../domain/errors.js';
+import { ItemNotFoundError } from '../../domain/errors.js';
 
 export type PledgeContributionInput = { wishlistId: string; itemId: string } & PledgeRequest;
 
@@ -27,15 +27,11 @@ export class PledgeContribution {
     return this.unitOfWork.execute(async (ctx) => {
       const wishlist = await ctx.wishlists.findById(input.wishlistId, this.clock.now());
       if (!wishlist) throw new ItemNotFoundError(input.itemId);
-      wishlist.getItem(input.itemId);
 
-      // Before the domain command, so a replay returns the original. Another
-      // session's key is refused: falling through would hit the UNIQUE index (a 500).
-      const existing = await ctx.contributions.findByIdempotencyKey(input.itemId, input.idempotencyKey);
-      if (existing) {
-        if (!existing.belongsToSession(guest.sessionHash)) throw new ItemUnavailableError(input.itemId);
-        return toResponse(existing);
-      }
+      // Before pledging, so a replayed key answers with the original pledge
+      // rather than falling through to the UNIQUE index (a 500).
+      const replay = wishlist.replayContribution(input.itemId, input.idempotencyKey, guest.sessionHash);
+      if (replay) return toResponse(replay);
 
       const details = GuestDetails.from({ name: input.name, message: input.message });
       const piiRef = this.tokenGenerator.generateEntityId();
@@ -51,7 +47,6 @@ export class PledgeContribution {
       await ctx.eventStore.append(item.id.value, expectedSeq, [event], 'guest');
       // The contribution's pii_ref foreign key needs this row first.
       await ctx.guestPii.insert(piiRef, details);
-      await ctx.contributions.insert(contribution);
       await ctx.wishlists.save(wishlist);
 
       return toResponse(contribution);

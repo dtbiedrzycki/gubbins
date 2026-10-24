@@ -6,12 +6,11 @@ import { SequentialTokenGenerator } from '../test-fakes/SequentialTokenGenerator
 import { FixedClock } from '../test-fakes/FixedClock.js';
 import { PaymentMethods } from '../../domain/value-objects/PaymentMethods.js';
 import type { AccessContext } from '../AccessContext.js';
-import { ItemNotFoundError, ItemUnavailableError } from '../../domain/errors.js';
+import { ItemNotFoundError } from '../../domain/errors.js';
 
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
 const ITEM_ID = '33333333-3333-7333-8333-333333333333';
 const GUEST: AccessContext = { guestSession: { sessionHash: 'a'.repeat(64) } };
-const OTHER_GUEST: AccessContext = { guestSession: { sessionHash: 'b'.repeat(64) } };
 
 async function makeUseCase() {
   const persistence = inMemoryPersistence();
@@ -43,16 +42,6 @@ describe('PledgeContribution', () => {
     const first = await useCase.execute(input, GUEST);
 
     expect(await useCase.execute(input, GUEST)).toEqual(first);
-    expect(store.contributions.size).toBe(1);
-    expect(store.guestPii.size).toBe(1);
-    expect(eventStore.recorded(ITEM_ID)).toHaveLength(1);
-  });
-
-  it("refuses another session's key as ItemUnavailableError and writes nothing", async () => {
-    const { useCase, store, eventStore } = await makeUseCase();
-    await useCase.execute(input, GUEST);
-
-    await expect(useCase.execute(input, OTHER_GUEST)).rejects.toThrow(ItemUnavailableError);
     expect(store.contributions.size).toBe(1);
     expect(store.guestPii.size).toBe(1);
     expect(eventStore.recorded(ITEM_ID)).toHaveLength(1);

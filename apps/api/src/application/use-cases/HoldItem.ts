@@ -6,7 +6,7 @@ import type { AccessContext } from '../AccessContext.js';
 import { holdDurationMs, type HoldPolicy } from '../HoldPolicy.js';
 import { toHoldView, type HoldView } from '../views/HoldView.js';
 import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
-import { ItemNotFoundError, ItemUnavailableError } from '../../domain/errors.js';
+import { ItemNotFoundError } from '../../domain/errors.js';
 
 export interface HoldItemInput {
   wishlistId: string;
@@ -34,24 +34,17 @@ export class HoldItem {
     if (!guest) throw new ItemNotFoundError(input.itemId);
 
     return this.unitOfWork.execute(async (ctx) => {
-      // Read once: the aggregate is loaded as of this instant, its active
-      // holds included, and decides everything below at the same one.
+      // Read once: the aggregate is loaded as of this instant, every hold on
+      // the list included, and decides everything below at the same one.
       const now = this.clock.now();
       const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
       if (!wishlist) throw new ItemNotFoundError(input.itemId);
-      wishlist.getItem(input.itemId);
 
-      // Deliberately before the availability check: a replayed idempotency
-      // key must return the original hold (its current view), not trip
-      // ItemUnavailableError on the hold it created itself.
-      const existing = await ctx.holds.findByIdempotencyKey(input.itemId, input.idempotencyKey);
-      if (existing) {
-        // Another session's key must not hand over that session's hold; refuse
-        // it as unavailable. Never fall through to holdItem: UNIQUE (item_id,
-        // idempotency_key) would make it a 500.
-        if (!existing.belongsToSession(guest.sessionHash)) throw new ItemUnavailableError(input.itemId);
-        return toHoldView(wishlist, existing);
-      }
+      // Before placing a hold, so a replayed key answers with the hold it placed,
+      // not ItemUnavailableError on that very hold. Never fall through to
+      // holdItem on a replay: UNIQUE (item_id, idempotency_key) would make it a 500.
+      const replay = wishlist.replayHold(input.itemId, input.idempotencyKey, guest.sessionHash);
+      if (replay) return toHoldView(wishlist, replay);
 
       const details = GuestDetails.from({ name: input.name, message: input.message });
       // The ref keys a guest_pii row outside the aggregate that the domain never sees (ADR-0057), so the use case mints it beside the insert.
