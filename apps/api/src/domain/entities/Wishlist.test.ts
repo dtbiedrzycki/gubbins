@@ -395,7 +395,13 @@ describe('Wishlist.replayHold', () => {
   });
 
   it('returns null for a key not used on that item', () => {
-    expect(loaded().replayHold(ITEM_ID, 'tap-1', SESSION)).toBeNull();
+    const elsewhere = Item.reconstitute({
+      id: OTHER_ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Crib', quantity: 1, seq: 0, asOf: T0,
+      holds: [holdOn(OTHER_ITEM_ID, { idempotencyKey: 'tap-1' })],
+    });
+    const here = itemOf(WISHLIST_ID, { holds: [holdOn(ITEM_ID, { idempotencyKey: 'tap-2' })] });
+    const wishlist = Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [here, elsewhere] });
+    expect(wishlist.replayHold(ITEM_ID, 'tap-1', SESSION)).toBeNull();
   });
 
   it('throws ItemNotFoundError for an item not on this list', () => {
@@ -422,7 +428,22 @@ describe('Wishlist.replayContribution', () => {
   });
 
   it('returns null for a key not used on that item', () => {
-    expect(withPledge().replayContribution(ITEM_ID, 'p-2', SESSION)).toBeNull();
+    const here = Contribution.reconstitute({
+      id: '99999999-9999-7999-8999-999999999999', itemId: ITEM_ID, amountMinor: 2_500, sessionHash: SESSION,
+      idempotencyKey: 'p-2', piiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
+    });
+    const elsewhere = Contribution.reconstitute({
+      id: '88888888-8888-7888-8888-888888888888', itemId: OTHER_ITEM_ID, amountMinor: 2_500, sessionHash: SESSION,
+      idempotencyKey: 'p-1', piiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
+    });
+    const wishlist = Wishlist.reconstitute({
+      ...validProps, keyGen: 1,
+      items: [
+        Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'group', title: 'Mixer', quantity: 1, priceMinor: 10_000, seq: 1, asOf: T0, contributions: [here] }),
+        Item.reconstitute({ id: OTHER_ITEM_ID, wishlistId: WISHLIST_ID, type: 'group', title: 'Pram', quantity: 1, priceMinor: 10_000, seq: 2, asOf: T0, contributions: [elsewhere] }),
+      ],
+    });
+    expect(wishlist.replayContribution(ITEM_ID, 'p-1', SESSION)).toBeNull();
   });
 });
 
