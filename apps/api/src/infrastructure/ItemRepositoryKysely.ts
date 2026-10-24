@@ -31,6 +31,7 @@ export class ItemRepositoryKysely implements ItemRepository {
     return rows.map((row) => Item.reconstitute({
       id: row.id, wishlistId: row.wishlist_id, type: row.type, title: row.title, quantity: row.quantity, url: row.url, priceMinor: row.price_minor,
       seq: row.seq, asOf: members.asOf,
+      // The members arrive for the whole list; each item takes only its own.
       holds: members.holds.filter((hold) => hold.itemId.value === row.id),
       contributions: members.contributions.filter((contribution) => contribution.itemId.value === row.id),
     }));
