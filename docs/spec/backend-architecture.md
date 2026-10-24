@@ -24,12 +24,13 @@ Guardrails:
 - Use cases return domain errors as values or typed exceptions; only presentation maps to HTTP status
 - Kysely or Drizzle over a full ORM — repositories own the SQL
 - Separate use cases per claim family (`HoldItem`, `ContributeToItem`), not one polymorphic `ClaimItem`
-- **Cross-item invariants read projections inside the transaction.** The
+- **Cross-item invariants are decided from a wishlist loaded inside the transaction.** The
   concurrent-hold cap (ADR-[046](../adr/0046-guest-sessions-capped-at-n-concurrent-active-holds-per-list.md)) is the first invariant in the system that
   spans items rather than living within one item's stream. Per-item event
   streams (ADR-[008](../adr/0008-event-streams-scoped-per-item-not-per-list.md)) are the consistency boundary, so this rule sits
-  deliberately outside it: `HoldItem` counts the session's active holds
-  from the list-wide `holds` projection and appends `ItemHeld` to the
+  deliberately outside it: the wishlist, which owns rules that span items
+  (ADR-[078](../adr/0078-wishlist-is-the-aggregate-root.md)), counts the session's active holds across
+  the holds it loaded, and `HoldItem` loads it and appends `ItemHeld` to the
   target item's stream **within a single `UnitOfWork`**. This is correct
   only because SQLite is single-writer and `BEGIN IMMEDIATE` serializes
   the read-then-append against concurrent writers — the count cannot go
