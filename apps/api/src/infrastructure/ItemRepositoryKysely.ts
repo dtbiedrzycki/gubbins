@@ -1,6 +1,8 @@
 import type { Kysely } from 'kysely';
 import type { Database } from './db/schema.js';
 import type { ItemRepository } from '../application/ports/ItemRepository.js';
+import type { Contribution } from '../domain/entities/Contribution.js';
+import type { Hold } from '../domain/entities/Hold.js';
 import { Item } from '../domain/entities/Item.js';
 
 export class ItemRepositoryKysely implements ItemRepository {
@@ -17,7 +19,7 @@ export class ItemRepositoryKysely implements ItemRepository {
     }).execute();
   }
 
-  async findAllByWishlistId(wishlistId: string): Promise<Item[]> {
+  async findAllByWishlistId(wishlistId: string, members: { asOf: Date; holds: readonly Hold[]; contributions: readonly Contribution[] }): Promise<Item[]> {
     const rows = await this.db.selectFrom('items')
       .innerJoin('item_state', 'item_state.item_id', 'items.id')
       .selectAll('items')
@@ -28,8 +30,20 @@ export class ItemRepositoryKysely implements ItemRepository {
       .execute();
     return rows.map((row) => Item.reconstitute({
       id: row.id, wishlistId: row.wishlist_id, type: row.type, title: row.title, quantity: row.quantity, url: row.url, priceMinor: row.price_minor,
-      seq: row.seq,
+      seq: row.seq, asOf: members.asOf,
+      // The members arrive for the whole list; each item takes only its own.
+      holds: members.holds.filter((hold) => hold.itemId.value === row.id),
+      contributions: members.contributions.filter((contribution) => contribution.itemId.value === row.id),
     }));
+  }
+
+  async seqsByWishlistId(wishlistId: string): Promise<Map<string, number>> {
+    const rows = await this.db.selectFrom('item_state')
+      .innerJoin('items', 'items.id', 'item_state.item_id')
+      .select(['item_state.item_id as id', 'item_state.seq as seq'])
+      .where('items.wishlist_id', '=', wishlistId)
+      .execute();
+    return new Map(rows.map((row) => [row.id, row.seq]));
   }
 
   /** Writes `seq` only: the purchased count is derived from holds, never stored. */

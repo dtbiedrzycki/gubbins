@@ -4,21 +4,24 @@ import type { WishlistRepository } from '../application/ports/WishlistRepository
 import { Wishlist } from '../domain/entities/Wishlist.js';
 import { PaymentMethods } from '../domain/value-objects/PaymentMethods.js';
 import { WishlistNotFoundError } from '../domain/errors.js';
+import { ContributionRepositoryKysely } from './ContributionRepositoryKysely.js';
 import { HoldRepositoryKysely, lifecycleColumns } from './HoldRepositoryKysely.js';
 import { ItemRepositoryKysely } from './ItemRepositoryKysely.js';
 
 /**
- * The aggregate's SQLite adapter (ADR-0078). Its item and hold
- * collaborators are built on the *same* Kysely/transaction instance, so
+ * The aggregate's SQLite adapter (ADR-0078). Its item, hold and
+ * contribution collaborators are built on the *same* Kysely/transaction instance, so
  * everything it reads and writes takes part in the caller's transaction.
  */
 export class WishlistRepositoryKysely implements WishlistRepository {
   private items: ItemRepositoryKysely;
   private holds: HoldRepositoryKysely;
+  private contributions: ContributionRepositoryKysely;
 
   constructor(private db: Kysely<Database>) {
     this.items = new ItemRepositoryKysely(db);
     this.holds = new HoldRepositoryKysely(db);
+    this.contributions = new ContributionRepositoryKysely(db);
   }
 
   async insert(wishlist: Wishlist): Promise<void> {
@@ -44,7 +47,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
   async save(wishlist: Wishlist): Promise<void> {
     const list = await this.db.selectFrom('wishlists').select('id').where('id', '=', wishlist.id.value).executeTakeFirst();
     if (list === undefined) throw new WishlistNotFoundError(wishlist.id.value);
-    const storedSeq = new Map((await this.items.findAllByWishlistId(wishlist.id.value)).map((item) => [item.id.value, item.seq]));
+    const storedSeq = await this.items.seqsByWishlistId(wishlist.id.value);
     // Writes only items the domain added or moved on, so an untouched row keeps its updated_at.
     for (const item of wishlist.items) {
       const seq = storedSeq.get(item.id.value);
@@ -66,17 +69,18 @@ export class WishlistRepositoryKysely implements WishlistRepository {
   }
 
   /**
-   * Every hold on the list, like its items (ADR-0078). `now` is the
-   * aggregate's `asOf`, the one instant it decides at.
+   * Every item on the list, each with all its holds and contributions
+   * (ADR-0078). `now` is the aggregate's `asOf`, the one instant it decides at.
    */
   private async hydrate(row: Selectable<WishlistsTable>, now: Date): Promise<Wishlist> {
-    const items = await this.items.findAllByWishlistId(row.id);
     const holds = await this.holds.findForWishlist(row.id);
+    const contributions = await this.contributions.findForWishlist(row.id);
+    const items = await this.items.findAllByWishlistId(row.id, { asOf: now, holds, contributions });
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
       ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now,
       paymentMethods: PaymentMethods.from({ venmoHandle: row.venmo_handle, zelleHandle: row.zelle_handle }),
-      items, holds,
+      items,
     });
   }
 }

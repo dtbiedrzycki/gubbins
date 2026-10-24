@@ -56,6 +56,20 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(loaded?.findHold(elsewhere.id.value)).toBeNull();
     });
 
+    it('gives each item only its own holds', async () => {
+      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+      wishlist.addItem({ type: 'single', title: 'Bib' }, { generateEntityId: () => ITEM_A2 });
+      await fx.wishlists.save(wishlist);
+      const onA = holdFixture();
+      const onA2 = holdFixture({ itemId: ITEM_A2 });
+      for (const hold of [onA, onA2]) await fx.holds.insert(hold);
+
+      const loaded = await fx.wishlists.findById(LIST_A, NOW);
+
+      expect(loaded?.getItem(ITEM_A).holds.map((h) => h.id.value)).toEqual([onA.id.value]);
+      expect(loaded?.getItem(ITEM_A2).holds.map((h) => h.id.value)).toEqual([onA2.id.value]);
+    });
+
     it('decides availability from what it loaded: held until the hold lapses, then available', async () => {
       await fx.holds.insert(holdFixture({ expiresAt: later(60_000) }));
 
