@@ -77,7 +77,7 @@ describe('Item availability and holds — from hold state, never a stored counte
   });
 
   it('is available while the quantity exceeds active and purchased holds', () => {
-    const item = Item.reconstitute({ ...base, quantity: 2, holds: [holdOn()] });
+    const item = Item.reconstitute({ ...base, quantity: 3, holds: [holdOn(), holdOn({ purchasedAt: T0 })] });
     expect(item.availableUnits()).toBe(1);
     expect(item.status()).toBe('available');
   });

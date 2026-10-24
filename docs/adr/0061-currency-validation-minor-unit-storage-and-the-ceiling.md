@@ -93,5 +93,5 @@ be more than zero.
   with [threat model summary](../spec/threat-model-summary.md)'s
   existing stance that detection-and-reversal, not prevention, is the
   answer to a keyed guest.
-- Because each item's pledged total is bounded too, sums of stored
-  amounts stay in safe-integer range, which is what the guard is for.
+- The guard bounds each item's pledged total too, so that total stays
+  in safe-integer range, which is what the guard is for.
