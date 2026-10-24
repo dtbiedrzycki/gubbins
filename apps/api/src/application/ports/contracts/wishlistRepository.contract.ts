@@ -124,7 +124,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
 
       await fx.wishlists.save(wishlist);
 
-      const stored = await fx.holds.findById(hold.id.value);
+      const stored = (await fx.wishlists.findById(LIST_A, NOW))?.findHold(hold.id.value);
       expect(stored?.expiresAt).toEqual(later(90_000));
       expect(stored?.extendedAt).toEqual(NOW);
     });
@@ -137,8 +137,9 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
 
       await fx.wishlists.save(wishlist);
 
-      expect((await fx.holds.findById(hold.id.value))?.releasedAt).toEqual(NOW);
-      expect((await fx.wishlists.findById(LIST_A, NOW))?.itemStatus(ITEM_A)).toBe('available');
+      const reloaded = await fx.wishlists.findById(LIST_A, NOW);
+      expect(reloaded?.findHold(hold.id.value)?.releasedAt).toEqual(NOW);
+      expect(reloaded?.itemStatus(ITEM_A)).toBe('available');
     });
 
     it('save inserts a hold the aggregate placed', async () => {
@@ -153,8 +154,9 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
 
       await fx.wishlists.save(wishlist);
 
-      expect((await fx.holds.findById(hold.id.value))?.expiresAt).toEqual(later(60_000));
-      expect((await fx.wishlists.findById(LIST_A, NOW))?.itemStatus(ITEM_A)).toBe('held');
+      const reloaded = await fx.wishlists.findById(LIST_A, NOW);
+      expect(reloaded?.findHold(hold.id.value)?.expiresAt).toEqual(later(60_000));
+      expect(reloaded?.itemStatus(ITEM_A)).toBe('held');
     });
 
     it('counts neither a released nor an expired hold, nor a purchase on another list', async () => {
@@ -210,6 +212,26 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       await fx.wishlists.save(wishlist);
 
       expect((await fx.wishlists.findById(LIST_C, NOW))?.getItem(ITEM_C2).pledgedTotal().amountMinor).toBe(2_500);
+    });
+
+    it('gives each item only its own contributions', async () => {
+      await fx.seedGuestPii(PII_REF);
+      const list = Wishlist.create({ id: LIST_C, slug: 'list-c', title: 'C', ownerToken: 'o', key: 'k', asOf: NOW,
+        paymentMethods: PaymentMethods.from({ venmoHandle: 'my-venmo' }) });
+      list.addItem({ type: 'group', title: 'Mixer', priceMinor: 45_000 }, { generateEntityId: () => ITEM_C1 });
+      list.addItem({ type: 'group', title: 'Pram', priceMinor: 60_000 }, { generateEntityId: () => ITEM_C2 });
+      await fx.wishlists.insert(list);
+      const wishlist = (await fx.wishlists.findById(LIST_C, NOW))!;
+      const { contribution: onC1 } = wishlist.pledge({ itemId: ITEM_C1, amountMinor: 2_500, sessionHash: SESSION, idempotencyKey: 'p-1', piiRef: PII_REF },
+        { generateEntityId: () => '00000000-0000-7000-8000-888888888881' });
+      const { contribution: onC2 } = wishlist.pledge({ itemId: ITEM_C2, amountMinor: 1_000, sessionHash: SESSION, idempotencyKey: 'p-2', piiRef: PII_REF },
+        { generateEntityId: () => '00000000-0000-7000-8000-888888888882' });
+      await fx.wishlists.save(wishlist);
+
+      const loaded = await fx.wishlists.findById(LIST_C, NOW);
+
+      expect(loaded?.getItem(ITEM_C1).contributions.map((c) => c.id.value)).toEqual([onC1.id.value]);
+      expect(loaded?.getItem(ITEM_C2).contributions.map((c) => c.id.value)).toEqual([onC2.id.value]);
     });
 
     it('save leaves a released and an expired hold it loaded exactly as stored', async () => {
