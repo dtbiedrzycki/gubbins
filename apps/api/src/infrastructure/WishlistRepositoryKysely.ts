@@ -4,7 +4,7 @@ import type { WishlistRepository } from '../application/ports/WishlistRepository
 import { Wishlist } from '../domain/entities/Wishlist.js';
 import { PaymentMethods } from '../domain/value-objects/PaymentMethods.js';
 import { WishlistNotFoundError } from '../domain/errors.js';
-import { HoldRepositoryKysely } from './HoldRepositoryKysely.js';
+import { HoldRepositoryKysely, lifecycleColumns } from './HoldRepositoryKysely.js';
 import { ItemRepositoryKysely } from './ItemRepositoryKysely.js';
 
 /**
@@ -53,12 +53,15 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     }
     // After the items, so a new hold's item row already exists.
     const holdIds = wishlist.holds.map((hold) => hold.id.value);
-    const storedHolds = holdIds.length === 0 ? new Set<string>()
-      : new Set((await this.db.selectFrom('holds').select('id').where('id', 'in', holdIds).execute()).map((row) => row.id));
-    // shortcut: writes every loaded hold, changed or not; compare lifecycle columns first if a list's hold history grows large.
+    const storedRows = holdIds.length === 0 ? [] : await this.db.selectFrom('holds')
+      .select(['id', 'expires_at', 'extended_at', 'released_at', 'purchased_at']).where('id', 'in', holdIds).execute();
+    const storedHolds = new Map(storedRows.map(({ id, ...lifecycle }) => [id, lifecycle]));
+    // Likewise only holds the domain placed or changed; every column save writes is compared.
     for (const hold of wishlist.holds) {
-      if (storedHolds.has(hold.id.value)) await this.holds.save(hold);
-      else await this.holds.insert(hold);
+      const stored = storedHolds.get(hold.id.value);
+      const columns = lifecycleColumns(hold);
+      if (stored === undefined) await this.holds.insert(hold);
+      else if ((Object.keys(columns) as (keyof typeof columns)[]).some((column) => stored[column] !== columns[column])) await this.holds.save(hold);
     }
   }
 
