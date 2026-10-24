@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Wishlist } from './Wishlist.js';
 import { Item } from './Item.js';
 import { Hold } from './Hold.js';
+import { Contribution } from './Contribution.js';
 import {
   DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError, NoPaymentMethodError,
 } from '../errors.js';
@@ -387,5 +388,78 @@ describe('Wishlist.itemStatus', () => {
     const wishlist = Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [itemOf(WISHLIST_ID, { holds: [holdOn(ITEM_ID)] }), second] });
     expect(wishlist.itemStatus(ITEM_ID)).toBe('held');
     expect(wishlist.itemStatus(OTHER_ITEM_ID)).toBe('available');
+  });
+});
+
+describe('Wishlist.replayHold', () => {
+  it("returns the session's own hold for a key it already used, even once that hold has expired", () => {
+    const hold = holdOn(ITEM_ID, { idempotencyKey: 'tap-1', expiresAt: at(-1) });
+    expect(loaded({ holds: [hold] }).replayHold(ITEM_ID, 'tap-1', SESSION)).toBe(hold);
+  });
+
+  it("refuses another session's key with ItemUnavailableError", () => {
+    const hold = holdOn(ITEM_ID, { idempotencyKey: 'tap-1' });
+    expect(() => loaded({ holds: [hold] }).replayHold(ITEM_ID, 'tap-1', OTHER_SESSION)).toThrow(ItemUnavailableError);
+  });
+
+  it('returns null for a key not used on that item', () => {
+    const elsewhere = Item.reconstitute({
+      id: OTHER_ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Crib', quantity: 1, seq: 0, asOf: T0,
+      holds: [holdOn(OTHER_ITEM_ID, { idempotencyKey: 'tap-1' })],
+    });
+    const here = itemOf(WISHLIST_ID, { holds: [holdOn(ITEM_ID, { idempotencyKey: 'tap-2' })] });
+    const wishlist = Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [here, elsewhere] });
+    expect(wishlist.replayHold(ITEM_ID, 'tap-1', SESSION)).toBeNull();
+  });
+
+  it('throws ItemNotFoundError for an item not on this list', () => {
+    expect(() => loaded().replayHold(OTHER_ITEM_ID, 'tap-1', SESSION)).toThrow(ItemNotFoundError);
+  });
+});
+
+describe('Wishlist.replayContribution', () => {
+  const pledged = Contribution.reconstitute({
+    id: '77777777-7777-7777-8777-777777777777', itemId: ITEM_ID, amountMinor: 2_500, sessionHash: SESSION,
+    idempotencyKey: 'p-1', piiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
+  });
+  const withPledge = () => Wishlist.reconstitute({
+    ...validProps, keyGen: 1,
+    items: [Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'group', title: 'Mixer', quantity: 1, priceMinor: 10_000, seq: 1, asOf: T0, contributions: [pledged] })],
+  });
+
+  it("returns the session's own pledge for a key it already used", () => {
+    expect(withPledge().replayContribution(ITEM_ID, 'p-1', SESSION)).toBe(pledged);
+  });
+
+  it("refuses another session's key with ItemUnavailableError", () => {
+    expect(() => withPledge().replayContribution(ITEM_ID, 'p-1', OTHER_SESSION)).toThrow(ItemUnavailableError);
+  });
+
+  it('returns null for a key not used on that item', () => {
+    const here = Contribution.reconstitute({
+      id: '99999999-9999-7999-8999-999999999999', itemId: ITEM_ID, amountMinor: 2_500, sessionHash: SESSION,
+      idempotencyKey: 'p-2', piiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
+    });
+    const elsewhere = Contribution.reconstitute({
+      id: '88888888-8888-7888-8888-888888888888', itemId: OTHER_ITEM_ID, amountMinor: 2_500, sessionHash: SESSION,
+      idempotencyKey: 'p-1', piiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
+    });
+    const wishlist = Wishlist.reconstitute({
+      ...validProps, keyGen: 1,
+      items: [
+        Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'group', title: 'Mixer', quantity: 1, priceMinor: 10_000, seq: 1, asOf: T0, contributions: [here] }),
+        Item.reconstitute({ id: OTHER_ITEM_ID, wishlistId: WISHLIST_ID, type: 'group', title: 'Pram', quantity: 1, priceMinor: 10_000, seq: 2, asOf: T0, contributions: [elsewhere] }),
+      ],
+    });
+    expect(wishlist.replayContribution(ITEM_ID, 'p-1', SESSION)).toBeNull();
+  });
+});
+
+describe('Wishlist.holdsForSession', () => {
+  it("returns every hold that session placed on the list, whatever its state, and no one else's", () => {
+    const mine = [holdOn(ITEM_ID), holdOn(ITEM_ID, { releasedAt: T0 }), holdOn(ITEM_ID, { expiresAt: at(-1) })];
+    const theirs = holdOn(ITEM_ID, { sessionHash: OTHER_SESSION });
+    const wishlist = loaded({ quantity: 4, holds: [...mine, theirs] });
+    expect(wishlist.holdsForSession(SESSION)).toEqual(mine);
   });
 });
