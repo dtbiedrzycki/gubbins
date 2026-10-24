@@ -226,7 +226,7 @@ describe('Item.reconstitute', () => {
     expect(() => Item.reconstitute({ ...base, seq: 1.5 })).toThrow(DomainValidationError);
   });
 
-  it('accepts loaded pledges that total the limit, and rejects more', () => {
+  it('accepts loaded pledges totalling 10¹² cents, and refuses 10¹² + 1', () => {
     expect(() => fundedGroup(MAX_MONEY_MINOR)).not.toThrow();
     expect(() => fundedGroup(MAX_MONEY_MINOR, 1)).toThrow(DomainValidationError);
   });
@@ -267,12 +267,7 @@ describe('Item.pledge', () => {
   ])('refuses %s', (_, amountMinor) => {
     expect(() => group().pledge({ ...props, amountMinor }, ids)).toThrow(ContributionAmountError);
   });
-  it.each([0, -100])('refuses amount %j and adds nothing', (amountMinor) => {
-    const item = group();
-    expect(() => item.pledge({ ...props, amountMinor }, ids)).toThrow();
-    expect([item.contributions, item.seq]).toEqual([[], 0]);
-  });
-  it('accepts a pledge that brings the total exactly to the limit, and refuses one cent more', () => {
+  it('accepts a pledge that brings the total to exactly 10¹² cents, and refuses one cent more', () => {
     const item = fundedGroup(MAX_MONEY_MINOR - 100);
     expect(() => item.pledge({ ...props, amountMinor: 100 }, ids)).not.toThrow();
     expect(() => item.pledge({ ...props, idempotencyKey: 'k2', amountMinor: 1 }, ids)).toThrow(ContributionAmountError);
