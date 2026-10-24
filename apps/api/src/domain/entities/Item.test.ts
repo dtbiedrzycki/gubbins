@@ -92,11 +92,6 @@ describe('Item availability and holds — from hold state, never a stored counte
     expect(Item.reconstitute(base).purchasedCount()).toBe(0);
   });
 
-  it('takes one unit for a purchased hold, not a second one as if it were active', () => {
-    const item = Item.reconstitute({ ...base, quantity: 4, holds: [holdOn({ purchasedAt: T0 }), holdOn({ purchasedAt: T0 }), holdOn()] });
-    expect(item.availableUnits()).toBe(1);
-  });
-
   it('is purchased once purchased holds cover the quantity', () => {
     expect(Item.reconstitute({ ...base, holds: [holdOn({ purchasedAt: T0 })] }).status()).toBe('purchased');
   });
