@@ -50,6 +50,10 @@ describe('Item kinds, URL and price', () => {
   it('accepts an https store URL', () => {
     expect(Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'T', url: 'https://shop.example/x' }).url).toBe('https://shop.example/x');
   });
+  it('trims the store URL', () => {
+    expect(Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'T', url: ' https://shop.example/x ' }).url).toBe('https://shop.example/x');
+    expect(Item.createGroup({ asOf: T0, id: ID, wishlistId: WL, title: 'T', priceMinor: 100, url: ' https://shop.example/x ' }).url).toBe('https://shop.example/x');
+  });
   it.each([0, -1, 1.5, 10 ** 12 + 1])('refuses price %j', (priceMinor) => {
     expect(() => Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'T', priceMinor })).toThrow(DomainValidationError);
   });
@@ -415,5 +419,12 @@ describe('Item.pledge', () => {
   it('refuses a pledge on a single item', () => {
     const single = Item.createSingle({ asOf: T0, id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Crib' });
     expect(() => single.pledge({ ...props, amountMinor: 100 }, ids)).toThrow(ItemUnavailableError);
+  });
+});
+
+describe('Item.findHoldWithKey and findContributionWithKey', () => {
+  it('finds the hold or pledge when its key is sent with surrounding whitespace', () => {
+    expect(holding([holdOn({ idempotencyKey: 'idem-1' })]).findHoldWithKey(' idem-1\n')?.idempotencyKey.value).toBe('idem-1');
+    expect(fundedGroup(100).findContributionWithKey(' stored-1\n')?.idempotencyKey.value).toBe('stored-1');
   });
 });

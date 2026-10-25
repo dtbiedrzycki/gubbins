@@ -1,9 +1,8 @@
 import { DomainValidationError } from '../errors.js';
 
 /**
- * The bearer secret that lets a guest release their own hold. Opaque —
- * never trimmed or normalised, since any transformation would change the
- * credential.
+ * The bearer secret that lets a guest release their own hold. Trimmed like all
+ * input; a generated secret is base64url, so no whitespace is ever part of it.
  */
 export class HoldSecret {
   /**
@@ -18,7 +17,8 @@ export class HoldSecret {
 
   private constructor(readonly value: string) {}
 
-  static from(value: string): HoldSecret {
+  static from(raw: string): HoldSecret {
+    const value = raw.trim();
     if (value.length === 0) throw new DomainValidationError('Hold secret must not be empty');
     return new HoldSecret(value);
   }
@@ -29,6 +29,6 @@ export class HoldSecret {
    * interface: domain/ may not import application/ (ADR-012).
    */
   matches(candidate: string, comparer: { compareInConstantTime(a: string, b: string): boolean }): boolean {
-    return comparer.compareInConstantTime(this.value, candidate);
+    return comparer.compareInConstantTime(this.value, candidate.trim());
   }
 }

@@ -1,8 +1,8 @@
 import { DomainValidationError } from '../errors.js';
 
 /**
- * The guest bearer secret for a wishlist. Opaque — never trimmed or
- * normalised, since any transformation would change the credential.
+ * The guest bearer secret for a wishlist. Trimmed like all input; a
+ * generated secret is base64url, so no whitespace is ever part of it.
  */
 export class GuestKey {
   /**
@@ -17,7 +17,8 @@ export class GuestKey {
 
   private constructor(readonly value: string) {}
 
-  static from(value: string): GuestKey {
+  static from(raw: string): GuestKey {
+    const value = raw.trim();
     if (value.length === 0) throw new DomainValidationError('Guest key must not be empty');
     return new GuestKey(value);
   }
@@ -28,6 +29,6 @@ export class GuestKey {
    * interface: domain/ may not import application/ (ADR-012).
    */
   matches(candidate: string, comparer: { compareInConstantTime(a: string, b: string): boolean }): boolean {
-    return comparer.compareInConstantTime(this.value, candidate);
+    return comparer.compareInConstantTime(this.value, candidate.trim());
   }
 }
