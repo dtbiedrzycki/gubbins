@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const pledgeRequestSchema = z.object({
-  idempotencyKey: z.string().min(1),
+  idempotencyKey: z.string().min(1).max(200),
   // Zero or less is never a pledge, so it is a 400 here. The upper bound depends on the item, so it is the domain's 409.
   amountMinor: z.number().int().positive(),
   name: z.string().min(1).max(100),

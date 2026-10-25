@@ -5,6 +5,7 @@ import { Wishlist } from '../domain/entities/Wishlist.js';
 import { Contribution } from '../domain/entities/Contribution.js';
 import { DomainValidationError } from '../domain/errors.js';
 import { GuestDetails } from '../domain/value-objects/GuestDetails.js';
+import { IdempotencyKey } from '../domain/value-objects/IdempotencyKey.js';
 
 // Each limit is written twice: in the request schema, so a client gets a 400 naming the field,
 // and in the domain, so no other path stores more. These tests keep the two copies equal.
@@ -53,6 +54,16 @@ const maximums: { field: string; limit: number; schema: (n: number) => boolean; 
     field: 'pledge message', limit: 300,
     schema: (n) => pledgeRequestSchema.safeParse({ idempotencyKey: 'k', amountMinor: 100, name: 'Ann', message: text(n) }).success,
     domain: (n) => accepts(guest({ message: text(n) })),
+  },
+  {
+    field: 'hold idempotency key', limit: 200,
+    schema: (n) => holdItemRequestSchema.safeParse({ idempotencyKey: text(n), name: 'Ann' }).success,
+    domain: (n) => accepts(() => IdempotencyKey.from(text(n))),
+  },
+  {
+    field: 'pledge idempotency key', limit: 200,
+    schema: (n) => pledgeRequestSchema.safeParse({ idempotencyKey: text(n), amountMinor: 100, name: 'Ann' }).success,
+    domain: (n) => accepts(() => IdempotencyKey.from(text(n))),
   },
   {
     field: 'list title', limit: 120,
