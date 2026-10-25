@@ -6,7 +6,7 @@ import { listViewKey } from '../holds/useListView';
 import { formatMoney } from '../../lib/formatMoney';
 import { parseUsd } from '../../lib/parseUsd';
 import { venmoPayLink } from './paymentLinks';
-import { LengthLimitWarning, isAtLimit } from '../../lib/LengthLimitWarning';
+import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
 
 export interface ContributeDialogProps {
   slug: string;
@@ -69,7 +69,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   }
 
   const sent = !isIdle;
-  const lockedHint = sent ? 'contribute-locked' : undefined;
+  const lockedHint = sent && 'contribute-locked';
   const chosen = coverRest ? remainingMinor : parseUsd(other);
   const amount = parseUsd(amountText);
   const waysToPay = [payment.venmoHandle && 'Venmo', payment.zelleHandle && 'Zelle'].filter(Boolean).join(' or ');
@@ -127,13 +127,9 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           )}
           <p role="status" aria-live="polite" className="mb-4 text-sm empty:mb-0">{copied}</p>
           <label className="mb-1 block" htmlFor="contribute-name">Your name</label>
-          <input id="contribute-name" required value={name} onChange={(e) => setName(e.target.value)} maxLength={NAME_MAX} disabled={isPending} readOnly={sent}
-            aria-describedby={[lockedHint, isAtLimit(name, NAME_MAX) && 'contribute-name-limit'].filter(Boolean).join(' ') || undefined} className={`${field} mb-4`} />
-          <LengthLimitWarning id="contribute-name-limit" value={name} max={NAME_MAX} />
+          <LimitedInput id="contribute-name" required value={name} onChange={(e) => setName(e.target.value)} max={NAME_MAX} disabled={isPending} readOnly={sent} describedBy={[lockedHint]} className={`${field} mb-4`} />
           <label className="mb-1 block" htmlFor="contribute-message">Message to the owner (optional)</label>
-          <textarea id="contribute-message" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={MESSAGE_MAX} disabled={isPending} readOnly={sent}
-            aria-describedby={[lockedHint, isAtLimit(message, MESSAGE_MAX) && 'contribute-message-limit'].filter(Boolean).join(' ') || undefined} className="mb-4 w-full rounded border px-2 py-1" />
-          <LengthLimitWarning id="contribute-message-limit" value={message} max={MESSAGE_MAX} />
+          <LimitedTextarea id="contribute-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} readOnly={sent} describedBy={[lockedHint]} className="mb-4 w-full rounded border px-2 py-1" />
           {sent && <p id="contribute-locked" className="mb-4 text-sm text-slate-700">To change your details, cancel and start again.</p>}
           <p role="alert" className="mb-4 text-red-600 empty:mb-0">{error?.message}</p>
           <div className="flex gap-2">
