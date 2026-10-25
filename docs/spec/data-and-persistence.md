@@ -60,7 +60,7 @@
 - **Audit table for CRUD metadata**: `(entityId, field, oldValue, newValue, changedAt)`. Purge is a `DELETE`.
 - SQLite in WAL mode, single file on a mounted volume
 - **Rate limiting is also stored in SQLite** — a `rate_limit_attempts` table, fixed-window, lazily expired the same way hold expiry is (never a cron sweep). No new service dependency introduced for this. See [threat model](threat-model-summary.md) for thresholds.
-- DB-level check constraints as a backstop to application invariants
+- DB-level check constraints as a backstop to structural invariants (allowed values, impossible state combinations). Product limits such as text lengths belong to the domain alone, since the app is the database's only writer and every write goes through the domain
 
 ---
 
