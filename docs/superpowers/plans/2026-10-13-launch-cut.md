@@ -1359,7 +1359,7 @@ it.each(['', '0', '0.00', '-5', '50.555', 'abc', '1,2,3', '$', '1e3'])('%j → n
   - **Step 1 of the flow:** a `Cover the rest ($X)` choice when the remainder is > 0, and a `Another amount` text field. `Continue` is disabled until there's a valid amount; an invalid entry shows `Enter an amount like 25 or 25.50.`
   - **Step 2 of the flow:**
     - Three steps above the amount: check the amount and send it with the list's ways to pay, come back to this page, then add your name and choose `I've sent it`.
-    - `Pay $X with Venmo`, linking to `venmoPayLink` in a new tab, when there's a Venmo handle.
+    - `Pay $X with Venmo`, linking to `venmoPayLink` with the item's title as the note, in a new tab, when there's a Venmo handle.
     - `Zelle: <handle>` with a `Copy` button (`navigator.clipboard.writeText`, then announce `Copied.`), when there's a Zelle handle.
     - The amount (editable, prefilled), `Your name` (required) and `Message to the owner (optional)`.
     - `I've sent it`, disabled while pending.

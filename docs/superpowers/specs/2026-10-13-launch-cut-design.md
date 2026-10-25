@@ -158,12 +158,13 @@ contributions  NEW: id pk, item_id, amount_minor int CHECK (> 0), idempotency_ke
   - Singles show units left and **Hold it**.
   - Group gifts show a progress bar ("$X of $Y · N%") and **Chip in**.
 - `HoldSheet` gains name and message fields.
-- `ContributeFlow` is a native `<dialog>` (ADR-0024). It works in three steps:
+- `ContributeDialog` is a native `<dialog>` (ADR-0024). It works in three steps:
   1. The guest chooses "Cover the rest" or a custom amount.
   2. The pay step lists what the guest has to do: send the amount, come back,
-     and choose "I've sent it". It shows Venmo's payment link
-     (`https://venmo.com/<handle>?txn=pay&amount=…&note=…`) on every device,
-     and the Zelle handle, if there is one, with **Copy**.
+     then add their name and choose "I've sent it". It shows Venmo's payment
+     link (`https://venmo.com/<handle>?txn=pay&amount=…&note=…`, with the
+     item's title as the note), on every device, when the list has a Venmo
+     handle, and the Zelle handle, if there is one, with **Copy**.
   3. "I've sent it" sends the editable amount, name and message.
 
   The idempotency key is generated when the flow opens. Status changes are
@@ -188,7 +189,7 @@ contributions  NEW: id pk, item_id, amount_minor int CHECK (> 0), idempotency_ke
 | 0. Deploy | 2 | — | Dockerfile, compose and CI container smoke job · `CREATE_SECRET` on create (config, constant-time check, form field) |
 | 1. Items | 4 | — | Owner session (owner-token exchange, `gubbins_owner`, owner credential in `AccessContext`) · multi-item `Wishlist`, quantity availability, add-item use case and route · `url`, `priceMinor`, `Money`/`Currency` · `ManagePage`, guest cards, e2e |
 | 2. Holder details | 2 | — | `GuestPii` + `piiRef` on holds · `HoldSheet` fields, e2e |
-| 3. Group gifts | 4 | 1 (PR 2), 2 (PR 1) | `Item.type`, `Contribution`, `Item.pledge` bounds, payment methods on `Wishlist` · pledge use case and route, handles on create (API and form) · `ContributeFlow`, progress bar, e2e · owner group-gift option |
+| 3. Group gifts | 4 | 1 (PR 2), 2 (PR 1) | `Item.type`, `Contribution`, `Item.pledge` bounds, payment methods on `Wishlist` · pledge use case and route, handles on create (API and form) · `ContributeDialog`, progress bar, e2e · owner group-gift option |
 
 The plan's task order supersedes this table: one linear stack of small PRs, because the tracks share files.
 
@@ -230,7 +231,7 @@ New ADRs:
   2. Create the list from a phone over HTTPS.
   3. Go through the hold and pledge flows on a phone.
   4. On a phone with the Venmo app, confirm the Venmo link opens the app with
-     the amount and note filled in.
+     the amount and note (the item's title) filled in.
   5. On a phone without the app, and on a computer signed in to Venmo, confirm
      the Venmo link opens the website's payment form with the amount and note
      filled in.
