@@ -1,8 +1,11 @@
-import { ContributionAmountError, DomainValidationError, ItemUnavailableError } from '../errors.js';
+import { ContributionAmountError, DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemUnavailableError } from '../errors.js';
 import type { ContributionPledgedEvent } from '../events/ContributionPledgedEvent.js';
+import type { HoldExtendedEvent } from '../events/HoldExtendedEvent.js';
+import type { HoldReleasedEvent } from '../events/HoldReleasedEvent.js';
 import type { ItemHeldEvent } from '../events/ItemHeldEvent.js';
+import type { ItemPurchasedEvent } from '../events/ItemPurchasedEvent.js';
 import { Contribution } from './Contribution.js';
-import { Hold } from './Hold.js';
+import { Hold, type HoldStatus } from './Hold.js';
 import { MAX_MONEY_MINOR, Money } from '../value-objects/Money.js';
 import { UuidId } from '../value-objects/UuidId.js';
 
@@ -102,7 +105,7 @@ export class Item {
 
   /**
    * The seq this item's stream is at, from `item_state.seq`. Appends must
-   * use the value `recordEvent` hands back for the store's optimistic check
+   * use the `expectedSeq` a command hands back for the store's optimistic check
    * (ADR-0010) to accept them.
    */
   get seq(): number {
@@ -126,11 +129,11 @@ export class Item {
     return this._holds.find((hold) => hold.id.value === holdId) ?? null;
   }
 
-  holdWithKey(idempotencyKey: string): Hold | null {
+  findHoldWithKey(idempotencyKey: string): Hold | null {
     return this._holds.find((hold) => hold.idempotencyKey.value === idempotencyKey) ?? null;
   }
 
-  contributionWithKey(idempotencyKey: string): Contribution | null {
+  findContributionWithKey(idempotencyKey: string): Contribution | null {
     return this._contributions.find((c) => c.idempotencyKey.value === idempotencyKey) ?? null;
   }
 
@@ -244,12 +247,80 @@ export class Item {
     return { contribution, event, expectedSeq: this.recordEvent() };
   }
 
+  /** The state of one of its holds, at the instant it was loaded at. Throws HoldNotFoundError for a hold it did not load. */
+  holdStatus(hold: Hold): HoldStatus {
+    return this.ownHold(hold).statusAt(this.asOf);
+  }
+
+  /** `extendHold`'s rule as a question; false for a hold it did not load. */
+  canExtendHold(hold: Hold): boolean {
+    return this.findHold(hold.id.value)?.canExtendAt(this.asOf) ?? false;
+  }
+
+  /** `releaseHold`'s rule as a question; false for a hold it did not load. */
+  canReleaseHold(hold: Hold): boolean {
+    return this.findHold(hold.id.value)?.canReleaseAt(this.asOf) ?? false;
+  }
+
+  /** `purchaseHold`'s rule as a question, for views that offer the action only when it would succeed; false for a hold it did not load. */
+  canPurchaseHold(hold: Hold): boolean {
+    const own = this.findHold(hold.id.value);
+    return own !== null && this.purchaseRefusal(own) === null;
+  }
+
+  // Each hold command acts on the item's own instance of `hold`, at the item's `asOf`, and advances its stream.
+
+  /** Reach it through `Wishlist.extendHold`, which authorizes the hold. */
+  extendHold(hold: Hold, durationMs: number): { hold: Hold; event: HoldExtendedEvent; expectedSeq: number } {
+    const own = this.ownHold(hold);
+    const event = own.extend(this.asOf, durationMs);
+    return { hold: own, event, expectedSeq: this.recordEvent() };
+  }
+
+  /** Reach it through `Wishlist.releaseHold`, which authorizes the hold. */
+  releaseHold(hold: Hold): { hold: Hold; event: HoldReleasedEvent; expectedSeq: number } {
+    const own = this.ownHold(hold);
+    const event = own.release(this.asOf);
+    return { hold: own, event, expectedSeq: this.recordEvent() };
+  }
+
+  /**
+   * An active hold may always be purchased — its unit is already its own.
+   * An expired one may be too, so a guest who bought the gift after their
+   * hold lapsed need not re-hold it — but only while a unit is still
+   * free, or they would be buying one someone else now holds. Reach it
+   * through `Wishlist.purchaseHold`, which authorizes the hold.
+   */
+  purchaseHold(hold: Hold): { hold: Hold; event: ItemPurchasedEvent; expectedSeq: number } {
+    const own = this.ownHold(hold);
+    const refusal = this.purchaseRefusal(own);
+    if (refusal === 'closed') throw new HoldNotActiveError(own.id.value);
+    if (refusal === 'lapsed') throw new HoldLapsedError(this.id.value);
+    const event = own.markPurchased(this.asOf);
+    return { hold: own, event, expectedSeq: this.recordEvent() };
+  }
+
+  /** Why `purchaseHold` would refuse `hold`, or null when it would succeed. Takes the item's own instance. */
+  private purchaseRefusal(hold: Hold): 'closed' | 'lapsed' | null {
+    const status = hold.statusAt(this.asOf);
+    if (status === 'active') return null;
+    if (status !== 'expired') return 'closed';
+    return this.availableUnits() === 0 ? 'lapsed' : null;
+  }
+
+  /** Its own instance of `hold`; HoldNotFoundError when it did not load it. */
+  private ownHold(hold: Hold): Hold {
+    const own = this.findHold(hold.id.value);
+    if (!own) throw new HoldNotFoundError(hold.id.value);
+    return own;
+  }
+
   /**
    * Advances the stream by one event and returns the seq it was at — the
    * value to append against. Every command on a hold of this item records
    * through here, since they all share the item's stream (ADR-0008).
    */
-  recordEvent(): number {
+  private recordEvent(): number {
     const expectedSeq = this._seq;
     this._seq += 1;
     return expectedSeq;

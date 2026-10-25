@@ -43,7 +43,7 @@ export class HoldItem {
       // Before placing a hold, so a replayed key answers with the hold it placed,
       // not ItemUnavailableError on that very hold. Never fall through to
       // holdItem on a replay: UNIQUE (item_id, idempotency_key) would make it a 500.
-      const replay = wishlist.replayHold(input.itemId, input.idempotencyKey, guest.sessionHash);
+      const replay = wishlist.findHoldForReplay(input.itemId, input.idempotencyKey, guest.sessionHash);
       if (replay) return toHoldView(wishlist, replay);
 
       const details = GuestDetails.from({ name: input.name, message: input.message });

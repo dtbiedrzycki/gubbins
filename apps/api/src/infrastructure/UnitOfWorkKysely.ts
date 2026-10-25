@@ -3,9 +3,7 @@ import type { Database } from './db/schema.js';
 import type { UnitOfWork, TransactionContext } from '../application/ports/UnitOfWork.js';
 import type { EventStore } from '../application/ports/EventStore.js';
 import { WishlistRepositoryKysely } from './WishlistRepositoryKysely.js';
-import { HoldRepositoryKysely } from './HoldRepositoryKysely.js';
 import { GuestPiiRepositoryKysely } from './GuestPiiRepositoryKysely.js';
-import { ContributionRepositoryKysely } from './ContributionRepositoryKysely.js';
 import { EventStoreKysely } from './EventStoreKysely.js';
 import { inImmediateTransaction } from './db/immediateTransaction.js';
 
@@ -28,9 +26,7 @@ export class UnitOfWorkKysely implements UnitOfWork {
   async execute<T>(fn: (ctx: TransactionContext) => Promise<T>): Promise<T> {
     return inImmediateTransaction(this.db, (trx) => fn({
       wishlists: new WishlistRepositoryKysely(trx),
-      holds: new HoldRepositoryKysely(trx),
       guestPii: new GuestPiiRepositoryKysely(trx),
-      contributions: new ContributionRepositoryKysely(trx),
       eventStore: this.wrapEventStore(new EventStoreKysely(trx)),
     }));
   }

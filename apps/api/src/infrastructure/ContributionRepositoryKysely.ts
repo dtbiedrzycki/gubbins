@@ -1,4 +1,4 @@
-import { sql, type Kysely, type Selectable } from 'kysely';
+import type { Kysely, Selectable } from 'kysely';
 import type { ContributionsTable, Database } from './db/schema.js';
 import type { ContributionRepository } from '../application/ports/ContributionRepository.js';
 import { Contribution } from '../domain/entities/Contribution.js';
@@ -21,12 +21,6 @@ export class ContributionRepositoryKysely implements ContributionRepository {
     }).execute();
   }
 
-  async findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<Contribution | null> {
-    const row = await this.db.selectFrom('contributions').selectAll()
-      .where('item_id', '=', itemId).where('idempotency_key', '=', idempotencyKey).executeTakeFirst();
-    return row ? toContribution(row) : null;
-  }
-
   async findForWishlist(wishlistId: string): Promise<Contribution[]> {
     const rows = await this.db.selectFrom('contributions')
       .innerJoin('items', 'items.id', 'contributions.item_id')
@@ -35,15 +29,5 @@ export class ContributionRepositoryKysely implements ContributionRepository {
       .orderBy('contributions.pledged_at').orderBy('contributions.id')
       .execute();
     return rows.map(toContribution);
-  }
-
-  async pledgedTotals(wishlistId: string): Promise<Map<string, number>> {
-    const rows = await this.db.selectFrom('contributions')
-      .innerJoin('items', 'items.id', 'contributions.item_id')
-      .select(['contributions.item_id as item_id', sql<number>`sum(contributions.amount_minor)`.as('total')])
-      .where('items.wishlist_id', '=', wishlistId)
-      .groupBy('contributions.item_id')
-      .execute();
-    return new Map(rows.map((r) => [r.item_id, Number(r.total)]));
   }
 }

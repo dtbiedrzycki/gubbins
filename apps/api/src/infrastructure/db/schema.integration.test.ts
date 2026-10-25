@@ -52,10 +52,10 @@ describe('0001_init schema', () => {
     await expect(db.insertInto('items').values(row).execute()).rejects.toThrow(/CHECK constraint failed/);
   });
 
-  it('indexes holds by item and by session', async () => {
-    const { rows } = await sql<{ name: string }>`select name from pragma_index_list('holds')`.execute(db);
+  it('indexes holds by item and nothing else', async () => {
+    const { rows } = await sql<{ name: string }>`select name from pragma_index_list('holds') where name not like 'sqlite_autoindex%'`.execute(db);
 
-    expect(rows.map((r) => r.name)).toEqual(expect.arrayContaining(['holds_item_id_idx', 'holds_session_hash_idx']));
+    expect(rows.map((r) => r.name)).toEqual(['holds_item_id_idx']);
   });
 
   it('refuses an event row without an actor', async () => {

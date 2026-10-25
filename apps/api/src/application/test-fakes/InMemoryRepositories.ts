@@ -9,12 +9,10 @@ import type { ContributionRepository } from '../ports/ContributionRepository.js'
 import type { EventStore } from '../ports/EventStore.js';
 import type { HoldRepository } from '../ports/HoldRepository.js';
 import type { GuestPiiRepository } from '../ports/GuestPiiRepository.js';
+import type { ItemRow } from '../ports/ItemRepository.js';
 import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
 import type { TransactionContext, UnitOfWork } from '../ports/UnitOfWork.js';
 import type { WishlistRepository } from '../ports/WishlistRepository.js';
-
-/** An item's stored columns: items are kept as rows, and rebuilt with their members on each load. */
-type ItemRow = { id: string; wishlistId: string; type: string; title: string; quantity: number; url: string | null; priceMinor: number | null; seq: number };
 
 const toRow = (item: Item): ItemRow => ({
   id: item.id.value, wishlistId: item.wishlistId.value, type: item.type, title: item.title,
@@ -62,18 +60,6 @@ export class InMemoryStore {
     return [...this.contributions.values()]
       .filter((c) => this.items.get(c.itemId.value)?.wishlistId === wishlistId)
       .sort((a, b) => a.pledgedAt.getTime() - b.pledgedAt.getTime() || a.id.value.localeCompare(b.id.value));
-  }
-
-  /**
-   * The list's holds active or purchased at `now`, by the same predicate as
-   * the SQL adapter's query: purchased, or not released with
-   * `now <= expiresAt`. The hold repository contract checks it agrees with
-   * the domain.
-   */
-  activeOrPurchasedHoldsOnList(wishlistId: string, now: Date): Hold[] {
-    return this.holdsOnList(wishlistId).filter(
-      (h) => h.purchasedAt !== null || (h.releasedAt === null && now.getTime() <= h.expiresAt.getTime()),
-    );
   }
 }
 
@@ -144,26 +130,8 @@ export class InMemoryHoldRepository implements HoldRepository {
     this.store.holds.set(hold.id.value, copyHold(hold));
   }
 
-  async findById(holdId: string): Promise<Hold | null> {
-    const hold = this.store.holds.get(holdId);
-    return hold ? copyHold(hold) : null;
-  }
-
-  async findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<Hold | null> {
-    const hold = [...this.store.holds.values()].find((h) => h.itemId.value === itemId && h.idempotencyKey.value === idempotencyKey);
-    return hold ? copyHold(hold) : null;
-  }
-
   async findForWishlist(wishlistId: string): Promise<Hold[]> {
     return this.store.holdsOnList(wishlistId).map(copyHold);
-  }
-
-  async findActiveOrPurchasedForWishlist(wishlistId: string, now: Date): Promise<Hold[]> {
-    return this.store.activeOrPurchasedHoldsOnList(wishlistId, now).map(copyHold);
-  }
-
-  async findForSession(wishlistId: string, sessionHash: string): Promise<Hold[]> {
-    return this.store.holdsOnList(wishlistId).filter((h) => h.belongsToSession(sessionHash)).map(copyHold);
   }
 }
 
@@ -213,19 +181,6 @@ export class InMemoryContributionRepository implements ContributionRepository {
   async findForWishlist(wishlistId: string): Promise<Contribution[]> {
     return this.store.contributionsOnList(wishlistId);
   }
-
-  async findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<Contribution | null> {
-    return [...this.store.contributions.values()].find((c) => c.itemId.value === itemId && c.idempotencyKey.value === idempotencyKey) ?? null;
-  }
-
-  async pledgedTotals(wishlistId: string): Promise<Map<string, number>> {
-    const totals = new Map<string, number>();
-    for (const c of this.store.contributions.values()) {
-      if (this.store.items.get(c.itemId.value)?.wishlistId !== wishlistId) continue;
-      totals.set(c.itemId.value, (totals.get(c.itemId.value) ?? 0) + c.amount.amountMinor);
-    }
-    return totals;
-  }
 }
 
 /** No real transactionality — fine for use-case unit tests, which never assert rollback; the Kysely integration tests cover that. */
@@ -237,14 +192,12 @@ export class InMemoryUnitOfWork implements UnitOfWork {
   }
 }
 
-/** One store and every fake on it, wired as a use case expects. */
+/** One store and the fakes a use case is wired with. */
 export function inMemoryPersistence() {
   const store = new InMemoryStore();
   const wishlists = new InMemoryWishlistRepository(store);
-  const holds = new InMemoryHoldRepository(store);
   const eventStore = new InMemoryEventStore(store);
   const guestPii = new InMemoryGuestPiiRepository(store);
-  const contributions = new InMemoryContributionRepository(store);
-  const unitOfWork = new InMemoryUnitOfWork({ wishlists, holds, eventStore, guestPii, contributions });
-  return { store, wishlists, holds, eventStore, guestPii, contributions, unitOfWork };
+  const unitOfWork = new InMemoryUnitOfWork({ wishlists, eventStore, guestPii });
+  return { store, wishlists, eventStore, guestPii, unitOfWork };
 }

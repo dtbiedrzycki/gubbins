@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const enterGuestKeyRequestSchema = z.object({
-  key: z.string().trim().min(1),
+  key: z.string().min(1),
 });
 export type EnterGuestKeyRequest = z.infer<typeof enterGuestKeyRequestSchema>;
 
