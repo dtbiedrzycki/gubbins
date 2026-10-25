@@ -1341,12 +1341,11 @@ Ordering note: this task only needs Task 22's error, so it may move earlier if a
 ```ts
 /** "$1,250.50" / "1250.5" / "50" → cents; null for anything else (blank, ≤ 0, > 2 decimals, letters). */
 export function parseUsd(input: string): number | null;
-export function venmoAppLink(handle: string, amountMinor: number, note: string): string;
-// `venmo://paycharge?txn=pay&recipients=${encodeURIComponent(handle)}&amount=${(amountMinor / 100).toFixed(2)}&note=${encodeURIComponent(note)}`
-export function venmoWebLink(handle: string): string; // `https://account.venmo.com/u/${encodeURIComponent(handle)}`
+export function venmoPayLink(handle: string, amountMinor: number, note: string): string;
+// `https://venmo.com/${encodeURIComponent(handle)}?txn=pay&amount=${(amountMinor / 100).toFixed(2)}&note=${encodeURIComponent(note)}`
 ```
 
-  These two templates are the only payment hrefs the app ever renders (spec payments rule). The handle was validated at creation.
+  This template is the only payment href the app ever renders (spec payments rule). The handle was validated at creation. It's Venmo's https payment link, so it opens the app where it's installed and the website otherwise, on a phone or a computer.
 
 - [ ] **Step 1: Write the failing `parseUsd` tests:**
 
@@ -1359,7 +1358,8 @@ it.each(['', '0', '0.00', '-5', '50.555', 'abc', '1,2,3', '$', '1e3'])('%j → n
 - [ ] **Step 2: Write the failing `ContributeDialog` tests.** The dialog is a native `<dialog>` in the `HoldDialog` style, with the idempotency key minted once at open via `useState(() => crypto.randomUUID())`.
   - **Step 1 of the flow:** a `Cover the rest ($X)` choice when the remainder is > 0, and a `Another amount` text field. `Continue` is disabled until there's a valid amount; an invalid entry shows `Enter an amount like 25 or 25.50.`
   - **Step 2 of the flow:**
-    - `Pay $X with Venmo`, linking to `venmoAppLink`, plus `Venmo website` linking to `venmoWebLink`, when there's a Venmo handle.
+    - Three steps above the amount: check the amount and send it with the list's ways to pay, come back to this page, then add your name and choose `I've sent it`.
+    - `Pay $X with Venmo`, linking to `venmoPayLink` with the item's title as the note, in a new tab, when there's a Venmo handle.
     - `Zelle: <handle>` with a `Copy` button (`navigator.clipboard.writeText`, then announce `Copied.`), when there's a Zelle handle.
     - The amount (editable, prefilled), `Your name` (required) and `Message to the owner (optional)`.
     - `I've sent it`, disabled while pending.
@@ -1370,7 +1370,7 @@ it.each(['', '0', '0.00', '-5', '50.555', 'abc', '1,2,3', '$', '1e3'])('%j → n
 - [ ] **Step 5: Write the e2e** `guest-pledges.spec.ts` at 375 px:
   1. The owner creates a list with Venmo `my-venmo` and adds group `Stand mixer` ($450) via the manage page.
   2. A guest opens it, taps `Chip in`, picks `Cover the rest ($450.00)` and continues.
-  3. The guest sees a `Pay $450.00 with Venmo` link whose href starts `venmo://paycharge`, fills `Your name`, and taps `I've sent it`.
+  3. The guest sees a `Pay $450.00 with Venmo` link whose href starts `https://venmo.com/my-venmo?txn=pay&amount=450.00`, fills `Your name`, and taps `I've sent it`.
   4. The card reads `$450.00 of $450.00 pledged · 100%`. Run an axe scan.
 - [ ] **Step 6: Run checks.** Run the web tests and `npm run test:e2e`. Expected: PASS.
 - [ ] **Step 7: Commit.** `feat(web): guests chip in toward group gifts`.

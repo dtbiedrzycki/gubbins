@@ -34,7 +34,7 @@ go-live checklist passes on the home server.
 | L5 | A contribution is **pledged only**, created at "I've sent it" (ADR-0050). There's no owner confirm/void yet, so the progress bar shows pledged amounts. | Guests can complete the whole flow; the owner reconciles outside the app. | Owner confirmation at launch. |
 | L6 | **Overfunding is allowed.** Only the 5× target bound and the arithmetic bound apply (ADR-0047, ADR-0061). | Simplest policy; the excess stays on the item (ADR-0011). | Blocking at target. |
 | L7 | **USD only**, held in `Currency`/`Money` value objects. | One currency; the value object keeps the picker cheap to add later. | Currency picker at creation. |
-| L8 | **Contribute flow is trimmed:** "Cover the rest" plus a custom amount. Venmo uses an app deep link with an https fallback. Zelle shows the handle with a copy button. There's no QR code, since guests are on phones. | Phones are the only expected guest device. | ¼/⅓/½ suggestions, payment QR codes. |
+| L8 | **Contribute flow is trimmed:** "Cover the rest" plus a custom amount. Venmo uses its https payment link, which opens the app where it's installed and the website otherwise. Zelle shows the handle with a copy button. There's no QR code, since most guests are on phones. | The design targets phones, but some guests will open the list on a computer or on a phone without the Venmo app. A `venmo://` deep link fails on both. | ¼/⅓/½ suggestions, payment QR codes. |
 | L9 | Guests give a **name and optional message** on holds and pledges, stored in `GuestPii` via `piiRef` (holds stack D, ADR-0057). There's no owner view of them yet. | The owner needs to know who gave what for thank-yous; capturing it now costs little and the view can follow. | No PII until later. |
 | L10 | The **production container** targets a home server behind a tunnel: multi-stage, non-root, `/health`, SQLite on a volume, secure cookies, required `SESSION_COOKIE_SECRET`. CI builds it and smoke-tests it. | The owner's chosen hosting. | VPS or PaaS-specific configuration. |
 | L11 | **Process for this push:** one plan for every track, run as one linear stack, since the tracks share `routes.ts`, `0001_init.ts` and `openapi.json`. Each track's e2e test is folded into its web PR. PRs stay at 10 files or fewer, with TDD and tests at the owning layer. Spec amendments come after launch. | Fit the date without giving up reviewability. | Stack A's per-stack just-in-time plans (D20); larger PRs. |
@@ -158,11 +158,13 @@ contributions  NEW: id pk, item_id, amount_minor int CHECK (> 0), idempotency_ke
   - Singles show units left and **Hold it**.
   - Group gifts show a progress bar ("$X of $Y · N%") and **Chip in**.
 - `HoldSheet` gains name and message fields.
-- `ContributeFlow` is a native `<dialog>` (ADR-0024). It works in three steps:
+- `ContributeDialog` is a native `<dialog>` (ADR-0024). It works in three steps:
   1. The guest chooses "Cover the rest" or a custom amount.
-  2. The pay step shows a Venmo deep link
-     (`venmo://paycharge?txn=pay&recipients=…&amount=…`, falling back to
-     `https://account.venmo.com/u/<handle>`) and/or the Zelle handle with **Copy**.
+  2. The pay step lists what the guest has to do: send the amount, come back,
+     then add their name and choose "I've sent it". It shows Venmo's payment
+     link (`https://venmo.com/<handle>?txn=pay&amount=…&note=…`, with the
+     item's title as the note), on every device, when the list has a Venmo
+     handle, and the Zelle handle, if there is one, with **Copy**.
   3. "I've sent it" sends the editable amount, name and message.
 
   The idempotency key is generated when the flow opens. Status changes are
@@ -187,7 +189,7 @@ contributions  NEW: id pk, item_id, amount_minor int CHECK (> 0), idempotency_ke
 | 0. Deploy | 2 | — | Dockerfile, compose and CI container smoke job · `CREATE_SECRET` on create (config, constant-time check, form field) |
 | 1. Items | 4 | — | Owner session (owner-token exchange, `gubbins_owner`, owner credential in `AccessContext`) · multi-item `Wishlist`, quantity availability, add-item use case and route · `url`, `priceMinor`, `Money`/`Currency` · `ManagePage`, guest cards, e2e |
 | 2. Holder details | 2 | — | `GuestPii` + `piiRef` on holds · `HoldSheet` fields, e2e |
-| 3. Group gifts | 4 | 1 (PR 2), 2 (PR 1) | `Item.type`, `Contribution`, `Item.pledge` bounds, payment methods on `Wishlist` · pledge use case and route, handles on create (API and form) · `ContributeFlow`, progress bar, e2e · owner group-gift option |
+| 3. Group gifts | 4 | 1 (PR 2), 2 (PR 1) | `Item.type`, `Contribution`, `Item.pledge` bounds, payment methods on `Wishlist` · pledge use case and route, handles on create (API and form) · `ContributeDialog`, progress bar, e2e · owner group-gift option |
 
 The plan's task order supersedes this table: one linear stack of small PRs, because the tracks share files.
 
@@ -228,7 +230,11 @@ New ADRs:
   1. Run the container behind the tunnel.
   2. Create the list from a phone over HTTPS.
   3. Go through the hold and pledge flows on a phone.
-  4. Confirm the Venmo deep link opens the app.
+  4. On a phone with the Venmo app, confirm the Venmo link opens the app with
+     the amount and note (the item's title) filled in.
+  5. On a phone without the app, and on a computer signed in to Venmo, confirm
+     the Venmo link opens the website's payment form with the amount and note
+     filled in.
 
 ## Known risks
 
@@ -239,5 +245,8 @@ New ADRs:
 - There's no hold cap, so one guest could hold everything. Fix that by hand in
   the DB if needed.
 - Until the owner view exists, seeing pledges and names needs a DB query.
+- Venmo pays only through its https link, with no fallback. That it opens the
+  app where installed and the filled-in website otherwise comes from a hand
+  check, not Venmo's docs. Go-live steps 4–5 check it again.
 - There's no rate limiting and no backups. The guest key gate is the only
   protection.
