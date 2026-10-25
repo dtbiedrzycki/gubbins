@@ -83,7 +83,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   }
 
   return (
-    <dialog ref={dialogRef} onCancel={handleCancel} onClose={handleClose} aria-labelledby="contribute-title" className="w-full max-w-sm rounded-[22px] bg-paper p-6 text-ink backdrop:bg-ink/50">
+    <dialog ref={dialogRef} onCancel={handleCancel} onClose={handleClose} aria-labelledby="contribute-title" className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-[22px] bg-paper p-6 text-ink backdrop:bg-ink/50">
       <p id="contribute-title" className="mb-4 font-display text-[1.3rem] leading-tight">Chip in toward &ldquo;{itemTitle}&rdquo;</p>
       {step === 'amount' ? (
         <>
