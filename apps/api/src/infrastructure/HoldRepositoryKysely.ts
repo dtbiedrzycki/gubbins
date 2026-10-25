@@ -22,7 +22,7 @@ function toHold(row: Selectable<HoldsTable>): Hold {
  * `Z`) and sorting it as text is time order, which `findForWishlist`'s
  * order by `expires_at` relies on.
  */
-function lifecycleColumns(hold: Hold) {
+export function lifecycleColumns(hold: Hold) {
   return {
     expires_at: hold.expiresAt.toISOString(),
     extended_at: hold.extendedAt?.toISOString() ?? null,
