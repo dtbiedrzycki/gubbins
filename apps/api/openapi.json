@@ -657,8 +657,7 @@
                 "properties": {
                   "idempotencyKey": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 200
+                    "minLength": 1
                   },
                   "name": {
                     "type": "string",
@@ -805,8 +804,7 @@
                 "properties": {
                   "idempotencyKey": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 200
+                    "minLength": 1
                   },
                   "amountMinor": {
                     "type": "integer",

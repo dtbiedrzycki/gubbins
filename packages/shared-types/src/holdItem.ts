@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { holdViewSchema, type HoldView } from './holdView.js';
 
 export const holdItemRequestSchema = z.object({
-  idempotencyKey: z.string().min(1).max(200),
+  idempotencyKey: z.string().min(1),
   name: z.string().min(1).max(100),
   message: z.string().max(300).optional(),
 });
