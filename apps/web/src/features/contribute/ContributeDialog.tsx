@@ -72,6 +72,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   const lockedHint = sent ? 'contribute-locked' : undefined;
   const chosen = coverRest ? remainingMinor : parseUsd(other);
   const amount = parseUsd(amountText);
+  const waysToPay = [payment.venmoHandle && 'Venmo', payment.zelleHandle && 'Zelle'].filter(Boolean).join(' or ');
 
   function send() {
     if (amount === null || isPending) return;
@@ -105,7 +106,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
       ) : (
         <>
           <ol className="mb-4 list-decimal pl-5 text-sm">
-            <li>Check the amount, then send it with {[payment.venmoHandle && 'Venmo', payment.zelleHandle && 'Zelle'].filter(Boolean).join(' or ')}.</li>
+            <li>Check the amount, then send it with {waysToPay}.</li>
             <li>Once it has gone through, come back to this page.</li>
             <li>Add your name and choose &ldquo;I&apos;ve sent it&rdquo;, so the list shows your gift.</li>
           </ol>

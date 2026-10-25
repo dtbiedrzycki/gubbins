@@ -64,7 +64,18 @@ describe('ContributeDialog', () => {
     expect(screen.getByLabelText('Amount (USD)')).toHaveValue('25.50');
   });
 
-  it('lists the steps to pay and then record the gift, naming the ways to pay', async () => {
+  it.each([
+    ['Venmo', { venmoHandle: 'my-venmo', zelleHandle: null }],
+    ['Zelle', { venmoHandle: null, zelleHandle: 'me@example.com' }],
+    ['Venmo or Zelle', { venmoHandle: 'my-venmo', zelleHandle: 'me@example.com' }],
+  ])('names %s as the way to pay in the first step', async (waysToPay, payment) => {
+    const user = userEvent.setup();
+    renderDialog({ payment });
+    await continueWithTheRest(user);
+    expect(screen.getAllByRole('listitem')[0]).toHaveTextContent(`Check the amount, then send it with ${waysToPay}.`);
+  });
+
+  it('lists the steps to pay and then record the gift', async () => {
     const user = userEvent.setup();
     renderDialog({ payment: { venmoHandle: null, zelleHandle: 'me@example.com' } });
     await continueWithTheRest(user);
