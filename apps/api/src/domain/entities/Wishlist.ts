@@ -151,17 +151,18 @@ export class Wishlist {
   }
 
   /**
-   * The hold an earlier tap with this key placed, so a replay answers with it
-   * rather than placing another. Another session's key never hands over that
-   * session's hold: it is refused like a unit someone else holds.
+   * The hold an earlier tap with this key placed on the item, or null if
+   * no tap used it. A replay answers with that hold rather than placing
+   * another. Another session's key never hands over that session's hold:
+   * it is refused like a unit someone else holds.
    */
-  replayHold(itemId: string, idempotencyKey: string, sessionHash: string): Hold | null {
-    return this.replayOf(this.getItem(itemId).holdWithKey(idempotencyKey), itemId, sessionHash);
+  findHoldForReplay(itemId: string, idempotencyKey: string, sessionHash: string): Hold | null {
+    return this.replayOf(this.getItem(itemId).findHoldWithKey(idempotencyKey), itemId, sessionHash);
   }
 
-  /** `replayHold`'s rule for a pledge. */
-  replayContribution(itemId: string, idempotencyKey: string, sessionHash: string): Contribution | null {
-    return this.replayOf(this.getItem(itemId).contributionWithKey(idempotencyKey), itemId, sessionHash);
+  /** `findHoldForReplay`'s rule for a pledge. */
+  findContributionForReplay(itemId: string, idempotencyKey: string, sessionHash: string): Contribution | null {
+    return this.replayOf(this.getItem(itemId).findContributionWithKey(idempotencyKey), itemId, sessionHash);
   }
 
   /** Every hold `sessionHash` placed on the list, whatever its state. */

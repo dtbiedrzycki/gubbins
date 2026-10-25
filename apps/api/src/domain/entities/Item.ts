@@ -129,11 +129,11 @@ export class Item {
     return this._holds.find((hold) => hold.id.value === holdId) ?? null;
   }
 
-  holdWithKey(idempotencyKey: string): Hold | null {
+  findHoldWithKey(idempotencyKey: string): Hold | null {
     return this._holds.find((hold) => hold.idempotencyKey.value === idempotencyKey) ?? null;
   }
 
-  contributionWithKey(idempotencyKey: string): Contribution | null {
+  findContributionWithKey(idempotencyKey: string): Contribution | null {
     return this._contributions.find((c) => c.idempotencyKey.value === idempotencyKey) ?? null;
   }
 
