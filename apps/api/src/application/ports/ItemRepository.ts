@@ -1,6 +1,6 @@
 import type { Item } from '../../domain/entities/Item.js';
 
-/** An item's stored fields, without the holds, contributions and instant its aggregate supplies. */
+/** An item's stored columns; the WishlistRepository adds its holds, contributions and asOf when it builds the Item. */
 export type ItemRow = {
   id: string; wishlistId: string; type: string; title: string; quantity: number;
   url: string | null; priceMinor: number | null; seq: number;
