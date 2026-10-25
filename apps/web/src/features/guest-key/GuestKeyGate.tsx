@@ -13,7 +13,7 @@ export function GuestKeyGate({ slug, onSuccess }: GuestKeyGateProps) {
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    mutate({ key }, { onSuccess });
+    mutate({ key: key.trim() }, { onSuccess });
   }
 
   return (

@@ -55,29 +55,24 @@ describe('CreateListForm', () => {
     expect(screen.getByRole('alert')).toBe(alert);
   });
 
-  it('sends the create secret with the list', async () => {
+  it('sends both titles, the create secret and both payment handles, each trimmed', async () => {
     let body: unknown;
     server.use(http.post('/api/lists', async ({ request }) => {
       body = await request.json();
       return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k', itemId: 'i' } satisfies CreateListResponse, { status: 201 });
     }));
-    await fillAndSubmit();
+    const user = userEvent.setup();
+    renderWithQueryClient(<CreateListForm />);
+    await user.type(screen.getByLabelText('List title'), ' Baby Shower ');
+    await user.type(screen.getByLabelText('First item'), ' Stroller ');
+    await user.type(screen.getByLabelText('Create secret'), ' the-secret ');
+    await user.type(screen.getByLabelText('Venmo username'), ' @my-venmo ');
+    await user.type(screen.getByLabelText('Zelle email or US phone'), ' me@example.com ');
+    await user.click(screen.getByRole('button', { name: 'Create list' }));
     await screen.findByText('k');
-    expect(body).toMatchObject({ createSecret: 'the-secret' });
-  });
-
-  it('sends the Venmo and Zelle handles when filled', async () => {
-    let body: unknown;
-    server.use(http.post('/api/lists', async ({ request }) => {
-      body = await request.json();
-      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k', itemId: 'i' }, { status: 201 });
-    }));
-    await fillAndSubmit(async (user) => {
-      await user.type(screen.getByLabelText('Venmo username'), '@my-venmo');
-      await user.type(screen.getByLabelText('Zelle email or US phone'), 'me@example.com');
+    expect(body).toMatchObject({
+      listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'the-secret', venmoHandle: '@my-venmo', zelleHandle: 'me@example.com',
     });
-    await screen.findByText('k');
-    expect(body).toMatchObject({ venmoHandle: '@my-venmo', zelleHandle: 'me@example.com' });
   });
 
   it('explains that group gifts need a handle and handles are permanent', () => {
