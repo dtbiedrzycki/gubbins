@@ -60,7 +60,7 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
 
   return (
     <dialog ref={dialogRef} onCancel={handleCancel} onClose={handleClose} aria-labelledby="hold-dialog-title" className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-[22px] bg-paper p-6 text-ink backdrop:bg-ink/50">
-      <p id="hold-dialog-title" className="mb-2 font-display text-[1.3rem] leading-tight">Hold &ldquo;{itemTitle}&rdquo; for yourself?</p>
+      <p id="hold-dialog-title" className="mb-2 break-words font-display text-[1.3rem] leading-tight">Hold &ldquo;{itemTitle}&rdquo; for yourself?</p>
       <p className="mb-4 text-muted">Held for you for {duration}.</p>
       <label className="mb-1 block" htmlFor="hold-name">Your name</label>
       <LimitedInput id="hold-name" required describedBy={['hold-name-privacy', sent && 'hold-details-locked']} value={name} onChange={(e) => setName(e.target.value)} max={NAME_MAX} disabled={isPending} readOnly={sent} className="field mb-1" />
