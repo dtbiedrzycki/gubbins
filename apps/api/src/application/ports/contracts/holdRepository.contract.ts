@@ -10,7 +10,7 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
     beforeEach(async () => { fx = await factory(); await seedTwoLists(fx.wishlists); });
     afterEach(async () => { await fx.dispose(); });
 
-    it('round-trips a hold through insert, lifecycle timestamps included', async () => {
+    it('round-trips a hold through insert and findForWishlist, lifecycle timestamps included', async () => {
       const hold = holdFixture({ extendedAt: later(-5_000), releasedAt: later(-1_000) });
       await fx.holds.insert(hold);
       expect(await fx.holds.findForWishlist(LIST_A)).toEqual([hold]);

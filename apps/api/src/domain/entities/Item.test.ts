@@ -13,6 +13,7 @@ const DAY = 86_400_000;
 const T0 = new Date('2026-01-01T00:00:00.000Z');
 const base = { id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0, asOf: T0 };
 
+const OTHER_SESSION = 'b'.repeat(64);
 let holdCount = 0;
 function holdOn(overrides: Partial<Parameters<typeof Hold.reconstitute>[0]> = {}): Hold {
   holdCount += 1;
@@ -259,7 +260,7 @@ describe('Item.purchaseHold', () => {
 
   it('refuses an expired hold once someone else holds the last unit, and records nothing', () => {
     const expired = holdOn({ expiresAt: at(-1) });
-    const item = holding([expired, holdOn({ sessionHash: 'b'.repeat(64) })]);
+    const item = holding([expired, holdOn({ sessionHash: OTHER_SESSION })]);
     expect(() => item.purchaseHold(expired)).toThrow(HoldLapsedError);
     expect(() => item.purchaseHold(expired)).toThrow(ItemUnavailableError); // same 409 code, a clearer message
     expect(expired.purchasedAt).toBeNull();
@@ -284,7 +285,7 @@ describe('Item.canPurchaseHold', () => {
 
   it('is false for an expired hold whose unit someone else now holds', () => {
     const expired = holdOn({ expiresAt: at(-1) });
-    expect(holding([expired, holdOn({ sessionHash: 'b'.repeat(64) })]).canPurchaseHold(expired)).toBe(false);
+    expect(holding([expired, holdOn({ sessionHash: OTHER_SESSION })]).canPurchaseHold(expired)).toBe(false);
   });
 
   it('is false for a released or purchased hold, or one it did not load', () => {
