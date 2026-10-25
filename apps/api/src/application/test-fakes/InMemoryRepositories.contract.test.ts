@@ -4,13 +4,15 @@ import { describeGuestPiiRepositoryContract } from '../ports/contracts/guestPiiR
 import { describeHoldRepositoryContract } from '../ports/contracts/holdRepository.contract.js';
 import { describeWishlistRepositoryContract } from '../ports/contracts/wishlistRepository.contract.js';
 import type { PersistenceFactory } from '../ports/contracts/fixture.js';
-import { InMemoryContributionRepository, InMemoryGuestPiiRepository, InMemoryWishlistRepository, InMemoryStore, inMemoryPersistence } from './InMemoryRepositories.js';
+import {
+  InMemoryContributionRepository, InMemoryGuestPiiRepository, InMemoryHoldRepository, InMemoryWishlistRepository, InMemoryStore, inMemoryPersistence,
+} from './InMemoryRepositories.js';
 import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
 
 const inMemory: PersistenceFactory = async () => {
-  const { wishlists, holds, eventStore, guestPii } = inMemoryPersistence();
+  const { store, wishlists, eventStore, guestPii } = inMemoryPersistence();
   return {
-    wishlists, holds, eventStore,
+    wishlists, holds: new InMemoryHoldRepository(store), eventStore,
     recordedEvents: async (itemId) => eventStore.recorded(itemId).map(({ event, actor }) => ({ type: event.type, actor, payload: event })),
     seedGuestPii: (id) => guestPii.insert(id, GuestDetails.from({ name: 'Guest' })),
     dispose: async () => {},

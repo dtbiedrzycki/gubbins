@@ -60,7 +60,6 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .execute();
 
   await schema.createIndex('holds_item_id_idx').ifNotExists().on('holds').column('item_id').execute();
-  await schema.createIndex('holds_session_hash_idx').ifNotExists().on('holds').column('session_hash').execute();
 
   await schema.createTable('event_log').ifNotExists()
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())

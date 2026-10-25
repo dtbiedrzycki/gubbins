@@ -194,13 +194,12 @@ export class InMemoryUnitOfWork implements UnitOfWork {
   }
 }
 
-/** One store and every fake on it, wired as a use case expects. */
+/** One store and the fakes a use case is wired with. */
 export function inMemoryPersistence() {
   const store = new InMemoryStore();
   const wishlists = new InMemoryWishlistRepository(store);
-  const holds = new InMemoryHoldRepository(store);
   const eventStore = new InMemoryEventStore(store);
   const guestPii = new InMemoryGuestPiiRepository(store);
   const unitOfWork = new InMemoryUnitOfWork({ wishlists, eventStore, guestPii });
-  return { store, wishlists, holds, eventStore, guestPii, unitOfWork };
+  return { store, wishlists, eventStore, guestPii, unitOfWork };
 }
