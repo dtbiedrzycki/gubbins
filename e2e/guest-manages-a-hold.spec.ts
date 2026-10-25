@@ -36,7 +36,7 @@ test('a guest holds the item, extends the hold once, and marks it purchased', as
   await guest.getByLabel('Your name').fill('Amara');
   await guest.getByRole('button', { name: 'Yes, hold it' }).click();
 
-  await expect(guest.getByText('Stroller is held.')).toBeVisible();
+  await expect(guest.getByText('Stroller is promised.')).toBeVisible();
   await expect(yourHolds.getByText(/^Held until .*\.$/)).toBeVisible();
 
   await yourHolds.getByRole('button', { name: 'Extend hold' }).click();

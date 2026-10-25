@@ -3,6 +3,7 @@ import type { ListViewResponse } from '@gubbins/shared-types';
 import { useHoldItem } from './useHoldItem';
 import { HoldDialog } from './HoldDialog';
 import { ItemAnnouncement } from './ItemAnnouncement';
+import { Seal } from './Seal';
 import { formatMoney } from '../../lib/formatMoney';
 import { ContributeDialog } from '../contribute/ContributeDialog';
 
@@ -65,17 +66,26 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
   // the moment the guest releases or buys from "Your holds".
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold">{item.title}</h2>
-      {item.priceMinor !== null && <p>{formatMoney(item.priceMinor)}</p>}
-      {item.url && <p><a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2.5 text-blue-700 underline">View in store <span className="sr-only">for {item.title} (opens in a new tab)</span></a></p>}
+      <h2 className="font-display text-[1.3rem] leading-tight text-balance">{item.title}</h2>
+      {item.priceMinor !== null && <p className="font-bold tabular-nums">{formatMoney(item.priceMinor)}</p>}
+      {item.url && <p><a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2.5 text-moss underline">View in store <span className="sr-only">for {item.title} (opens in a new tab)</span></a></p>}
       {item.type === 'single' && item.status === 'available' && item.availableUnits > 1 && <p>{item.availableUnits} left</p>}
       {/* Mounted while available too: screen readers miss a live region that arrives already filled. */}
-      <ItemAnnouncement message={thanks || (item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is held.` : `${item.title} has been purchased.`)} />
+      <div className="flex items-center gap-2.5">
+        {item.status !== 'available' && <Seal />}
+        <ItemAnnouncement message={thanks || (item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is promised.` : `${item.title} has been purchased.`)} />
+      </div>
       {group && (
         <>
-          <progress max={group.price} value={Math.min(group.pledged, group.price)} aria-label={progress!} className="h-3 w-full" />
-          <p>{progress}</p>
-          <button ref={chipInButton} type="button" onClick={() => { setThanks(''); setChipInOpen(true); }} className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white">
+          <progress max={group.price} value={Math.min(group.pledged, group.price)} aria-label={progress!} className="h-2 w-full accent-moss" />
+          <div className="flex items-end gap-3.5">
+            {/* A wishing jar of gold coins, filled to the pledged share and never past full. */}
+            <div aria-hidden="true" className="relative h-[58px] w-[46px] flex-none overflow-hidden rounded-[10px_10px_14px_14px] border-[2.5px] border-ink bg-white before:absolute before:inset-x-2 before:-top-0.5 before:h-[7px] before:rounded-b-[3px] before:bg-moss before:content-['']">
+              <div data-jar-fill className="absolute inset-x-0 bottom-0 bg-gold bg-[radial-gradient(circle_at_30%_40%,#F3D27A_0_3px,transparent_3.5px)] bg-[length:10px_9px]" style={{ height: `${Math.min((group.pledged * 100) / group.price, 100)}%` }} />
+            </div>
+            <p className="min-w-0">{progress}</p>
+          </div>
+          <button ref={chipInButton} type="button" onClick={() => { setThanks(''); setChipInOpen(true); }} className="btn-primary">
             Chip in
           </button>
         </>
@@ -92,7 +102,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
         />
       )}
       {item.type === 'single' && item.status === 'available' && (
-        <button ref={holdButton} type="button" onClick={() => setDialogOpen(true)} className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white">
+        <button ref={holdButton} type="button" onClick={() => setDialogOpen(true)} className="btn-primary">
           Hold this item<span className="sr-only">: {item.title}</span>
         </button>
       )}

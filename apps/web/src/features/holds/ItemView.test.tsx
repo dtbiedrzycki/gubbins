@@ -97,12 +97,29 @@ describe('ItemView', () => {
   });
 
   it.each([
-    ['held', 'Stroller is held.'],
+    ['held', 'Stroller is promised.'],
     ['purchased', 'Stroller has been purchased.'],
   ] as const)('shows a %s item as such, with no Hold button', (status, message) => {
     renderItem({ status });
     expect(screen.getByRole('status')).toHaveTextContent(message);
     expect(screen.queryByRole('button', { name: /^Hold this item/ })).not.toBeInTheDocument();
+  });
+
+  it.each(['held', 'purchased'] as const)('marks a %s item with a still wax seal', (status) => {
+    renderItem({ status });
+    const seal = document.querySelector('[data-seal]');
+    expect(seal).not.toBeNull();
+    expect(seal!.className).not.toContain('animate-stamp');
+  });
+
+  it('shows no seal on an available item', () => {
+    renderItem();
+    expect(document.querySelector('[data-seal]')).toBeNull();
+  });
+
+  it('fills the jar no further than full when a gift is overfunded', () => {
+    renderItem({ type: 'group', priceMinor: 1000, pledgedMinor: 1500, availableUnits: 0 });
+    expect(document.querySelector<HTMLElement>('[data-jar-fill]')!.style.height).toBe('100%');
   });
 
   it('keeps the Hold button last in its stack, so space-y adds no margin below it', () => {
@@ -126,7 +143,7 @@ describe('ItemView', () => {
     rerender(view('held'));
 
     expect(screen.getByRole('status')).toBe(status);
-    expect(status).toHaveTextContent('Stroller is held.');
+    expect(status).toHaveTextContent('Stroller is promised.');
   });
 
   it('shows the title as a heading and the price formatted', () => {
