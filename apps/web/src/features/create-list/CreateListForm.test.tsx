@@ -75,6 +75,14 @@ describe('CreateListForm', () => {
     });
   });
 
+  it('limits the list and first item titles to 120 characters, the Venmo username to 31 and the Zelle handle to 254', () => {
+    renderWithQueryClient(<CreateListForm />);
+    expect(screen.getByLabelText('List title')).toHaveAttribute('maxlength', '120');
+    expect(screen.getByLabelText('First item')).toHaveAttribute('maxlength', '120');
+    expect(screen.getByLabelText('Venmo username')).toHaveAttribute('maxlength', '31');
+    expect(screen.getByLabelText('Zelle email or US phone')).toHaveAttribute('maxlength', '254');
+  });
+
   it('explains that group gifts need a handle and handles are permanent', () => {
     renderWithQueryClient(<CreateListForm />);
     const hint = "Group gifts need at least one handle. Handles can't be changed later.";

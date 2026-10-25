@@ -102,6 +102,14 @@ describe('ContributeDialog', () => {
     expect(screen.getByRole('button', { name: "I've sent it" })).toBeDisabled();
   });
 
+  it('limits the name to 100 characters and the message to 300', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    expect(screen.getByLabelText('Your name')).toHaveAttribute('maxlength', '100');
+    expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAttribute('maxlength', '300');
+  });
+
   it('records the pledge with the trimmed details and reports the amount', async () => {
     const bodies = pledgeEndpoint();
     const user = userEvent.setup();

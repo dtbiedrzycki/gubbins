@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import type { AddItemRequest } from '@gubbins/shared-types';
 import { api, ApiError } from '../../api/client';
 import { parseUsd } from '../../lib/parseUsd';
+import { LimitedInput } from '../../lib/LimitedField';
 
 export interface AddItemFormProps {
   slug: string;
@@ -12,6 +13,10 @@ export interface AddItemFormProps {
 }
 
 const field = 'mt-1 block w-full rounded border border-gray-300 px-3 py-2';
+
+const TITLE_MAX = 120;
+/** The longest store link the API takes. */
+const URL_MAX = 2048;
 
 export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
   const [type, setType] = useState<'single' | 'group'>('single');
@@ -67,7 +72,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       </fieldset>
       <div>
         <label htmlFor="item-title" className="block text-sm font-medium">Title</label>
-        <input id="item-title" required maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} className={field} />
+        <LimitedInput id="item-title" required max={TITLE_MAX} value={title} onChange={(e) => setTitle(e.target.value)} className={field} />
       </div>
       {type === 'single' && (
         <div>
@@ -87,7 +92,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       </div>
       <div>
         <label htmlFor="item-url" className="block text-sm font-medium">Store link</label>
-        <input id="item-url" type="url" value={url} onChange={(e) => setUrl(e.target.value)} className={field} />
+        <LimitedInput id="item-url" type="url" max={URL_MAX} value={url} onChange={(e) => setUrl(e.target.value)} className={field} />
       </div>
       <p id="item-error" role="alert" className="text-red-600 empty:mb-0">{priceError || error?.message}</p>
       <p role="status" aria-live="polite" className="text-green-800 empty:mb-0">{added}</p>
