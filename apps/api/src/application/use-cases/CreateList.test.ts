@@ -35,6 +35,12 @@ describe('CreateList', () => {
     expect(persistedItem?.wishlistId.value).toBe(persistedWishlist?.id.value);
   });
 
+  it('accepts a sent secret with surrounding whitespace', async () => {
+    const { useCase } = makeUseCase();
+
+    await expect(useCase.execute({ listTitle: 'L', itemTitle: 'I', createSecret: ' right\n' })).resolves.toMatchObject({ slug: 'slug-1' });
+  });
+
   it.each([undefined, '', 'wrong'])('refuses creation with a missing or wrong secret (%j), persisting nothing', async (candidate) => {
     const { useCase, wishlists } = makeUseCase();
 
