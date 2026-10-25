@@ -180,6 +180,32 @@ describe('YourHolds', () => {
     await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Stroller is marked as purchased. Thank you!'));
   });
 
+  it('shows a still seal on a hold that was there when the page loaded', async () => {
+    listViews(list([active]));
+    const region = await renderYourHolds();
+
+    const seal = region.querySelector('[data-seal]');
+    expect(seal).not.toBeNull();
+    expect(seal!.className).not.toContain('animate-stamp');
+  });
+
+  it('stamps the seal, unless the guest asks for reduced motion, on a hold that appears while the page is open', async () => {
+    listViews(list([]), list([active]));
+    const region = await renderYourHolds();
+
+    await client.invalidateQueries();
+
+    await waitFor(() => expect(region.querySelector('[data-seal]')).not.toBeNull());
+    expect(region.querySelector('[data-seal]')!.className.split(' ')).toContain('motion-safe:animate-stamp');
+  });
+
+  it('shows no seal on an expired hold', async () => {
+    listViews(list([expiredBuyable]));
+    const region = await renderYourHolds();
+
+    expect(region.querySelector('[data-seal]')).toBeNull();
+  });
+
   it('clears the last announcement when a new hold appears', async () => {
     const second: HoldView = { ...active, holdId: 'hold-2' };
     listViews(list([active]), list([]), list([second]));

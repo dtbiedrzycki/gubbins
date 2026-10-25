@@ -19,8 +19,8 @@ export interface HoldOutcome {
   message: string;
 }
 
-const primary = 'min-h-11 rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50';
-const secondary = 'min-h-11 rounded border px-4 py-2 disabled:opacity-50';
+const primary = 'btn-primary';
+const secondary = 'btn-secondary';
 
 // The API answers a generic 404 for an unknown hold, another session's hold
 // or a lapsed session alike; a reload shows which (the key gate, or the list).
@@ -91,7 +91,7 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
         )}
       </div>
       {hold.actions.release && confirmingRelease && (
-        <div role="group" aria-labelledby={`release-${hold.holdId}`} className="space-y-2 rounded border border-slate-300 p-3">
+        <div role="group" aria-labelledby={`release-${hold.holdId}`} className="space-y-2 rounded-[14px] border border-line p-3">
           <p ref={releaseQuestion} id={`release-${hold.holdId}`} tabIndex={-1}>Release your hold on {itemTitle}? Someone else will be able to hold it.</p>
           <div className="flex gap-2">
             <button type="button" disabled={pending} onClick={() => {
