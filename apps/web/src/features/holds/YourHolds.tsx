@@ -77,7 +77,7 @@ export function YourHolds({ slug, holds, itemTitles }: YourHoldsProps) {
                       return () => { cardHeadings.current.delete(hold.holdId); };
                     }}
                     tabIndex={-1}
-                    className="min-w-0 font-bold"
+                    className="min-w-0 break-words font-bold"
                   >
                     {itemTitle}
                   </h3>
