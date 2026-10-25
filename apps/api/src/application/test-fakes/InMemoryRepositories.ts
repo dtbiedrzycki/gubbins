@@ -48,8 +48,18 @@ export class InMemoryStore {
   readonly guestPii = new Map<string, { id: string; name: string; message: string | null }>();
   readonly streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
 
+  /** Oldest expiry first, then id, the order the SQL adapter's queries return. */
   holdsOnList(wishlistId: string): Hold[] {
-    return [...this.holds.values()].filter((hold) => this.items.get(hold.itemId.value)?.wishlistId === wishlistId);
+    return [...this.holds.values()]
+      .filter((hold) => this.items.get(hold.itemId.value)?.wishlistId === wishlistId)
+      .sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime() || a.id.value.localeCompare(b.id.value));
+  }
+
+  /** Oldest pledge first, then id, the order the SQL adapter's query returns. */
+  contributionsOnList(wishlistId: string): Contribution[] {
+    return [...this.contributions.values()]
+      .filter((c) => this.items.get(c.itemId.value)?.wishlistId === wishlistId)
+      .sort((a, b) => a.pledgedAt.getTime() - b.pledgedAt.getTime() || a.id.value.localeCompare(b.id.value));
   }
 }
 
@@ -87,7 +97,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   private hydrate(wishlist: Wishlist | undefined, now: Date): Wishlist | null {
     if (wishlist === undefined) return null;
     const holds = this.store.holdsOnList(wishlist.id.value).map(copyHold);
-    const contributions = [...this.store.contributions.values()].filter((c) => this.store.items.get(c.itemId.value)?.wishlistId === wishlist.id.value);
+    const contributions = this.store.contributionsOnList(wishlist.id.value);
     const items = [...this.store.items.values()].filter((row) => row.wishlistId === wishlist.id.value).map((row) => Item.reconstitute({
       ...row, asOf: now,
       holds: holds.filter((h) => h.itemId.value === row.id),
@@ -121,9 +131,7 @@ export class InMemoryHoldRepository implements HoldRepository {
   }
 
   async findForWishlist(wishlistId: string): Promise<Hold[]> {
-    return this.store.holdsOnList(wishlistId)
-      .sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime() || a.id.value.localeCompare(b.id.value))
-      .map(copyHold);
+    return this.store.holdsOnList(wishlistId).map(copyHold);
   }
 }
 
@@ -171,9 +179,7 @@ export class InMemoryContributionRepository implements ContributionRepository {
   }
 
   async findForWishlist(wishlistId: string): Promise<Contribution[]> {
-    return [...this.store.contributions.values()]
-      .filter((c) => this.store.items.get(c.itemId.value)?.wishlistId === wishlistId)
-      .sort((a, b) => a.pledgedAt.getTime() - b.pledgedAt.getTime() || a.id.value.localeCompare(b.id.value));
+    return this.store.contributionsOnList(wishlistId);
   }
 }
 
