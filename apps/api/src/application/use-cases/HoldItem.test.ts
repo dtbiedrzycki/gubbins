@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { HoldItem } from './HoldItem.js';
 import { aWishlist } from '../test-fakes/builders.js';
-import { InMemoryUnitOfWork, inMemoryPersistence, type InMemoryStore } from '../test-fakes/InMemoryRepositories.js';
+import { InMemoryUnitOfWork, inMemoryPersistence } from '../test-fakes/InMemoryRepositories.js';
 import { SequentialTokenGenerator } from '../test-fakes/SequentialTokenGenerator.js';
 import { FixedClock } from '../test-fakes/FixedClock.js';
 import { FakeHasher } from '../test-fakes/FakeHasher.js';
@@ -26,8 +26,6 @@ async function makeUseCase(policy: HoldPolicy = DEFAULT_HOLD_POLICY) {
 
 const input = (idempotencyKey = 'idem-1') => ({ wishlistId: WISHLIST_ID, itemId: ITEM_ID, idempotencyKey, name: 'Ada' });
 
-const storedHold = (store: InMemoryStore) => [...store.holds.values()].find((h) => h.idempotencyKey.value === 'idem-1');
-
 describe('HoldItem', () => {
   it('holds an available item for the configured duration and returns its view', async () => {
     const { useCase } = await makeUseCase();
@@ -39,12 +37,12 @@ describe('HoldItem', () => {
   });
 
   it('stores the holder\'s details and references them from the hold and the event', async () => {
-    const { useCase, store, eventStore } = await makeUseCase();
-    await useCase.execute({ ...input(), message: 'Congrats' }, GUEST);
+    const { useCase, store, eventStore, wishlists } = await makeUseCase();
+    const { holdId } = await useCase.execute({ ...input(), message: 'Congrats' }, GUEST);
 
     const rows = [...store.guestPii.values()];
     expect(rows).toEqual([{ id: expect.any(String), name: 'Ada', message: 'Congrats' }]);
-    expect(storedHold(store)?.piiRef?.value).toBe(rows[0]!.id);
+    expect((await wishlists.findById(WISHLIST_ID, NOW))?.findHold(holdId)?.piiRef?.value).toBe(rows[0]!.id);
     expect(eventStore.recorded(ITEM_ID)[0]!.event).toMatchObject({ piiRef: rows[0]!.id });
   });
 
@@ -61,9 +59,9 @@ describe('HoldItem', () => {
   });
 
   it("stores the hold under the session's hash, as presentation computed it", async () => {
-    const { useCase, store } = await makeUseCase();
-    await useCase.execute(input(), GUEST);
-    expect(storedHold(store)?.sessionHash.value).toBe('a'.repeat(64));
+    const { useCase, wishlists } = await makeUseCase();
+    const { holdId } = await useCase.execute(input(), GUEST);
+    expect((await wishlists.findById(WISHLIST_ID, NOW))?.findHold(holdId)?.sessionHash.value).toBe('a'.repeat(64));
   });
 
   it('appends ItemHeld to the item stream as the guest (ADR-0075)', async () => {
