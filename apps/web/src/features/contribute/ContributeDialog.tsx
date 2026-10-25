@@ -72,6 +72,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   const lockedHint = sent && 'contribute-locked';
   const chosen = coverRest ? remainingMinor : parseUsd(other);
   const amount = parseUsd(amountText);
+  const waysToPay = [payment.venmoHandle && 'Venmo', payment.zelleHandle && 'Zelle'].filter(Boolean).join(' or ');
 
   function send() {
     if (amount === null || isPending) return;
@@ -104,6 +105,11 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
         </>
       ) : (
         <>
+          <ol className="mb-4 list-decimal pl-5 text-sm">
+            <li>Check the amount, then send it with {waysToPay}.</li>
+            <li>Once it has gone through, come back to this page.</li>
+            <li>Add your name and choose &ldquo;I&apos;ve sent it&rdquo;, so the list shows your gift.</li>
+          </ol>
           <label className="mb-1 block" htmlFor="contribute-amount">Amount (USD)</label>
           <input id="contribute-amount" inputMode="decimal" value={amountText} onChange={(e) => setAmountText(e.target.value)} disabled={isPending} readOnly={sent}
             aria-invalid={amount === null} aria-describedby={sent ? 'contribute-amount-error contribute-locked' : 'contribute-amount-error'} className={field} />

@@ -64,6 +64,28 @@ describe('ContributeDialog', () => {
     expect(screen.getByLabelText('Amount (USD)')).toHaveValue('25.50');
   });
 
+  it.each([
+    ['Venmo', { venmoHandle: 'my-venmo', zelleHandle: null }],
+    ['Zelle', { venmoHandle: null, zelleHandle: 'me@example.com' }],
+    ['Venmo or Zelle', { venmoHandle: 'my-venmo', zelleHandle: 'me@example.com' }],
+  ])('names %s as the way to pay in the first step', async (waysToPay, payment) => {
+    const user = userEvent.setup();
+    renderDialog({ payment });
+    await continueWithTheRest(user);
+    expect(screen.getAllByRole('listitem')[0]).toHaveTextContent(`Check the amount, then send it with ${waysToPay}.`);
+  });
+
+  it('lists the steps to pay and then record the gift', async () => {
+    const user = userEvent.setup();
+    renderDialog({ payment: { venmoHandle: null, zelleHandle: 'me@example.com' } });
+    await continueWithTheRest(user);
+    expect(screen.getAllByRole('listitem').map((step) => step.textContent)).toEqual([
+      'Check the amount, then send it with Zelle.',
+      'Once it has gone through, come back to this page.',
+      'Add your name and choose \u201cI\'ve sent it\u201d, so the list shows your gift.',
+    ]);
+  });
+
   it("links to Venmo's payment link with the amount and the item as the note, in a new tab", async () => {
     const user = userEvent.setup();
     renderDialog();
