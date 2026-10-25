@@ -47,17 +47,14 @@
                 "properties": {
                   "listTitle": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 10000
+                    "minLength": 1
                   },
                   "itemTitle": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 10000
+                    "minLength": 1
                   },
                   "createSecret": {
-                    "type": "string",
-                    "maxLength": 10000
+                    "type": "string"
                   },
                   "venmoHandle": {
                     "type": "string",
@@ -143,8 +140,7 @@
                 "properties": {
                   "key": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 10000
+                    "minLength": 1
                   }
                 },
                 "required": [
@@ -222,8 +218,7 @@
                 "properties": {
                   "ownerToken": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 10000
+                    "minLength": 1
                   }
                 },
                 "required": [
@@ -522,8 +517,7 @@
                       },
                       "title": {
                         "type": "string",
-                        "minLength": 1,
-                        "maxLength": 10000
+                        "minLength": 1
                       },
                       "quantity": {
                         "default": 1,
@@ -533,7 +527,6 @@
                       },
                       "url": {
                         "type": "string",
-                        "maxLength": 10000,
                         "format": "uri"
                       },
                       "priceMinor": {
@@ -559,12 +552,10 @@
                       },
                       "title": {
                         "type": "string",
-                        "minLength": 1,
-                        "maxLength": 10000
+                        "minLength": 1
                       },
                       "url": {
                         "type": "string",
-                        "maxLength": 10000,
                         "format": "uri"
                       },
                       "priceMinor": {
@@ -660,17 +651,14 @@
                 "properties": {
                   "idempotencyKey": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 10000
+                    "minLength": 1
                   },
                   "name": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 10000
+                    "minLength": 1
                   },
                   "message": {
-                    "type": "string",
-                    "maxLength": 10000
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -808,8 +796,7 @@
                 "properties": {
                   "idempotencyKey": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 10000
+                    "minLength": 1
                   },
                   "amountMinor": {
                     "type": "integer",
@@ -819,12 +806,10 @@
                   },
                   "name": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 10000
+                    "minLength": 1
                   },
                   "message": {
-                    "type": "string",
-                    "maxLength": 10000
+                    "type": "string"
                   }
                 },
                 "required": [

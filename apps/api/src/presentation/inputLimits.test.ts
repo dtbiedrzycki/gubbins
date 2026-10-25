@@ -1,18 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import {
-  addItemRequestSchema, createListRequestSchema, enterGuestKeyRequestSchema, holdItemRequestSchema, ownerSessionRequestSchema, pledgeRequestSchema,
-} from '@gubbins/shared-types';
+import { addItemRequestSchema, createListRequestSchema, holdItemRequestSchema, pledgeRequestSchema } from '@gubbins/shared-types';
 import { Item } from '../domain/entities/Item.js';
 import { Wishlist } from '../domain/entities/Wishlist.js';
 import { Contribution } from '../domain/entities/Contribution.js';
 import { DomainValidationError } from '../domain/errors.js';
 import { GuestDetails } from '../domain/value-objects/GuestDetails.js';
 
-// The domain owns every text length; the request schemas only turn away text past a far higher
-// ceiling. Numeric limits are still written in both, and these tests keep the two copies equal.
-
-/** The request schemas' ceiling on text, far above every domain limit. */
-const CEILING = 10_000;
+// The domain owns every text length, so the request schemas don't limit text; the 1 MiB body
+// limit bounds the request as a whole. Numeric limits are still written in both, and these tests
+// keep the two copies equal.
 
 const ID = '11111111-1111-7111-8111-111111111111';
 const T0 = new Date('2026-01-01T00:00:00.000Z');
@@ -85,15 +81,6 @@ const maximums: { field: string; limit: number; schema: (n: number) => boolean; 
   },
 ];
 
-/** Per text the domain takes without a length limit: whether the schema accepts text of length `n`. */
-const unsized: { field: string; schema: (n: number) => boolean }[] = [
-  { field: 'hold idempotency key', schema: (n) => holdItemRequestSchema.safeParse({ idempotencyKey: text(n), name: 'Ann' }).success },
-  { field: 'pledge idempotency key', schema: (n) => pledgeRequestSchema.safeParse({ idempotencyKey: text(n), amountMinor: 100, name: 'Ann' }).success },
-  { field: 'guest key', schema: (n) => enterGuestKeyRequestSchema.safeParse({ key: text(n) }).success },
-  { field: 'owner token', schema: (n) => ownerSessionRequestSchema.safeParse({ ownerToken: text(n) }).success },
-  { field: 'create secret', schema: (n) => createListRequestSchema.safeParse({ listTitle: 'List', itemTitle: 'Cot', createSecret: text(n) }).success },
-];
-
 /** Per field whose least value is 1: whether the schema, and the domain, accept `n`. */
 const minimums: { field: string; schema: (n: number) => boolean; domain: (n: number) => boolean }[] = [
   {
@@ -151,10 +138,6 @@ describe('input limits in the request schemas and the domain', () => {
   it.each(maximums)('$field: both accept text at $limit, and only the domain refuses one past it', ({ limit, schema, domain }) => {
     expect([schema(limit), domain(limit)]).toEqual([true, true]);
     expect([schema(limit + 1), domain(limit + 1)]).toEqual([true, false]);
-  });
-
-  it.each([...maximums, ...unsized])('$field: the schema accepts 10,000 characters and refuses 10,001', ({ schema }) => {
-    expect([schema(CEILING), schema(CEILING + 1)]).toEqual([true, false]);
   });
 
   it('item price: both accept 10^12 and both refuse one more', () => {
