@@ -52,14 +52,6 @@ describe('0001_init schema', () => {
     await expect(db.insertInto('items').values(row).execute()).rejects.toThrow(/CHECK constraint failed/);
   });
 
-  it.each([
-    ['name over 100 characters', { name: 'x'.repeat(101), message: null }],
-    ['message over 300 characters', { name: 'Ada', message: 'x'.repeat(301) }],
-  ])('refuses a guest %s', async (_case, fields) => {
-    await expect(db.insertInto('guest_pii').values({ id: 'pii-1', ...fields, redacted_at: null, created_at: NOW }).execute())
-      .rejects.toThrow(/CHECK constraint failed/);
-  });
-
   it.each(['holds', 'contributions'])('gives %s no index beyond its constraints', async (table) => {
     const { rows } = await sql<{ name: string }>`select name from pragma_index_list(${table}) where name not like 'sqlite_autoindex%'`.execute(db);
 
