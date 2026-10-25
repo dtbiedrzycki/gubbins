@@ -220,7 +220,7 @@ export class Item {
   ): { contribution: Contribution; event: ContributionPledgedEvent; expectedSeq: number } {
     if (this.type !== 'group') throw new ItemUnavailableError(this.id.value);
     // A group always has a price (the constructor enforces it); `?? 0` only satisfies the type.
-    const max = Math.min((this.priceMinor ?? 0) * MAX_CONTRIBUTION_TARGET_MULTIPLE, MAX_MONEY_MINOR);
+    const max = (this.priceMinor ?? 0) * MAX_CONTRIBUTION_TARGET_MULTIPLE;
     if (!Number.isSafeInteger(props.amountMinor) || props.amountMinor > max) {
       throw new ContributionAmountError(this.id.value);
     }
