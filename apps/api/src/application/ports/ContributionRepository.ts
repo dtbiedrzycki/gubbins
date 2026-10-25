@@ -7,6 +7,9 @@ import type { Contribution } from '../../domain/entities/Contribution.js';
  */
 export interface ContributionRepository {
   insert(contribution: Contribution): Promise<void>;
-  /** Every contribution on the list's items, oldest pledge first: what the `Wishlist` aggregate loads. */
+  /**
+   * Every contribution on the list's items, oldest pledge first: what the `Wishlist` aggregate loads.
+   * A stable order (pledge time, then id), so every adapter hands the aggregate the same sequence.
+   */
   findForWishlist(wishlistId: string): Promise<Contribution[]>;
 }

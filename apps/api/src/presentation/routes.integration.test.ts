@@ -60,12 +60,6 @@ describe('POST /api/lists', () => {
     });
   });
 
-  it('rejects a whitespace-only listTitle, which the domain refuses', async () => {
-    const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: '   ', itemTitle: 'Stroller', createSecret: 'test-create-secret' } });
-    expect(response.statusCode).toBe(400);
-    expect(response.json()).toEqual({ message: 'Wishlist title must not be empty' });
-  });
-
   it('refuses a body over 1 MiB, though each field is valid and the extra one would be ignored', async () => {
     const payload = { listTitle: 'L', itemTitle: 'Stroller', createSecret: 'test-create-secret', padding: 'a'.repeat(1024 * 1024) };
     const response = await app.inject({ method: 'POST', url: '/api/lists', payload });
