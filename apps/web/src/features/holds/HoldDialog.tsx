@@ -59,21 +59,21 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
   const duration = `${holdDurationDays} ${holdDurationDays === 1 ? 'day' : 'days'}`;
 
   return (
-    <dialog ref={dialogRef} onCancel={handleCancel} onClose={handleClose} aria-labelledby="hold-dialog-title" className="rounded-lg p-6 backdrop:bg-black/50">
-      <p id="hold-dialog-title" className="mb-2">Hold &ldquo;{itemTitle}&rdquo; for yourself?</p>
-      <p className="mb-4 text-slate-700">Held for you for {duration}.</p>
+    <dialog ref={dialogRef} onCancel={handleCancel} onClose={handleClose} aria-labelledby="hold-dialog-title" className="rounded-[22px] bg-paper p-6 text-ink backdrop:bg-ink/50">
+      <p id="hold-dialog-title" className="mb-2 font-display text-[1.3rem] leading-tight">Hold &ldquo;{itemTitle}&rdquo; for yourself?</p>
+      <p className="mb-4 text-muted">Held for you for {duration}.</p>
       <label className="mb-1 block" htmlFor="hold-name">Your name</label>
-      <LimitedInput id="hold-name" required describedBy={['hold-name-privacy', sent && 'hold-details-locked']} value={name} onChange={(e) => setName(e.target.value)} max={NAME_MAX} disabled={isPending} readOnly={sent} className="mb-1 min-h-11 w-full rounded border px-2" />
-      <p id="hold-name-privacy" className="mb-4 text-sm text-slate-700">Your name is only shared with the list owner.</p>
+      <LimitedInput id="hold-name" required describedBy={['hold-name-privacy', sent && 'hold-details-locked']} value={name} onChange={(e) => setName(e.target.value)} max={NAME_MAX} disabled={isPending} readOnly={sent} className="field mb-1" />
+      <p id="hold-name-privacy" className="mb-4 text-sm text-muted">Your name is only shared with the list owner.</p>
       <label className="mb-1 block" htmlFor="hold-message">Message to the owner (optional)</label>
-      <LimitedTextarea id="hold-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} readOnly={sent} describedBy={[sent && 'hold-details-locked']} className="mb-4 w-full rounded border px-2 py-1" />
-      {sent && <p id="hold-details-locked" className="mb-4 text-sm text-slate-700">To change your details, cancel and start again.</p>}
-      <p role="alert" className="mb-4 text-red-600 empty:mb-0">{error?.message}</p>
+      <LimitedTextarea id="hold-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} readOnly={sent} describedBy={[sent && 'hold-details-locked']} className="field mb-4 py-1" />
+      {sent && <p id="hold-details-locked" className="mb-4 text-sm text-muted">To change your details, cancel and start again.</p>}
+      <p role="alert" className="mb-4 text-error empty:mb-0">{error?.message}</p>
       <div className="flex gap-2">
-        <button type="button" onClick={() => { setSent(true); onConfirm(credential, { name: name.trim(), message: message.trim() }); }} disabled={isPending || !name.trim()} className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50">
+        <button type="button" onClick={() => { setSent(true); onConfirm(credential, { name: name.trim(), message: message.trim() }); }} disabled={isPending || !name.trim()} className="btn-primary">
           {isPending ? 'Holding…' : 'Yes, hold it'}
         </button>
-        <button type="button" onClick={onClose} disabled={isPending} className="min-h-11 rounded border px-4 py-2 disabled:opacity-50">
+        <button type="button" onClick={onClose} disabled={isPending} className="btn-secondary">
           Cancel
         </button>
       </div>
