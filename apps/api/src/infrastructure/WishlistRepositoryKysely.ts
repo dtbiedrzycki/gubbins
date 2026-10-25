@@ -1,6 +1,7 @@
 import type { Kysely, Selectable } from 'kysely';
 import type { Database, WishlistsTable } from './db/schema.js';
 import type { WishlistRepository } from '../application/ports/WishlistRepository.js';
+import { Item } from '../domain/entities/Item.js';
 import { Wishlist } from '../domain/entities/Wishlist.js';
 import { PaymentMethods } from '../domain/value-objects/PaymentMethods.js';
 import { WishlistNotFoundError } from '../domain/errors.js';
@@ -82,7 +83,12 @@ export class WishlistRepositoryKysely implements WishlistRepository {
   private async hydrate(row: Selectable<WishlistsTable>, now: Date): Promise<Wishlist> {
     const holds = await this.holds.findForWishlist(row.id);
     const contributions = await this.contributions.findForWishlist(row.id);
-    const items = await this.items.findAllByWishlistId(row.id, { asOf: now, holds, contributions });
+    const items = (await this.items.findAllByWishlistId(row.id)).map((item) => Item.reconstitute({
+      ...item, asOf: now,
+      // The members arrive for the whole list; each item takes only its own.
+      holds: holds.filter((hold) => hold.itemId.value === item.id),
+      contributions: contributions.filter((contribution) => contribution.itemId.value === item.id),
+    }));
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
       ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now,
