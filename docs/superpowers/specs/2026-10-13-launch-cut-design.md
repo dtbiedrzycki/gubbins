@@ -245,5 +245,8 @@ New ADRs:
 - There's no hold cap, so one guest could hold everything. Fix that by hand in
   the DB if needed.
 - Until the owner view exists, seeing pledges and names needs a DB query.
+- Venmo pays only through its https link, with no fallback. That it opens the
+  app where installed and the filled-in website otherwise comes from a hand
+  check, not Venmo's docs. Go-live steps 4–5 check it again.
 - There's no rate limiting and no backups. The guest key gate is the only
   protection.
