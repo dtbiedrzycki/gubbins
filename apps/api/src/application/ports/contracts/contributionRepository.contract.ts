@@ -72,15 +72,20 @@ export function describeContributionRepositoryContract(adapter: string, factory:
       expect(await fx.contributions.findForWishlist(LIST_X)).toHaveLength(2);
     });
 
-    it("findForWishlist returns every contribution on the list's items, oldest pledge first, and none from another list", async () => {
-      // The later pledge gets the smaller id and goes in first, so only pledgedAt can put the earlier one ahead.
-      const second = pledge(MIXER, 2500, undefined, later(60_000));
-      const first = pledge(STROLLER, 1500);
-      for (const c of [second, first, pledge(OTHER_LIST_ITEM, 1000)]) await fx.contributions.insert(c);
+    it("findForWishlist returns every contribution on the list's items, oldest pledge first then by id, and none from another list", async () => {
+      // Ids rise in creation order. The pledge order matches neither the id order, the insertion order nor
+      // either reversed, and the two pledges made together go in larger id first, so only pledgedAt then id passes.
+      const atMinute = pledge(MIXER, 2500, undefined, later(60_000));
+      const atStart = pledge(STROLLER, 1500);
+      const atTwoMinutes = pledge(MIXER, 500, undefined, later(120_000));
+      const tiedFirst = pledge(STROLLER, 700, undefined, later(30_000));
+      const tiedSecond = pledge(MIXER, 900, undefined, later(30_000));
+      for (const c of [atMinute, atStart, atTwoMinutes, tiedSecond, tiedFirst, pledge(OTHER_LIST_ITEM, 1000)]) await fx.contributions.insert(c);
 
       const found = await fx.contributions.findForWishlist(LIST_X);
 
-      expect(found.map((c) => c.id.value)).toEqual([first.id.value, second.id.value]);
+      expect(found.map((c) => c.id.value))
+        .toEqual([atStart, tiedFirst, tiedSecond, atMinute, atTwoMinutes].map((c) => c.id.value));
     });
   });
 }
