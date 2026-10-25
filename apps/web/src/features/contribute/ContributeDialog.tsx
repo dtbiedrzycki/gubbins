@@ -5,7 +5,7 @@ import { api } from '../../api/client';
 import { listViewKey } from '../holds/useListView';
 import { formatMoney } from '../../lib/formatMoney';
 import { parseUsd } from '../../lib/parseUsd';
-import { venmoAppLink, venmoWebLink } from './paymentLinks';
+import { venmoPayLink } from './paymentLinks';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
 
 export interface ContributeDialogProps {
@@ -110,8 +110,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           <p id="contribute-amount-error" className="mb-4 text-sm text-red-600">{amount === null ? invalidAmount : ''}</p>
           {payment.venmoHandle && amount !== null && (
             <p className="mb-4 flex flex-wrap items-center gap-4">
-              <a href={venmoAppLink(payment.venmoHandle, amount, itemTitle)} className={`${button} inline-flex items-center bg-blue-700 text-white`}>Pay {formatMoney(amount)} with Venmo</a>
-              <a href={venmoWebLink(payment.venmoHandle)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-blue-700 underline">Venmo website</a>
+              <a href={venmoPayLink(payment.venmoHandle, amount, itemTitle)} target="_blank" rel="noopener noreferrer" className={`${button} inline-flex items-center bg-blue-700 text-white`}>Pay {formatMoney(amount)} with Venmo</a>
             </p>
           )}
           {payment.zelleHandle && (
