@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { useCreateList } from './useCreateList';
-import { LengthLimitWarning, isAtLimit } from '../../lib/LengthLimitWarning';
+import { LimitedInput } from '../../lib/LimitedField';
 
 const TITLE_MAX = 120;
 /** A Venmo username is at most 30 characters, plus the "@" people often type first. */
@@ -55,19 +55,17 @@ export function CreateListForm() {
     <form onSubmit={handleSubmit} className="max-w-sm space-y-4">
       <div>
         <label htmlFor="list-title" className="block text-sm font-medium">List title</label>
-        <input
-          id="list-title" required maxLength={TITLE_MAX} aria-describedby="list-title-limit" value={listTitle} onChange={(e) => setListTitle(e.target.value)}
+        <LimitedInput
+          id="list-title" required max={TITLE_MAX} value={listTitle} onChange={(e) => setListTitle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
-        <LengthLimitWarning id="list-title-limit" value={listTitle} max={TITLE_MAX} />
       </div>
       <div>
         <label htmlFor="item-title" className="block text-sm font-medium">First item</label>
-        <input
-          id="item-title" required maxLength={TITLE_MAX} aria-describedby="item-title-limit" value={itemTitle} onChange={(e) => setItemTitle(e.target.value)}
+        <LimitedInput
+          id="item-title" required max={TITLE_MAX} value={itemTitle} onChange={(e) => setItemTitle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
-        <LengthLimitWarning id="item-title-limit" value={itemTitle} max={TITLE_MAX} />
       </div>
       <div>
         <label htmlFor="create-secret" className="block text-sm font-medium">Create secret</label>
@@ -79,19 +77,17 @@ export function CreateListForm() {
       </div>
       <div>
         <label htmlFor="venmo-handle" className="block text-sm font-medium">Venmo username</label>
-        <input
-          id="venmo-handle" aria-describedby={isAtLimit(venmoHandle, VENMO_MAX) ? 'handles-hint venmo-handle-limit' : 'handles-hint'} maxLength={VENMO_MAX} value={venmoHandle} onChange={(e) => setVenmoHandle(e.target.value)}
+        <LimitedInput
+          id="venmo-handle" describedBy={['handles-hint']} max={VENMO_MAX} value={venmoHandle} onChange={(e) => setVenmoHandle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
-        <LengthLimitWarning id="venmo-handle-limit" value={venmoHandle} max={VENMO_MAX} />
       </div>
       <div>
         <label htmlFor="zelle-handle" className="block text-sm font-medium">Zelle email or US phone</label>
-        <input
-          id="zelle-handle" aria-describedby={isAtLimit(zelleHandle, ZELLE_MAX) ? 'handles-hint zelle-handle-limit' : 'handles-hint'} maxLength={ZELLE_MAX} value={zelleHandle} onChange={(e) => setZelleHandle(e.target.value)}
+        <LimitedInput
+          id="zelle-handle" describedBy={['handles-hint']} max={ZELLE_MAX} value={zelleHandle} onChange={(e) => setZelleHandle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
-        <LengthLimitWarning id="zelle-handle-limit" value={zelleHandle} max={ZELLE_MAX} />
       </div>
       <p id="handles-hint" className="text-sm text-gray-600">Group gifts need at least one handle. Handles can't be changed later.</p>
       <p role="alert" className="text-red-600 empty:mb-0">{error?.message}</p>
