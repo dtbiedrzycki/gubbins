@@ -56,7 +56,7 @@ export default function ListPage() {
     <main className="min-h-screen bg-paper p-6 text-ink">
       <div className="mx-auto max-w-sm space-y-8">
         <header className="text-center">
-          <h1 className="font-display text-[2.05rem] leading-tight text-balance">{query.data.title}</h1>
+          <h1 className="font-display text-[2.05rem] leading-tight text-balance break-words">{query.data.title}</h1>
           <p className="mt-2 text-muted">When you hold an item, it&apos;s held for you for {days} {days === 1 ? 'day' : 'days'}.</p>
           <span className="vine" aria-hidden="true" />
         </header>
