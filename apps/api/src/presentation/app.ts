@@ -39,7 +39,10 @@ const withoutUnusedSchemas: typeof jsonSchemaTransformObject = (document) => {
 };
 
 export function buildApp(deps: AppDependencies, options: BuildAppOptions): FastifyInstance {
-  const app = Fastify({ logger: false });
+  // This caps the whole request, and with it every text field: the schemas don't limit text, since
+  // the domain owns each length. The largest valid request is a few short fields, far below 1 MiB.
+  // Fastify's default is the same; it is stated here so an upgrade can't change it.
+  const app = Fastify({ logger: false, bodyLimit: 1024 * 1024 });
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
@@ -85,9 +88,9 @@ export function buildApp(deps: AppDependencies, options: BuildAppOptions): Fasti
       return;
     }
     // Fastify rejects some requests before schema validation runs: malformed
-    // JSON, an empty body declared as JSON, an unsupported content type. Those
-    // are the client's fault, not an unhandled error, so they get the same 400
-    // as a validation failure and no error-log entry.
+    // JSON, an empty body declared as JSON, an unsupported content type, a body
+    // over the size limit. Those are the client's fault, not an unhandled error,
+    // so they get the same 400 as a validation failure and no error-log entry.
     if ('code' in error && typeof error.code === 'string' && error.code.startsWith('FST_ERR_CTP_')) {
       reply.code(400).send(errorResponseSchema.parse({ message: 'Invalid request' }));
       return;
