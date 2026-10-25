@@ -63,18 +63,6 @@ export class InMemoryStore {
       .filter((c) => this.items.get(c.itemId.value)?.wishlistId === wishlistId)
       .sort((a, b) => a.pledgedAt.getTime() - b.pledgedAt.getTime() || a.id.value.localeCompare(b.id.value));
   }
-
-  /**
-   * The list's holds active or purchased at `now`, by the same predicate as
-   * the SQL adapter's query: purchased, or not released with
-   * `now <= expiresAt`. The hold repository contract checks it agrees with
-   * the domain.
-   */
-  activeOrPurchasedHoldsOnList(wishlistId: string, now: Date): Hold[] {
-    return this.holdsOnList(wishlistId).filter(
-      (h) => h.purchasedAt !== null || (h.releasedAt === null && now.getTime() <= h.expiresAt.getTime()),
-    );
-  }
 }
 
 export class InMemoryWishlistRepository implements WishlistRepository {
@@ -144,26 +132,8 @@ export class InMemoryHoldRepository implements HoldRepository {
     this.store.holds.set(hold.id.value, copyHold(hold));
   }
 
-  async findById(holdId: string): Promise<Hold | null> {
-    const hold = this.store.holds.get(holdId);
-    return hold ? copyHold(hold) : null;
-  }
-
-  async findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<Hold | null> {
-    const hold = [...this.store.holds.values()].find((h) => h.itemId.value === itemId && h.idempotencyKey.value === idempotencyKey);
-    return hold ? copyHold(hold) : null;
-  }
-
   async findForWishlist(wishlistId: string): Promise<Hold[]> {
     return this.store.holdsOnList(wishlistId).map(copyHold);
-  }
-
-  async findActiveOrPurchasedForWishlist(wishlistId: string, now: Date): Promise<Hold[]> {
-    return this.store.activeOrPurchasedHoldsOnList(wishlistId, now).map(copyHold);
-  }
-
-  async findForSession(wishlistId: string, sessionHash: string): Promise<Hold[]> {
-    return this.store.holdsOnList(wishlistId).filter((h) => h.belongsToSession(sessionHash)).map(copyHold);
   }
 }
 
@@ -213,19 +183,6 @@ export class InMemoryContributionRepository implements ContributionRepository {
   async findForWishlist(wishlistId: string): Promise<Contribution[]> {
     return this.store.contributionsOnList(wishlistId);
   }
-
-  async findByIdempotencyKey(itemId: string, idempotencyKey: string): Promise<Contribution | null> {
-    return [...this.store.contributions.values()].find((c) => c.itemId.value === itemId && c.idempotencyKey.value === idempotencyKey) ?? null;
-  }
-
-  async pledgedTotals(wishlistId: string): Promise<Map<string, number>> {
-    const totals = new Map<string, number>();
-    for (const c of this.store.contributions.values()) {
-      if (this.store.items.get(c.itemId.value)?.wishlistId !== wishlistId) continue;
-      totals.set(c.itemId.value, (totals.get(c.itemId.value) ?? 0) + c.amount.amountMinor);
-    }
-    return totals;
-  }
 }
 
 /** No real transactionality — fine for use-case unit tests, which never assert rollback; the Kysely integration tests cover that. */
@@ -244,7 +201,6 @@ export function inMemoryPersistence() {
   const holds = new InMemoryHoldRepository(store);
   const eventStore = new InMemoryEventStore(store);
   const guestPii = new InMemoryGuestPiiRepository(store);
-  const contributions = new InMemoryContributionRepository(store);
-  const unitOfWork = new InMemoryUnitOfWork({ wishlists, holds, eventStore, guestPii, contributions });
-  return { store, wishlists, holds, eventStore, guestPii, contributions, unitOfWork };
+  const unitOfWork = new InMemoryUnitOfWork({ wishlists, eventStore, guestPii });
+  return { store, wishlists, holds, eventStore, guestPii, unitOfWork };
 }

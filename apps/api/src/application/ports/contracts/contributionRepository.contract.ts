@@ -48,23 +48,17 @@ export function describeContributionRepositoryContract(adapter: string, factory:
     });
     afterEach(async () => { await fx.dispose(); });
 
-    it('round-trips a contribution by item and idempotency key', async () => {
+    it('round-trips a contribution', async () => {
       const inserted = pledge(MIXER, 2500, 'key-1');
       await fx.contributions.insert(inserted);
 
-      const found = await fx.contributions.findByIdempotencyKey(MIXER, 'key-1');
+      const [found] = await fx.contributions.findForWishlist(LIST_X);
 
       expect(found).toMatchObject({
         id: inserted.id, itemId: inserted.itemId, amount: inserted.amount, sessionHash: inserted.sessionHash,
         idempotencyKey: inserted.idempotencyKey, piiRef: inserted.piiRef,
       });
       expect(found?.pledgedAt).toEqual(NOW);
-    });
-
-    it('finds nothing for an unknown key or another item', async () => {
-      await fx.contributions.insert(pledge(MIXER, 2500, 'key-1'));
-      expect(await fx.contributions.findByIdempotencyKey(MIXER, 'nope')).toBeNull();
-      expect(await fx.contributions.findByIdempotencyKey(STROLLER, 'key-1')).toBeNull();
     });
 
     it('refuses a second contribution with the same item and key', async () => {
@@ -74,16 +68,8 @@ export function describeContributionRepositoryContract(adapter: string, factory:
 
     it('allows the same key on a different item', async () => {
       await fx.contributions.insert(pledge(MIXER, 2500, 'key-1'));
-      await expect(fx.contributions.insert(pledge(STROLLER, 1000, 'key-1'))).resolves.toBeUndefined();
-    });
-
-    it('sums pledges per item on the list and leaves out other lists', async () => {
-      await fx.contributions.insert(pledge(MIXER, 2500));
-      await fx.contributions.insert(pledge(MIXER, 1500));
-      await fx.contributions.insert(pledge(STROLLER, 7000));
-      await fx.contributions.insert(pledge(OTHER_LIST_ITEM, 9999));
-
-      expect(await fx.contributions.pledgedTotals(LIST_X)).toEqual(new Map([[MIXER, 4000], [STROLLER, 7000]]));
+      await fx.contributions.insert(pledge(STROLLER, 1000, 'key-1'));
+      expect(await fx.contributions.findForWishlist(LIST_X)).toHaveLength(2);
     });
 
     it("findForWishlist returns every contribution on the list's items, oldest pledge first then by id, and none from another list", async () => {
@@ -100,12 +86,6 @@ export function describeContributionRepositoryContract(adapter: string, factory:
 
       expect(found.map((c) => c.id.value))
         .toEqual([atStart, tiedFirst, tiedSecond, atMinute, atTwoMinutes].map((c) => c.id.value));
-    });
-
-    it('leaves out items with no pledges', async () => {
-      await fx.contributions.insert(pledge(MIXER, 2500));
-      expect((await fx.contributions.pledgedTotals(LIST_X)).has(STROLLER)).toBe(false);
-      expect((await fx.contributions.pledgedTotals(LIST_Y)).size).toBe(0);
     });
   });
 }
