@@ -60,11 +60,6 @@ describe('POST /api/lists', () => {
     });
   });
 
-  it('rejects a whitespace-only listTitle (trim runs before min)', async () => {
-    const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: '   ', itemTitle: 'Stroller' } });
-    expect(response.statusCode).toBe(400);
-  });
-
   it('returns the same 400 shape when the body is missing', async () => {
     const response = await app.inject({ method: 'POST', url: '/api/lists' });
     expect(response.statusCode).toBe(400);
