@@ -34,7 +34,8 @@ function json<T extends z.ZodType>(description: string, schema: T) {
 }
 
 const INVALID_REQUEST = 'The request did not match the schema, or a domain rule refused it.';
-const HOLD_NOT_FOUND = "No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable (ADR-0016, ADR-0054).";
+// Every 404 below lumps its cases together on purpose, so a guess learns nothing (ADR-0016, ADR-0054).
+const HOLD_NOT_FOUND = "No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable.";
 
 export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies): void {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
@@ -101,7 +102,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       response: {
         200: json('The key was accepted and a session cookie was set.', enterGuestKeyResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
-        404: json('No such list, or the key is wrong. The two are deliberately indistinguishable (ADR-0016, ADR-0054).', errorResponseSchema),
+        404: json('No such list, or the key is wrong. The two are deliberately indistinguishable.', errorResponseSchema),
       },
     },
   }, async (request, reply) => {
@@ -129,7 +130,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       response: {
         200: json('The token was accepted and an owner cookie was set.', ownerSessionResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
-        404: json('No such list, or the token is wrong. Deliberately indistinguishable (ADR-0016, ADR-0054).', errorResponseSchema),
+        404: json('No such list, or the token is wrong. Deliberately indistinguishable.', errorResponseSchema),
       },
     },
   }, async (request, reply) => {
@@ -150,7 +151,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       response: {
         200: json("The list, its item, this session's holds, and what this server does for guests.", listViewResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
-        404: json('No such list, or no valid session for it. The two are deliberately indistinguishable (ADR-0016, ADR-0054).', errorResponseSchema),
+        404: json('No such list, or no valid session for it. The two are deliberately indistinguishable.', errorResponseSchema),
       },
     },
   }, async (request, reply) => {
@@ -172,7 +173,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       response: {
         201: json('The item was added to the list.', addItemResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
-        404: json('No such list, or no owner cookie for it. Deliberately indistinguishable (ADR-0016, ADR-0054).', errorResponseSchema),
+        404: json('No such list, or no owner cookie for it. Deliberately indistinguishable.', errorResponseSchema),
         409: json('A group gift needs a payment method on the list (no_payment_method).', errorResponseSchema),
       },
     },
@@ -195,7 +196,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       response: {
         201: json('The item is now held for this session; a replayed idempotency key returns the same hold.', holdItemResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
-        404: json('No such list or item, or no valid session for the list. These are deliberately indistinguishable (ADR-0016, ADR-0054).', errorResponseSchema),
+        404: json('No such list or item, or no valid session for the list. These are deliberately indistinguishable.', errorResponseSchema),
         409: json('No unit of the item is free (item_unavailable), or a concurrent change won (no code).', errorResponseSchema),
       },
     },
@@ -221,7 +222,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       response: {
         201: json('The pledge was recorded; a replayed idempotency key returns the original.', pledgeResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
-        404: json('No such list or item, or no valid session for the list. These are deliberately indistinguishable (ADR-0016, ADR-0054).', errorResponseSchema),
+        404: json('No such list or item, or no valid session for the list. These are deliberately indistinguishable.', errorResponseSchema),
         409: json('The item is not a group gift, or this idempotency key belongs to another guest (item_unavailable); the amount is more than the gift can take (amount_out_of_range); or a concurrent change won (no code).', errorResponseSchema),
       },
     },
