@@ -243,10 +243,11 @@ describe('Wishlist hold commands', () => {
 });
 
 describe('Wishlist hold questions', () => {
-  it("answers each question from the hold's item", () => {
+  it("answers each question as the hold's item does, true or false", () => {
     const hold = holdOn(ITEM_ID);
     expect(loaded({ holds: [hold], asOf: at(3 * DAY + 1) }).holdStatus(hold)).toBe('expired');
     expect(asks(hold)).toEqual({ canExtendHold: true, canReleaseHold: true, canPurchaseHold: true });
+    expect(asks(holdOn(ITEM_ID, { releasedAt: T0 }))).toEqual({ canExtendHold: false, canReleaseHold: false, canPurchaseHold: false });
   });
 
   it("refuses a hold on another list's item: HoldNotFoundError for its status, false for every can… question", () => {
