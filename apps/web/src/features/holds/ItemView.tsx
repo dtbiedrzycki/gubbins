@@ -66,12 +66,12 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
   // the moment the guest releases or buys from "Your holds".
   return (
     <div className="space-y-4">
-      <h2 className="font-display text-[1.3rem] leading-tight text-balance">{item.title}</h2>
+      <h2 className="font-display text-[1.3rem] leading-tight text-balance break-words">{item.title}</h2>
       {item.priceMinor !== null && <p className="font-bold tabular-nums">{formatMoney(item.priceMinor)}</p>}
       {item.url && <p><a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2.5 text-moss underline">View in store <span className="sr-only">for {item.title} (opens in a new tab)</span></a></p>}
       {item.type === 'single' && item.status === 'available' && item.availableUnits > 1 && <p>{item.availableUnits} left</p>}
       {/* Mounted while available too: screen readers miss a live region that arrives already filled. */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2.5 has-[>p:empty:only-child]:mb-0">
         {item.status !== 'available' && <Seal />}
         <ItemAnnouncement message={thanks || (item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is promised.` : `${item.title} has been purchased.`)} />
       </div>
