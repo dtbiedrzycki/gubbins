@@ -54,6 +54,20 @@ describe('ListPage', () => {
     expect(within(screen.getByRole('region', { name: 'Your holds' })).getByRole('heading', { name: 'Cot' })).toBeInTheDocument();
   });
 
+  it('tells guests how long a hold keeps an item', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
+    renderListPage();
+
+    expect(await screen.findByText("When you hold an item, it's held for you for 3 days.")).toBeInTheDocument();
+  });
+
+  it('says "1 day" for a one-day hold', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), capabilities: { holdDurationDays: 1 } })));
+    renderListPage();
+
+    expect(await screen.findByText("When you hold an item, it's held for you for 1 day.")).toBeInTheDocument();
+  });
+
   it('holds the item, then shows it held and under "Your holds" with its actions', async () => {
     let held = false;
     server.use(

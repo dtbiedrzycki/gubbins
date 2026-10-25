@@ -14,6 +14,13 @@ function renderWithQueryClient(ui: ReactElement) {
 }
 
 describe('GuestKeyGate', () => {
+  it('greets the guest at the door and says where the key is', () => {
+    renderWithQueryClient(<GuestKeyGate slug="abc123" onSuccess={vi.fn()} />);
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Knock, knock.' })).toBeInTheDocument();
+    expect(screen.getByText('Enter the guest key from your invite.')).toBeInTheDocument();
+  });
+
   it('calls onSuccess after a valid key is accepted', async () => {
     server.use(mock('post', '/api/lists/{slug}/session', 200, { ok: true }));
     const onSuccess = vi.fn();

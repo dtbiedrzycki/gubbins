@@ -18,7 +18,7 @@ export default function ListPage() {
   if (!slug) return null;
 
   if (query.status === 'pending') {
-    return <main className="min-h-screen bg-slate-50 p-6">Loading…</main>;
+    return <main className="min-h-screen bg-paper p-6 text-ink">Loading…</main>;
   }
 
   // 401 (no session yet) and 404 (unknown slug) both mean "enter the key":
@@ -32,10 +32,10 @@ export default function ListPage() {
     // on arrival; focus stays put the first time, since the guest didn't ask
     // for this view, but returns to the button after a failed "Try again".
     return (
-      <main className="min-h-screen bg-slate-50 p-6">
-        <div className="max-w-sm space-y-4">
-          <p role="alert" className="text-red-600">{query.error.message}</p>
-          <button type="button" autoFocus={retried} onClick={() => { setRetried(true); void query.refetch(); }} className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white">
+      <main className="min-h-screen bg-paper p-6 text-ink">
+        <div className="mx-auto max-w-sm space-y-4">
+          <p role="alert" className="text-error">{query.error.message}</p>
+          <button type="button" autoFocus={retried} onClick={() => { setRetried(true); void query.refetch(); }} className="btn-primary">
             Try again
           </button>
         </div>
@@ -44,26 +44,31 @@ export default function ListPage() {
   }
   if (!query.data || sessionGone) {
     return (
-      <main className="min-h-screen bg-slate-50 p-6">
+      <main className="min-h-screen bg-paper p-6 text-ink">
         <GuestKeyGate slug={slug} onSuccess={() => query.refetch()} />
       </main>
     );
   }
 
   const items = query.data.items;
+  const days = query.data.capabilities.holdDurationDays;
   return (
-    <main className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-sm space-y-8">
-        <h1 className="text-2xl font-semibold">{query.data.title}</h1>
+    <main className="min-h-screen bg-paper p-6 text-ink">
+      <div className="mx-auto max-w-sm space-y-8">
+        <header className="text-center">
+          <h1 className="font-display text-[2.05rem] leading-tight text-balance">{query.data.title}</h1>
+          <p className="mt-2 text-muted">When you hold an item, it&apos;s held for you for {days} {days === 1 ? 'day' : 'days'}.</p>
+          <span className="vine" aria-hidden="true" />
+        </header>
         <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn't refresh the list, so it may be out of date." : ''}</p>
         {/* explicit role: Safari/VoiceOver drops list semantics under list-style none */}
-        <ul role="list" className="space-y-4">
+        <ul role="list">
           {items.map((item) => (
-            <li key={item.id} className="rounded border border-slate-200 bg-white p-4">
+            <li key={item.id} className="border-b border-line py-5">
               <ItemView
                 slug={slug}
                 item={item}
-                holdDurationDays={query.data.capabilities.holdDurationDays}
+                holdDurationDays={days}
                 payment={query.data.payment}
                 // The Hold button has gone; the new hold's actions are under Your holds.
                 focusElsewhere={() => document.getElementById('your-holds-heading')?.focus()}

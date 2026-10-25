@@ -17,22 +17,23 @@ export function GuestKeyGate({ slug, onSuccess }: GuestKeyGateProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-sm space-y-4">
-      <div>
-        <label htmlFor="guest-key" className="block text-sm font-medium">Enter the guest key</label>
-        <input
-          id="guest-key" required value={key} onChange={(e) => setKey(e.target.value)}
-          className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-        />
+    <div className="mx-auto max-w-sm space-y-6 text-center">
+      <div className="door" aria-hidden="true" />
+      <div className="space-y-2">
+        <h1 className="font-display text-[2.1rem] leading-tight">Knock, knock.</h1>
+        <p className="text-muted">Enter the guest key from your invite.</p>
       </div>
-      {/* Deliberately generic regardless of the underlying reason — ADR-016/054: no distinguishing "wrong key" from "no such list." */}
-      <p role="alert" className="text-red-600 empty:mb-0">{error ? 'This list could not be found.' : ''}</p>
-      <button
-        type="submit" disabled={isPending}
-        className="rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50"
-      >
-        {isPending ? 'Checking…' : 'View list'}
-      </button>
-    </form>
+      <form onSubmit={handleSubmit} className="space-y-4 text-left">
+        <div>
+          <label htmlFor="guest-key" className="mb-1 block font-bold">Enter the guest key</label>
+          <input id="guest-key" required value={key} onChange={(e) => setKey(e.target.value)} className="field" />
+        </div>
+        {/* Deliberately generic regardless of the underlying reason — ADR-016/054: no distinguishing "wrong key" from "no such list." */}
+        <p role="alert" className="text-error empty:mb-0">{error ? 'This list could not be found.' : ''}</p>
+        <button type="submit" disabled={isPending} className="btn-primary w-full">
+          {isPending ? 'Checking…' : 'View list'}
+        </button>
+      </form>
+    </div>
   );
 }
