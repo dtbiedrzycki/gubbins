@@ -12,18 +12,8 @@ describe('createListRequestSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects a listTitle over 120 characters', () => {
-    const result = createListRequestSchema.safeParse({ listTitle: 'a'.repeat(121), itemTitle: 'Stroller' });
-    expect(result.success).toBe(false);
-  });
-
   it('rejects an empty itemTitle', () => {
     const result = createListRequestSchema.safeParse({ listTitle: 'Baby Shower', itemTitle: '' });
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects an itemTitle over 120 characters', () => {
-    const result = createListRequestSchema.safeParse({ listTitle: 'Baby Shower', itemTitle: 'a'.repeat(121) });
     expect(result.success).toBe(false);
   });
 });

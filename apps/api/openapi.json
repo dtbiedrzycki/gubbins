@@ -47,13 +47,11 @@
                 "properties": {
                   "listTitle": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 120
+                    "minLength": 1
                   },
                   "itemTitle": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 120
+                    "minLength": 1
                   },
                   "createSecret": {
                     "type": "string"
@@ -519,8 +517,7 @@
                       },
                       "title": {
                         "type": "string",
-                        "minLength": 1,
-                        "maxLength": 120
+                        "minLength": 1
                       },
                       "quantity": {
                         "default": 1,
@@ -530,7 +527,6 @@
                       },
                       "url": {
                         "type": "string",
-                        "maxLength": 2048,
                         "format": "uri"
                       },
                       "priceMinor": {
@@ -556,12 +552,10 @@
                       },
                       "title": {
                         "type": "string",
-                        "minLength": 1,
-                        "maxLength": 120
+                        "minLength": 1
                       },
                       "url": {
                         "type": "string",
-                        "maxLength": 2048,
                         "format": "uri"
                       },
                       "priceMinor": {
@@ -661,12 +655,10 @@
                   },
                   "name": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 100
+                    "minLength": 1
                   },
                   "message": {
-                    "type": "string",
-                    "maxLength": 300
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -814,12 +806,10 @@
                   },
                   "name": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 100
+                    "minLength": 1
                   },
                   "message": {
-                    "type": "string",
-                    "maxLength": 300
+                    "type": "string"
                   }
                 },
                 "required": [

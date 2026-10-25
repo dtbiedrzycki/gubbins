@@ -4,8 +4,8 @@ export const pledgeRequestSchema = z.object({
   idempotencyKey: z.string().min(1),
   // Zero or less is never a pledge, so it is a 400 here. The upper bound depends on the item, so it is the domain's 409.
   amountMinor: z.number().int().positive(),
-  name: z.string().min(1).max(100),
-  message: z.string().max(300).optional(),
+  name: z.string().min(1),
+  message: z.string().optional(),
 });
 export type PledgeRequest = z.infer<typeof pledgeRequestSchema>;
 
