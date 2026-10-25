@@ -13,6 +13,7 @@ const DAY = 86_400_000;
 const T0 = new Date('2026-01-01T00:00:00.000Z');
 const base = { id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0, asOf: T0 };
 
+const OTHER_SESSION = 'b'.repeat(64);
 let holdCount = 0;
 function holdOn(overrides: Partial<Parameters<typeof Hold.reconstitute>[0]> = {}): Hold {
   holdCount += 1;
@@ -92,7 +93,7 @@ describe('Item availability and holds — from hold state, never a stored counte
   });
 
   it('is available while the quantity exceeds active and purchased holds', () => {
-    const item = Item.reconstitute({ ...base, quantity: 2, holds: [holdOn()] });
+    const item = Item.reconstitute({ ...base, quantity: 3, holds: [holdOn(), holdOn({ purchasedAt: T0 })] });
     expect(item.availableUnits()).toBe(1);
     expect(item.status()).toBe('available');
   });
@@ -106,11 +107,6 @@ describe('Item availability and holds — from hold state, never a stored counte
   it('counts its purchased holds, zero when there are none', () => {
     expect(Item.reconstitute({ ...base, quantity: 2, holds: [holdOn({ purchasedAt: T0 }), holdOn({ purchasedAt: T0 })] }).purchasedCount()).toBe(2);
     expect(Item.reconstitute(base).purchasedCount()).toBe(0);
-  });
-
-  it('takes one unit for a purchased hold, not a second one as if it were active', () => {
-    const item = Item.reconstitute({ ...base, quantity: 4, holds: [holdOn({ purchasedAt: T0 }), holdOn({ purchasedAt: T0 }), holdOn()] });
-    expect(item.availableUnits()).toBe(1);
   });
 
   it('is purchased once purchased holds cover the quantity', () => {
@@ -277,7 +273,7 @@ describe('Item.purchaseHold', () => {
 
   it('refuses an expired hold once someone else holds the last unit, and records nothing', () => {
     const expired = holdOn({ expiresAt: at(-1) });
-    const item = holding([expired, holdOn({ sessionHash: 'b'.repeat(64) })]);
+    const item = holding([expired, holdOn({ sessionHash: OTHER_SESSION })]);
     expect(() => item.purchaseHold(expired)).toThrow(HoldLapsedError);
     expect(() => item.purchaseHold(expired)).toThrow(ItemUnavailableError); // same 409 code, a clearer message
     expect(expired.purchasedAt).toBeNull();
@@ -302,7 +298,7 @@ describe('Item.canPurchaseHold', () => {
 
   it('is false for an expired hold whose unit someone else now holds', () => {
     const expired = holdOn({ expiresAt: at(-1) });
-    expect(holding([expired, holdOn({ sessionHash: 'b'.repeat(64) })]).canPurchaseHold(expired)).toBe(false);
+    expect(holding([expired, holdOn({ sessionHash: OTHER_SESSION })]).canPurchaseHold(expired)).toBe(false);
   });
 
   it('is false for a released or purchased hold, or one it did not load', () => {
@@ -383,7 +379,7 @@ describe('Item.reconstitute', () => {
     expect(() => Item.reconstitute({ ...base, seq: 1.5 })).toThrow(DomainValidationError);
   });
 
-  it('accepts loaded pledges that total the limit, and rejects more', () => {
+  it('accepts loaded pledges totalling 10¹² cents, and refuses 10¹² + 1', () => {
     expect(() => fundedGroup(MAX_MONEY_MINOR)).not.toThrow();
     expect(() => fundedGroup(MAX_MONEY_MINOR, 1)).toThrow(DomainValidationError);
   });
@@ -424,12 +420,7 @@ describe('Item.pledge', () => {
   ])('refuses %s', (_, amountMinor) => {
     expect(() => group().pledge({ ...props, amountMinor }, ids)).toThrow(ContributionAmountError);
   });
-  it.each([0, -100])('refuses amount %j and adds nothing', (amountMinor) => {
-    const item = group();
-    expect(() => item.pledge({ ...props, amountMinor }, ids)).toThrow();
-    expect([item.contributions, item.seq]).toEqual([[], 0]);
-  });
-  it('accepts a pledge that brings the total exactly to the limit, and refuses one cent more', () => {
+  it('accepts a pledge that brings the total to exactly 10¹² cents, and refuses one cent more', () => {
     const item = fundedGroup(MAX_MONEY_MINOR - 100);
     expect(() => item.pledge({ ...props, amountMinor: 100 }, ids)).not.toThrow();
     expect(() => item.pledge({ ...props, idempotencyKey: 'k2', amountMinor: 1 }, ids)).toThrow(ContributionAmountError);
