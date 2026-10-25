@@ -32,7 +32,7 @@ export class CreateList {
 
   async execute(input: CreateListInput): Promise<CreateListOutput> {
     // Fail closed: no configured secret means no one may create (ADR-0080).
-    if (this.createSecret === null || !this.secretComparer.compareInConstantTime(this.createSecret, input.createSecret ?? '')) {
+    if (this.createSecret === null || !this.secretComparer.compareInConstantTime(this.createSecret, (input.createSecret ?? '').trim())) {
       throw new InvalidCreateSecretError();
     }
     return this.unitOfWork.execute(async (ctx) => {

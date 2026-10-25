@@ -47,13 +47,11 @@
                 "properties": {
                   "listTitle": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 120
+                    "minLength": 1
                   },
                   "itemTitle": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 120
+                    "minLength": 1
                   },
                   "createSecret": {
                     "type": "string"
@@ -196,7 +194,7 @@
             }
           },
           "404": {
-            "description": "No such list, or the key is wrong. The two are deliberately indistinguishable (ADR-0016, ADR-0054).",
+            "description": "No such list, or the key is wrong. The two are deliberately indistinguishable.",
             "content": {
               "application/json": {
                 "schema": {
@@ -274,7 +272,7 @@
             }
           },
           "404": {
-            "description": "No such list, or the token is wrong. Deliberately indistinguishable (ADR-0016, ADR-0054).",
+            "description": "No such list, or the token is wrong. Deliberately indistinguishable.",
             "content": {
               "application/json": {
                 "schema": {
@@ -487,7 +485,7 @@
             }
           },
           "404": {
-            "description": "No such list, or no valid session for it. The two are deliberately indistinguishable (ADR-0016, ADR-0054).",
+            "description": "No such list, or no valid session for it. The two are deliberately indistinguishable.",
             "content": {
               "application/json": {
                 "schema": {
@@ -519,8 +517,7 @@
                       },
                       "title": {
                         "type": "string",
-                        "minLength": 1,
-                        "maxLength": 120
+                        "minLength": 1
                       },
                       "quantity": {
                         "default": 1,
@@ -530,7 +527,6 @@
                       },
                       "url": {
                         "type": "string",
-                        "maxLength": 2048,
                         "format": "uri"
                       },
                       "priceMinor": {
@@ -556,12 +552,10 @@
                       },
                       "title": {
                         "type": "string",
-                        "minLength": 1,
-                        "maxLength": 120
+                        "minLength": 1
                       },
                       "url": {
                         "type": "string",
-                        "maxLength": 2048,
                         "format": "uri"
                       },
                       "priceMinor": {
@@ -623,7 +617,7 @@
             }
           },
           "404": {
-            "description": "No such list, or no owner cookie for it. Deliberately indistinguishable (ADR-0016, ADR-0054).",
+            "description": "No such list, or no owner cookie for it. Deliberately indistinguishable.",
             "content": {
               "application/json": {
                 "schema": {
@@ -661,12 +655,10 @@
                   },
                   "name": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 100
+                    "minLength": 1
                   },
                   "message": {
-                    "type": "string",
-                    "maxLength": 300
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -770,7 +762,7 @@
             }
           },
           "404": {
-            "description": "No such list or item, or no valid session for the list. These are deliberately indistinguishable (ADR-0016, ADR-0054).",
+            "description": "No such list or item, or no valid session for the list. These are deliberately indistinguishable.",
             "content": {
               "application/json": {
                 "schema": {
@@ -814,12 +806,10 @@
                   },
                   "name": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 100
+                    "minLength": 1
                   },
                   "message": {
-                    "type": "string",
-                    "maxLength": 300
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -890,7 +880,7 @@
             }
           },
           "404": {
-            "description": "No such list or item, or no valid session for the list. These are deliberately indistinguishable (ADR-0016, ADR-0054).",
+            "description": "No such list or item, or no valid session for the list. These are deliberately indistinguishable.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1008,7 +998,7 @@
             }
           },
           "404": {
-            "description": "No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable (ADR-0016, ADR-0054).",
+            "description": "No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1126,7 +1116,7 @@
             }
           },
           "404": {
-            "description": "No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable (ADR-0016, ADR-0054).",
+            "description": "No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1244,7 +1234,7 @@
             }
           },
           "404": {
-            "description": "No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable (ADR-0016, ADR-0054).",
+            "description": "No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable.",
             "content": {
               "application/json": {
                 "schema": {

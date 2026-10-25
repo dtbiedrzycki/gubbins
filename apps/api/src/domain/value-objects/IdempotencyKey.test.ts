@@ -12,8 +12,13 @@ describe('IdempotencyKey.from', () => {
     expect(IdempotencyKey.from(key).value).toBe(key);
   });
 
-  it('rejects an empty string', () => {
+  it('trims the key', () => {
+    expect(IdempotencyKey.from(' idem-1 ').value).toBe('idem-1');
+  });
+
+  it('rejects an empty or blank string', () => {
     expect(() => IdempotencyKey.from('')).toThrow(DomainValidationError);
+    expect(() => IdempotencyKey.from('   ')).toThrow(DomainValidationError);
   });
 
   it('rejects a string over 200 characters', () => {

@@ -1,6 +1,13 @@
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { useCreateList } from './useCreateList';
+import { LimitedInput } from '../../lib/LimitedField';
+
+const TITLE_MAX = 120;
+/** A Venmo username is at most 30 characters, plus the "@" people often type first. */
+const VENMO_MAX = 31;
+/** The longest email address there can be; the API caps the handle at the same length. */
+const ZELLE_MAX = 254;
 
 export function CreateListForm() {
   const [listTitle, setListTitle] = useState('');
@@ -12,7 +19,10 @@ export function CreateListForm() {
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    mutate({ listTitle, itemTitle, createSecret, venmoHandle, zelleHandle });
+    mutate({
+      listTitle: listTitle.trim(), itemTitle: itemTitle.trim(), createSecret: createSecret.trim(),
+      venmoHandle: venmoHandle.trim(), zelleHandle: zelleHandle.trim(),
+    });
   }
 
   if (data) {
@@ -45,15 +55,15 @@ export function CreateListForm() {
     <form onSubmit={handleSubmit} className="max-w-sm space-y-4">
       <div>
         <label htmlFor="list-title" className="block text-sm font-medium">List title</label>
-        <input
-          id="list-title" required value={listTitle} onChange={(e) => setListTitle(e.target.value)}
+        <LimitedInput
+          id="list-title" required max={TITLE_MAX} value={listTitle} onChange={(e) => setListTitle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>
       <div>
         <label htmlFor="item-title" className="block text-sm font-medium">First item</label>
-        <input
-          id="item-title" required value={itemTitle} onChange={(e) => setItemTitle(e.target.value)}
+        <LimitedInput
+          id="item-title" required max={TITLE_MAX} value={itemTitle} onChange={(e) => setItemTitle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>
@@ -67,15 +77,15 @@ export function CreateListForm() {
       </div>
       <div>
         <label htmlFor="venmo-handle" className="block text-sm font-medium">Venmo username</label>
-        <input
-          id="venmo-handle" aria-describedby="handles-hint" value={venmoHandle} onChange={(e) => setVenmoHandle(e.target.value)}
+        <LimitedInput
+          id="venmo-handle" describedBy={['handles-hint']} max={VENMO_MAX} value={venmoHandle} onChange={(e) => setVenmoHandle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>
       <div>
         <label htmlFor="zelle-handle" className="block text-sm font-medium">Zelle email or US phone</label>
-        <input
-          id="zelle-handle" aria-describedby="handles-hint" value={zelleHandle} onChange={(e) => setZelleHandle(e.target.value)}
+        <LimitedInput
+          id="zelle-handle" describedBy={['handles-hint']} max={ZELLE_MAX} value={zelleHandle} onChange={(e) => setZelleHandle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>

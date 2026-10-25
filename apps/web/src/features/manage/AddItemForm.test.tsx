@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import type { AddItemResponse } from '@gubbins/shared-types';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -46,6 +47,28 @@ describe('AddItemForm', () => {
     expect(body).toEqual({ type: 'single', title: 'Crib', quantity: 2, priceMinor: 19999, url: 'https://shop.example/crib' });
     expect(screen.getByLabelText('Title')).toHaveValue('');
     expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
+  });
+
+  it('trims the title and store link before sending them', async () => {
+    let body: unknown;
+    server.use(http.post('/api/lists/:slug/items', async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ itemId: 'i1' } satisfies AddItemResponse, { status: 201 });
+    }));
+    const user = userEvent.setup();
+    renderForm(<AddItemForm slug="abc123" onUnauthorized={() => {}} />);
+
+    await user.type(screen.getByLabelText('Title'), ' Crib ');
+    await user.type(screen.getByLabelText('Store link'), ' https://shop.example/crib ');
+    await user.click(screen.getByRole('button', { name: 'Add item' }));
+
+    await waitFor(() => expect(body).toMatchObject({ title: 'Crib', url: 'https://shop.example/crib' }));
+  });
+
+  it('limits the title to 120 characters and the store link to 2048', () => {
+    renderForm(<AddItemForm slug="abc123" onUnauthorized={() => {}} />);
+    expect(screen.getByLabelText('Title')).toHaveAttribute('maxlength', '120');
+    expect(screen.getByLabelText('Store link')).toHaveAttribute('maxlength', '2048');
   });
 
   it('posts a group gift without a quantity', async () => {

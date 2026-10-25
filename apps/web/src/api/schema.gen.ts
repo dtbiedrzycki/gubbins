@@ -271,7 +271,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description No such list, or the key is wrong. The two are deliberately indistinguishable (ADR-0016, ADR-0054). */
+            /** @description No such list, or the key is wrong. The two are deliberately indistinguishable. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -320,7 +320,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description No such list, or the token is wrong. Deliberately indistinguishable (ADR-0016, ADR-0054). */
+            /** @description No such list, or the token is wrong. Deliberately indistinguishable. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -394,7 +394,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description No such list, or no valid session for it. The two are deliberately indistinguishable (ADR-0016, ADR-0054). */
+            /** @description No such list, or no valid session for it. The two are deliberately indistinguishable. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -456,7 +456,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description No such list, or no owner cookie for it. Deliberately indistinguishable (ADR-0016, ADR-0054). */
+            /** @description No such list, or no owner cookie for it. Deliberately indistinguishable. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -526,7 +526,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description No such list or item, or no valid session for the list. These are deliberately indistinguishable (ADR-0016, ADR-0054). */
+            /** @description No such list or item, or no valid session for the list. These are deliberately indistinguishable. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -589,7 +589,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description No such list or item, or no valid session for the list. These are deliberately indistinguishable (ADR-0016, ADR-0054). */
+            /** @description No such list or item, or no valid session for the list. These are deliberately indistinguishable. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -651,7 +651,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable (ADR-0016, ADR-0054). */
+            /** @description No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -713,7 +713,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable (ADR-0016, ADR-0054). */
+            /** @description No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -775,7 +775,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable (ADR-0016, ADR-0054). */
+            /** @description No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable. */
             404: {
                 headers: {
                     [name: string]: unknown;
