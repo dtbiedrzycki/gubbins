@@ -86,11 +86,13 @@ describe('ContributeDialog', () => {
     ]);
   });
 
-  it("links to Venmo's payment link with the amount and the item as the note", async () => {
+  it("links to Venmo's payment link with the amount and the item as the note, in a new tab", async () => {
     const user = userEvent.setup();
     renderDialog();
     await continueWithTheRest(user);
-    expect(screen.getByRole('link', { name: 'Pay $287.50 with Venmo' })).toHaveAttribute('href', 'https://venmo.com/my-venmo?txn=pay&amount=287.50&note=Stand%20mixer');
+    const link = screen.getByRole('link', { name: 'Pay $287.50 with Venmo' });
+    expect(link).toHaveAttribute('href', 'https://venmo.com/my-venmo?txn=pay&amount=287.50&note=Stand%20mixer');
+    expect(link).toHaveAttribute('target', '_blank');
   });
 
   it('offers no Venmo link without a Venmo handle', async () => {
