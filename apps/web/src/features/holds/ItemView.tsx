@@ -77,7 +77,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
       </div>
       {group && (
         <>
-          <progress max={group.price} value={Math.min(group.pledged, group.price)} aria-label={progress!} className="h-2 w-full accent-moss" />
+          <progress max={group.price} value={Math.min(group.pledged, group.price)} aria-label={progress!} className="h-2 w-full appearance-none overflow-hidden rounded-full bg-line [&::-moz-progress-bar]:bg-moss [&::-webkit-progress-bar]:bg-line [&::-webkit-progress-value]:bg-moss" />
           <div className="flex items-end gap-3.5">
             {/* A wishing jar of gold coins, filled to the pledged share and never past full. */}
             <div aria-hidden="true" className="relative h-[58px] w-[46px] flex-none overflow-hidden rounded-[10px_10px_14px_14px] border-[2.5px] border-ink bg-white before:absolute before:inset-x-2 before:-top-0.5 before:h-[7px] before:rounded-b-[3px] before:bg-moss before:content-['']">
