@@ -3,7 +3,9 @@ import { Item } from './Item.js';
 import { Contribution } from './Contribution.js';
 import { Hold } from './Hold.js';
 import { MAX_MONEY_MINOR } from '../value-objects/Money.js';
-import { ContributionAmountError, DomainValidationError, ItemUnavailableError } from '../errors.js';
+import {
+  ContributionAmountError, DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemUnavailableError,
+} from '../errors.js';
 
 const ITEM_ID = '33333333-3333-7333-8333-333333333333';
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
@@ -11,6 +13,7 @@ const DAY = 86_400_000;
 const T0 = new Date('2026-01-01T00:00:00.000Z');
 const base = { id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0, asOf: T0 };
 
+const OTHER_SESSION = 'b'.repeat(64);
 let holdCount = 0;
 function holdOn(overrides: Partial<Parameters<typeof Hold.reconstitute>[0]> = {}): Hold {
   holdCount += 1;
@@ -174,11 +177,153 @@ describe('Item.placeHold', () => {
   });
 });
 
-describe('Item.recordEvent', () => {
-  it('recordEvent returns the seq before the event and advances by one', () => {
-    const item = Item.reconstitute({ ...base, seq: 2 });
-    expect(item.recordEvent()).toBe(2);
-    expect(item.seq).toBe(3);
+const at = (ms: number) => new Date(T0.getTime() + ms);
+/** An item loaded at `asOf` (T0 unless given) with the given holds. */
+const holding = (holds: Hold[], overrides: { quantity?: number; seq?: number; asOf?: Date } = {}) => Item.reconstitute({ ...base, ...overrides, holds });
+
+describe('Item hold commands', () => {
+  it('extendHold extends its own hold at the instant it was loaded at, and records one event on its stream', () => {
+    const hold = holdOn();
+    const item = holding([hold], { seq: 1, asOf: at(DAY) });
+    const { event, expectedSeq } = item.extendHold(hold, 3 * DAY);
+    expect(event.type).toBe('HoldExtended');
+    expect(hold.extendedAt).toEqual(at(DAY));
+    expect(hold.expiresAt).toEqual(at(6 * DAY));
+    expect(expectedSeq).toBe(1);
+    expect(item.seq).toBe(2);
+  });
+
+  it('releaseHold frees the unit', () => {
+    const hold = holdOn();
+    const item = holding([hold], { asOf: at(DAY) });
+    item.releaseHold(hold);
+    expect(hold.releasedAt).toEqual(at(DAY));
+    expect(item.status()).toBe('available');
+  });
+
+  it('refuses a command on a hold it did not load, with HoldNotFoundError', () => {
+    expect(() => holding([]).releaseHold(holdOn())).toThrow(HoldNotFoundError);
+    expect(() => holding([]).extendHold(holdOn(), DAY)).toThrow(HoldNotFoundError);
+    expect(() => holding([]).purchaseHold(holdOn())).toThrow(HoldNotFoundError);
+  });
+
+  it('does not advance seq when the hold refuses the command', () => {
+    const released = holdOn({ releasedAt: T0 });
+    const item = holding([released]);
+    expect(() => item.extendHold(released, DAY)).toThrow(HoldNotActiveError);
+    expect(item.seq).toBe(0);
+  });
+});
+
+describe('Item.purchaseHold', () => {
+  it('purchases an active hold; the unit is gone for good', () => {
+    const hold = holdOn();
+    const item = holding([hold], { asOf: at(DAY) });
+    const { event, expectedSeq } = item.purchaseHold(hold);
+    expect(event.type).toBe('ItemPurchased');
+    expect(hold.purchasedAt).toEqual(at(DAY));
+    expect([expectedSeq, item.seq]).toEqual([0, 1]);
+    expect(item.purchasedCount()).toBe(1);
+    expect(item.status()).toBe('purchased');
+  });
+
+  it('counts the purchase for its later decisions: a lapsed hold may take a unit only while one is free', () => {
+    const first = holdOn();
+    const lapsed = holdOn({ expiresAt: at(-1) });
+    const alsoLapsed = holdOn({ expiresAt: at(-1) });
+    const item = holding([first, lapsed, alsoLapsed], { quantity: 2 });
+    item.purchaseHold(first);
+    expect(item.canPurchaseHold(lapsed)).toBe(true);
+    item.purchaseHold(lapsed);
+    expect(item.purchasedCount()).toBe(2);
+    expect(item.canPurchaseHold(alsoLapsed)).toBe(false);
+  });
+
+  it('acts on its own instance of a hold passed as a copy, and counts a purchase once', () => {
+    const expired = holdOn({ expiresAt: at(-1) });
+    const item = holding([expired], { quantity: 2 });
+    const copy = Hold.reconstitute({
+      id: expired.id.value, itemId: ITEM_ID, secret: 'hold-secret', sessionHash: 'a'.repeat(64), idempotencyKey: expired.idempotencyKey.value,
+      expiresAt: expired.expiresAt, extendedAt: null, releasedAt: null, purchasedAt: null,
+    });
+
+    const { hold } = item.purchaseHold(copy);
+
+    expect(hold).toBe(expired);
+    expect(item.purchasedCount()).toBe(1);
+  });
+
+  it('purchases an expired hold while a unit is still free', () => {
+    const expired = holdOn({ expiresAt: at(-1) });
+    expect(holding([expired]).purchaseHold(expired).event.type).toBe('ItemPurchased');
+  });
+
+  it('refuses an expired hold once someone else holds the last unit, and records nothing', () => {
+    const expired = holdOn({ expiresAt: at(-1) });
+    const item = holding([expired, holdOn({ sessionHash: OTHER_SESSION })]);
+    expect(() => item.purchaseHold(expired)).toThrow(HoldLapsedError);
+    expect(() => item.purchaseHold(expired)).toThrow(ItemUnavailableError); // same 409 code, a clearer message
+    expect(expired.purchasedAt).toBeNull();
+    expect(item.seq).toBe(0);
+  });
+
+  it('refuses a released hold, or one already purchased', () => {
+    const released = holdOn({ releasedAt: T0 });
+    const purchased = holdOn({ purchasedAt: T0 });
+    expect(() => holding([released]).purchaseHold(released)).toThrow(HoldNotActiveError);
+    expect(() => holding([purchased], { quantity: 2 }).purchaseHold(purchased)).toThrow(HoldNotActiveError);
+  });
+});
+
+describe('Item.canPurchaseHold', () => {
+  it('is true for an active hold, and for an expired one while a unit is free', () => {
+    const active = holdOn();
+    const expired = holdOn({ expiresAt: at(-1) });
+    expect(holding([active]).canPurchaseHold(active)).toBe(true);
+    expect(holding([expired]).canPurchaseHold(expired)).toBe(true);
+  });
+
+  it('is false for an expired hold whose unit someone else now holds', () => {
+    const expired = holdOn({ expiresAt: at(-1) });
+    expect(holding([expired, holdOn({ sessionHash: OTHER_SESSION })]).canPurchaseHold(expired)).toBe(false);
+  });
+
+  it('is false for a released or purchased hold, or one it did not load', () => {
+    const released = holdOn({ releasedAt: T0 });
+    const purchased = holdOn({ purchasedAt: T0 });
+    expect(holding([released]).canPurchaseHold(released)).toBe(false);
+    expect(holding([purchased]).canPurchaseHold(purchased)).toBe(false);
+    expect(holding([]).canPurchaseHold(holdOn())).toBe(false);
+  });
+});
+
+describe('Item.holdStatus, canExtendHold and canReleaseHold', () => {
+  it("reports a hold's status as of the instant it was loaded at", () => {
+    const hold = holdOn();
+    expect(holding([hold], { asOf: at(3 * DAY) }).holdStatus(hold)).toBe('active');
+    expect(holding([hold], { asOf: at(3 * DAY + 1) }).holdStatus(hold)).toBe('expired');
+  });
+
+  it('refuses to report the status of a hold it did not load', () => {
+    expect(() => holding([]).holdStatus(holdOn())).toThrow(HoldNotFoundError);
+  });
+
+  it('canExtendHold: active and never extended, and loaded', () => {
+    const active = holdOn();
+    const extended = holdOn({ extendedAt: T0 });
+    expect(holding([active]).canExtendHold(active)).toBe(true);
+    expect(holding([extended]).canExtendHold(extended)).toBe(false);
+    expect(holding([active], { asOf: at(3 * DAY + 1) }).canExtendHold(active)).toBe(false);
+    expect(holding([]).canExtendHold(holdOn())).toBe(false);
+  });
+
+  it('canReleaseHold: active, extended or not, and loaded', () => {
+    const extended = holdOn({ extendedAt: T0 });
+    const purchased = holdOn({ purchasedAt: T0 });
+    expect(holding([extended]).canReleaseHold(extended)).toBe(true);
+    expect(holding([purchased]).canReleaseHold(purchased)).toBe(false);
+    expect(holding([extended], { asOf: at(3 * DAY + 1) }).canReleaseHold(extended)).toBe(false);
+    expect(holding([]).canReleaseHold(holdOn())).toBe(false);
   });
 });
 
