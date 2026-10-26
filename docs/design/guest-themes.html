@@ -1,0 +1,358 @@
+<title>Gubbins Guest Themes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@600;700&family=IM+Fell+English:ital@0;1&family=Alegreya+Sans:wght@400;700&family=Unbounded:wght@500;700&family=Figtree:wght@400;600;700&display=swap">
+<style>
+/* Layout: proposal chrome (tabs + rationale) beside two phone frames per theme; each theme scopes its own fixed palette. */
+:root {
+  --page: #EEF0F3; --page-fg: #1C2230; --page-muted: #5B6474; --page-line: #CDD3DC; --frame: #232833; --tab-on: #1C2230; --tab-on-fg: #FFFFFF;
+  --f-page: "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page: #161A21; --page-fg: #E7EAF0; --page-muted: #9AA3B2; --page-line: #2F3644; --frame: #05070A; --tab-on: #E7EAF0; --tab-on-fg: #161A21; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --page: #161A21; --page-fg: #E7EAF0; --page-muted: #9AA3B2; --page-line: #2F3644; --frame: #05070A; --tab-on: #E7EAF0; --tab-on-fg: #161A21; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--page-fg); font: 16px/1.5 var(--f-page); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.intro h1 { font-size: 1.75rem; line-height: 1.2; margin: 0 0 8px; text-wrap: balance; }
+.intro p { margin: 0; color: var(--page-muted); max-width: 62ch; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 28px; }
+.tabs button { font: 600 1rem var(--f-page); min-height: 44px; padding: 8px 16px; border-radius: 999px; border: 1.5px solid var(--page-line); background: transparent; color: var(--page-fg); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--tab-on); color: var(--tab-on-fg); border-color: var(--tab-on); }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid #3B82F6; outline-offset: 2px; }
+
+.theme { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+@media (min-width: 900px) { .theme { grid-template-columns: minmax(0, 300px) minmax(0, 1fr); align-items: start; } }
+.why h2 { font-size: 1.4rem; margin: 0 0 6px; }
+.why p { margin: 0 0 14px; max-width: 60ch; }
+.why h3 { font-size: 1rem; margin: 20px 0 6px; }
+.why ul { margin: 0; padding-left: 1.1em; }
+.why li { margin-bottom: 4px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.swatches span { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--page-line); }
+.muted { color: var(--page-muted); }
+.phones { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.shot { display: flex; flex-direction: column; gap: 8px; width: min(100%, 360px); }
+.shot figcaption { font-size: .9rem; color: var(--page-muted); }
+.phone { border: 9px solid var(--frame); border-radius: 34px; overflow: hidden; }
+.screen { min-height: 560px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ===== Theme 1: Parts bin ===== */
+.bin {
+  --steel: #DCE2E8; --cabinet: #1D4F91; --drawer: #F7F9FB; --yellow: #F4C542; --ink: #17202B; --muted: #566273;
+  --f-label: "Barlow Condensed", "Arial Narrow", sans-serif; --f-body: "Atkinson Hyperlegible", system-ui, sans-serif;
+  background: var(--cabinet); color: var(--ink); font-family: var(--f-body); font-size: 15px;
+}
+.bin .top { padding: 22px 18px 18px; color: #fff; }
+.bin .top h1 { font: 700 2rem/1 var(--f-label); margin: 0 0 8px; letter-spacing: .01em; text-wrap: balance; }
+.bin .top p { margin: 0; color: #C9D8EE; font-size: .92rem; }
+.bin .rack { background: var(--steel); padding: 14px 12px 18px; display: grid; gap: 12px; list-style: none; margin: 0; }
+.bin .drawer { position: relative; background: var(--drawer); border-radius: 6px 6px 10px 10px; padding: 12px 14px 26px; box-shadow: inset 0 -5px 0 #C7CFD8, 0 1px 0 #fff; transition: transform .35s cubic-bezier(.3,1.4,.5,1); }
+.bin .slot { background: #fff; border: 2px solid #AEB8C4; border-radius: 3px; padding: 3px 8px; margin-bottom: 8px; box-shadow: inset 0 1px 2px rgba(23,32,43,.15); }
+.bin .slot h2 { font: 600 1.2rem/1.15 var(--f-label); margin: 0; }
+.bin .meta { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; font-size: .92rem; }
+.bin .price { font-weight: 700; font-variant-numeric: tabular-nums; }
+.bin a { color: var(--cabinet); }
+.bin .pull { position: absolute; left: 50%; bottom: 8px; width: 46px; height: 9px; transform: translateX(-50%); border-radius: 0 0 12px 12px; background: #9AA6B4; }
+.bin .act { margin-top: 10px; }
+.bin .btn { font: 700 .95rem var(--f-body); min-height: 44px; padding: 8px 16px; border-radius: 6px; border: 0; background: var(--yellow); color: var(--ink); box-shadow: 0 3px 0 #C99A1A; cursor: pointer; }
+.bin .btn.ghost { background: transparent; box-shadow: inset 0 0 0 2px #8D99A8; }
+.bin .tag { display: inline-block; margin-top: 10px; font: 600 1rem var(--f-label); padding: 2px 10px 2px 18px; background: #FFF3C8; border: 1.5px solid #D9B23B; border-radius: 3px 12px 12px 3px; position: relative; }
+.bin .tag::before { content: ""; position: absolute; left: 6px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--steel); border: 1.5px solid #D9B23B; }
+.bin .drawer.is-held, .bin .drawer.is-bought { background: #EDF1F5; }
+.bin .drawer.is-bought .slot h2 { text-decoration: line-through; text-decoration-thickness: 2px; color: var(--muted); }
+.bin .drawer.just-held { animation: binShut .5s cubic-bezier(.3,1.4,.5,1); }
+@keyframes binShut { 0% { transform: translateY(-10px) scale(1.02); } 100% { transform: none; } }
+.bin .fill { margin-top: 8px; height: 14px; border-radius: 3px; background: #C7CFD8; overflow: hidden; box-shadow: inset 0 1px 2px rgba(23,32,43,.25); }
+.bin .fill span { display: block; height: 100%; background: repeating-linear-gradient(90deg, var(--yellow) 0 10px, #E8B52C 10px 12px); }
+.bin .holds { background: var(--steel); padding: 4px 12px 18px; }
+.bin .holds h2 { font: 700 1.4rem var(--f-label); margin: 0 0 8px; color: var(--cabinet); }
+.bin .holds .drawer { padding-bottom: 14px; }
+.bin .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.bin footer { padding: 14px 18px 20px; color: #C9D8EE; font-size: .85rem; }
+.bin .gate { padding: 40px 18px; color: #fff; }
+.bin .gate h1 { font: 700 2.1rem/1.02 var(--f-label); margin: 0 0 10px; }
+.bin .gate p { color: #C9D8EE; margin: 0 0 24px; }
+.bin .big-drawer { background: var(--drawer); color: var(--ink); border-radius: 8px 8px 14px 14px; padding: 18px 16px 34px; position: relative; box-shadow: inset 0 -6px 0 #C7CFD8; }
+.bin .big-drawer label { font: 600 1.1rem var(--f-label); display: block; margin-bottom: 6px; }
+.bin input { width: 100%; font: 700 1.1rem var(--f-body); letter-spacing: .06em; padding: 10px 12px; min-height: 48px; border: 2px solid #AEB8C4; border-radius: 3px; background: #fff; color: var(--ink); box-shadow: inset 0 1px 3px rgba(23,32,43,.2); }
+.bin .big-drawer .btn { margin-top: 14px; width: 100%; }
+
+/* ===== Theme 2: Storybook ===== */
+.tale {
+  --sky: #F6F3FB; --plum: #2E2447; --moss: #34603F; --petal: #F2CBD6; --gold: #D9A93A; --wax: #9E2A45; --muted: #625A78;
+  --f-tale: "IM Fell English", Georgia, serif; --f-body: "Alegreya Sans", system-ui, sans-serif;
+  background: var(--sky); color: var(--plum); font-family: var(--f-body); font-size: 16px; line-height: 1.5;
+}
+.tale .top { padding: 30px 20px 6px; text-align: center; }
+.tale .top .once { font: italic 1.05rem var(--f-tale); color: var(--moss); margin: 0 0 4px; }
+.tale .top h1 { font: 400 2.05rem/1.08 var(--f-tale); margin: 0 0 10px; text-wrap: balance; }
+.tale .top p { margin: 0 auto; max-width: 30ch; color: var(--muted); }
+.tale .vine { display: block; height: 18px; margin: 16px auto 0; width: 70%;
+  background: radial-gradient(circle at 50% 50%, var(--petal) 0 4px, var(--wax) 4px 5px, transparent 5.5px) center / 18px 18px no-repeat,
+    linear-gradient(var(--moss), var(--moss)) center / 100% 1.5px no-repeat; }
+.tale .list { list-style: none; margin: 0; padding: 8px 20px 0; }
+.tale .item { padding: 18px 0; border-bottom: 1px solid #DCD3EA; position: relative; }
+.tale .item h2 { font: 400 1.3rem/1.2 var(--f-tale); margin: 0 0 4px; text-wrap: balance; }
+.tale .meta { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; }
+.tale .price { font-weight: 700; font-variant-numeric: tabular-nums; }
+.tale a { color: var(--moss); }
+.tale .act { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.tale .btn { font: 700 1rem var(--f-body); min-height: 44px; padding: 8px 18px; border-radius: 22px 22px 22px 6px; border: 0; background: var(--moss); color: #fff; cursor: pointer; }
+.tale .btn.ghost { background: transparent; color: var(--plum); box-shadow: inset 0 0 0 1.5px var(--plum); }
+.tale .sealed { display: flex; align-items: center; gap: 10px; margin-top: 10px; font: italic 1.05rem var(--f-tale); }
+.tale .seal { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: #F7D9E0; font: 1.35rem/1 var(--f-tale);
+  background: radial-gradient(circle at 38% 34%, #C2455F, var(--wax) 60%, #6E1830);
+  box-shadow: 0 0 0 3px var(--wax), 3px 2px 0 2px #8A2340, -2px 3px 0 1px #8A2340, 0 3px 6px rgba(46,36,71,.3); transform: rotate(-8deg); }
+.tale .seal.stamp { animation: stamp .45s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes stamp { 0% { transform: scale(1.9) rotate(12deg); opacity: 0; } 100% { transform: scale(1) rotate(-8deg); opacity: 1; } }
+.tale .item.is-bought h2 { color: var(--muted); }
+.tale .bought { margin-top: 8px; font: italic 1.05rem var(--f-tale); color: var(--moss); }
+.tale .wish { display: flex; gap: 14px; align-items: flex-end; margin-top: 10px; }
+.tale .jar { flex: none; width: 46px; height: 58px; border: 2.5px solid var(--plum); border-radius: 10px 10px 14px 14px; position: relative; overflow: hidden; background: #fff; }
+.tale .jar::before { content: ""; position: absolute; top: -2px; left: 8px; right: 8px; height: 7px; background: var(--moss); border-radius: 0 0 3px 3px; }
+.tale .jar i { position: absolute; inset: auto 0 0 0; background: radial-gradient(circle at 30% 40%, #F3D27A 0 3px, transparent 3.5px) 0 0 / 10px 9px, var(--gold); }
+.tale .holds { margin: 22px 14px 0; padding: 18px 16px; background: #fff; border-radius: 18px; border: 1.5px solid #DCD3EA; }
+.tale .holds h2 { font: 400 1.5rem var(--f-tale); margin: 0 0 10px; }
+.tale .hold h3 { margin: 0 0 2px; font: 700 1.05rem var(--f-body); }
+.tale footer { padding: 20px 20px 26px; text-align: center; font: italic .98rem var(--f-tale); color: var(--muted); }
+.tale .gate { padding: 34px 20px; text-align: center; }
+.tale .door { width: 170px; height: 196px; margin: 0 auto 22px; border-radius: 85px 85px 6px 6px; position: relative;
+  background: repeating-linear-gradient(90deg, var(--moss) 0 32px, #2B5035 32px 34px); box-shadow: 0 0 0 7px #8C6A4A, 0 0 0 9px var(--plum); }
+.tale .door::before { content: ""; position: absolute; right: 26px; top: 104px; width: 16px; height: 16px; border-radius: 50%; background: var(--gold); box-shadow: inset -2px -2px 0 #A57E22; }
+.tale .door::after { content: ""; position: absolute; left: 50%; top: 40px; width: 40px; height: 40px; margin-left: -20px; border-radius: 50%; background: #F2E3A8; box-shadow: 0 0 0 4px #8C6A4A; }
+.tale .gate h1 { font: 400 2.1rem/1.05 var(--f-tale); margin: 0 0 8px; }
+.tale .gate p { color: var(--muted); margin: 0 auto 22px; max-width: 30ch; }
+.tale .gate form { text-align: left; }
+.tale .gate label { display: block; font-weight: 700; margin-bottom: 6px; }
+.tale input { width: 100%; font: 700 1.1rem var(--f-body); letter-spacing: .06em; padding: 10px 14px; min-height: 48px; border: 1.5px solid var(--plum); border-radius: 14px; background: #fff; color: var(--plum); }
+.tale .gate .btn { margin-top: 16px; width: 100%; }
+/* ===== Theme 3: Clear case ===== */
+.case {
+  --board: #DDEBE3; --grape: #5A3EA6; --frost: rgba(240,236,255,.80); --copper: #C1863A; --led: #14A463; --amber: #E0930F; --ink: #1F1745; --muted: #5A5378;
+  --f-display: "Unbounded", system-ui, sans-serif; --f-body: "Figtree", system-ui, sans-serif;
+  color: var(--ink); font-family: var(--f-body); font-size: 15px;
+  background-color: var(--board);
+  background-image:
+    radial-gradient(circle at 18px 18px, var(--copper) 0 3px, transparent 3.5px),
+    linear-gradient(90deg, transparent 17px, rgba(193,134,58,.55) 17px 19px, transparent 19px),
+    linear-gradient(0deg, transparent 47px, rgba(193,134,58,.4) 47px 49px, transparent 49px);
+  background-size: 96px 96px, 96px 96px, 96px 96px;
+}
+.case .panel { background: var(--frost); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1px solid rgba(90,62,166,.25); }
+.case .top { margin: 14px; border-radius: 22px; padding: 22px 18px 18px; position: relative; }
+.case .top::before, .case .top::after { content: ""; position: absolute; top: 10px; width: 9px; height: 9px; border-radius: 50%;
+  background: linear-gradient(45deg, transparent 42%, #8A7FB0 42% 58%, transparent 58%), #CFC8E6; box-shadow: inset 0 0 0 1px #8A7FB0; }
+.case .top::before { left: 10px; } .case .top::after { right: 10px; }
+.case .top h1 { font: 700 1.5rem/1.15 var(--f-display); margin: 0 0 8px; letter-spacing: -.01em; text-wrap: balance; }
+.case .top p { margin: 0; color: var(--muted); }
+.case .list { list-style: none; margin: 0; padding: 0 14px; display: grid; gap: 10px; }
+.case .item { border-radius: 16px; padding: 14px 16px; }
+.case .item h2 { font: 700 1.05rem/1.25 var(--f-body); margin: 0 0 4px; }
+.case .meta { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; }
+.case .price { font-weight: 700; font-variant-numeric: tabular-nums; }
+.case a { color: var(--grape); }
+.case .status { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; font-weight: 600; font-size: .9rem; }
+.case .status::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--led); box-shadow: 0 0 0 3px rgba(20,164,99,.2), 0 0 8px var(--led); }
+.case .status.held::before { background: var(--amber); box-shadow: 0 0 0 3px rgba(224,147,15,.22), 0 0 8px var(--amber); }
+.case .status.bought::before { background: #9A93B8; box-shadow: none; }
+.case .status.blink::before { animation: blink .18s steps(2) 3; }
+@keyframes blink { 50% { opacity: .15; } }
+.case .act { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.case .btn { font: 700 .95rem var(--f-body); min-height: 44px; padding: 8px 18px; border-radius: 999px; border: 0; background: var(--grape); color: #fff; box-shadow: 0 4px 0 #3B2675; cursor: pointer; transition: transform .08s, box-shadow .08s; }
+.case .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #3B2675; }
+.case .btn.ghost { background: #fff; color: var(--grape); box-shadow: 0 4px 0 #BDB2E2; }
+.case .leds { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-top: 10px; }
+.case .leds span { height: 12px; border-radius: 3px; background: #CFC8E6; }
+.case .leds span.on { background: var(--led); box-shadow: 0 0 6px rgba(20,164,99,.6); }
+.case .holds { margin: 14px; border-radius: 22px; padding: 18px 16px; }
+.case .holds h2 { font: 700 1.1rem var(--f-display); margin: 0 0 10px; }
+.case .hold h3 { margin: 0 0 2px; font: 700 1rem var(--f-body); }
+.case footer { padding: 4px 18px 22px; font-size: .85rem; color: var(--ink); }
+.case footer span { background: var(--frost); padding: 2px 6px; border-radius: 6px; }
+.case .gate { padding: 36px 14px; }
+.case .gate .panel { border-radius: 24px; padding: 26px 18px; }
+.case .gate h1 { font: 700 1.7rem/1.1 var(--f-display); margin: 0 0 10px; }
+.case .gate p { color: var(--muted); margin: 0 0 22px; }
+.case .gate label { display: block; font-weight: 700; margin-bottom: 6px; }
+.case input { width: 100%; font: 700 1.1rem var(--f-body); letter-spacing: .08em; padding: 10px 16px; min-height: 50px; border: 0; border-radius: 12px; background: #2A1F55; color: #F0ECFF; box-shadow: inset 0 3px 6px rgba(0,0,0,.45); }
+.case .gate .btn { margin-top: 16px; width: 100%; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; clip-path: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <h1>Three looks for the Gubbins guest view</h1>
+    <p>Each direction takes a different reading of “gubbins”: the bits and bobs a household runs on. Same screens, same words on the buttons, same flow. Tap “Hold this item” on any list to see that theme’s one bit of motion.</p>
+  </header>
+  <div class="tabs" role="tablist" aria-label="Design directions">
+    <button role="tab" id="tab-bin" aria-controls="panel-bin" aria-selected="true">Parts bin</button>
+    <button role="tab" id="tab-tale" aria-controls="panel-tale" aria-selected="false" tabindex="-1">Storybook</button>
+    <button role="tab" id="tab-case" aria-controls="panel-case" aria-selected="false" tabindex="-1">Clear case</button>
+  </div>
+
+  <section class="theme" id="panel-bin" role="tabpanel" aria-labelledby="tab-bin">
+    <div class="why">
+      <h2>Parts bin</h2>
+      <p>The wishlist is a hardware-store cabinet of small drawers, one per gift. Each title sits in a little label slot. A held gift is a drawer that’s been shut and tagged.</p>
+      <h3>The bold thing</h3>
+      <p>Drawer fronts with label slots and pulls. Everything else is flat steel and plain type.</p>
+      <h3>Palette</h3>
+      <div class="swatches" aria-label="Cabinet blue, steel, drawer white, bin yellow, ink">
+        <span style="background:#1D4F91"></span><span style="background:#DCE2E8"></span><span style="background:#F7F9FB"></span><span style="background:#F4C542"></span><span style="background:#17202B"></span>
+      </div>
+      <h3>Type</h3>
+      <p>Barlow Condensed for drawer labels, like stamped shelf signage. Atkinson Hyperlegible for everything you read.</p>
+      <h3>Voice</h3>
+      <ul><li>Locked screen: “This cabinet’s locked.”</li><li>Held tag: “Spoken for”</li><li>Footer: the dictionary entry for gubbins.</li></ul>
+      <p class="muted">Most practical of the three. Easiest to keep consistent as the owner view arrives.</p>
+    </div>
+    <div class="phones" data-theme-mock="bin"></div>
+  </section>
+
+  <section class="theme" id="panel-tale" role="tabpanel" aria-labelledby="tab-tale" hidden>
+    <div class="why">
+      <h2>Storybook</h2>
+      <p>Gubbins is the name of the hobgoblin who keeps the house. Folklore’s household brownies tidy up while everyone sleeps. The list reads like a page from a picture book, opens with “Once upon a list”, and sits behind a round green door.</p>
+      <h3>The bold thing</h3>
+      <p>Wax seals. Holding a gift stamps a seal next to it, and the seal lands with a little thump. Group gifts fill a wishing jar with gold coins.</p>
+      <h3>Palette</h3>
+      <div class="swatches" aria-label="Moonlit lilac, plum ink, moss green, petal pink, gold, sealing wax">
+        <span style="background:#F6F3FB"></span><span style="background:#2E2447"></span><span style="background:#34603F"></span><span style="background:#F2CBD6"></span><span style="background:#D9A93A"></span><span style="background:#9E2A45"></span>
+      </div>
+      <h3>Type</h3>
+      <p>IM Fell English, recut from 17th-century types, for titles and the storybook lines. Alegreya Sans for prices, buttons and everything you have to act on.</p>
+      <h3>Voice</h3>
+      <ul><li>Locked screen: “Knock, knock.”</li><li>Held seal: “Promised to someone”, or “Promised to you”</li><li>Bought: “Found its home”</li><li>Footer: “Kept by Gubbins, a hobgoblin of tidy habits.”</li></ul>
+      <p class="muted">Most charming of the three. The storybook voice stays in headings and statuses, so buttons still say exactly what they do.</p>
+    </div>
+    <div class="phones" data-theme-mock="tale"></div>
+  </section>
+  <section class="theme" id="panel-case" role="tabpanel" aria-labelledby="tab-case" hidden>
+    <div class="why">
+      <h2>Clear case</h2>
+      <p>Gubbins as a gadget’s insides: the page sits on a faint circuit board, seen through frosted lilac plastic like a see-through 90s handheld. Statuses are status lights.</p>
+      <h3>The bold thing</h3>
+      <p>The board showing through the frosted case. Green light means available, amber means held. Group gifts fill a row of segment lights.</p>
+      <h3>Palette</h3>
+      <div class="swatches" aria-label="Board green, grape, frost, copper, light green, amber">
+        <span style="background:#DDEBE3"></span><span style="background:#5A3EA6"></span><span style="background:#F0ECFF"></span><span style="background:#C1863A"></span><span style="background:#14A463"></span><span style="background:#E0930F"></span>
+      </div>
+      <h3>Type</h3>
+      <p>Unbounded for the list title and section heads. Figtree for everything else.</p>
+      <h3>Voice</h3>
+      <ul><li>Locked screen: “Plug in your guest key.”</li><li>Light labels: “Available”, “Held”, “Bought”</li><li>Footer: “All the gubbins, none of the guesswork.”</li></ul>
+      <p class="muted">Most distinctive. Needs care on cheap phones, where frosted glass can be slow.</p>
+    </div>
+    <div class="phones" data-theme-mock="case"></div>
+  </section>
+</div>
+
+<script>
+const LIST = "Mira & Theo’s housewarming";
+const ITEMS = [
+  { id: 'oven', t: 'Cast-iron Dutch oven, 5.5 qt', price: '$189.00', url: true, state: 'available' },
+  { id: 'coffee', t: 'Pour-over coffee set', price: '$48.00', left: 3, state: 'available' },
+  { id: 'drill', t: 'Cordless drill and driver kit', price: '$129.00', url: true, state: 'held' },
+  { id: 'trip', t: 'Two nights in the Catskills', group: { pledged: 412, of: 640 } },
+  { id: 'duvet', t: 'Linen duvet cover, queen', price: '$210.00', state: 'bought' },
+];
+const pct = (g) => Math.floor(g.pledged * 100 / g.of);
+const groupLine = (g) => `$${g.pledged} of $${g.of} pledged (${pct(g)}%)`;
+const store = (i) => i.url ? `<a href="#" onclick="return false">View in store<span class="sr-only"> for ${i.t}</span></a>` : '';
+const left = (i) => i.left > 1 && i.state === 'available' ? `<span>${i.left} left</span>` : '';
+const holdBtn = (i, cls = 'btn') => `<button type="button" class="${cls}" data-hold="${i.id}">Hold this item<span class="sr-only">: ${i.t}</span></button>`;
+const holdActions = (cls) => `<button type="button" class="${cls}">Mark as purchased</button><button type="button" class="${cls} ghost">Extend hold</button><button type="button" class="${cls} ghost">Release hold</button>`;
+
+const THEMES = {
+  bin: {
+    gate: () => `<div class="gate"><h1>This cabinet’s locked.</h1><p>Enter the guest key from your invite to see the list.</p>
+      <form class="big-drawer" onsubmit="event.preventDefault()"><label for="bin-key">Guest key</label><input id="bin-key" value="BRASS-HINGE-42" autocomplete="off"><button class="btn" type="submit">View list</button><span class="pull" aria-hidden="true"></span></form></div>`,
+    item: (i) => {
+      const tag = i.state === 'held' ? '<span class="tag">Spoken for</span>' : i.state === 'bought' ? '<span class="tag">Bought</span>' : '';
+      const body = i.group
+        ? `<div class="meta"><span>${groupLine(i.group)}</span></div><div class="fill"><span style="width:${pct(i.group)}%"></span></div><div class="act"><button type="button" class="btn">Chip in</button></div>`
+        : `<div class="meta"><span class="price">${i.price}</span>${left(i)}${store(i)}</div>${i.state === 'available' ? `<div class="act">${holdBtn(i)}</div>` : tag}`;
+      return `<li class="drawer is-${i.state}" data-item="${i.id}"><div class="slot"><h2>${i.t}</h2></div>${body}<span class="pull" aria-hidden="true"></span></li>`;
+    },
+    heldTag: () => '<span class="tag">Spoken for</span>',
+    list: (items) => `<div class="top"><h1>${LIST}</h1><p>Pick a drawer. A hold keeps a gift yours for 7 days.</p></div>
+      <ul class="rack" role="list">${items}</ul>
+      <section class="holds"><h2>Your holds</h2><div class="drawer"><div class="slot"><h2>Cordless drill and driver kit</h2></div><div>Held until Sat, Oct 31.</div><div class="row">${holdActions('btn')}</div></div></section>
+      <footer><b>gubbins</b> (noun): the odds and ends that make a thing work.</footer>`,
+  },
+  tale: {
+    gate: () => `<div class="gate"><div class="door" aria-hidden="true"></div><h1>Knock, knock.</h1><p>Gubbins keeps this list behind a locked door. Enter the guest key from your invite.</p>
+      <form onsubmit="event.preventDefault()"><label for="tale-key">Guest key</label><input id="tale-key" value="BRASS-HINGE-42" autocomplete="off"><button class="btn" type="submit">View list</button></form></div>`,
+    item: (i) => {
+      const tag = i.state === 'held' ? '<div class="sealed"><span class="seal" aria-hidden="true">G</span>Promised to someone</div>' : i.state === 'bought' ? '<div class="bought">Found its home</div>' : '';
+      const body = i.group
+        ? `<div class="wish"><div class="jar" aria-hidden="true"><i style="height:${pct(i.group)}%"></i></div><div><div>${groupLine(i.group)}</div><div class="act"><button type="button" class="btn">Chip in</button></div></div></div>`
+        : `<div class="meta"><span class="price">${i.price}</span>${left(i)}${store(i)}</div>${i.state === 'available' ? `<div class="act">${holdBtn(i)}</div>` : tag}`;
+      return `<li class="item is-${i.state}" data-item="${i.id}"><h2>${i.t}</h2>${body}</li>`;
+    },
+    heldTag: () => '<div class="sealed"><span class="seal stamp" aria-hidden="true">G</span>Promised to you</div>',
+    list: (items) => `<div class="top"><p class="once">Once upon a list</p><h1>${LIST}</h1><p>Hold a gift and it’s promised to you for 7 days.</p><span class="vine" aria-hidden="true"></span></div>
+      <ul class="list" role="list">${items}</ul>
+      <section class="holds"><h2>Your holds</h2><div class="hold"><h3>Cordless drill and driver kit</h3><div>Held until Sat, Oct 31.</div><div class="act">${holdActions('btn')}</div></div></section>
+      <footer>Kept by Gubbins, a hobgoblin of tidy habits.</footer>`,
+  },
+  case: {
+    gate: () => `<div class="gate"><div class="panel"><h1>Plug in your guest key.</h1><p>You’ll find it in the invite.</p>
+      <form onsubmit="event.preventDefault()"><label for="case-key">Guest key</label><input id="case-key" value="BRASS-HINGE-42" autocomplete="off"><button class="btn" type="submit">View list</button></form></div></div>`,
+    item: (i) => {
+      const status = i.state === 'held' ? '<span class="status held">Held</span>' : i.state === 'bought' ? '<span class="status bought">Bought</span>' : '<span class="status">Available</span>';
+      const body = i.group
+        ? `<div class="meta"><span>${groupLine(i.group)}</span></div><div class="leds" aria-hidden="true">${Array.from({ length: 10 }, (_, n) => `<span class="${n < Math.floor(pct(i.group) / 10) ? 'on' : ''}"></span>`).join('')}</div><div class="act"><button type="button" class="btn">Chip in</button></div>`
+        : `<div class="meta"><span class="price">${i.price}</span>${left(i)}${store(i)}</div>${status}${i.state === 'available' ? `<div class="act">${holdBtn(i)}</div>` : ''}`;
+      return `<li class="item panel is-${i.state}" data-item="${i.id}"><h2>${i.t}</h2>${body}</li>`;
+    },
+    heldTag: () => '<span class="status held blink">Held for you</span>',
+    list: (items) => `<div class="top panel"><h1>${LIST}</h1><p>A hold keeps a gift yours for 7 days.</p></div>
+      <ul class="list" role="list">${items}</ul>
+      <section class="holds panel"><h2>Your holds</h2><div class="hold"><h3>Cordless drill and driver kit</h3><span class="status held">Held until Sat, Oct 31</span><div class="act">${holdActions('btn')}</div></div></section>
+      <footer><span>All the gubbins, none of the guesswork.</span></footer>`,
+  },
+};
+
+for (const [name, th] of Object.entries(THEMES)) {
+  const host = document.querySelector(`[data-theme-mock="${name}"]`);
+  host.innerHTML = `
+    <figure class="shot"><div class="phone"><div class="screen ${name}">${th.gate()}</div></div><figcaption>Guest key screen</figcaption></figure>
+    <figure class="shot"><div class="phone"><div class="screen ${name}">${th.list(ITEMS.map(th.item).join(''))}</div></div><figcaption>The list, with one hold of your own</figcaption></figure>`;
+  host.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-hold]');
+    if (!btn) return;
+    const li = btn.closest('[data-item]');
+    btn.closest('.act').outerHTML = th.heldTag();
+    li.classList.replace('is-available', 'is-held');
+    li.querySelector('.status:not(.held)')?.remove();
+    if (name === 'bin') li.classList.add('just-held');
+  });
+}
+
+const tabs = [...document.querySelectorAll('[role="tab"]')];
+function select(tab) {
+  for (const t of tabs) {
+    const on = t === tab;
+    t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1;
+    document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+  }
+  try { localStorage.setItem('gubbins-theme-tab', tab.id); } catch {}
+}
+tabs.forEach((t, n) => {
+  t.addEventListener('click', () => select(t));
+  t.addEventListener('keydown', (e) => {
+    const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    if (d) { const next = tabs[(n + d + tabs.length) % tabs.length]; select(next); next.focus(); }
+  });
+});
+const fromHash = { bin: 'tab-bin', tale: 'tab-tale', case: 'tab-case' }[location.hash.slice(1)];
+let saved = null; try { saved = localStorage.getItem('gubbins-theme-tab'); } catch {}
+const start = document.getElementById(fromHash || saved || 'tab-bin');
+if (start) select(start);
+</script>

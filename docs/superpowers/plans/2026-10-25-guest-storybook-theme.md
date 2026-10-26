@@ -33,9 +33,9 @@
 
 ### Task 0: Design doc and plan (docs only)
 
-**Files:** `docs/superpowers/specs/2026-10-25-guest-storybook-theme-design.md`, `docs/superpowers/plans/2026-10-25-guest-storybook-theme.md`. Branch `feat/storybook/00-docs` off `main`.
+**Files:** `docs/superpowers/specs/2026-10-25-guest-storybook-theme-design.md`, `docs/superpowers/plans/2026-10-25-guest-storybook-theme.md`, `docs/design/guest-themes.html` (the mockup). Branch `feat/storybook/00-docs` off `main`.
 
-- [ ] **Step 1:** Commit both docs: `docs: Storybook guest theme design and plan`. Don't commit `docs/design/guest-themes.html` (the mockup lives in the artifact).
+- [ ] **Step 1:** Commit the two docs and the mockup: `docs: Storybook guest theme design and plan`.
 
 ### Task 1: Fonts, tokens and the key screen
 
