@@ -97,7 +97,7 @@ describe('ItemView', () => {
   });
 
   it.each([
-    ['held', 'Stroller is promised.'],
+    ['held', 'Stroller is held.'],
     ['purchased', 'Stroller has been purchased.'],
   ] as const)('shows a %s item as such, with no Hold button', (status, message) => {
     renderItem({ status });
@@ -148,7 +148,7 @@ describe('ItemView', () => {
     rerender(view('held'));
 
     expect(screen.getByRole('status')).toBe(status);
-    expect(status).toHaveTextContent('Stroller is promised.');
+    expect(status).toHaveTextContent('Stroller is held.');
   });
 
   it('shows the title as a heading and the price formatted', () => {
