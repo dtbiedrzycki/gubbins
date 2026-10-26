@@ -5,8 +5,8 @@
 Guests open the wishlist on their phones. Today it is plain Tailwind
 slate. The owner wants the guest view to have a look of its own that plays
 on the name "gubbins" in a whimsical way, while staying clean and easy to
-use. They chose the "Storybook" direction from three mockups: a
-picture-book page with a round green door, wax seals and a wishing jar.
+use. The chosen look is "Storybook": a picture-book page with a round
+green door, wax seals and a wishing jar.
 
 This first pass ships for launch (guests arrive about 2026-10-27). It has
 to land in a few hours of work without changing behaviour.
@@ -21,7 +21,7 @@ from the repo's own Fontsource packages.
 - Restyle the guest screens: the guest key screen, the list, "Your holds",
   and the hold and chip-in dialogs.
 - Serve the two typefaces from Gubbins itself. No request leaves for a
-  third party (owner ruling: privacy).
+  third party, for guests' privacy.
 - Change three pieces of wording: a held item's status line reads
   "<title> is promised." instead of "<title> is held."; the list header
   gains the hold-length line "When you hold an item, it's held for you
@@ -45,8 +45,6 @@ from the repo's own Fontsource packages.
 
 - Jokes in button labels or error messages. Whimsy lives in drawings,
   type and the one status word.
-- Fairy-tale narration: no hobgoblin, no "Once upon a list", no
-  storybook footer (owner ruling).
 - Any loss of accessibility: live regions, focus handling, the
   `progressbar` role and the 44px touch targets all stay.
 
@@ -110,7 +108,7 @@ rules, not cards. Each row keeps its current content and order.
   item is still available and their hold shows under "Your holds"): a wax seal (round, wax red, "G" monogram, slightly
   rotated, `aria-hidden`) beside the status line "<title> is promised.".
 - **Purchased item:** the same static wax seal beside the status line
-  "<title> has been purchased." (owner ruling).
+  "<title> has been purchased."
 - **Group gift:** a small wishing jar (CSS drawing, gold coins filling to
   the pledged percentage, `aria-hidden`) beside the pledged text and
   "Chip in". The existing `<progress>` element stays, restyled, so screen
@@ -132,7 +130,7 @@ on paper, and it is shared with the owner forms, which must not change.
 
 ### Motion
 
-Only one thing animates (owner ruling): the seal on a **new card in
+Only one thing animates: the seal on a **new card in
 "Your holds"** stamps in when that card appears while the page is open.
 It starts large and faint, then settles in about 0.45 s. Focus already
 moves to "Your holds" when a hold lands, so the guest sees it.
