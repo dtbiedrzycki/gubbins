@@ -43,7 +43,7 @@ describe('ItemView', () => {
     renderItem();
 
     await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
-    expect(screen.getByText('Held for you for 3 days.')).toBeInTheDocument();
+    expect(screen.getByText('Other guests will see it\u2019s taken while you buy it.')).toBeInTheDocument();
     await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.type(screen.getByLabelText('Message to the owner (optional)'), 'Collecting Friday');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
