@@ -15,8 +15,9 @@ Success: a guest who has never heard of Gubbins can open an invite, get
 in, understand holding, buy a gift and mark it purchased without help.
 
 Mockups (Storybook look, phone width, owner-approved 2026-10-26):
-https://claude.ai/artifact/NfSxfC4CmCzo6YiGmAQdD6 — guest list, key
-screen, hold dialog, Zelle, home page, owner create/ready.
+[`docs/design/guest-feedback-mockups.html`](../../design/guest-feedback-mockups.html)
+— guest list, key screen, hold dialog, Zelle, home page, owner
+create/ready. Open it after `npm ci` so the self-hosted fonts load.
 
 ## Goals, in priority order
 
