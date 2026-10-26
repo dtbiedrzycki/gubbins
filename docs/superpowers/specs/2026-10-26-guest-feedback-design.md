@@ -130,7 +130,8 @@ screen, hold dialog, Zelle, home page, owner create/ready.
    self-hostable (runs on a Raspberry Pi); open source under the AGPL v3.
    Then "Got an invite? Open the link from it." No create link: list
    creation needs the create secret (ADR-0080). The create form moves
-   from `/` to `/new`; update every reference (e2e, docs, README).
+   to `/wishlists/new` (see Routes); update every reference (e2e, docs,
+   README, the links on the create page).
 10. **Privacy page** at `/privacy`: plain statement of what the app does
     *today*: what it collects from guests (name, optional message,
     pledge amounts, a strictly necessary session cookie), who sees names
@@ -140,6 +141,29 @@ screen, hold dialog, Zelle, home page, owner create/ready.
     it as the contact; otherwise say to contact whoever runs this site.
     This is the interim notice; ADR-0056's full per-list notice remains
     the later target.
+
+### Routes (owner ruling, 2026-10-26)
+
+Page routes follow resource naming:
+
+| Page | Route |
+|---|---|
+| Home | `/` |
+| Privacy | `/privacy` |
+| Create a list | `/wishlists/new` |
+| Guest list (key screen until a key is entered) | `/wishlists/:slug` |
+| Owner page | `/wishlists/:slug/manage` |
+| Old `/:slug` and `/:slug/manage` | client-side redirect to the new path, keeping the `#` fragment (the guest key, ADR-0067) |
+
+The redirects keep invites and bookmarks already handed out working;
+remove them once no old invites are in use. Later pages follow the same
+shape: `/wishlists/:slug/holds/:holdSecret`, `/wishlists/:slug/my-data`;
+update `docs/spec` where it names the old paths. `manage` stays a
+separate page this round. The target, for the owner dashboard round, is
+one address `/wishlists/:slug` whose content depends on the access
+context, owner view winning when both sessions exist (so an owner opening
+their own invite sees no spoilers, ADR-0020); it needs an owner list view
+the API does not have yet. API paths stay `/api/lists/...`.
 
 ### Input handling (one ruling, 2026-10-26)
 
@@ -174,6 +198,8 @@ are case-sensitive; new ones are generated lowercase.
 - A dedicated shipping-address field: rejected; ADR-0005 stands.
 - Rotating existing lists' keys to words.
 - The private hold link and any cross-device return path.
+- Renaming API paths from `/api/lists` to `/api/wishlists`.
+- Merging the owner page into `/wishlists/:slug`.
 
 ## Anti-goals
 
