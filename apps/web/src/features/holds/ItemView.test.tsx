@@ -128,7 +128,7 @@ describe('ItemView', () => {
     expect(document.querySelector('[data-jar-fill]')!.parentElement).toHaveAttribute('aria-hidden', 'true');
   });
 
-  it('shows the pledged share on screen through the jar alone, keeping the progress bar for screen readers', () => {
+  it('hides the progress bar visually but keeps it for screen readers', () => {
     renderItem({ type: 'group', priceMinor: 1000, pledgedMinor: 500, availableUnits: 0 });
     expect(screen.getByRole('progressbar')).toHaveClass('sr-only');
   });

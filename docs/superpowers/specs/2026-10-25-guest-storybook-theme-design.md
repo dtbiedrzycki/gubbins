@@ -114,9 +114,9 @@ rules, not cards. Each row keeps its current content and order.
   tests keep it.
 
 **Your holds.** A white panel with a `line` border, below the list. Each
-card shows a seal beside its title, wax red for an active hold and gold for a purchased one;
-expired and released cards show none (*builder's call*). The wording is
-unchanged.
+card for an active or purchased hold shows a seal beside its title: wax
+red for an active hold, gold for a purchased one. Expired and released
+cards show none (*builder's call*). The wording is unchanged.
 
 **Buttons.** Primary: moss fill, white text, a leaf-shaped radius
 (rounded on three corners, tighter on the fourth). Secondary: transparent
