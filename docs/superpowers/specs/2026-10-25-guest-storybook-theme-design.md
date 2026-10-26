@@ -61,16 +61,16 @@ from the repo's own Fontsource packages.
 
 ### Palette
 
-| Token  | Hex       | Use                                          |
-|--------|-----------|----------------------------------------------|
-| paper  | `#F6F3FB` | page background (lilac paper)                |
-| ink    | `#2E2447` | text, outline buttons                        |
-| muted  | `#625A78` | secondary text                               |
-| line   | `#DCD3EA` | dividers, card borders                       |
-| moss   | `#34603F` | primary buttons, links, the door             |
-| petal  | `#F2CBD6` | small accents (the divider's flower)         |
-| gold   | `#D9A93A` | jar coins, door knob; never text             |
-| wax    | `#9E2A45` | the wax seal                                 |
+| Token | Hex       | Use                                                  |
+|-------|-----------|------------------------------------------------------|
+| paper | `#F6F3FB` | page background (lilac paper)                        |
+| ink   | `#2E2447` | text, outline buttons                                |
+| muted | `#625A78` | secondary text                                       |
+| line  | `#DCD3EA` | dividers, card borders                               |
+| moss  | `#34603F` | primary buttons, links, the door                     |
+| petal | `#F2CBD6` | small accents (the divider's flower)                 |
+| gold  | `#D9A93A` | jar coins, door knob, the purchased seal; never text |
+| wax   | `#9E2A45` | the held seal                                        |
 
 Errors keep a red that passes contrast on paper; success messages in
 "Your holds" use moss. The list's status line (held, purchased, and
@@ -105,15 +105,16 @@ rules, not cards. Each row keeps its current content and order.
   call:* a guest holding one of several units sees no seal, since the
   item is still available and their hold shows under "Your holds"): a wax seal (round, wax red, "G" monogram, slightly
   rotated, `aria-hidden`) beside the status line "<title> is held.".
-- **Purchased item:** the same static wax seal beside the status line
-  "<title> has been purchased."
+- **Purchased item:** a static gold seal (the same shape, gold with an
+  ink "G") beside the status line "<title> has been purchased."
 - **Group gift:** a small wishing jar (CSS drawing, gold coins filling to
   the pledged percentage, `aria-hidden`) beside the pledged text and
-  "Chip in". The existing `<progress>` element stays, restyled, so screen
-  readers and tests keep it.
+  "Chip in". The jar is the only bar on screen: the existing `<progress>`
+  element stays but is visually hidden (`sr-only`), so screen readers and
+  tests keep it.
 
 **Your holds.** A white panel with a `line` border, below the list. Each
-card for an active or purchased hold shows the wax seal beside its title;
+card shows a seal beside its title, wax red for an active hold and gold for a purchased one;
 expired and released cards show none (*builder's call*). The wording is
 unchanged.
 

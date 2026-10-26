@@ -70,7 +70,7 @@ export function YourHolds({ slug, holds, itemTitles }: YourHoldsProps) {
             return (
               <li key={hold.holdId} className="space-y-2 border-t border-line pt-3 first:border-t-0 first:pt-0">
                 <div className="flex items-center gap-2.5">
-                  {(hold.status === 'active' || hold.status === 'purchased') && <Seal stamp={!initialHoldIds.has(hold.holdId)} />}
+                  {(hold.status === 'active' || hold.status === 'purchased') && <Seal tone={hold.status === 'purchased' ? 'gold' : 'wax'} stamp={!initialHoldIds.has(hold.holdId)} />}
                   <h3
                     ref={(el) => {
                       if (el) cardHeadings.current.set(hold.holdId, el);
