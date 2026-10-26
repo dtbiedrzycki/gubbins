@@ -6,6 +6,8 @@ export const SESSION_COOKIE = 'gubbins_session';
 export const OWNER_COOKIE = 'gubbins_owner';
 // Browsers keep Secure cookies only over HTTPS (localhost is exempt); deployments sit behind TLS.
 export const SIGNED_COOKIE_OPTIONS = { path: '/', httpOnly: true, signed: true, sameSite: 'strict', secure: true } as const;
+// 30 days (seconds): outlasts a hold plus its extension, so a returning guest still finds their holds.
+export const GUEST_SESSION_COOKIE_OPTIONS = { ...SIGNED_COOKIE_OPTIONS, maxAge: 30 * 24 * 60 * 60 } as const;
 
 export interface OwnerSessionPayload {
   wishlistId: string;

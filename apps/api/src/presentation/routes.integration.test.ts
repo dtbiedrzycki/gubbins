@@ -121,6 +121,7 @@ describe('POST /api/lists/:slug/session', () => {
     const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } });
     expect(response.statusCode).toBe(200);
     expect(response.cookies).toEqual([expect.objectContaining({ httpOnly: true, secure: true, sameSite: 'Strict' })]);
+    expect(response.headers['set-cookie']).toContain('Max-Age=2592000');
   });
 
   it('returns a generic 404 for a wrong key', async () => {
@@ -142,6 +143,7 @@ describe('POST /api/lists/:slug/owner-session', () => {
     const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ ok: true });
+    expect(response.headers['set-cookie']).not.toContain('Max-Age');
     const [owner] = response.cookies;
     expect(owner).toMatchObject({ name: 'gubbins_owner', httpOnly: true, secure: true, sameSite: 'Strict' });
     expect(JSON.parse(app.unsignCookie(owner.value).value!)).toEqual({ wishlistId: expect.any(String) });
