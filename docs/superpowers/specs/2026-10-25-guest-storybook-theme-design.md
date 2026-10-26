@@ -5,28 +5,27 @@
 Guests open the wishlist on their phones. Today it is plain Tailwind
 slate. The owner wants the guest view to have a look of its own that plays
 on the name "gubbins" in a whimsical way, while staying clean and easy to
-use. They chose the "Storybook" direction from three mockups: a
-picture-book page with a round green door, wax seals and a wishing jar.
+use. The chosen look is "Storybook": a picture-book page with a round
+green door, wax seals and a wishing jar.
 
 This first pass ships for launch (guests arrive about 2026-10-27). It has
 to land in a few hours of work without changing behaviour.
 
-Reference mockup: https://claude.ai/artifact/8CZ3giFNVAVgABSH53wf74
-("Storybook" tab). The mockup's hobgoblin copy, "Once upon a list" line
-and footer are **not** part of the design (owner ruling, below).
+Reference mockup: [`docs/design/guest-themes.html`](../../design/guest-themes.html),
+which shows the key screen and the list with this design's palette, type
+and wording. Open it from a checkout after `npm ci`; it loads the fonts
+from the repo's own Fontsource packages.
 
 ## Goals
 
 - Restyle the guest screens: the guest key screen, the list, "Your holds",
   and the hold and chip-in dialogs.
 - Serve the two typefaces from Gubbins itself. No request leaves for a
-  third party (owner ruling: privacy).
-- Change three pieces of wording: a held item's status line reads
-  "<title> is promised." instead of "<title> is held."; the list header
-  gains the hold-length line "When you hold an item, it's held for you
-  for N days." ("1 day" when N is 1); and the guest key screen gains the
-  heading "Knock, knock." and the hint "Enter the guest key from your
-  invite."
+  third party, for guests' privacy.
+- Add two pieces of wording: the list header gains the hold-length line
+  "When you hold an item, it's held for you for N days." ("1 day" when N
+  is 1); and the guest key screen gains the heading "Knock, knock." and
+  the hint "Enter the guest key from your invite."
 
 ## Non-goals (deferred)
 
@@ -37,15 +36,14 @@ and footer are **not** part of the design (owner ruling, below).
 - Motion beyond the one seal stamp described below.
 - Any other copy change. Buttons keep their labels ("View list",
   "Hold this item", "Chip in", "Mark as purchased", "Extend hold",
-  "Release hold"). Purchased items keep "<title> has been purchased."
+  "Release hold"). Held items keep "<title> is held." and purchased items
+  keep "<title> has been purchased."
   "Your holds" keeps "Held until …".
 
 ## Anti-goals
 
 - Jokes in button labels or error messages. Whimsy lives in drawings,
-  type and the one status word.
-- Fairy-tale narration: no hobgoblin, no "Once upon a list", no
-  storybook footer (owner ruling).
+  type and the key screen's greeting.
 - Any loss of accessibility: live regions, focus handling, the
   `progressbar` role and the 44px touch targets all stay.
 
@@ -53,8 +51,7 @@ and footer are **not** part of the design (owner ruling, below).
 
 - PRs of at most 10 changed files each.
 - No behaviour changes. Existing unit and e2e tests pass unchanged,
-  except where they assert the "is held." wording, and the e2e
-  hold-length check, which is scoped to the dialog because the new
+  except the e2e hold-length check, which is scoped to the dialog because the new
   header repeats the phrase.
 - No new runtime dependency apart from the two Fontsource font packages.
 - Verify each PR with the `verifying-gubbins-locally` skill (`--e2e` when
@@ -76,7 +73,7 @@ and footer are **not** part of the design (owner ruling, below).
 | wax    | `#9E2A45` | the wax seal                                 |
 
 Errors keep a red that passes contrast on paper; success messages in
-"Your holds" use moss. The list's status line (promised, purchased, and
+"Your holds" use moss. The list's status line (held, purchased, and
 the pledge thank-you) stays ink, in the display italic.
 
 ### Type
@@ -107,9 +104,9 @@ rules, not cards. Each row keeps its current content and order.
 - **Held item** (status `held`, meaning every unit is taken; *builder's
   call:* a guest holding one of several units sees no seal, since the
   item is still available and their hold shows under "Your holds"): a wax seal (round, wax red, "G" monogram, slightly
-  rotated, `aria-hidden`) beside the status line "<title> is promised.".
+  rotated, `aria-hidden`) beside the status line "<title> is held.".
 - **Purchased item:** the same static wax seal beside the status line
-  "<title> has been purchased." (owner ruling).
+  "<title> has been purchased."
 - **Group gift:** a small wishing jar (CSS drawing, gold coins filling to
   the pledged percentage, `aria-hidden`) beside the pledged text and
   "Chip in". The existing `<progress>` element stays, restyled, so screen
@@ -131,7 +128,7 @@ on paper, and it is shared with the owner forms, which must not change.
 
 ### Motion
 
-Only one thing animates (owner ruling): the seal on a **new card in
+Only one thing animates: the seal on a **new card in
 "Your holds"** stamps in when that card appears while the page is open.
 It starts large and faint, then settles in about 0.45 s. Focus already
 moves to "Your holds" when a hold lands, so the guest sees it.
