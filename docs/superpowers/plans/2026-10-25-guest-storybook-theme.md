@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Restyle the guest view (key screen, list, "Your holds", hold and chip-in dialogs) in the Storybook look, with no behaviour change apart from the "is promised." wording.
+**Goal:** Restyle the guest view (key screen, list, "Your holds", hold and chip-in dialogs) in the Storybook look, with no behaviour change apart from the "is promised." wording, the hold-length header line and the key-screen heading and hint.
 
 **Architecture:** Palette, fonts and the stamp animation live as Tailwind v4 `@theme` tokens in `apps/web/src/index.css`, with three `@utility` classes for buttons and fields. Components swap their slate classes for those tokens. One small `Seal` component draws the wax seal for the list rows and the "Your holds" cards. Fonts come from Fontsource and are bundled by Vite.
 

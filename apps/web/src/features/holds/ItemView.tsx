@@ -59,7 +59,8 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
     : null;
   // Integer minor units, multiplied before dividing so the floor is exact; rounding down
   // keeps a gift short of its price from reading 100%.
-  const progress = group && `${formatMoney(group.pledged)} of ${formatMoney(group.price)} pledged · ${Math.floor((group.pledged * 100) / group.price)}%`;
+  const pledgedPercent = group ? (group.pledged * 100) / group.price : 0;
+  const progress = group && `${formatMoney(group.pledged)} of ${formatMoney(group.price)} pledged · ${Math.floor(pledgedPercent)}%`;
 
   // Status comes from the server alone. useHoldItem stays pending until the
   // refetched list view lands, and a remembered local success would go stale
@@ -70,7 +71,8 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
       {item.priceMinor !== null && <p className="font-bold tabular-nums">{formatMoney(item.priceMinor)}</p>}
       {item.url && <p><a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2.5 text-moss underline">View in store <span className="sr-only">for {item.title} (opens in a new tab)</span></a></p>}
       {item.type === 'single' && item.status === 'available' && item.availableUnits > 1 && <p>{item.availableUnits} left</p>}
-      {/* Mounted while available too: screen readers miss a live region that arrives already filled. */}
+      {/* Mounted while available too: screen readers miss a live region that arrives already filled.
+          While it's empty, the row adds no gap of its own. */}
       <div className="flex items-center gap-2.5 has-[>p:empty:only-child]:mb-0">
         {item.status !== 'available' && <Seal />}
         <ItemAnnouncement message={thanks || (item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is promised.` : `${item.title} has been purchased.`)} />
@@ -81,7 +83,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
           <div className="flex items-end gap-3.5">
             {/* A wishing jar of gold coins, filled to the pledged share and never past full. */}
             <div aria-hidden="true" className="relative h-[58px] w-[46px] flex-none overflow-hidden rounded-[10px_10px_14px_14px] border-[2.5px] border-ink bg-white before:absolute before:inset-x-2 before:-top-0.5 before:h-[7px] before:rounded-b-[3px] before:bg-moss before:content-['']">
-              <div data-jar-fill className="absolute inset-x-0 bottom-0 bg-gold bg-[radial-gradient(circle_at_30%_40%,#F3D27A_0_3px,transparent_3.5px)] bg-[length:10px_9px]" style={{ height: `${Math.min((group.pledged * 100) / group.price, 100)}%` }} />
+              <div data-jar-fill className="absolute inset-x-0 bottom-0 bg-gold bg-[radial-gradient(circle_at_30%_40%,#F3D27A_0_3px,transparent_3.5px)] bg-[length:10px_9px]" style={{ height: `${Math.min(pledgedPercent, 100)}%` }} />
             </div>
             <p className="min-w-0">{progress}</p>
           </div>
