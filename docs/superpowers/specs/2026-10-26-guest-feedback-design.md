@@ -121,13 +121,13 @@ create/ready. Open it after `npm ci` so the self-hosted fonts load.
    - clamped to 2 lines with a "Show more" / "Show less" button
      (`aria-expanded`), shown only when the text overflows
 8. **Zelle instructions.** In the contribute dialog, under "Or pay with
-   Zelle": "Zelle has no payment links, so it takes a few taps in your
-   bank's app." then three steps: open your bank's app and choose Send
+   Zelle", three steps: open your bank's app and choose Send
    money with Zelle; send the amount to the handle (with the existing
    Copy button); add the gift name as the memo. Venmo is unchanged.
 9. **Home page** at `/`: "Gubbins — A wishlist that respects the people
-   using it.", one sentence on what it does, then four points: no
-   tracking (no analytics, no third-party scripts, no accounts); no ads;
+   using it.", one sentence on what it does, then four points: "No
+   tracking." ("No accounts, no profiles, and nothing that follows you
+   around the web."); no ads;
    self-hostable (runs on a Raspberry Pi); open source under the AGPL v3.
    Then "Got an invite? Open the link from it." No create link: list
    creation needs the create secret (ADR-0080). The create form moves
@@ -136,12 +136,20 @@ create/ready. Open it after `npm ci` so the self-hosted fonts load.
 10. **Privacy page** at `/privacy`: plain statement of what the app does
     *today*: what it collects from guests (name, optional message,
     pledge amounts, a strictly necessary session cookie), who sees names
-    (only the list owner), no analytics, no ads, no third-party requests
-    (fonts are self-hosted), and when data is deleted — only as far as
+    (only the list owner), that guests are not tracked as individuals
+    (no profiles, no third-party trackers or scripts; fonts are
+    self-hosted), that no ads are served, and when data is deleted — only as far as
     the code actually deletes it now. If `PRIVACY_CONTACT` is set, show
     it as the contact; otherwise say to contact whoever runs this site.
     This is the interim notice; ADR-0056's full per-list notice remains
     the later target.
+
+11. **Images only from Gubbins itself.** Every response carries
+    `Content-Security-Policy: img-src 'self'`, so a browser refuses any
+    image from another host even if a future bug let one into the page.
+    This backs up the markdown rules in goal 7; it is not the strict CSP
+    `docs/spec/privacy.md` calls for, which stays later work. Check the
+    built SPA still renders (no `data:` or remote images in use today).
 
 ### Routes (owner ruling, 2026-10-26)
 
@@ -201,6 +209,10 @@ are case-sensitive; new ones are generated lowercase.
 - The private hold link and any cross-device return path.
 - Renaming API paths from `/api/lists` to `/api/wishlists`.
 - Merging the owner page into `/wishlists/:slug`.
+
+Wording rule for both pages: promise no tracking of people and no ads,
+never "no analytics" or "no metrics": anonymous aggregate counts may
+come later (owner, 2026-10-26).
 
 ## Anti-goals
 
