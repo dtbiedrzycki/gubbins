@@ -105,9 +105,10 @@ describe('ItemView', () => {
     expect(screen.queryByRole('button', { name: /^Hold this item/ })).not.toBeInTheDocument();
   });
 
-  it.each(['held', 'purchased'] as const)('marks a %s item with a wax seal that does not stamp in and is hidden from screen readers', (status) => {
+  it.each([['held', 'wax'], ['purchased', 'gold']] as const)('marks a %s item with a %s seal that does not stamp in and is hidden from screen readers', (status, tone) => {
     renderItem({ status });
     const seal = document.querySelector('[data-seal]');
+    expect(seal).toHaveAttribute('data-seal', tone);
     expect(seal).toHaveAttribute('aria-hidden', 'true');
     expect(seal!.className).not.toContain('animate-stamp');
   });
@@ -125,6 +126,11 @@ describe('ItemView', () => {
   it('hides the wishing jar from screen readers, since the pledged text says the same', () => {
     renderItem({ type: 'group', priceMinor: 1000, pledgedMinor: 500, availableUnits: 0 });
     expect(document.querySelector('[data-jar-fill]')!.parentElement).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('hides the progress bar visually but keeps it for screen readers', () => {
+    renderItem({ type: 'group', priceMinor: 1000, pledgedMinor: 500, availableUnits: 0 });
+    expect(screen.getByRole('progressbar')).toHaveClass('sr-only');
   });
 
   it('keeps the Hold button last in its stack, so space-y adds no margin below it', () => {

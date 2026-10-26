@@ -64,12 +64,10 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .tale .seal { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: #F7D9E0; font: normal 1.35rem/1 var(--f-display);
   background: radial-gradient(circle at 38% 34%, #C2455F, var(--wax) 60%, #6E1830);
   box-shadow: 0 0 0 3px var(--wax), 3px 2px 0 2px #8A2340, -2px 3px 0 1px #8A2340, 0 3px 6px rgba(46,36,71,.3); transform: rotate(-8deg); }
+.tale .seal.gold { color: var(--ink); background: radial-gradient(circle at 38% 34%, #F3D27A, var(--gold) 60%, #A57E22);
+  box-shadow: 0 0 0 3px var(--gold), 3px 2px 0 2px #A57E22, -2px 3px 0 1px #A57E22, 0 3px 6px rgba(46,36,71,.3); }
 .tale .seal.stamp { animation: stamp .45s cubic-bezier(.2,1.6,.4,1) both; }
 @keyframes stamp { 0% { transform: scale(1.9) rotate(12deg); opacity: 0; } 100% { transform: scale(1) rotate(-8deg); opacity: 1; } }
-.tale progress { appearance: none; width: 100%; height: 8px; border: 0; border-radius: 999px; overflow: hidden; background: var(--line); }
-.tale progress::-webkit-progress-bar { background: var(--line); }
-.tale progress::-webkit-progress-value { background: var(--moss); }
-.tale progress::-moz-progress-bar { background: var(--moss); }
 .tale .wish { display: flex; gap: 14px; align-items: flex-end; }
 .tale .jar { flex: none; width: 46px; height: 58px; border: 2.5px solid var(--ink); border-radius: 10px 10px 14px 14px; position: relative; overflow: hidden; background: #fff; }
 .tale .jar::before { content: ""; position: absolute; top: -2px; left: 8px; right: 8px; height: 7px; background: var(--moss); border-radius: 0 0 3px 3px; }
@@ -107,7 +105,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
       <h2>Storybook</h2>
       <p>The list reads like a page from a picture book and sits behind a round green door. The whimsy lives in the drawings, the type and the key screen’s greeting. Buttons and errors say exactly what they do.</p>
       <h3>The bold thing</h3>
-      <p>Wax seals. A held or purchased gift carries a still seal. A new hold’s seal stamps in once under “Your holds”. Group gifts fill a wishing jar with gold coins.</p>
+      <p>Wax seals. A held gift carries a still wax-red seal, a purchased one a gold seal. A new hold’s seal stamps in once under “Your holds”. Group gifts fill a wishing jar with gold coins.</p>
       <h3>Palette</h3>
       <div class="swatches" aria-label="Lilac paper, plum ink, line, moss green, petal pink, gold, sealing wax">
         <span style="background:#F6F3FB"></span><span style="background:#2E2447"></span><span style="background:#DCD3EA"></span><span style="background:#34603F"></span><span style="background:#F2CBD6"></span><span style="background:#D9A93A"></span><span style="background:#9E2A45"></span>
@@ -132,11 +130,11 @@ const ITEMS = [
   { id: 'duvet', t: 'Linen duvet cover, queen', price: '$210.00', state: 'purchased' },
 ];
 const pct = (g) => Math.floor(g.pledged * 100 / g.of);
-const seal = (stamp = false) => `<span class="seal${stamp ? ' stamp' : ''}" aria-hidden="true">G</span>`;
+const seal = ({ stamp = false, gold = false } = {}) => `<span class="seal${gold ? ' gold' : ''}${stamp ? ' stamp' : ''}" aria-hidden="true">G</span>`;
 const statusLine = (i) => i.state === 'held' ? `${i.t} is held.` : `${i.t} has been purchased.`;
 const store = (i) => i.url ? `<p><a href="#" onclick="return false">View in store<span class="sr-only"> for ${i.t} (opens in a new tab)</span></a></p>` : '';
 const holdActions = () => `<div class="act"><button type="button" class="btn">Mark as purchased</button><button type="button" class="btn ghost">Extend hold</button><button type="button" class="btn ghost">Release hold</button></div>`;
-const holdCard = (title, stamp) => `<li class="hold"><div class="hold-title">${seal(stamp)}<span>${title}</span></div><p>Held until Fri, Oct 30.</p>${holdActions()}</li>`;
+const holdCard = (title, { stamp = false, purchased = false } = {}) => `<li class="hold"><div class="hold-title">${seal({ stamp, gold: purchased })}<span>${title}</span></div><p>${purchased ? 'Marked as purchased.' : 'Held until Fri, Oct 30.'}</p>${purchased ? '' : holdActions()}</li>`;
 
 const gate = () => `<div class="gate"><div class="door" aria-hidden="true"></div><h1>Knock, knock.</h1><p>Enter the guest key from your invite.</p>
   <form onsubmit="event.preventDefault()"><label for="tale-key">Guest key</label><input id="tale-key" value="BRASS-HINGE-42" autocomplete="off"><button class="btn" type="submit">View list</button></form></div>`;
@@ -144,11 +142,11 @@ const gate = () => `<div class="gate"><div class="door" aria-hidden="true"></div
 const item = (i) => {
   if (i.group) {
     const line = `$${i.group.pledged} of $${i.group.of} pledged (${pct(i.group)}%)`;
-    return `<li class="item"><h2>${i.t}</h2><progress max="${i.group.of}" value="${i.group.pledged}" aria-label="${line}"></progress>
+    return `<li class="item"><h2>${i.t}</h2><progress class="sr-only" max="${i.group.of}" value="${i.group.pledged}" aria-label="${line}"></progress>
       <div class="wish"><div class="jar" aria-hidden="true"><i style="height:${Math.min(pct(i.group), 100)}%"></i></div><p>${line}</p></div>
       <div class="act"><button type="button" class="btn">Chip in</button></div></li>`;
   }
-  const status = i.state === 'available' ? '' : `<div class="status">${seal()}<p>${statusLine(i)}</p></div>`;
+  const status = i.state === 'available' ? '' : `<div class="status">${seal({ gold: i.state === 'purchased' })}<p>${statusLine(i)}</p></div>`;
   const left = i.left > 1 && i.state === 'available' ? `<p>${i.left} left</p>` : '';
   const act = i.state === 'available' ? `<div class="act"><button type="button" class="btn" data-hold="${i.id}">Hold this item<span class="sr-only">: ${i.t}</span></button></div>` : '';
   return `<li class="item" data-item="${i.id}"><h2>${i.t}</h2><p class="price">${i.price}</p>${store(i)}${left}${status}${act}</li>`;
@@ -156,12 +154,12 @@ const item = (i) => {
 
 const list = () => `<div class="top"><h1>${LIST}</h1><p>When you hold an item, it’s held for you for ${DAYS} ${DAYS === 1 ? 'day' : 'days'}.</p><span class="vine" aria-hidden="true"></span></div>
   <ul class="list" role="list">${ITEMS.map(item).join('')}</ul>
-  <section class="holds"><h2>Your holds</h2><ul data-holds>${holdCard('Cordless drill and driver kit', false)}</ul></section>`;
+  <section class="holds"><h2>Your holds</h2><ul data-holds>${holdCard('Cordless drill and driver kit')}${holdCard('Linen duvet cover, queen', { purchased: true })}</ul></section>`;
 
 const host = document.querySelector('[data-mock]');
 host.innerHTML = `
   <figure class="shot"><div class="phone"><div class="screen tale">${gate()}</div></div><figcaption>Guest key screen</figcaption></figure>
-  <figure class="shot"><div class="phone"><div class="screen tale">${list()}</div></div><figcaption>The list, with one hold of your own</figcaption></figure>`;
+  <figure class="shot"><div class="phone"><div class="screen tale">${list()}</div></div><figcaption>The list, with two holds of your own</figcaption></figure>`;
 
 // In the app the hold dialog comes first; here a tap stands in for confirming it.
 host.addEventListener('click', (e) => {
@@ -171,6 +169,6 @@ host.addEventListener('click', (e) => {
   // A multi-unit item stays available with one fewer left; the last unit makes it held.
   if (i.left > 1) i.left -= 1; else i.state = 'held';
   btn.closest('[data-item]').outerHTML = item(i);
-  host.querySelector('[data-holds]').insertAdjacentHTML('beforeend', holdCard(i.t, true));
+  host.querySelector('[data-holds]').insertAdjacentHTML('beforeend', holdCard(i.t, { stamp: true }));
 });
 </script>
