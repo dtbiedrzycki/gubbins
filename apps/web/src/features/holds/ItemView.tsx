@@ -75,7 +75,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
           While it's empty, the row adds no gap of its own. */}
       <div className="flex items-center gap-2.5 has-[>p:empty:only-child]:mb-0">
         {item.status !== 'available' && <Seal />}
-        <ItemAnnouncement message={thanks || (item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is promised.` : `${item.title} has been purchased.`)} />
+        <ItemAnnouncement message={thanks || (item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is held.` : `${item.title} has been purchased.`)} />
       </div>
       {group && (
         <>

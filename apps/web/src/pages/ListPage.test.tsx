@@ -84,7 +84,7 @@ describe('ListPage', () => {
 
     const yourHolds = screen.getByRole('region', { name: 'Your holds' });
     expect(await within(yourHolds).findByRole('button', { name: 'Extend hold' })).toBeInTheDocument();
-    expect(screen.getByText('Stroller is promised.')).toBeInTheDocument();
+    expect(screen.getByText('Stroller is held.')).toBeInTheDocument();
     expect(screen.queryByRole('dialog', { hidden: true })).not.toBeInTheDocument();
     // The Hold button is gone; focus goes where the new hold's actions are.
     expect(within(yourHolds).getByRole('heading', { name: 'Your holds' })).toHaveFocus();
@@ -146,7 +146,7 @@ describe('ListPage', () => {
     await user.click(await screen.findByRole('button', { name: /^Hold this item/ }));
     await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
-    await waitFor(() => expect(screen.getByText('Stroller is promised.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Stroller is held.')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(screen.getByRole('heading', { name: 'Your holds' })).toHaveFocus();
