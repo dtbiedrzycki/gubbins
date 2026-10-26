@@ -61,6 +61,18 @@ describe('ListPage', () => {
     expect(await screen.findByText("When you hold an item, it's held for you for 3 days.")).toBeInTheDocument();
   });
 
+  it('explains holding: hold before buying, buy within 3 days, then mark it purchased or the hold ends', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
+    renderListPage();
+
+    const box = (await screen.findByText('How holding a gift works')).closest('details')!;
+    expect(box).toHaveAttribute('open');
+    expect(within(box).getByText('Hold it before you buy it.')).toBeInTheDocument();
+    expect(within(box).getByText('Buy it within 3 days.')).toBeInTheDocument();
+    expect(within(box).getByText('Come back and mark it purchased.')).toBeInTheDocument();
+    expect(box).toHaveTextContent('If you don\u2019t, the hold ends after 3 days and another guest can buy the same gift.');
+  });
+
   it('says "1 day" for a one-day hold', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), capabilities: { holdDurationDays: 1 } })));
     renderListPage();
@@ -78,7 +90,7 @@ describe('ListPage', () => {
     renderListPage();
 
     await user.click(await screen.findByRole('button', { name: /^Hold this item/ }));
-    expect(screen.getByText('Held for you for 3 days.')).toBeInTheDocument();
+    expect(screen.getByText('After you buy it, come back and tap \u201cMark as purchased\u201d.')).toBeInTheDocument();
     await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 

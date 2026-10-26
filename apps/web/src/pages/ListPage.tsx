@@ -4,6 +4,7 @@ import { useListView } from '../features/holds/useListView';
 import { GuestKeyGate } from '../features/guest-key/GuestKeyGate';
 import { ApiError } from '../api/client';
 import { ItemView } from '../features/holds/ItemView';
+import { HowHoldingWorks } from '../features/holds/HowHoldingWorks';
 import { YourHolds } from '../features/holds/YourHolds';
 
 export default function ListPage() {
@@ -60,6 +61,7 @@ export default function ListPage() {
           <p className="mt-2 text-muted">When you hold an item, it&apos;s held for you for {days} {days === 1 ? 'day' : 'days'}.</p>
           <span className="vine" aria-hidden="true" />
         </header>
+        <HowHoldingWorks holdDurationDays={days} />
         <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn't refresh the list, so it may be out of date." : ''}</p>
         {/* explicit role: Safari/VoiceOver drops list semantics under list-style none */}
         <ul role="list">
