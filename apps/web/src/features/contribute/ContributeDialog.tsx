@@ -22,8 +22,7 @@ export interface ContributeDialogProps {
 const NAME_MAX = 100;
 const MESSAGE_MAX = 300;
 const invalidAmount = 'Enter an amount like 25 or 25.50.';
-const button = 'min-h-11 rounded px-4 py-2 disabled:opacity-50';
-const field = 'mb-1 min-h-11 w-full rounded border px-2';
+const field = 'field mb-1';
 
 /**
  * A real <dialog> (ADR-0024) in the HoldDialog style, mounted only while
@@ -84,23 +83,23 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   }
 
   return (
-    <dialog ref={dialogRef} onCancel={handleCancel} onClose={handleClose} aria-labelledby="contribute-title" className="w-full max-w-sm rounded-lg p-6 backdrop:bg-black/50">
-      <p id="contribute-title" className="mb-4 font-semibold">Chip in toward &ldquo;{itemTitle}&rdquo;</p>
+    <dialog ref={dialogRef} onCancel={handleCancel} onClose={handleClose} aria-labelledby="contribute-title" className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-[22px] bg-paper p-6 text-ink backdrop:bg-ink/50">
+      <p id="contribute-title" className="mb-4 break-words font-display text-[1.3rem] leading-tight">Chip in toward &ldquo;{itemTitle}&rdquo;</p>
       {step === 'amount' ? (
         <>
           {remainingMinor > 0 && (
             <label className="mb-4 flex min-h-11 items-center gap-2">
-              <input type="radio" checked={coverRest} onChange={() => { setCoverRest(true); setOther(''); }} className="size-5" />
+              <input type="radio" checked={coverRest} onChange={() => { setCoverRest(true); setOther(''); }} className="size-5 accent-moss" />
               Cover the rest ({formatMoney(remainingMinor)})
             </label>
           )}
           <label className="mb-1 block" htmlFor="contribute-other">Another amount</label>
           <input id="contribute-other" inputMode="decimal" value={other} onChange={(e) => { setOther(e.target.value); setCoverRest(false); }}
             aria-invalid={Boolean(other.trim()) && chosen === null} aria-describedby="contribute-other-error" className={field} />
-          <p id="contribute-other-error" className="mb-4 text-sm text-red-600">{other.trim() && chosen === null ? invalidAmount : ''}</p>
+          <p id="contribute-other-error" className="mb-4 text-sm text-error">{other.trim() && chosen === null ? invalidAmount : ''}</p>
           <div className="flex gap-2">
-            <button type="button" disabled={chosen === null} onClick={() => { setAmountText((chosen! / 100).toFixed(2)); setStep('pay'); }} className={`${button} bg-slate-900 text-white`}>Continue</button>
-            <button type="button" onClick={onClose} className={`${button} border`}>Cancel</button>
+            <button type="button" disabled={chosen === null} onClick={() => { setAmountText((chosen! / 100).toFixed(2)); setStep('pay'); }} className="btn-primary">Continue</button>
+            <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
           </div>
         </>
       ) : (
@@ -113,28 +112,28 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           <label className="mb-1 block" htmlFor="contribute-amount">Amount (USD)</label>
           <input id="contribute-amount" inputMode="decimal" value={amountText} onChange={(e) => setAmountText(e.target.value)} disabled={isPending} readOnly={sent}
             aria-invalid={amount === null} aria-describedby={sent ? 'contribute-amount-error contribute-locked' : 'contribute-amount-error'} className={field} />
-          <p id="contribute-amount-error" className="mb-4 text-sm text-red-600">{amount === null ? invalidAmount : ''}</p>
+          <p id="contribute-amount-error" className="mb-4 text-sm text-error">{amount === null ? invalidAmount : ''}</p>
           {payment.venmoHandle && amount !== null && (
             <p className="mb-4 flex flex-wrap items-center gap-4">
-              <a href={venmoPayLink(payment.venmoHandle, amount, itemTitle)} target="_blank" rel="noopener noreferrer" className={`${button} inline-flex items-center bg-blue-700 text-white`}>Pay {formatMoney(amount)} with Venmo</a>
+              <a href={venmoPayLink(payment.venmoHandle, amount, itemTitle)} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center">Pay {formatMoney(amount)} with Venmo</a>
             </p>
           )}
           {payment.zelleHandle && (
             <p className="mb-4 flex flex-wrap items-center gap-2">
               <span>Zelle: {payment.zelleHandle}</span>
-              <button type="button" onClick={() => navigator.clipboard.writeText(payment.zelleHandle!).then(() => setCopied('Copied.'), () => setCopied("Couldn't copy. Select the handle instead."))} className={`${button} border`}>Copy</button>
+              <button type="button" onClick={() => navigator.clipboard.writeText(payment.zelleHandle!).then(() => setCopied('Copied.'), () => setCopied("Couldn't copy. Select the handle instead."))} className="btn-secondary">Copy</button>
             </p>
           )}
           <p role="status" aria-live="polite" className="mb-4 text-sm empty:mb-0">{copied}</p>
           <label className="mb-1 block" htmlFor="contribute-name">Your name</label>
           <LimitedInput id="contribute-name" required value={name} onChange={(e) => setName(e.target.value)} max={NAME_MAX} disabled={isPending} readOnly={sent} describedBy={[lockedHint]} className={`${field} mb-4`} />
           <label className="mb-1 block" htmlFor="contribute-message">Message to the owner (optional)</label>
-          <LimitedTextarea id="contribute-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} readOnly={sent} describedBy={[lockedHint]} className="mb-4 w-full rounded border px-2 py-1" />
-          {sent && <p id="contribute-locked" className="mb-4 text-sm text-slate-700">To change your details, cancel and start again.</p>}
-          <p role="alert" className="mb-4 text-red-600 empty:mb-0">{error?.message}</p>
+          <LimitedTextarea id="contribute-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} readOnly={sent} describedBy={[lockedHint]} className="field mb-4" />
+          {sent && <p id="contribute-locked" className="mb-4 text-sm text-muted">To change your details, cancel and start again.</p>}
+          <p role="alert" className="mb-4 text-error empty:mb-0">{error?.message}</p>
           <div className="flex gap-2">
-            <button type="button" onClick={send} disabled={isPending || amount === null || !name.trim()} className={`${button} bg-slate-900 text-white`}>I&apos;ve sent it</button>
-            <button type="button" onClick={onClose} disabled={isPending} className={`${button} border`}>Cancel</button>
+            <button type="button" onClick={send} disabled={isPending || amount === null || !name.trim()} className="btn-primary">I&apos;ve sent it</button>
+            <button type="button" onClick={onClose} disabled={isPending} className="btn-secondary">Cancel</button>
           </div>
         </>
       )}
