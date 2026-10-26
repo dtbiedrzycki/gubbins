@@ -57,7 +57,7 @@ export function YourHolds({ slug, holds, itemTitles }: YourHoldsProps) {
   }
 
   return (
-    <section aria-labelledby="your-holds-heading" className="space-y-3 rounded-[18px] border-[1.5px] border-line bg-white p-4">
+    <section aria-labelledby="your-holds-heading" className="space-y-3 break-words rounded-[18px] border-[1.5px] border-line bg-white p-4">
       <h2 ref={sectionHeading} id="your-holds-heading" tabIndex={-1} className="font-display text-2xl">Your holds</h2>
       <p role="status" aria-live="polite" className="font-bold text-moss">{outcome?.ok ? outcome.message : ''}</p>
       <p role="alert" className="text-error">{outcome && !outcome.ok ? outcome.message : ''}</p>
@@ -77,7 +77,7 @@ export function YourHolds({ slug, holds, itemTitles }: YourHoldsProps) {
                       return () => { cardHeadings.current.delete(hold.holdId); };
                     }}
                     tabIndex={-1}
-                    className="min-w-0 break-words font-bold"
+                    className="min-w-0 font-bold"
                   >
                     {itemTitle}
                   </h3>
