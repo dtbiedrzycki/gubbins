@@ -22,12 +22,10 @@ from the repo's own Fontsource packages.
   and the hold and chip-in dialogs.
 - Serve the two typefaces from Gubbins itself. No request leaves for a
   third party, for guests' privacy.
-- Change three pieces of wording: a held item's status line reads
-  "<title> is promised." instead of "<title> is held."; the list header
-  gains the hold-length line "When you hold an item, it's held for you
-  for N days." ("1 day" when N is 1); and the guest key screen gains the
-  heading "Knock, knock." and the hint "Enter the guest key from your
-  invite."
+- Add two pieces of wording: the list header gains the hold-length line
+  "When you hold an item, it's held for you for N days." ("1 day" when N
+  is 1); and the guest key screen gains the heading "Knock, knock." and
+  the hint "Enter the guest key from your invite."
 
 ## Non-goals (deferred)
 
@@ -38,13 +36,14 @@ from the repo's own Fontsource packages.
 - Motion beyond the one seal stamp described below.
 - Any other copy change. Buttons keep their labels ("View list",
   "Hold this item", "Chip in", "Mark as purchased", "Extend hold",
-  "Release hold"). Purchased items keep "<title> has been purchased."
+  "Release hold"). Held items keep "<title> is held." and purchased items
+  keep "<title> has been purchased."
   "Your holds" keeps "Held until …".
 
 ## Anti-goals
 
 - Jokes in button labels or error messages. Whimsy lives in drawings,
-  type and the one status word.
+  type and the key screen's greeting.
 - Any loss of accessibility: live regions, focus handling, the
   `progressbar` role and the 44px touch targets all stay.
 
@@ -52,8 +51,7 @@ from the repo's own Fontsource packages.
 
 - PRs of at most 10 changed files each.
 - No behaviour changes. Existing unit and e2e tests pass unchanged,
-  except where they assert the "is held." wording, and the e2e
-  hold-length check, which is scoped to the dialog because the new
+  except the e2e hold-length check, which is scoped to the dialog because the new
   header repeats the phrase.
 - No new runtime dependency apart from the two Fontsource font packages.
 - Verify each PR with the `verifying-gubbins-locally` skill (`--e2e` when
@@ -75,7 +73,7 @@ from the repo's own Fontsource packages.
 | wax    | `#9E2A45` | the wax seal                                 |
 
 Errors keep a red that passes contrast on paper; success messages in
-"Your holds" use moss. The list's status line (promised, purchased, and
+"Your holds" use moss. The list's status line (held, purchased, and
 the pledge thank-you) stays ink, in the display italic.
 
 ### Type
@@ -106,7 +104,7 @@ rules, not cards. Each row keeps its current content and order.
 - **Held item** (status `held`, meaning every unit is taken; *builder's
   call:* a guest holding one of several units sees no seal, since the
   item is still available and their hold shows under "Your holds"): a wax seal (round, wax red, "G" monogram, slightly
-  rotated, `aria-hidden`) beside the status line "<title> is promised.".
+  rotated, `aria-hidden`) beside the status line "<title> is held.".
 - **Purchased item:** the same static wax seal beside the status line
   "<title> has been purchased."
 - **Group gift:** a small wishing jar (CSS drawing, gold coins filling to

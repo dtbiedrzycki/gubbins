@@ -105,9 +105,9 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
   <section class="theme">
     <div class="why">
       <h2>Storybook</h2>
-      <p>The list reads like a page from a picture book and sits behind a round green door. The whimsy lives in the drawings, the type and one status word. Buttons and errors say exactly what they do.</p>
+      <p>The list reads like a page from a picture book and sits behind a round green door. The whimsy lives in the drawings, the type and the key screen’s greeting. Buttons and errors say exactly what they do.</p>
       <h3>The bold thing</h3>
-      <p>Wax seals. A promised or purchased gift carries a still seal. A new hold’s seal stamps in once under “Your holds”. Group gifts fill a wishing jar with gold coins.</p>
+      <p>Wax seals. A held or purchased gift carries a still seal. A new hold’s seal stamps in once under “Your holds”. Group gifts fill a wishing jar with gold coins.</p>
       <h3>Palette</h3>
       <div class="swatches" aria-label="Lilac paper, plum ink, line, moss green, petal pink, gold, sealing wax">
         <span style="background:#F6F3FB"></span><span style="background:#2E2447"></span><span style="background:#DCD3EA"></span><span style="background:#34603F"></span><span style="background:#F2CBD6"></span><span style="background:#D9A93A"></span><span style="background:#9E2A45"></span>
@@ -115,7 +115,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
       <h3>Type</h3>
       <p>IM Fell English for headings and, in italic, the status line. Alegreya Sans for prices, buttons and everything else. Both are self-hosted.</p>
       <h3>Wording</h3>
-      <ul><li>Key screen: “Knock, knock.” and “Enter the guest key from your invite.”</li><li>List header: “When you hold an item, it’s held for you for 3 days.”</li><li>Held: “&lt;title&gt; is promised.”</li><li>Purchased: “&lt;title&gt; has been purchased.”</li></ul>
+      <ul><li>Key screen: “Knock, knock.” and “Enter the guest key from your invite.”</li><li>List header: “When you hold an item, it’s held for you for 3 days.”</li><li>Held: “&lt;title&gt; is held.”</li><li>Purchased: “&lt;title&gt; has been purchased.”</li></ul>
     </div>
     <div class="phones" data-mock></div>
   </section>
@@ -133,7 +133,7 @@ const ITEMS = [
 ];
 const pct = (g) => Math.floor(g.pledged * 100 / g.of);
 const seal = (stamp = false) => `<span class="seal${stamp ? ' stamp' : ''}" aria-hidden="true">G</span>`;
-const statusLine = (i) => i.state === 'held' ? `${i.t} is promised.` : `${i.t} has been purchased.`;
+const statusLine = (i) => i.state === 'held' ? `${i.t} is held.` : `${i.t} has been purchased.`;
 const store = (i) => i.url ? `<p><a href="#" onclick="return false">View in store<span class="sr-only"> for ${i.t} (opens in a new tab)</span></a></p>` : '';
 const holdActions = () => `<div class="act"><button type="button" class="btn">Mark as purchased</button><button type="button" class="btn ghost">Extend hold</button><button type="button" class="btn ghost">Release hold</button></div>`;
 const holdCard = (title, stamp) => `<li class="hold"><div class="hold-title">${seal(stamp)}<span>${title}</span></div><p>Held until Fri, Oct 30.</p>${holdActions()}</li>`;
@@ -168,7 +168,7 @@ host.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-hold]');
   if (!btn) return;
   const i = ITEMS.find((x) => x.id === btn.dataset.hold);
-  // A multi-unit item stays available with one fewer left; the last unit makes it promised.
+  // A multi-unit item stays available with one fewer left; the last unit makes it held.
   if (i.left > 1) i.left -= 1; else i.state = 'held';
   btn.closest('[data-item]').outerHTML = item(i);
   host.querySelector('[data-holds]').insertAdjacentHTML('beforeend', holdCard(i.t, true));

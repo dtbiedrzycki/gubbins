@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Restyle the guest view (key screen, list, "Your holds", hold and chip-in dialogs) in the Storybook look, with no behaviour change apart from the "is promised." wording, the hold-length header line and the key-screen heading and hint.
+**Goal:** Restyle the guest view (key screen, list, "Your holds", hold and chip-in dialogs) in the Storybook look, with no behaviour change apart from the hold-length header line and the key-screen heading and hint.
 
 **Architecture:** Palette, fonts and the stamp animation live as Tailwind v4 `@theme` tokens in `apps/web/src/index.css`, with three `@utility` classes for buttons and fields. Components swap their slate classes for those tokens. One small `Seal` component draws the wax seal for the list rows and the "Your holds" cards. Fonts come from Fontsource and are bundled by Vite.
 
@@ -76,36 +76,31 @@
 - [ ] **Step 6:** Run the ListPage and GuestKeyGate tests. Expected: PASS. Then run the full verify (with `--e2e`, since this PR targets main). Expected: green.
 - [ ] **Step 7:** Commit: `feat(web): Storybook fonts, colours and guest key screen`.
 
-### Task 2: Seal, jar and "is promised" in the list
+### Task 2: Seal and jar in the list
 
-**Files** (6):
+**Files** (4):
 - Create: `apps/web/src/features/holds/Seal.tsx`
 - Modify: `apps/web/src/features/holds/ItemView.tsx`, `apps/web/src/features/holds/ItemAnnouncement.tsx`
-- Test: `apps/web/src/features/holds/ItemView.test.tsx`, `apps/web/src/pages/ListPage.test.tsx`, `e2e/guest-manages-a-hold.spec.ts`
+- Test: `apps/web/src/features/holds/ItemView.test.tsx`
 
 **Interfaces:**
 - Produces `export function Seal({ stamp = false }: { stamp?: boolean }): JSX.Element`:
   - It renders `<span aria-hidden="true" data-seal className="…">G</span>`: a 44px circle, flex-none, wax fill with a radial highlight, `rotate(-8deg)`, the "G" in `font-display`.
   - When `stamp` is true, it adds `motion-safe:animate-stamp`.
 
-- [ ] **Step 1: Update the wording tests:**
-  - `ItemView.test.tsx`: the `['held', 'Stroller is held.']` row and the `toHaveTextContent('Stroller is held.')` become `'Stroller is promised.'`.
-  - `ListPage.test.tsx`: both `'Stroller is held.'` become `'Stroller is promised.'`.
-  - `e2e/guest-manages-a-hold.spec.ts:39`: the same change.
-- [ ] **Step 2: Add the failing tests** in `ItemView.test.tsx`:
+- [ ] **Step 1: Add the failing tests** in `ItemView.test.tsx`:
   - `it('shows a seal beside a held or purchased item, and none on an available one', …)`: render each of the three statuses. Expect `container.querySelector('[data-seal]')` to be non-null for held and purchased, and null for available. Expect no `motion-safe:animate-stamp` in the seal's class for either.
   - `it('fills the jar no further than full when a gift is overfunded', …)`: for a group item with `priceMinor: 1000`, `pledgedMinor: 1500`, expect `container.querySelector('[data-jar-fill]')` to have `style.height === '100%'`.
-- [ ] **Step 3:** Run `npm test -w @gubbins/web -- --testTimeout=30000 src/features/holds/ItemView.test.tsx src/pages/ListPage.test.tsx`. Expected: FAIL.
-- [ ] **Step 4:** Implement `Seal`.
-- [ ] **Step 5:** Change `ItemView`:
-  - The held message becomes `` `${item.title} is promised.` ``.
+- [ ] **Step 2:** Run `npm test -w @gubbins/web -- --testTimeout=30000 src/features/holds/ItemView.test.tsx`. Expected: FAIL.
+- [ ] **Step 3:** Implement `Seal`.
+- [ ] **Step 4:** Change `ItemView`:
   - The title is `<h2 className="font-display text-[1.3rem] leading-tight text-balance">`.
   - For held or purchased, wrap the `<Seal />` and `<ItemAnnouncement>` in `flex items-center gap-2.5`, with the announcement `min-w-0`. The announcement stays mounted for available items, so keep it outside any status conditional, as now.
   - For a group gift, show the jar (a `div` 46×58px with an ink border, a moss lid via `before:`, and a `data-jar-fill` child at `height: ${Math.min(pct, 100)}%` with gold coins) to the left of the pledged text and "Chip in". Keep the `<progress>`, restyled to `accent-moss h-2 w-full`.
   - Links become `text-moss underline`, and buttons use `btn-primary`.
-- [ ] **Step 6:** Change `ItemAnnouncement` from `text-green-700` to `font-display italic text-ink`. The role and `aria-live` are unchanged.
-- [ ] **Step 7:** Run the tests from Step 3. Expected: PASS. Run verify (tests level). Expected: green.
-- [ ] **Step 8:** Commit: `feat(web): wax seals, wishing jar and "is promised" on the guest list`.
+- [ ] **Step 5:** Change `ItemAnnouncement` from `text-green-700` to `font-display italic text-ink`. The role and `aria-live` are unchanged.
+- [ ] **Step 6:** Run the tests from Step 2. Expected: PASS. Run verify (tests level). Expected: green.
+- [ ] **Step 7:** Commit: `feat(web): wax seals, wishing jar and on the guest list`.
 
 ### Task 3: "Your holds" panel and the stamp
 
