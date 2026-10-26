@@ -105,7 +105,7 @@ describe('ItemView', () => {
     expect(screen.queryByRole('button', { name: /^Hold this item/ })).not.toBeInTheDocument();
   });
 
-  it.each(['held', 'purchased'] as const)('marks a %s item with a wax seal that does not stamp in', (status) => {
+  it.each(['held', 'purchased'] as const)('marks a %s item with a wax seal that does not stamp in and is hidden from screen readers', (status) => {
     renderItem({ status });
     const seal = document.querySelector('[data-seal]');
     expect(seal).toHaveAttribute('aria-hidden', 'true');
@@ -119,9 +119,12 @@ describe('ItemView', () => {
 
   it('fills the jar to 100%, not 150%, when $15.00 is pledged toward $10.00', () => {
     renderItem({ type: 'group', priceMinor: 1000, pledgedMinor: 1500, availableUnits: 0 });
-    const jarFill = document.querySelector<HTMLElement>('[data-jar-fill]')!;
-    expect(jarFill.style.height).toBe('100%');
-    expect(jarFill.parentElement).toHaveAttribute('aria-hidden', 'true');
+    expect(document.querySelector<HTMLElement>('[data-jar-fill]')!.style.height).toBe('100%');
+  });
+
+  it('hides the wishing jar from screen readers, since the pledged text says the same', () => {
+    renderItem({ type: 'group', priceMinor: 1000, pledgedMinor: 500, availableUnits: 0 });
+    expect(document.querySelector('[data-jar-fill]')!.parentElement).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('keeps the Hold button last in its stack, so space-y adds no margin below it', () => {
