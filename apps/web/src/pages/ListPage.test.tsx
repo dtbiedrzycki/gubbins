@@ -42,7 +42,7 @@ describe('ListPage', () => {
     myHolds: [{ ...hold, itemId: 'item-2' }],
   };
 
-  it('shows the list title and a card for each item', async () => {
+  it('shows the list title and a heading for each item', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(twoItems)));
     renderListPage();
 
@@ -54,7 +54,7 @@ describe('ListPage', () => {
     expect(within(screen.getByRole('region', { name: 'Your holds' })).getByRole('heading', { name: 'Cot' })).toBeInTheDocument();
   });
 
-  it('tells guests how long a hold keeps an item', async () => {
+  it('tells guests a hold lasts 3 days', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
     renderListPage();
 
