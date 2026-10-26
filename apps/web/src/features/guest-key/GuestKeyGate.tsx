@@ -20,7 +20,7 @@ export function GuestKeyGate({ slug, onSuccess }: GuestKeyGateProps) {
     <div className="mx-auto max-w-sm space-y-6 text-center">
       <div className="door" aria-hidden="true" />
       <div className="space-y-2">
-        <h1 className="font-display text-[2.1rem] leading-tight">Knock, knock.</h1>
+        <h1 className="font-display text-[2.05rem] leading-tight">Knock, knock.</h1>
         <p className="text-muted">Enter the guest key from your invite.</p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 text-left">
