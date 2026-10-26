@@ -66,7 +66,7 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
       <LimitedInput id="hold-name" required describedBy={['hold-name-privacy', sent && 'hold-details-locked']} value={name} onChange={(e) => setName(e.target.value)} max={NAME_MAX} disabled={isPending} readOnly={sent} className="field mb-1" />
       <p id="hold-name-privacy" className="mb-4 text-sm text-muted">Your name is only shared with the list owner.</p>
       <label className="mb-1 block" htmlFor="hold-message">Message to the owner (optional)</label>
-      <LimitedTextarea id="hold-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} readOnly={sent} describedBy={[sent && 'hold-details-locked']} className="field mb-4 py-1" />
+      <LimitedTextarea id="hold-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} readOnly={sent} describedBy={[sent && 'hold-details-locked']} className="field mb-4" />
       {sent && <p id="hold-details-locked" className="mb-4 text-sm text-muted">To change your details, cancel and start again.</p>}
       <p role="alert" className="mb-4 text-error empty:mb-0">{error?.message}</p>
       <div className="flex gap-2">

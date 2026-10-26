@@ -89,7 +89,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
         <>
           {remainingMinor > 0 && (
             <label className="mb-4 flex min-h-11 items-center gap-2">
-              <input type="radio" checked={coverRest} onChange={() => { setCoverRest(true); setOther(''); }} className="size-5" />
+              <input type="radio" checked={coverRest} onChange={() => { setCoverRest(true); setOther(''); }} className="size-5 accent-moss" />
               Cover the rest ({formatMoney(remainingMinor)})
             </label>
           )}
@@ -128,7 +128,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           <label className="mb-1 block" htmlFor="contribute-name">Your name</label>
           <LimitedInput id="contribute-name" required value={name} onChange={(e) => setName(e.target.value)} max={NAME_MAX} disabled={isPending} readOnly={sent} describedBy={[lockedHint]} className={`${field} mb-4`} />
           <label className="mb-1 block" htmlFor="contribute-message">Message to the owner (optional)</label>
-          <LimitedTextarea id="contribute-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} readOnly={sent} describedBy={[lockedHint]} className="field mb-4 py-1" />
+          <LimitedTextarea id="contribute-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} readOnly={sent} describedBy={[lockedHint]} className="field mb-4" />
           {sent && <p id="contribute-locked" className="mb-4 text-sm text-muted">To change your details, cancel and start again.</p>}
           <p role="alert" className="mb-4 text-error empty:mb-0">{error?.message}</p>
           <div className="flex gap-2">
