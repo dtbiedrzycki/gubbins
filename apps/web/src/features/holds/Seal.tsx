@@ -3,7 +3,7 @@ export interface SealProps {
   stamp?: boolean;
 }
 
-/** The wax seal beside a promised or purchased gift. Decorative: the status text beside it says the same. */
+/** The wax seal beside a held or purchased gift. Decorative: the status text beside it says the same. */
 export function Seal({ stamp = false }: SealProps) {
   // transform, not -rotate-*: Tailwind's rotate-* sets the separate rotate property, which adds to the
   // stamp keyframes' transform. Keep -8deg equal to the stamp's "to" frame in index.css.
