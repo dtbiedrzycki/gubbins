@@ -69,6 +69,12 @@ label { display: block; margin-bottom: 4px; font-weight: 700; }
 .points { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .points li { display: flex; gap: 12px; }
 .eyebrow { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; padding: 4px; border: 1.5px solid var(--ink); border-radius: 22px; background: #fff; }
+.seg label { display: grid; place-items: center; min-height: 40px; margin: 0; border-radius: 18px; cursor: pointer; }
+.seg input { position: absolute; opacity: 0; }
+.seg label:has(input:checked) { background: var(--ink); color: #fff; }
+.seg label:has(input:focus-visible) { outline: 3px solid #3B82F6; outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 footer.f { margin-top: auto; padding: 20px 0 28px; border-top: 1px solid var(--line); text-align: center; font-size: 14px; color: var(--muted); }
 ol.steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
 </style>
@@ -170,13 +176,20 @@ ol.steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column;
     </figure>
 
     <figure>
-      <figcaption>Chip in: paying with Zelle</figcaption>
+      <figcaption>Chip in: choose Venmo or Zelle</figcaption>
       <div class="phone"><div class="s dim">
         <div class="dialog" role="dialog" aria-labelledby="zt">
           <p id="zt" class="disp" style="font-size:1.3rem;line-height:1.2">Chip in toward “Espresso machine”</p>
-          <a href="#venmo" class="btn" style="text-decoration:none;text-align:center;color:#fff">Pay $25.00 with Venmo</a>
-          <section class="card" aria-labelledby="zh">
-            <h2 id="zh" style="margin:0;font-size:17px">Or pay with Zelle</h2>
+          <fieldset class="seg">
+            <legend class="sr-only">Pay with</legend>
+            <label><input type="radio" name="pay" value="venmo" checked data-pay> Venmo</label>
+            <label><input type="radio" name="pay" value="zelle" data-pay> Zelle</label>
+          </fieldset>
+          <section class="card" data-panel="venmo">
+            <a href="#venmo" class="btn" style="text-decoration:none;text-align:center;color:#fff;align-self:stretch">Pay $25.00 with Venmo</a>
+            <p class="small muted">Opens Venmo with the payment information pre-filled.</p>
+          </section>
+          <section class="card" data-panel="zelle" hidden>
             <ol class="steps">
               <li>Open your bank’s app and choose <strong>Send money with Zelle</strong>.</li>
               <li>Send <strong>$25.00</strong> to the handle below.</li>
@@ -236,6 +249,9 @@ document.querySelectorAll('[data-toggle]').forEach((button) => button.addEventLi
 document.querySelectorAll('[data-filter]').forEach((chip) => chip.addEventListener('click', () => {
   document.querySelectorAll('[data-filter]').forEach((c) => c.setAttribute('aria-pressed', String(c === chip)));
   document.querySelectorAll('.items li').forEach((li) => { li.hidden = chip.dataset.filter !== 'all' && li.dataset.status !== chip.dataset.filter; });
+}));
+document.querySelectorAll('[data-pay]').forEach((radio) => radio.addEventListener('change', () => {
+  document.querySelectorAll('[data-panel]').forEach((panel) => { panel.hidden = panel.dataset.panel !== radio.value; });
 }));
 </script>
 </body>

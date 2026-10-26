@@ -120,10 +120,23 @@ create/ready. Open it after `npm ci` so the self-hosted fonts load.
    - rendered without `dangerouslySetInnerHTML`
    - clamped to 2 lines with a "Show more" / "Show less" button
      (`aria-expanded`), shown only when the text overflows
-8. **Zelle instructions.** In the contribute dialog, under "Or pay with
-   Zelle", three steps: open your bank's app and choose Send
-   money with Zelle; send the amount to the handle (with the existing
-   Copy button); add the gift name as the memo. Venmo is unchanged.
+8. **Choose Venmo or Zelle, with Zelle steps.** In the contribute
+   dialog's pay step, when the list has both handles, a two-option switch
+   "Venmo | Zelle" (a radio group labelled "Pay with") shows one method's
+   panel at a time; with one handle, that panel shows alone and there is
+   no switch. Name, message and "I've sent it" stay below, whichever is
+   chosen.
+   - **Venmo panel:** the existing "Pay $X with Venmo" link (the link
+     itself is unchanged), then "Opens Venmo with the payment information
+     pre-filled." No specifics: the note doesn't reach Venmo's mobile app.
+   - **Zelle panel:** three steps: open your bank's app and choose Send
+     money with Zelle; send the amount to the handle below (with the
+     existing Copy button); add the gift name as the memo.
+   - **Default and memory:** Venmo is selected first. The guest's choice
+     is remembered in this browser's `localStorage` (one key for the app,
+     not per list), read and written inside try/catch so a blocked store
+     just means Venmo again. A remembered method the list doesn't offer
+     falls back to the one it does.
 9. **Home page** at `/`: "Gubbins — A wishlist that respects the people
    using it.", one sentence on what it does, then four points: "No
    tracking." ("No accounts, no profiles, and nothing that follows you
