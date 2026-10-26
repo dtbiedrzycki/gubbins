@@ -21,8 +21,12 @@ and footer are **not** part of the design (owner ruling, below).
   and the hold and chip-in dialogs.
 - Serve the two typefaces from Gubbins itself. No request leaves for a
   third party (owner ruling: privacy).
-- Change one piece of wording: a held item's status line reads
-  "<title> is promised." instead of "<title> is held."
+- Change three pieces of wording: a held item's status line reads
+  "<title> is promised." instead of "<title> is held."; the list header
+  gains the hold-length line "When you hold an item, it's held for you
+  for N days." ("1 day" when N is 1); and the guest key screen gains the
+  heading "Knock, knock." and the hint "Enter the guest key from your
+  invite."
 
 ## Non-goals (deferred)
 
@@ -49,7 +53,9 @@ and footer are **not** part of the design (owner ruling, below).
 
 - PRs of at most 10 changed files each.
 - No behaviour changes. Existing unit and e2e tests pass unchanged,
-  except where they assert the "is held." wording.
+  except where they assert the "is held." wording, and the e2e
+  hold-length check, which is scoped to the dialog because the new
+  header repeats the phrase.
 - No new runtime dependency apart from the two Fontsource font packages.
 - Verify each PR with the `verifying-gubbins-locally` skill (`--e2e` when
   targeting main).
@@ -74,10 +80,11 @@ moss.
 
 ### Type
 
-- **IM Fell English** (regular, italic) for headings: the list title, item
-  titles, "Your holds", the gate heading, dialog titles.
+- **IM Fell English** (regular, italic) for headings (the list title, item
+  titles, "Your holds", the gate heading, dialog titles) and, in italic,
+  the list's status line.
 - **Alegreya Sans** (400, 700) for everything else, including prices,
-  buttons, fields and status lines.
+  buttons, fields and the "Your holds" status lines.
 - Both are OFL-licensed and self-hosted with `@fontsource/im-fell-english`
   and `@fontsource/alegreya-sans`, imported once in `main.tsx`. Latin
   subsets only.
@@ -85,9 +92,9 @@ moss.
 
 ### Screens
 
-**Guest key screen.** The heading is "Knock, knock." over a round green
-door drawn in CSS (moss planks, brass knob, round window), marked
-`aria-hidden`. Below it: "Enter the guest key from your invite.", then
+**Guest key screen.** A round green door drawn in CSS (moss planks,
+brass knob, round window), marked `aria-hidden`, sits above the heading
+"Knock, knock." Below it: "Enter the guest key from your invite.", then
 the existing label, field, error and "View list" button.
 
 **List.** The header shows the list title in IM Fell English, centred,
