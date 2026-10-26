@@ -64,11 +64,12 @@ describe('YourHolds', () => {
     expect(within(region).getAllByRole('button').map((b) => b.textContent)).toEqual(['Mark as purchased']);
   });
 
-  it('shows a purchased hold as done, with no actions', async () => {
+  it('shows a purchased hold as done, with its seal and no actions', async () => {
     listViews(list([purchased]));
     const region = await renderYourHolds();
 
     expect(within(region).getByText('Marked as purchased.')).toBeInTheDocument();
+    expect(region.querySelector('[data-seal]')).not.toBeNull();
     expect(within(region).queryAllByRole('button')).toEqual([]);
   });
 
@@ -178,6 +179,26 @@ describe('YourHolds', () => {
     // Let the request finish inside the test, so nothing settles after teardown.
     respond();
     await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Stroller is marked as purchased. Thank you!'));
+  });
+
+  it('stamps the seal, through motion-safe only, on a hold that appears while the page is open, and leaves earlier holds still', async () => {
+    const second: HoldView = { ...active, holdId: 'hold-2' };
+    listViews(list([active]), list([active, second]));
+    const region = await renderYourHolds();
+
+    await client.invalidateQueries();
+
+    await waitFor(() => expect(region.querySelectorAll('[data-seal]')).toHaveLength(2));
+    const [earlier, appeared] = [...region.querySelectorAll('[data-seal]')].map((seal) => seal.className.split(' '));
+    expect(earlier.filter((token) => token.includes('animate-stamp'))).toEqual([]);
+    expect(appeared.filter((token) => token.includes('animate-stamp'))).toEqual(['motion-safe:animate-stamp']);
+  });
+
+  it('shows no seal on an expired hold', async () => {
+    listViews(list([expiredBuyable]));
+    const region = await renderYourHolds();
+
+    expect(region.querySelector('[data-seal]')).toBeNull();
   });
 
   it('clears the last announcement when a new hold appears', async () => {

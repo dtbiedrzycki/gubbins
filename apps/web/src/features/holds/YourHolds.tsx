@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import type { HoldView } from '@gubbins/shared-types';
 import { HoldActions, type HoldOutcome } from './HoldActions';
 import { formatExpiry } from './formatExpiry';
+import { Seal } from './Seal';
 
 export interface YourHoldsProps {
   slug: string;
@@ -39,6 +40,8 @@ export function YourHolds({ slug, holds, itemTitles }: YourHoldsProps) {
   const cardHeadings = useRef(new Map<string, HTMLHeadingElement>());
   const holdIds = holds.map((hold) => hold.holdId);
   const [knownHoldIds, setKnownHoldIds] = useState(holdIds);
+  // Only a hold that appears while the page is open gets its seal stamped in.
+  const [initialHoldIds] = useState(() => new Set(holdIds));
   if (holdIds.some((id) => !knownHoldIds.includes(id))) {
     setKnownHoldIds(holdIds);
     if (outcome?.ok && outcome.action === 'release') setOutcome(null);
@@ -54,28 +57,31 @@ export function YourHolds({ slug, holds, itemTitles }: YourHoldsProps) {
   }
 
   return (
-    <section aria-labelledby="your-holds-heading" className="space-y-3">
-      <h2 ref={sectionHeading} id="your-holds-heading" tabIndex={-1} className="text-lg font-semibold">Your holds</h2>
-      <p role="status" aria-live="polite" className="font-medium text-green-700">{outcome?.ok ? outcome.message : ''}</p>
-      <p role="alert" className="text-red-600">{outcome && !outcome.ok ? outcome.message : ''}</p>
+    <section aria-labelledby="your-holds-heading" className="space-y-3 break-words rounded-[18px] border-[1.5px] border-line bg-white p-4">
+      <h2 ref={sectionHeading} id="your-holds-heading" tabIndex={-1} className="font-display text-2xl">Your holds</h2>
+      <p role="status" aria-live="polite" className="font-bold text-moss">{outcome?.ok ? outcome.message : ''}</p>
+      <p role="alert" className="text-error">{outcome && !outcome.ok ? outcome.message : ''}</p>
       {holds.length === 0 ? (
-        <p className="text-slate-600">Holds you place appear here.</p>
+        <p className="text-muted">Holds you place appear here.</p>
       ) : (
         <ul className="space-y-3">
           {holds.map((hold) => {
             const itemTitle = itemTitles[hold.itemId] ?? 'This item';
             return (
-              <li key={hold.holdId} className="space-y-2 rounded border border-slate-200 bg-white p-4">
-                <h3
-                  ref={(el) => {
-                    if (el) cardHeadings.current.set(hold.holdId, el);
-                    return () => { cardHeadings.current.delete(hold.holdId); };
-                  }}
-                  tabIndex={-1}
-                  className="font-medium"
-                >
-                  {itemTitle}
-                </h3>
+              <li key={hold.holdId} className="space-y-2 border-t border-line pt-3 first:border-t-0 first:pt-0">
+                <div className="flex items-center gap-2.5">
+                  {(hold.status === 'active' || hold.status === 'purchased') && <Seal stamp={!initialHoldIds.has(hold.holdId)} />}
+                  <h3
+                    ref={(el) => {
+                      if (el) cardHeadings.current.set(hold.holdId, el);
+                      return () => { cardHeadings.current.delete(hold.holdId); };
+                    }}
+                    tabIndex={-1}
+                    className="min-w-0 font-bold"
+                  >
+                    {itemTitle}
+                  </h3>
+                </div>
                 <p>{statusLine(hold)}</p>
                 <HoldActions slug={slug} hold={hold} itemTitle={itemTitle} onStart={() => setOutcome(null)} onOutcome={(next) => showOutcome(hold.holdId, next)} />
               </li>
