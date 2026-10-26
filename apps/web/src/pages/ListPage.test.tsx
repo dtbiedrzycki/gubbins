@@ -42,7 +42,7 @@ describe('ListPage', () => {
     myHolds: [{ ...hold, itemId: 'item-2' }],
   };
 
-  it('shows the list title and a card for each item', async () => {
+  it('shows the list title and a heading for each item', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(twoItems)));
     renderListPage();
 
@@ -52,6 +52,20 @@ describe('ListPage', () => {
     expect(screen.getAllByRole('button', { name: /^Hold this item/ })).toHaveLength(2);
     // The hold is on the second item, so its title comes from the hold's itemId.
     expect(within(screen.getByRole('region', { name: 'Your holds' })).getByRole('heading', { name: 'Cot' })).toBeInTheDocument();
+  });
+
+  it('tells guests a hold lasts 3 days', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
+    renderListPage();
+
+    expect(await screen.findByText("When you hold an item, it's held for you for 3 days.")).toBeInTheDocument();
+  });
+
+  it('says "1 day" for a one-day hold', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), capabilities: { holdDurationDays: 1 } })));
+    renderListPage();
+
+    expect(await screen.findByText("When you hold an item, it's held for you for 1 day.")).toBeInTheDocument();
   });
 
   it('holds the item, then shows it held and under "Your holds" with its actions', async () => {
