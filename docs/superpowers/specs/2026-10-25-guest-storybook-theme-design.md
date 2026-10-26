@@ -75,8 +75,9 @@ and footer are **not** part of the design (owner ruling, below).
 | gold   | `#D9A93A` | jar coins, door knob; never text             |
 | wax    | `#9E2A45` | the wax seal                                 |
 
-Errors keep a red that passes contrast on paper; success messages use
-moss.
+Errors keep a red that passes contrast on paper; success messages in
+"Your holds" use moss. The list's status line (promised, purchased, and
+the pledge thank-you) stays ink, in the display italic.
 
 ### Type
 
@@ -149,5 +150,6 @@ moves to "Your holds" when a hold lands, so the guest sees it.
   requests.
 - The small error-red value, as long as it passes WCAG AA on paper.
 - *Builder's call:* the loading and "Try again" screens get the paper
-  background and body font, nothing more.
+  background, the body font, the primary button and the error colour,
+  centred. Nothing more.
 - Changing the page `<title>` from "gubbins" to "Gubbins".
