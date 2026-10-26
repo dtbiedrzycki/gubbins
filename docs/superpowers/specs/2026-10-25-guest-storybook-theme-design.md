@@ -11,9 +11,10 @@ picture-book page with a round green door, wax seals and a wishing jar.
 This first pass ships for launch (guests arrive about 2026-10-27). It has
 to land in a few hours of work without changing behaviour.
 
-Reference mockup: [`docs/design/guest-themes.html`](../../design/guest-themes.html)
-("Storybook" tab). The mockup's hobgoblin copy, "Once upon a list" line
-and footer are **not** part of the design (owner ruling, below).
+Reference mockup: [`docs/design/guest-themes.html`](../../design/guest-themes.html),
+which shows the key screen and the list with this design's palette, type
+and wording. Open it from a checkout after `npm ci`; it loads the fonts
+from the repo's own Fontsource packages.
 
 ## Goals
 
