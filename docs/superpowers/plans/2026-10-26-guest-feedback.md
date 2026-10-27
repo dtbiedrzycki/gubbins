@@ -14,9 +14,9 @@
 
 - Every PR ≤ 10 changed files, generated files included (skill `small-prs`); ≤ 8 open PRs at once.
 - Verify with `~/.claude/skills/verifying-gubbins-locally/verify.sh` (add `--e2e` if the PR targets main) on a clean tree; a branch is green only when it prints `verify: all ... checks passed`.
-- Work in a worktree under your scratchpad, never in `/workspace` (peer sessions share it). Announce e2e runs to peers (`ListAgents`).
+- Work in a worktree under your scratchpad, never in `/workspace` (peer sessions share it). Announce e2e runs to peers.
 - One test per rule, at the layer that decides it (skill `testing-at-the-owning-layer`). No plan identifiers in test names or comments; ADR citations are fine in code, never in user-visible text.
-- Follow skill `reviewing-for-recurring-feedback`; rulings for this round live in `.superpowers/sdd/guest-feedback/rulings.md`.
+- Follow skill `reviewing-for-recurring-feedback`; the owner rulings for this round are in the spec.
 - Lengths are owned by the domain, enforced in entity private constructors; request schemas don't limit text; no DB length CHECKs. Migrations are edited in place (pre-release).
 - Copy rules: "held" stays "held"; no jokes in labels or status text; seals only on held (wax) and purchased/funded (gold). Promise no tracking of people and no ads; never write "no analytics" or "no metrics".
 - No request from a guest's browser to a third party (no CDN, no remote images).
@@ -36,7 +36,7 @@
 
 ## Set 1 (day 1): must-haves, then two quick wins
 
-Tasks 1–6, 8 and 9 are the 8 open PRs of this set; Task 7 is ops. Set 2 opens as set 1 merges.
+Tasks 1–6 (including 5b), 8 and 9 are the 9 PRs of this set, never more than 8 open at once (5b opens when 5 merges); Task 7 is ops. Set 2 opens as set 1 merges.
 
 ### Task 1: Guest session cookie lasts 30 days
 
@@ -58,9 +58,9 @@ Tasks 1–6, 8 and 9 are the 8 open PRs of this set; Task 7 is ops. Set 2 opens 
 - Create: `apps/web/src/features/holds/HowHoldingWorks.tsx`
 - Modify: `apps/web/src/pages/ListPage.tsx` (render it between the header and the list)
 - Modify: `apps/web/src/features/holds/HoldDialog.tsx`
-- Test: `apps/web/src/features/holds/HoldDialog.test.tsx`, `apps/web/src/pages/ListPage.test.tsx`
+- Test: `apps/web/src/features/holds/HoldDialog.test.tsx`, `apps/web/src/features/holds/ItemView.test.tsx`, `apps/web/src/pages/ListPage.test.tsx`, `e2e/guest-manages-a-hold.spec.ts` (7 files)
 
-**Interfaces:** Produces `HowHoldingWorks({ holdDurationDays }: { holdDurationDays: number })` — a `<details open>` with summary "How holding a gift works" and the spec's three steps, day/days pluralised like the header.
+**Interfaces:** Produces `HowHoldingWorks({ holdDurationDays }: { holdDurationDays: number })` — a `<details open>` with summary "How holding a gift works" and the spec's three steps, day/days pluralised like the header. Step 2 always says the hold can be extended once (ADR-0002); there is no policy flag. The box replaces the list header's one-line "When you hold an item, it's held for you for N days." sentence; remove it and update the tests and e2e that read it.
 
 - [ ] **Step 1:** ListPage test `explains holding: hold before buying, buy within 3 days, then mark it purchased or the hold ends` — asserts the summary text and the three bold step leads, with "3 days". HoldDialog test `tells the guest to come back and mark it purchased, or the hold ends after 3 days` — asserts the boxed note and subtitle "Other guests will see it's taken while you buy it.".
 - [ ] **Step 2:** Run both files → FAIL.
@@ -69,49 +69,58 @@ Tasks 1–6, 8 and 9 are the 8 open PRs of this set; Task 7 is ops. Set 2 opens 
 
 ### Task 3: Key screen says where you are
 
-**Base:** main. **Files:** Modify `apps/web/src/features/guest-key/GuestKeyGate.tsx`; Test `apps/web/src/features/guest-key/GuestKeyGate.test.tsx`.
+**Base:** main. **Files (6):** Modify `apps/web/src/features/guest-key/GuestKeyGate.tsx`; Test `apps/web/src/features/guest-key/GuestKeyGate.test.tsx`, `apps/web/src/pages/ListPage.test.tsx`, and the e2e specs that select the field by label: `e2e/guest-manages-a-hold.spec.ts`, `e2e/guest-pledges.spec.ts`, `e2e/owner-adds-items.spec.ts`.
 
 - [ ] **Step 1:** Extend "greets the guest at the door and says where the key is" to assert the two new paragraphs (spec goal 2, verbatim), the hint "The list owner sent it with your invite: three words joined by dashes." linked via `aria-describedby`, placeholder `maple-lantern-otter`, and `autocapitalize="none"`, `autocorrect="off"`, `spellcheck="false"`, `autocomplete="off"` on the input. Label becomes "Guest key".
-- [ ] **Step 2:** Run → FAIL. **Step 3:** Implement. **Step 4:** PASS; verify (`--e2e`; e2e selects the field by label — update `e2e/*.spec.ts` only if the label change breaks them, they count toward the cap); commit `feat(web): tell guests where they are and where the key comes from`.
+- [ ] **Step 2:** Run → FAIL. **Step 3:** Implement. **Step 4:** PASS; verify (`--e2e`; e2e selects the field by label — the label change breaks the three e2e specs above and `ListPage.test.tsx`); commit `feat(web): tell guests where they are and where the key comes from`.
 
 ### Task 4: Three-word guest key, at most 32 characters
 
 **Base:** main. **Files:**
 - Create: `apps/api/src/infrastructure/effLargeWordlist.ts`
 - Modify: `apps/api/src/infrastructure/TokenGeneratorCrypto.ts`, `apps/api/src/domain/value-objects/GuestKey.ts`
-- Test: `apps/api/src/infrastructure/crypto-adapters.test.ts`, create `apps/api/src/domain/value-objects/GuestKey.test.ts`
+- Test: `apps/api/src/infrastructure/crypto-adapters.test.ts`, create `apps/api/src/domain/value-objects/GuestKey.test.ts`, `apps/api/src/application/use-cases/EnterGuestKey.test.ts` (6 files)
 
 **Interfaces:**
-- `effLargeWordlist.ts` exports `EFF_LARGE_WORDLIST: readonly string[]` — the verbatim EFF large wordlist (7,776 words, one per line in a template string, split once). Source copy, already checked (sha256 `6d557f0693958fb5e650b68b5bee585eb82cf4da32965505c789e924743bc522`, words only, no dice numbers): `/tmp/claude-1000/-workspace/5d5538ba-101d-4fdf-8faa-5b36cc188cac/scratchpad/eff/raw.txt`. Header comment: source `https://www.eff.org/dice`, "© Electronic Frontier Foundation, CC BY 3.0 US", the sha256. The file stays verbatim (the filter below is code), so the attribution needs no "modified" note.
-- `TokenGeneratorCrypto.generateGuestKey()` returns three words joined by `-`, each `GUEST_KEY_WORDS[randomInt(GUEST_KEY_WORDS.length)]`, where `GUEST_KEY_WORDS = EFF_LARGE_WORDLIST.filter((w) => /^[a-z]+$/.test(w))` (drops `drop-down`, `felt-tip`, `t-shirt`, `yo-yo`; 7,772 words, ~38.8 bits). Update the bearer-secret doc comment: the guest key is no longer 24 random bytes.
+- `effLargeWordlist.ts` exports `EFF_LARGE_WORDLIST: readonly string[]` — the verbatim EFF large wordlist (7,776 words, one per line in a template string, split once). Source: download `https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt`, drop the dice-number column, and check the words-only text hashes to sha256 `6d557f0693958fb5e650b68b5bee585eb82cf4da32965505c789e924743bc522`. Header comment: source `https://www.eff.org/dice`, "© Electronic Frontier Foundation, CC BY 3.0 US", the sha256. The file stays verbatim (the filter below is code), so the attribution needs no "modified" note.
+- `TokenGeneratorCrypto.generateGuestKey()` returns three words joined by `-`, each `GUEST_KEY_WORDS[randomInt(GUEST_KEY_WORDS.length)]`, where the exported `GUEST_KEY_WORDS = EFF_LARGE_WORDLIST.filter((w) => /^[a-z]+$/.test(w))` (drops `drop-down`, `felt-tip`, `t-shirt`, `yo-yo`; 7,772 words, ~38.8 bits). Update the bearer-secret doc comment: the guest key is no longer 24 random bytes.
 - `GuestKey.MAX_LENGTH = 32` (why: old random keys are exactly 32 base64url characters; three words are at most 29). `GuestKey.from` throws `DomainValidationError('Guest key must be at most 32 characters')` above it.
 
-- [ ] **Step 1:** Tests: `GuestKey.test.ts` — `limits a guest key to 32 characters` (32 accepted, 33 rejected). `crypto-adapters.test.ts` — `generates a guest key of three lowercase words joined by dashes` (`/^[a-z]+-[a-z]+-[a-z]+$/`), and `cannot generate a guest key longer than a guest key may be` (`3 * longest word + 2 <= GuestKey.MAX_LENGTH`, computed over the filtered list, plus `GuestKey.from(generated)` does not throw). Check whether the existing "produces non-empty, distinct values" test still holds unchanged.
+- [ ] **Step 1:** Tests: `GuestKey.test.ts` — `limits a guest key to 32 characters` (32 accepted, 33 rejected). `crypto-adapters.test.ts` — `generates a guest key of three lowercase words joined by dashes` (`/^[a-z]+-[a-z]+-[a-z]+$/`), and `cannot generate a guest key longer than a guest key may be` (`3 * longest word + 2 <= GuestKey.MAX_LENGTH`, computed over the filtered list, plus `GuestKey.from(generated)` does not throw). `EnterGuestKey.test.ts` — `treats a key over 32 characters like any wrong key` (a 40-character key throws `InvalidGuestKeyError`, never a validation error; it holds because `GuestKey.matches` does not call `GuestKey.from`). Check whether the existing "produces non-empty, distinct values" test still holds unchanged.
 - [ ] **Step 2:** Run → FAIL. **Step 3:** Implement. **Step 4:** PASS; verify (`--e2e`); commit `feat(api): three-word guest keys, at most 32 characters`.
 
-### Task 5: Instance config endpoint (`SOURCE_URL`, `PRIVACY_CONTACT`)
+### Task 5: Instance config endpoint (`GET /api/instance`)
 
-**Base:** Task 1 (both touch `routes.ts` and its test). **Files (10):**
-- Create: `apps/api/src/presentation/instanceConfig.ts`, `apps/api/src/presentation/instanceConfig.test.ts`, `packages/shared-types/src/instance.ts`
-- Modify: `packages/shared-types/src/index.ts`, `apps/api/src/presentation/compositionRoot.ts`, `apps/api/src/presentation/server.ts`, `apps/api/src/presentation/routes.ts`, `apps/api/src/presentation/routes.integration.test.ts`, `apps/api/openapi.json`, `apps/web/src/api/schema.gen.ts`
+**Base:** Task 1 (both touch `routes.ts` and its test). **Files (9):**
+- Create: `apps/api/src/presentation/instanceConfig.ts`
+- Modify: `apps/api/src/presentation/compositionRoot.ts`, `apps/api/src/presentation/routes.ts`, `apps/api/src/presentation/routes.integration.test.ts`, `apps/api/src/presentation/openApiDocument.ts`, `apps/api/src/presentation/openApiDocument.test.ts`, `apps/api/src/presentation/openApiDocument.noDatabase.test.ts`, `apps/api/openapi.json`, `apps/web/src/api/schema.gen.ts`
 
 **Interfaces:**
-- `parseInstanceConfig(env: NodeJS.ProcessEnv): InstanceConfig` where `InstanceConfig = { sourceUrl: string; privacyContact: string | null }`; trims; unset/blank `SOURCE_URL` → `https://github.com/dtbiedrzycki/gubbins`; a set value must parse as an `http(s)` URL or startup fails (same style as `secretsConfig.ts`).
-- `instanceResponseSchema = z.object({ sourceUrl: z.string(), privacyContact: z.string().nullable() })`.
-- `GET /api/instance` — public (no session), returns the config. `compositionRoot` options gain `instance?: InstanceConfig`.
+- `instanceConfig.ts` exports `InstanceConfig = { sourceUrl: string; privacyContact: string | null }`, `instanceResponseSchema = z.object({ sourceUrl: z.string(), privacyContact: z.string().nullable() })` (no shared-types change) and `DEFAULT_SOURCE_URL = 'https://github.com/dtbiedrzycki/gubbins'`.
+- `AppDependencies.instance: InstanceConfig` is required; `buildDependencies` defaults it from an optional `options.instance` to `{ sourceUrl: DEFAULT_SOURCE_URL, privacyContact: null }`.
+- `GET /api/instance` (`operationId: getInstance`) — public (no session), returns `deps.instance`.
 
-- [ ] **Step 1:** `instanceConfig.test.ts`: default when unset or blank; a set URL is returned trimmed; a non-URL throws; `PRIVACY_CONTACT` blank → null. Route test: `serves the source URL and privacy contact without a session`.
+- [ ] **Step 1:** Route test `serves the source URL and privacy contact without a session`; the OpenAPI document tests list the new operation.
 - [ ] **Step 2:** FAIL. **Step 3:** Implement; regenerate OpenAPI + client. **Step 4:** PASS; verify (`--e2e`); commit `feat(api): serve the instance's source URL and privacy contact`.
+
+### Task 5b: Read the instance settings from the environment
+
+**Base:** Task 5. **Files (3):** Modify `apps/api/src/presentation/instanceConfig.ts`, `apps/api/src/presentation/server.ts` (`parseInstanceConfig(process.env)` passed to `buildDependencies`); Create `apps/api/src/presentation/instanceConfig.test.ts`.
+
+**Interfaces:** `parseInstanceConfig(env: Record<string, string | undefined>): InstanceConfig` — trims; unset/blank `SOURCE_URL` → `DEFAULT_SOURCE_URL`; a set value must parse as an `http(s)` URL or startup fails (same style as `secretsConfig.ts`); blank `PRIVACY_CONTACT` → `null`.
+
+- [ ] **Step 1:** `instanceConfig.test.ts`: default when unset or blank; a set URL is returned trimmed; a non-URL throws; `PRIVACY_CONTACT` blank → null.
+- [ ] **Step 2:** FAIL. **Step 3:** Implement. **Step 4:** PASS; verify (`--e2e`); commit `feat(api): read SOURCE_URL and PRIVACY_CONTACT from the environment`.
 
 ### Task 6: Footer
 
-**Base:** Task 5. **Files:**
+**Base:** Task 5b. **Files (9):**
 - Create: `apps/web/src/features/instance/useInstance.ts`, `apps/web/src/features/instance/Footer.tsx`, `apps/web/src/features/instance/Footer.test.tsx`
-- Modify: `apps/web/src/App.tsx` (a layout route rendering `<Outlet />` then `<Footer />`), `apps/web/src/App.test.tsx`
+- Modify: `apps/web/src/App.tsx` (a layout route rendering `<Outlet />` then `<Footer />`), `apps/web/src/App.test.tsx`, `apps/web/src/api/client.ts` (`getInstance`), `apps/web/src/pages/CreateListPage.tsx`, `apps/web/src/pages/ListPage.tsx`, `apps/web/src/pages/ManagePage.tsx` (`min-h-screen` becomes `flex-1` so the footer sits at the bottom)
 
-**Interfaces:** `useInstance()` — `useQuery({ queryKey: ['instance'], queryFn: GET /api/instance, staleTime: Infinity })`. `Footer()` renders the spec's line; while loading or on error, "Source on GitHub" uses the default upstream URL (so the license link never disappears). `eslint-feature-boundary.test.ts` may constrain imports from `features/instance` — follow it.
+**Interfaces:** `useInstance()` — `useQuery({ queryKey: ['instance'], queryFn: api.getInstance, staleTime: Infinity })`. `Footer()` renders the spec's line without the Privacy link (that link ships with the privacy page, Task 11, so it never points at a page that isn't there): "Gubbins is free software under the AGPL-3.0 · Source on GitHub"; while loading or on error, "Source on GitHub" uses the default upstream URL (so the license link never disappears). `eslint-feature-boundary.test.ts` may constrain imports from `features/instance` — follow it.
 
-- [ ] **Step 1:** Footer tests: `links the license and the source URL the server gives`; `falls back to the upstream repository when the server can't be reached`. App test: mock `/api/instance` with the `mock()` helper.
+- [ ] **Step 1:** Footer tests: `links the licence and the source URL the server gives`; `falls back to the upstream repository when the server can't be reached`. App test: mock `/api/instance` with the `mock()` helper.
 - [ ] **Step 2:** FAIL. **Step 3:** Implement. Footer styling per mockup (`border-t border-line`, centered, `text-sm text-muted`). **Step 4:** PASS; verify (`--e2e`); commit `feat(web): footer with the license and a link to the source`.
 
 ### Task 7: Make the repository public with `main` protected (ops, no PR — the main session runs it)
@@ -160,11 +169,11 @@ Tasks 1–6, 8 and 9 are the 8 open PRs of this set; Task 7 is ops. Set 2 opens 
 
 ### Task 11: Privacy page
 
-**Base:** Task 10. **Files:** Create `apps/web/src/pages/PrivacyPage.tsx`, `apps/web/src/pages/PrivacyPage.test.tsx`; Modify `apps/web/src/App.tsx`.
+**Base:** Task 10 (and Task 6's footer). **Files (5):** Create `apps/web/src/pages/PrivacyPage.tsx`, `apps/web/src/pages/PrivacyPage.test.tsx`; Modify `apps/web/src/App.tsx`, `apps/web/src/features/instance/Footer.tsx` (add " · Privacy" linking to `/privacy`), `apps/web/src/features/instance/Footer.test.tsx`.
 
 Copy follows the spec's wording rule (no tracking of people, no ads; never "no analytics"). Before writing copy, confirm each claim against the code (what `guest_pii` stores, that no email is collected, that nothing is auto-deleted yet, the 30-day guest cookie and the session-only owner cookie, self-hosted fonts). State only what is true now.
 
-- [ ] **Step 1:** Tests: `names the contact from the server when one is set`; `tells guests to contact whoever runs the site when no contact is set`.
+- [ ] **Step 1:** Tests: `names the contact from the server when one is set`; `tells guests to contact whoever runs the site when no contact is set`; Footer test `links to the privacy page`.
 - [ ] **Step 2–4:** FAIL → implement → PASS; verify (`--e2e`); commit `feat(web): privacy page`.
 
 ### Task 12: Images only from Gubbins itself
@@ -193,7 +202,7 @@ Copy follows the spec's wording rule (no tracking of people, no ads; never "no a
 
 ### Task 15: Descriptions accepted on create and add
 
-**Base:** Task 14. **Files:** Modify `packages/shared-types/src/createList.ts` (`listDescription: z.string().optional()`), `packages/shared-types/src/addItem.ts` (`description: z.string().optional()` on both variants), `apps/api/src/application/use-cases/CreateList.ts`, `apps/api/src/application/use-cases/AddItem.ts`, `apps/api/src/application/use-cases/CreateList.test.ts`, `apps/api/src/application/use-cases/AddItem.test.ts`, `apps/api/openapi.json`, `apps/web/src/api/schema.gen.ts`.
+**Base:** Task 14. **Files (7):** Modify `packages/shared-types/src/createList.ts` (`listDescription: z.string().optional()`), `packages/shared-types/src/addItem.ts` (`description: z.string().optional()` on both variants), `apps/api/src/application/use-cases/CreateList.ts` (`AddItem.ts` needs no change: the new field passes through), `apps/api/src/application/use-cases/CreateList.test.ts`, `apps/api/src/application/use-cases/AddItem.test.ts`, `apps/api/openapi.json`, `apps/web/src/api/schema.gen.ts`.
 
 - [ ] **Step 1:** One success-path assertion per use case: the persisted list/item carries the description.
 - [ ] **Step 2–4:** FAIL → implement, regenerate → PASS; verify (`--e2e`); commit `feat(api): accept descriptions when creating a list or adding an item`.
@@ -202,13 +211,13 @@ Copy follows the spec's wording rule (no tracking of people, no ads; never "no a
 
 ### Task 16: Markdown and two-line clamp components
 
-**Base:** main. **Files:** Modify `apps/web/package.json`, `package-lock.json` (add `react-markdown@10.1.0`, `remark-gfm@4.0.1`, exact versions); Create `apps/web/src/lib/Markdown.tsx`, `apps/web/src/lib/Markdown.test.tsx`, `apps/web/src/lib/ClampedText.tsx`, `apps/web/src/lib/ClampedText.test.tsx`.
+**Base:** main. **Files:** Modify `apps/web/package.json`, `package-lock.json` (add `react-markdown@10.1.0`, `remark-gfm@4.0.1`, `remark-breaks@4.0.0`, exact versions); Create `apps/web/src/lib/Markdown.tsx`, `apps/web/src/lib/Markdown.test.tsx`, `apps/web/src/lib/ClampedText.tsx`, `apps/web/src/lib/ClampedText.test.tsx`.
 
 **Interfaces:**
-- `Markdown({ text }: { text: string })` — `react-markdown` with `remark-gfm`, `skipHtml`, `allowedElements={['p','br','strong','em','ul','ol','li','a']}`, `unwrapDisallowed`, a `urlTransform` that returns the URL only for `http:`/`https:` (else `''`, and the link renders as text), links `target="_blank" rel="noopener noreferrer nofollow ugc"`.
+- `Markdown({ text }: { text: string })` — `react-markdown` with `remark-gfm` and `remark-breaks` (a single newline is a line break, so a shipping address typed one line per row stays that way), `skipHtml`, `allowedElements={['p','br','strong','em','ul','ol','li','a']}`, `unwrapDisallowed`, a `urlTransform` that returns the URL only for `http:`/`https:` (else `''`, and the link renders as text), links `target="_blank" rel="noopener noreferrer nofollow ugc"`.
 - `ClampedText({ children, id })` — clamps to 2 lines (`line-clamp-2`); measures `scrollHeight > clientHeight` after layout and on resize; renders "Show more"/"Show less" (`aria-expanded`, `aria-controls={id}`) only when it overflows.
 
-- [ ] **Step 1:** Markdown tests: `renders bold, italics, lists and links`; `turns a bare https URL into a link`; `drops javascript: and data: links, keeping the text`; `renders no image and no raw HTML` (`container.querySelector('img, script')` is null for `![x](http://e.com/a.png)` and `<img src=x>`); `opens links in a new tab without passing on the page`. ClampedText: `offers Show more only when the text overflows two lines` (stub `scrollHeight`/`clientHeight`); `toggles between Show more and Show less`.
+- [ ] **Step 1:** Markdown tests: `renders bold, italics, lists and links`; `turns a bare https URL into a link`; `drops javascript: and data: links, keeping the text`; `keeps each line of a multi-line address on its own line`; `keeps the text of headings, code and quotes without their elements`; `renders no image and no raw HTML` (`container.querySelector('img, script')` is null for `![x](http://e.com/a.png)` and `<img src=x>`); `opens links in a new tab without passing on the page`. ClampedText: `offers Show more only when the text overflows two lines` (stub `scrollHeight`/`clientHeight`); `toggles between Show more and Show less`.
 - [ ] **Step 2–4:** FAIL → implement → PASS; verify (`--e2e`); commit `feat(web): safe markdown and a two-line clamp`.
 
 ### Task 17: Descriptions in the list view
@@ -236,7 +245,7 @@ Copy follows the spec's wording rule (no tracking of people, no ads; never "no a
 
 ### Task 20: Docs
 
-**Base:** main, last. **Files:** `docs/adr/0052-*.md` (amend: word keys, 7,772 words, ~38.8 bits, 32-character cap, reliance on unbuilt rate limiting with the spec's brute-force estimates), `docs/spec/access-identity.md` (30-day guest cookie; `/wishlists/:slug/manage`), `docs/spec/guest-ux.md` and `docs/spec/holds.md` (route paths), `docs/deploy.md` (`SOURCE_URL`, `PRIVACY_CONTACT`), `README.md` (create at `/wishlists/new`).
+**Base:** main, last. **Files:** `docs/adr/0052-*.md` (amend: word keys, 7,772 words, ~38.8 bits, 32-character cap, reliance on unbuilt rate limiting with the spec's brute-force estimates), `docs/spec/access-identity.md` (30-day guest cookie; every old route shape), `docs/spec/guest-ux.md`, `docs/spec/holds.md`, `docs/spec/privacy.md`, `docs/spec/threat-model-summary.md` and `docs/spec/owner-dashboard.md` (route paths; grep `docs/spec` for `/{slug}` to catch the rest), `docs/deploy.md` and `.env.example` (`SOURCE_URL`, `PRIVACY_CONTACT`), `README.md` (create at `/wishlists/new`). That is 10 files; if the grep finds more, split into Task 20 and 20b.
 
 - [ ] **Step 1:** Make the edits; `verify.sh --e2e` (its docs-links job checks links); commit `docs: word keys, 30-day guest session, new routes, instance settings`.
 
@@ -244,6 +253,6 @@ Copy follows the spec's wording rule (no tracking of people, no ads; never "no a
 
 ## Execution notes (main session)
 
-- Create `.superpowers/sdd/guest-feedback/rulings.md` from the spec's owner rulings before dispatching the first implementer.
+- Write the spec's owner rulings into a scratch rulings file before dispatching the first implementer.
 - Per task: implementer subagent → R1 reviewer → fixer → R2 on changed PRs only (skill `running-review-rounds`). Open each PR as ready once verified.
 - Merge-ups: once per set, through the highest ready PR only.
