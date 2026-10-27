@@ -13,6 +13,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn('key_gen', 'integer', (col) => col.notNull())
     .addColumn('venmo_handle', 'text')
     .addColumn('zelle_handle', 'text')
+    .addColumn('description', 'text')
     .addColumn('created_at', 'text', (col) => col.notNull())
     .execute();
 
@@ -24,6 +25,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn('quantity', 'integer', (col) => col.notNull())
     .addColumn('url', 'text')
     .addColumn('price_minor', 'integer')
+    .addColumn('description', 'text')
     .addColumn('created_at', 'text', (col) => col.notNull())
     .addCheckConstraint('items_type_known', sql`type IN ('single', 'group')`)
     // A group gift is priced and is one gift, not a count. A backstop: the domain already refuses it.

@@ -10,7 +10,7 @@ export class ItemRepositoryKysely implements ItemRepository {
     const now = new Date().toISOString();
     await this.db.insertInto('items').values({
       id: item.id.value, wishlist_id: item.wishlistId.value, type: item.type, title: item.title,
-      quantity: item.quantity, url: item.url, price_minor: item.priceMinor, created_at: now,
+      quantity: item.quantity, url: item.url, price_minor: item.priceMinor, description: item.description, created_at: now,
     }).execute();
     await this.db.insertInto('item_state').values({
       item_id: item.id.value, seq: item.seq, updated_at: now,
@@ -27,7 +27,7 @@ export class ItemRepositoryKysely implements ItemRepository {
       .orderBy('items.created_at').orderBy('items.id')
       .execute();
     return rows.map((row) => ({
-      id: row.id, wishlistId: row.wishlist_id, type: row.type, title: row.title, quantity: row.quantity, url: row.url, priceMinor: row.price_minor,
+      id: row.id, wishlistId: row.wishlist_id, type: row.type, title: row.title, quantity: row.quantity, url: row.url, priceMinor: row.price_minor, description: row.description,
       seq: row.seq,
     }));
   }

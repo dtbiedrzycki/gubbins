@@ -10,6 +10,7 @@ export interface WishlistsTable {
   key_gen: number;
   venmo_handle: string | null;
   zelle_handle: string | null;
+  description: string | null;
   created_at: string;
 }
 
@@ -21,6 +22,7 @@ export interface ItemsTable {
   quantity: number;
   url: string | null;
   price_minor: number | null;
+  description: string | null;
   created_at: string;
 }
 

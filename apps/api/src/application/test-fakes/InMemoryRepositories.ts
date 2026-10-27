@@ -16,7 +16,7 @@ import type { WishlistRepository } from '../ports/WishlistRepository.js';
 
 const toRow = (item: Item): ItemRow => ({
   id: item.id.value, wishlistId: item.wishlistId.value, type: item.type, title: item.title,
-  quantity: item.quantity, url: item.url, priceMinor: item.priceMinor, seq: item.seq,
+  quantity: item.quantity, url: item.url, priceMinor: item.priceMinor, description: item.description, seq: item.seq,
 });
 
 /**
@@ -106,7 +106,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
     return Wishlist.reconstitute({
       id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
       ownerToken: wishlist.ownerToken.value, key: wishlist.key.value, keyGen: wishlist.keyGen, asOf: now,
-      paymentMethods: wishlist.paymentMethods,
+      paymentMethods: wishlist.paymentMethods, description: wishlist.description,
       items,
     });
   }

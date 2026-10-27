@@ -189,6 +189,19 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(loaded?.getItem(ITEM_C2)).toMatchObject({ type: 'group', quantity: 1, priceMinor: 45000 });
     });
 
+    it("keeps a list's and an item's description, line breaks included, and none as none", async () => {
+      const wishlist = Wishlist.create({ id: LIST_C, slug: 'list-c', title: 'C', ownerToken: 'o', key: 'k', asOf: NOW, description: 'Baby shower\nsee you there' });
+      wishlist.addItem({ type: 'single', title: 'Crib', description: 'White,\nwith rails' }, { generateEntityId: () => ITEM_C1 });
+      wishlist.addItem({ type: 'single', title: 'Bib' }, { generateEntityId: () => ITEM_C2 });
+      await fx.wishlists.insert(wishlist);
+
+      const loaded = await fx.wishlists.findById(LIST_C, NOW);
+
+      expect(loaded?.description).toBe('Baby shower\nsee you there');
+      expect(loaded?.getItem(ITEM_C1).description).toBe('White,\nwith rails');
+      expect(loaded?.getItem(ITEM_C2).description).toBeNull();
+    });
+
     it('save adds a new item to the list, with its stream at seq 0', async () => {
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
       wishlist.addItem({ type: 'single', title: 'Bib' }, { generateEntityId: () => ITEM_A2 });
