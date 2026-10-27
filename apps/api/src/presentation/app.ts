@@ -46,6 +46,12 @@ export function buildApp(deps: AppDependencies, options: BuildAppOptions): Fasti
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
+  // Backstop to the markdown rules: an owner's text must never load an image from another host (it would leak guest IPs).
+  // Deliberately not the full strict CSP the privacy spec calls for.
+  app.addHook('onSend', async (_request, reply) => {
+    reply.header('Content-Security-Policy', "img-src 'self'");
+  });
+
   app.register(cookie, { secret: options.cookieSecret });
   // The OpenAPI document (apps/api/openapi.json, ADR-0077) is generated from
   // the route schemas. Swagger collects routes through an onRoute hook, so it
