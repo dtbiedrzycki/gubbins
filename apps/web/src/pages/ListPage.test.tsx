@@ -139,7 +139,7 @@ describe('ListPage', () => {
     await waitFor(() => expect(gets).toBe(3));
     const yourHolds = screen.getByRole('region', { name: 'Your holds' });
     expect(await within(yourHolds).findByRole('button', { name: 'Extend hold' })).toBeInTheDocument();
-    expect(screen.queryByLabelText('Enter the guest key')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Guest key')).not.toBeInTheDocument();
     expect(statuses).toContain(screen.getByText("Couldn't refresh the list, so it may be out of date."));
     expect(gets).toBe(3);
   });
@@ -157,7 +157,7 @@ describe('ListPage', () => {
     await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
-    expect(await screen.findByLabelText('Enter the guest key')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Guest key')).toBeInTheDocument();
   });
 
   it('moves focus to Your holds when the guest cancels after losing the item to someone else', async () => {
@@ -185,7 +185,7 @@ describe('ListPage', () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ message: 'Not found' }, { status })));
     renderListPage();
 
-    expect(await screen.findByLabelText('Enter the guest key')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Guest key')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
   });
 
@@ -197,7 +197,7 @@ describe('ListPage', () => {
     renderListPage();
 
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
-    expect(screen.queryByLabelText('Enter the guest key')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Guest key')).not.toBeInTheDocument();
   });
 
   it('shows the list once the server answers after "Try again"', async () => {
