@@ -24,6 +24,7 @@ const NAME_MAX = 100;
 const MESSAGE_MAX = 300;
 const invalidAmount = 'Enter an amount like 25 or 25.50.';
 const field = 'field mb-1';
+const PAY_METHOD_LABEL: Record<PayMethod, string> = { venmo: 'Venmo', zelle: 'Zelle' };
 
 /**
  * A real <dialog> (ADR-0024) in the HoldDialog style, mounted only while
@@ -75,7 +76,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   const amount = parseUsd(amountText);
   const offered: PayMethod[] = [payment.venmoHandle && 'venmo', payment.zelleHandle && 'zelle'].filter((m): m is PayMethod => Boolean(m));
   const method = chosenMethod && offered.includes(chosenMethod) ? chosenMethod : offered.includes('venmo') ? 'venmo' : 'zelle';
-  const waysToPay = [payment.venmoHandle && 'Venmo', payment.zelleHandle && 'Zelle'].filter(Boolean).join(' or ');
+  const waysToPay = offered.map((m) => PAY_METHOD_LABEL[m]).join(' or ');
 
   function send() {
     if (amount === null || isPending) return;
@@ -108,7 +109,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
         </>
       ) : (
         <>
-          <ol className="mb-4 list-decimal pl-5 text-sm">
+          <ol aria-label="How to chip in" className="mb-4 list-decimal pl-5 text-sm">
             <li>Check the amount, then send it with {waysToPay}.</li>
             <li>Once it has gone through, come back to this page.</li>
             <li>Add your name and choose &ldquo;I&apos;ve sent it&rdquo;, so the list shows your gift.</li>
@@ -123,8 +124,8 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
               {offered.map((option) => (
                 <label key={option} className="relative grid min-h-11 cursor-pointer place-items-center rounded-[18px] has-checked:bg-ink has-checked:text-white has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-blue-500">
                   <input type="radio" name="pay-method" value={option} checked={method === option} className="absolute opacity-0"
-                    onChange={() => { setChosenMethod(option); writePreferredPayMethod(option); }} />
-                  {option === 'venmo' ? 'Venmo' : 'Zelle'}
+                    onChange={() => { setChosenMethod(option); writePreferredPayMethod(option); setCopied(''); }} />
+                  {PAY_METHOD_LABEL[option]}
                 </label>
               ))}
             </fieldset>
@@ -137,7 +138,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           )}
           {method === 'zelle' && (
             <div className="mb-4">
-              <ol className="mb-2 list-decimal pl-5 text-sm">
+              <ol aria-label="Paying with Zelle" className="mb-2 list-decimal pl-5 text-sm">
                 <li>Open your bank&rsquo;s app and choose <strong>Send money with Zelle</strong>.</li>
                 <li>Send <strong>{amount === null ? 'the amount' : formatMoney(amount)}</strong> to the handle below.</li>
                 <li>Add &ldquo;{itemTitle}&rdquo; as the memo.</li>

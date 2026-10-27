@@ -81,14 +81,14 @@ describe('ContributeDialog', () => {
     const user = userEvent.setup();
     renderDialog({ payment });
     await continueWithTheRest(user);
-    expect(within(screen.getAllByRole('list')[0]!).getAllByRole('listitem')[0]).toHaveTextContent(`Check the amount, then send it with ${waysToPay}.`);
+    expect(within(screen.getByRole('list', { name: 'How to chip in' })).getAllByRole('listitem')[0]).toHaveTextContent(`Check the amount, then send it with ${waysToPay}.`);
   });
 
   it('lists the steps to pay and then record the gift', async () => {
     const user = userEvent.setup();
     renderDialog({ payment: { venmoHandle: null, zelleHandle: 'me@example.com' } });
     await continueWithTheRest(user);
-    expect(within(screen.getAllByRole('list')[0]!).getAllByRole('listitem').map((step) => step.textContent)).toEqual([
+    expect(within(screen.getByRole('list', { name: 'How to chip in' })).getAllByRole('listitem').map((step) => step.textContent)).toEqual([
       'Check the amount, then send it with Zelle.',
       'Once it has gone through, come back to this page.',
       'Add your name and choose \u201cI\'ve sent it\u201d, so the list shows your gift.',
@@ -126,6 +126,18 @@ describe('ContributeDialog', () => {
     expect(announcement).toHaveTextContent('Copied.');
   });
 
+  it('clears the copy message when the guest switches method', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    await chooseZelle(user);
+    await user.click(screen.getByRole('button', { name: 'Copy' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Copied.');
+
+    await user.click(screen.getByRole('radio', { name: 'Venmo' }));
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+
   it('starts on Venmo when the list offers both', async () => {
     const user = userEvent.setup();
     renderDialog();
@@ -142,7 +154,7 @@ describe('ContributeDialog', () => {
     await chooseZelle(user);
     expect(screen.queryByRole('link', { name: /with Venmo/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
-    const steps = screen.getAllByRole('list')[1]!;
+    const steps = screen.getByRole('list', { name: 'Paying with Zelle' });
     expect(steps).toHaveTextContent('Send $287.50 to the handle below.');
     expect(steps).toHaveTextContent('Add \u201cStand mixer\u201d as the memo.');
 
