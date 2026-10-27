@@ -10,5 +10,8 @@ export interface InstanceConfig {
   privacyContact: string | null;
 }
 
-/** Where an instance points at its source (AGPL-3.0, ADR-0043) until SOURCE_URL says otherwise. */
-export const DEFAULT_SOURCE_URL = 'https://github.com/dtbiedrzycki/gubbins';
+/** Where an instance points at its source (AGPL-3.0, ADR-0043), with no privacy contact, until configured otherwise. */
+export const DEFAULT_INSTANCE_CONFIG: InstanceConfig = {
+  sourceUrl: 'https://github.com/dtbiedrzycki/gubbins',
+  privacyContact: null,
+};
