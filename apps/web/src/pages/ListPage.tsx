@@ -4,6 +4,7 @@ import { useListView } from '../features/holds/useListView';
 import { GuestKeyGate } from '../features/guest-key/GuestKeyGate';
 import { ApiError } from '../api/client';
 import { ItemView } from '../features/holds/ItemView';
+import { HowHoldingWorks } from '../features/holds/HowHoldingWorks';
 import { YourHolds } from '../features/holds/YourHolds';
 
 export default function ListPage() {
@@ -52,14 +53,16 @@ export default function ListPage() {
 
   const items = query.data.items;
   const days = query.data.capabilities.holdDurationDays;
+  // A guest with a hold already saw the box when they held; with nothing to hold, it explains nothing.
+  const canHold = items.some((item) => item.type === 'single' && item.status === 'available');
   return (
     <main className="flex-1 bg-paper p-6 text-ink">
       <div className="mx-auto max-w-sm space-y-8">
         <header className="text-center">
           <h1 className="font-display text-[2.05rem] leading-tight text-balance break-words">{query.data.title}</h1>
-          <p className="mt-2 text-muted">When you hold an item, it&apos;s held for you for {days} {days === 1 ? 'day' : 'days'}.</p>
           <span className="vine" aria-hidden="true" />
         </header>
+        {canHold && <HowHoldingWorks holdDurationDays={days} />}
         <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn't refresh the list, so it may be out of date." : ''}</p>
         {/* explicit role: Safari/VoiceOver drops list semantics under list-style none */}
         <ul role="list">

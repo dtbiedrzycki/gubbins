@@ -23,7 +23,7 @@ import type { Logger } from '../application/ports/Logger.js';
 import type { Clock } from '../application/ports/Clock.js';
 import type { Hasher } from '../application/ports/Hasher.js';
 import { DEFAULT_HOLD_POLICY, type HoldPolicy } from '../application/HoldPolicy.js';
-import { DEFAULT_SOURCE_URL, type InstanceConfig } from './instanceConfig.js';
+import { DEFAULT_INSTANCE_CONFIG, type InstanceConfig } from './instanceConfig.js';
 
 export interface BuildDependenciesOptions {
   /** Defaults to the system clock; integration tests pass a FixedClock to step through expiry. */
@@ -79,6 +79,6 @@ export function buildDependencies(db: Kysely<Database>, logger: Logger = new Con
     logger,
     clock,
     hasher,
-    instance: options.instance ?? { sourceUrl: DEFAULT_SOURCE_URL, privacyContact: null },
+    instance: options.instance ?? DEFAULT_INSTANCE_CONFIG,
   };
 }

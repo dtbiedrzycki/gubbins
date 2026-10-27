@@ -37,6 +37,14 @@ describe('EnterGuestKey', () => {
     await expect(useCase.execute({ slug: 'abc123', key: 'wrong-key' })).rejects.toThrow(InvalidGuestKeyError);
   });
 
+  it('treats a typed key over 32 characters like any wrong key', async () => {
+    const { wishlists } = inMemoryPersistence();
+    await seedWishlist(wishlists);
+    const useCase = new EnterGuestKey(wishlists, new PlainSecretComparer(), new SequentialTokenGenerator(), new FixedClock(NOW));
+
+    await expect(useCase.execute({ slug: 'abc123', key: 'x'.repeat(40) })).rejects.toThrow(InvalidGuestKeyError);
+  });
+
   it('throws WishlistNotFoundError for an unknown slug', async () => {
     const { wishlists } = inMemoryPersistence();
     const useCase = new EnterGuestKey(wishlists, new PlainSecretComparer(), new SequentialTokenGenerator(), new FixedClock(NOW));
