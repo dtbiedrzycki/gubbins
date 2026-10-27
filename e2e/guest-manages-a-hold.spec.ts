@@ -14,7 +14,7 @@ async function guestOnNewList(page: Page, context: BrowserContext): Promise<Page
 
   const guest = await context.newPage();
   await guest.goto(guestLink!);
-  await guest.getByLabel('Enter the guest key').fill(guestKey!);
+  await guest.getByLabel('Guest key').fill(guestKey!);
   await guest.getByRole('button', { name: 'View list' }).click();
   await expect(guest.getByRole('heading', { name: 'Your holds' })).toBeVisible();
   return guest;
