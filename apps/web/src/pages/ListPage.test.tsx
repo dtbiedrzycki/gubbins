@@ -65,6 +65,17 @@ describe('ListPage', () => {
     expect(box).toHaveTextContent('If you don\u2019t, the hold ends after 3 days and another guest can buy the same gift.');
   });
 
+  it.each([
+    ['only group gifts', { ...view(false), items: [{ id: 'item-1', title: 'Honeymoon fund', type: 'group', status: 'available', availableUnits: 0, url: null, priceMinor: 50000, pledgedMinor: 0 }] }],
+    ['no single gift left to hold', view(true)],
+  ] satisfies [string, ListViewResponse][])('leaves out the holding explainer when the list has %s', async (_, list) => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(list)));
+    renderListPage();
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Baby Shower' })).toBeInTheDocument();
+    expect(screen.queryByText('How holding a gift works')).not.toBeInTheDocument();
+  });
+
   it('says "1 day" for a one-day hold', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), capabilities: { holdDurationDays: 1 } })));
     renderListPage();
