@@ -19,7 +19,7 @@ describe('GuestKeyGate', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Knock, knock.' })).toBeInTheDocument();
     expect(screen.getByText(/This is a/)).toHaveTextContent(
-      'This is a gift list someone shared with you. It runs on Gubbins, a small wishlist app with no accounts, no ads and no tracking.',
+      'This is a gift list on Gubbins, a small wishlist app with no accounts, no ads and no tracking.',
     );
     expect(screen.getByText('Enter the guest key from your invite to see what they’re hoping for.')).toBeInTheDocument();
 

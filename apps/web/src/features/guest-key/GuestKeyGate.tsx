@@ -21,7 +21,7 @@ export function GuestKeyGate({ slug, onSuccess }: GuestKeyGateProps) {
       <div className="door" aria-hidden="true" />
       <div className="space-y-2">
         <h1 className="font-display text-[2.05rem] leading-tight">Knock, knock.</h1>
-        <p>This is a <strong>gift list</strong> someone shared with you. It runs on Gubbins, a small wishlist app with no accounts, no ads and no tracking.</p>
+        <p>This is a <strong>gift list</strong> on Gubbins, a small wishlist app with no accounts, no ads and no tracking.</p>
         <p className="text-muted">Enter the guest key from your invite to see what they’re hoping for.</p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 text-left">
