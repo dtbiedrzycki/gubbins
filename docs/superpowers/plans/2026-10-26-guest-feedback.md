@@ -58,7 +58,8 @@ Tasks 1–6 (including 5b), 8 and 9 are the 9 PRs of this set, never more than 8
 - Create: `apps/web/src/features/holds/HowHoldingWorks.tsx`
 - Modify: `apps/web/src/pages/ListPage.tsx` (render it between the header and the list)
 - Modify: `apps/web/src/features/holds/HoldDialog.tsx`
-- Test: `apps/web/src/features/holds/HoldDialog.test.tsx`, `apps/web/src/features/holds/ItemView.test.tsx`, `apps/web/src/pages/ListPage.test.tsx`, `e2e/guest-manages-a-hold.spec.ts` (7 files)
+- Test: `apps/web/src/features/holds/HoldDialog.test.tsx`, `apps/web/src/features/holds/ItemView.test.tsx`, `apps/web/src/pages/ListPage.test.tsx`, `e2e/guest-manages-a-hold.spec.ts`
+- Modify: `docs/spec/guest-ux.md` (the hold dialog line) (8 files)
 
 **Interfaces:** Produces `HowHoldingWorks({ holdDurationDays }: { holdDurationDays: number })` — a `<details open>` with summary "How holding a gift works" and the spec's three steps, day/days pluralised like the header. Step 2 always says the hold can be extended once (ADR-0002); there is no policy flag. The box replaces the list header's one-line "When you hold an item, it's held for you for N days." sentence; remove it and update the tests and e2e that read it.
 
