@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { ClockSystem } from './ClockSystem.js';
-import { TokenGeneratorCrypto } from './TokenGeneratorCrypto.js';
+import { GUEST_KEY_WORDS, TokenGeneratorCrypto } from './TokenGeneratorCrypto.js';
 import { SecretComparerCrypto } from './SecretComparerCrypto.js';
 import { HasherSha256 } from './HasherSha256.js';
+import { GuestKey } from '../domain/value-objects/GuestKey.js';
 import { UuidId } from '../domain/value-objects/UuidId.js';
 
 describe('ClockSystem', () => {
@@ -23,6 +24,16 @@ describe('TokenGeneratorCrypto', () => {
     const b = gen.generateHoldSecret();
     expect(a.length).toBeGreaterThan(0);
     expect(a).not.toBe(b);
+  });
+
+  it('generates a guest key of three lowercase words joined by dashes', () => {
+    expect(gen.generateGuestKey()).toMatch(/^[a-z]+-[a-z]+-[a-z]+$/);
+  });
+
+  it('cannot generate a guest key longer than a guest key may be', () => {
+    const longest = Math.max(...GUEST_KEY_WORDS.map((w) => w.length));
+    expect(3 * longest + 2).toBeLessThanOrEqual(GuestKey.MAX_LENGTH);
+    expect(() => GuestKey.from(gen.generateGuestKey())).not.toThrow();
   });
 
   /**
