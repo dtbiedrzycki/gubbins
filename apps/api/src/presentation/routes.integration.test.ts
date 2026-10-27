@@ -35,6 +35,16 @@ describe('GET /health', () => {
   });
 });
 
+describe('GET /api/instance', () => {
+  it('serves the source URL and privacy contact without a session', async () => {
+    const configured = buildApp(buildDependencies(db, undefined, { instance: { sourceUrl: 'https://example.com/src', privacyContact: 'me@example.com' } }), { cookieSecret: 'test-secret' });
+    onTestFinished(() => configured.close());
+    const response = await configured.inject({ method: 'GET', url: '/api/instance' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ sourceUrl: 'https://example.com/src', privacyContact: 'me@example.com' });
+  });
+});
+
 describe('POST /api/lists', () => {
   it('creates a list and returns slug/ownerToken/key/itemId', async () => {
     const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'test-create-secret' } });

@@ -8,7 +8,7 @@ import {
   addItemRequestSchema, addItemResponseSchema,
   holdItemRequestSchema, holdItemResponseSchema, holdViewSchema, listViewResponseSchema,
   pledgeRequestSchema, pledgeResponseSchema,
-  errorResponseSchema,
+  instanceResponseSchema, errorResponseSchema,
 } from '@gubbins/shared-types';
 import type { AppDependencies } from './compositionRoot.js';
 import type { AccessContext } from '../application/AccessContext.js';
@@ -121,6 +121,13 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       throw err;
     }
   });
+
+  app.get('/api/instance', {
+    schema: {
+      operationId: 'getInstance',
+      response: { 200: json("Where this instance's source code is published, and who to contact about privacy (null when none is set).", instanceResponseSchema) },
+    },
+  }, async () => deps.instance);
 
   app.post('/api/lists/:slug/owner-session', {
     schema: {
