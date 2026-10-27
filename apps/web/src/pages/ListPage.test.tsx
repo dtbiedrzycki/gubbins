@@ -54,13 +54,6 @@ describe('ListPage', () => {
     expect(within(screen.getByRole('region', { name: 'Your holds' })).getByRole('heading', { name: 'Cot' })).toBeInTheDocument();
   });
 
-  it('tells guests to buy within 3 days of holding', async () => {
-    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
-    renderListPage();
-
-    expect(await screen.findByText('Buy it within 3 days.')).toBeInTheDocument();
-  });
-
   it('explains holding: hold before buying, buy within 3 days, then mark it purchased or the hold ends', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
     renderListPage();
