@@ -10,7 +10,11 @@ export interface InstanceConfig {
   privacyContact: string | null;
 }
 
-export const DEFAULT_SOURCE_URL = 'https://github.com/dtbiedrzycki/gubbins';
+/** Where an instance points at its source (AGPL-3.0, ADR-0043), with no privacy contact, until configured otherwise. */
+export const DEFAULT_INSTANCE_CONFIG: InstanceConfig = {
+  sourceUrl: 'https://github.com/dtbiedrzycki/gubbins',
+  privacyContact: null,
+};
 
 /**
  * SOURCE_URL and PRIVACY_CONTACT (ops), read at startup because the image is
@@ -20,11 +24,11 @@ export const DEFAULT_SOURCE_URL = 'https://github.com/dtbiedrzycki/gubbins';
  * files commonly pass an unset variable through as ''.
  */
 export function parseInstanceConfig(env: Record<string, string | undefined>): InstanceConfig {
-  const sourceUrl = env.SOURCE_URL?.trim() || DEFAULT_SOURCE_URL;
+  const sourceUrl = env.SOURCE_URL?.trim() || DEFAULT_INSTANCE_CONFIG.sourceUrl;
   if (!isHttpUrl(sourceUrl)) {
     throw new Error(`SOURCE_URL must be an http(s) URL (got ${JSON.stringify(sourceUrl)})`);
   }
-  return { sourceUrl, privacyContact: env.PRIVACY_CONTACT?.trim() || null };
+  return { sourceUrl, privacyContact: env.PRIVACY_CONTACT?.trim() || DEFAULT_INSTANCE_CONFIG.privacyContact };
 }
 
 function isHttpUrl(value: string): boolean {

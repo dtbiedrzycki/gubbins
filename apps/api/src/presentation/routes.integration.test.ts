@@ -149,6 +149,11 @@ describe('POST /api/lists/:slug/session', () => {
     const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } });
     expect(response.statusCode).toBe(200);
     expect(response.cookies).toEqual([expect.objectContaining({ httpOnly: true, secure: true, sameSite: 'Strict' })]);
+  });
+
+  it('keeps a guest session cookie for 30 days (Max-Age=2592000)', async () => {
+    const list = await createList();
+    const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } });
     expect(response.headers['set-cookie']).toContain('Max-Age=2592000');
   });
 
@@ -171,10 +176,16 @@ describe('POST /api/lists/:slug/owner-session', () => {
     const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ ok: true });
-    expect(response.headers['set-cookie']).not.toContain('Max-Age');
     const [owner] = response.cookies;
     expect(owner).toMatchObject({ name: 'gubbins_owner', httpOnly: true, secure: true, sameSite: 'Strict' });
     expect(JSON.parse(app.unsignCookie(owner.value).value!)).toEqual({ wishlistId: expect.any(String) });
+  });
+
+  it('gives the owner cookie no Max-Age, so it ends with the browser session', async () => {
+    const list = await createList();
+    const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } });
+    expect(response.headers['set-cookie']).toEqual(expect.any(String));
+    expect(response.headers['set-cookie']).not.toContain('Max-Age');
   });
 
   it('answers a wrong token with a 404 and no cookie', async () => {

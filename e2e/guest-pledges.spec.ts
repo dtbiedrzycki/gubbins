@@ -25,7 +25,7 @@ test('a guest covers the rest of a group gift with Venmo, and the card shows it 
 
   const guest = await context.newPage();
   await guest.goto(guestLink!);
-  await guest.getByLabel('Enter the guest key').fill(guestKey!);
+  await guest.getByLabel('Guest key').fill(guestKey!);
   await guest.getByRole('button', { name: 'View list' }).click();
 
   const mixer = guest.getByRole('listitem').filter({ has: guest.getByRole('heading', { name: 'Stand mixer' }) });
