@@ -56,6 +56,8 @@ function unwrap<T>({ data, error, response }: FetchResult<T>): T {
 }
 
 export const api = {
+  getInstance: () => http.GET('/api/instance').then(unwrap),
+
   createList: (input: CreateListRequest): Promise<CreateListResponse> =>
     http.POST('/api/lists', { body: input }).then(unwrap),
 

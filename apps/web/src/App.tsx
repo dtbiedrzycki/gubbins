@@ -1,15 +1,31 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom';
+import { Footer } from './features/instance/Footer';
 
 // Route-level code-splitting: each page is its own chunk.
 const CreateListPage = lazy(() => import('./pages/CreateListPage'));
 const ListPage = lazy(() => import('./pages/ListPage'));
 const ManagePage = lazy(() => import('./pages/ManagePage'));
 
+// Pages render their own <main>; the layout route puts the footer after it on every page.
+function Layout() {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Outlet />
+      <Footer />
+    </div>
+  );
+}
+
 const router = createBrowserRouter([
-  { path: '/', element: <CreateListPage /> },
-  { path: '/:slug', element: <ListPage /> },
-  { path: '/:slug/manage', element: <ManagePage /> },
+  {
+    element: <Layout />,
+    children: [
+      { path: '/', element: <CreateListPage /> },
+      { path: '/:slug', element: <ListPage /> },
+      { path: '/:slug/manage', element: <ManagePage /> },
+    ],
+  },
 ]);
 
 export default function App() {
