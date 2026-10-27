@@ -1,4 +1,5 @@
 import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 
 const allowedElements = ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'a'];
@@ -10,7 +11,7 @@ const httpOnly = (url: string) => (/^https?:\/\//i.test(url) ? url : '');
 export function Markdown({ text }: { text: string }) {
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
+      remarkPlugins={[remarkGfm, remarkBreaks]}
       skipHtml
       allowedElements={allowedElements}
       unwrapDisallowed

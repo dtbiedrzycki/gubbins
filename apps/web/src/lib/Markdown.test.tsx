@@ -18,11 +18,20 @@ describe('Markdown', () => {
     expect(screen.getByRole('link').getAttribute('href')).toBe('https://example.com/gift');
   });
 
-  it('drops javascript: and data: links, keeping the text', () => {
-    const { container } = render(<Markdown text={'[bad](javascript:alert(1)) [worse](data:text/html,x)'} />);
+  it('links only to http and https, keeping the text of other links', () => {
+    const { container } = render(
+      <Markdown
+        text={'[a](javascript:alert(1)) [b](data:text/html,x) [c](mailto:a@b.c) [d](/wishlists/abc) [e](JaVaScRiPt:x)'}
+      />,
+    );
     expect(container.querySelector('[href]')).toBeNull();
-    expect(container.textContent).toContain('bad');
-    expect(container.textContent).toContain('worse');
+    for (const word of ['a', 'b', 'c', 'd', 'e']) expect(container.textContent).toContain(word);
+  });
+
+  it('keeps each line of a multi-line address on its own line', () => {
+    const { container } = render(<Markdown text={'Jane Doe\n1 Main St\nTown\n\n- one'} />);
+    expect(container.querySelectorAll('br')).toHaveLength(2);
+    expect(container.querySelector('li')?.textContent).toBe('one');
   });
 
   it('renders no image and no raw HTML', () => {
