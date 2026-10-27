@@ -30,7 +30,7 @@ describe('TokenGeneratorCrypto', () => {
     expect(gen.generateGuestKey()).toMatch(/^[a-z]+-[a-z]+-[a-z]+$/);
   });
 
-  it('cannot generate a guest key longer than a guest key may be', () => {
+  it('never generates a guest key over 32 characters', () => {
     const longest = Math.max(...GUEST_KEY_WORDS.map((w) => w.length));
     expect(3 * longest + 2).toBeLessThanOrEqual(GuestKey.MAX_LENGTH);
     expect(() => GuestKey.from(gen.generateGuestKey())).not.toThrow();
