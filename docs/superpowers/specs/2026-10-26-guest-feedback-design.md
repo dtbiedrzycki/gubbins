@@ -24,7 +24,8 @@ create/ready. Open it after `npm ci` so the self-hosted fonts load.
 ### Must have
 
 1. **Holding explained.** On the guest list, under the header, a
-   "How holding a gift works" box (a `<details>`, open by default), three
+   "How holding a gift works" box (a `<details>`, open on a guest's first visit on this device and
+   closed after, remembered in localStorage), three
    numbered steps. The box replaces the one-line hold sentence under the
    list title:
    1. **Hold it before you buy it.** Other guests see it's taken, so
