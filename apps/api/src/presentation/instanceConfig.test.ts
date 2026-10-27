@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SOURCE_URL, parseInstanceConfig } from './instanceConfig.js';
+import { DEFAULT_INSTANCE_CONFIG, parseInstanceConfig } from './instanceConfig.js';
 
 describe('parseInstanceConfig', () => {
   it.each([undefined, '', '   '])('uses the default source URL when SOURCE_URL is %j', (SOURCE_URL) => {
-    expect(parseInstanceConfig({ SOURCE_URL }).sourceUrl).toBe(DEFAULT_SOURCE_URL);
+    expect(parseInstanceConfig({ SOURCE_URL }).sourceUrl).toBe(DEFAULT_INSTANCE_CONFIG.sourceUrl);
   });
 
   it('returns a set source URL trimmed', () => {
