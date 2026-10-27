@@ -13,7 +13,7 @@ export default function ManagePage() {
   if (!slug) return null;
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6">
+    <main className="flex-1 bg-paper p-6">
       <div className="max-w-sm space-y-6">
         <h1 ref={heading} tabIndex={-1} className="text-2xl font-semibold">Manage your list</h1>
         {entered ? (

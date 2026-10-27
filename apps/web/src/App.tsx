@@ -10,7 +10,7 @@ const ManagePage = lazy(() => import('./pages/ManagePage'));
 // Pages render their own <main>; the layout route puts the footer after it on every page.
 function Layout() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-paper text-ink">
       <Outlet />
       <Footer />
     </div>

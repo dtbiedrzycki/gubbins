@@ -7,7 +7,9 @@ import { mock } from '../../test/msw/mock';
 import { Footer, UPSTREAM_SOURCE_URL } from './Footer';
 
 function renderFooter() {
-  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><Footer /></QueryClientProvider>);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<QueryClientProvider client={client}><Footer /></QueryClientProvider>);
+  return client;
 }
 
 describe('Footer', () => {
@@ -21,11 +23,10 @@ describe('Footer', () => {
   });
 
   it("falls back to the upstream repository when the server can't be reached", async () => {
-    server.use(http.get('/api/instance', () => HttpResponse.error()));
-    renderFooter();
+    server.use(http.get('/api/instance', () => HttpResponse.json({ message: 'boom' }, { status: 500 })));
+    const client = renderFooter();
 
-    expect(screen.getByRole('link', { name: 'Source on GitHub' })).toHaveAttribute('href', UPSTREAM_SOURCE_URL);
-    await new Promise((r) => setTimeout(r, 50));
+    await waitFor(() => expect(client.getQueryState(['instance'])?.status).toBe('error'));
     expect(screen.getByRole('link', { name: 'Source on GitHub' })).toHaveAttribute('href', UPSTREAM_SOURCE_URL);
   });
 });
