@@ -40,7 +40,7 @@ test('the owner adds a single item and a group gift, and a guest sees both', asy
 
   const guest = await context.newPage();
   await guest.goto(guestLink!);
-  await guest.getByLabel('Enter the guest key').fill(guestKey!);
+  await guest.getByLabel('Guest key').fill(guestKey!);
   await guest.getByRole('button', { name: 'View list' }).click();
 
   const crib = guest.getByRole('listitem').filter({ has: guest.getByRole('heading', { name: 'Crib' }) });
