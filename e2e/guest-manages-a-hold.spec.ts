@@ -14,7 +14,7 @@ async function guestOnNewList(page: Page, context: BrowserContext): Promise<Page
 
   const guest = await context.newPage();
   await guest.goto(guestLink!);
-  await guest.getByLabel('Enter the guest key').fill(guestKey!);
+  await guest.getByLabel('Guest key').fill(guestKey!);
   await guest.getByRole('button', { name: 'View list' }).click();
   await expect(guest.getByRole('heading', { name: 'Your holds' })).toBeVisible();
   return guest;
@@ -31,7 +31,7 @@ test('a guest holds the item, extends the hold once, and marks it purchased', as
   const yourHolds = guest.getByRole('region', { name: 'Your holds' });
 
   await guest.getByRole('button', { name: 'Hold this item' }).click();
-  await expect(guest.getByRole('dialog').getByText('Held for you for 3 days.')).toBeVisible();
+  await expect(guest.getByRole('dialog').getByText('Other guests will see it\u2019s taken while you buy it.')).toBeVisible();
   await expectNoSeriousAxeViolations(guest);
   await guest.getByLabel('Your name').fill('Amara');
   await guest.getByRole('button', { name: 'Yes, hold it' }).click();

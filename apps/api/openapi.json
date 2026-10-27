@@ -206,6 +206,37 @@
         }
       }
     },
+    "/api/instance": {
+      "get": {
+        "operationId": "getInstance",
+        "responses": {
+          "200": {
+            "description": "Where this instance's source code is published, and who to contact about privacy (null when none is set).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sourceUrl": {
+                      "type": "string"
+                    },
+                    "privacyContact": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "sourceUrl",
+                    "privacyContact"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/lists/{slug}/owner-session": {
       "post": {
         "operationId": "enterOwnerToken",

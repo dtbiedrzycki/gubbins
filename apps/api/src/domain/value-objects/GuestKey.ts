@@ -2,7 +2,7 @@ import { DomainValidationError } from '../errors.js';
 
 /**
  * The guest bearer secret for a wishlist. Trimmed like all input; a
- * generated secret is base64url, so no whitespace is ever part of it.
+ * generated secret never contains whitespace.
  */
 export class GuestKey {
   /**
@@ -15,11 +15,15 @@ export class GuestKey {
    */
   private readonly _brand = 'GuestKey' as const;
 
+  /** Keys minted before words were used are 32 base64url characters; three words are at most 29. */
+  static readonly MAX_LENGTH = 32;
+
   private constructor(readonly value: string) {}
 
   static from(raw: string): GuestKey {
     const value = raw.trim();
     if (value.length === 0) throw new DomainValidationError('Guest key must not be empty');
+    if (value.length > GuestKey.MAX_LENGTH) throw new DomainValidationError(`Guest key must be at most ${GuestKey.MAX_LENGTH} characters`);
     return new GuestKey(value);
   }
 

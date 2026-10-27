@@ -4,6 +4,7 @@ import { createDb } from '../infrastructure/db/createDb.js';
 import { migrateToLatest } from '../infrastructure/db/migrate.js';
 import { buildDependencies } from './compositionRoot.js';
 import { parseHoldPolicy } from './holdPolicyConfig.js';
+import { parseInstanceConfig } from './instanceConfig.js';
 import { parseCookieSecret, parseCreateSecret } from './secretsConfig.js';
 import { buildApp } from './app.js';
 import { ConsoleLogger } from '../infrastructure/ConsoleLogger.js';
@@ -20,6 +21,7 @@ async function main(): Promise<void> {
   // Before the database opens: a bad value should stop startup with nothing to clean up.
   const holdPolicy = parseHoldPolicy(process.env);
   const createSecret = parseCreateSecret(process.env);
+  const instance = parseInstanceConfig(process.env);
   const databasePath = process.env.DATABASE_PATH ?? './data/wishlist.db';
   const port = Number(process.env.PORT ?? 3000);
   const cookieSecret = parseCookieSecret(process.env);
@@ -33,7 +35,7 @@ async function main(): Promise<void> {
   let app: FastifyInstance | undefined;
   try {
     await migrateToLatest(db);
-    const deps = buildDependencies(db, logger, { holdPolicy, createSecret });
+    const deps = buildDependencies(db, logger, { holdPolicy, createSecret, instance });
     app = buildApp(deps, {
       cookieSecret: cookieSecret ?? 'dev-only-insecure-secret-change-me',
       webDist: process.env.WEB_DIST ?? fileURLToPath(new URL('../../../web/dist', import.meta.url)),
