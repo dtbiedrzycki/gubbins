@@ -26,7 +26,9 @@ create/ready. Open it after `npm ci` so the self-hosted fonts load.
 1. **Holding explained.** On the guest list, under the header, a
    "How holding a gift works" box (a `<details>`, open on a guest's first visit on this device and
    closed after, remembered in localStorage), three
-   numbered steps. The box replaces the one-line hold sentence under the
+   numbered steps. It shows only while at least one single gift is
+   available to hold: a list of group funds, or one with every single gift
+   taken, has no box (a guest with a hold saw it when they held). The box replaces the one-line hold sentence under the
    list title:
    1. **Hold it before you buy it.** Other guests see it's taken, so
       nobody buys it twice.
