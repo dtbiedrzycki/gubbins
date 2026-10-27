@@ -32,7 +32,7 @@ export interface BuildDependenciesOptions {
   holdPolicy?: HoldPolicy;
   /** Validated from CREATE_SECRET by the server; when absent, every list creation is refused. */
   createSecret?: string;
-  /** Validated from SOURCE_URL and PRIVACY_CONTACT by the server (instanceConfig.ts). */
+  /** Defaults to the upstream source URL and no privacy contact. */
   instance?: InstanceConfig;
 }
 
