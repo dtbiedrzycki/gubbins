@@ -12,14 +12,16 @@ function renderDialog(overrides: Partial<HoldDialogProps> = {}) {
 }
 
 describe('HoldDialog', () => {
-  it('states the hold duration plainly', () => {
+  it('tells the guest to come back and mark it purchased, or the hold ends after 3 days', () => {
     renderDialog();
-    expect(screen.getByText('Held for you for 3 days.')).toBeInTheDocument();
+    expect(screen.getByText("Other guests will see it\u2019s taken while you buy it.")).toBeInTheDocument();
+    expect(screen.getByText('After you buy it, come back and tap \u201cMark as purchased\u201d.')).toBeInTheDocument();
+    expect(screen.getByText('If you don\u2019t, the hold ends after 3 days and another guest could buy it too.')).toBeInTheDocument();
   });
 
   it('says "1 day", not "1 days"', () => {
     renderDialog({ holdDurationDays: 1 });
-    expect(screen.getByText('Held for you for 1 day.')).toBeInTheDocument();
+    expect(screen.getByText(/the hold ends after 1 day and/)).toBeInTheDocument();
   });
 
   it('confirms with the same key however many times it is tapped while open', async () => {
