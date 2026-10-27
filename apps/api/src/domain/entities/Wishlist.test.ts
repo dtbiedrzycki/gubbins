@@ -19,6 +19,7 @@ const T0 = new Date('2026-01-01T00:00:00.000Z');
 const at = (ms: number) => new Date(T0.getTime() + ms);
 
 const validProps = { id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0 };
+const persisted = { ...validProps, keyGen: 3 };
 const tokens = (holdId = '55555555-5555-7555-8555-555555555555') => ({ generateEntityId: () => holdId, generateHoldSecret: () => 'hold-secret' });
 const hasher = { hash: () => 'f'.repeat(64) };
 
@@ -68,6 +69,25 @@ describe('Wishlist.create', () => {
     expect(Wishlist.create({ ...validProps, title: '  Baby Shower  ' }).title).toBe('Baby Shower');
   });
 
+  it('limits a list\'s description to 2000 characters', () => {
+    expect(Wishlist.create({ ...validProps, description: 'a'.repeat(2000) }).description).toHaveLength(2000);
+    expect(() => Wishlist.create({ ...validProps, description: 'a'.repeat(2001) })).toThrow('Wishlist description must be at most 2000 characters');
+    expect(() => Wishlist.reconstitute({ ...persisted, description: 'a'.repeat(2001) })).toThrow('Wishlist description must be at most 2000 characters');
+  });
+
+  it('trims a description\'s ends but keeps the line breaks inside it', () => {
+    expect(Wishlist.create({ ...validProps, description: '\n 1 Main St\nApt 2 \n' }).description).toBe('1 Main St\nApt 2');
+    const wishlist = Wishlist.create({ ...validProps, paymentMethods: PaymentMethods.none });
+    const item = wishlist.addItem({ type: 'single', title: 'Cot', description: ' a\nb ' }, { generateEntityId: () => ITEM_ID });
+    expect(item.description).toBe('a\nb');
+  });
+
+  it('stores a blank description as none', () => {
+    expect(Wishlist.create({ ...validProps, description: '  \n' }).description).toBeNull();
+    expect(Wishlist.create(validProps).description).toBeNull();
+    expect(Wishlist.reconstitute(persisted).description).toBeNull();
+  });
+
   it('accepts a title of 120 characters and refuses 121', () => {
     expect(Wishlist.create({ ...validProps, title: 'a'.repeat(120) }).title).toHaveLength(120);
     expect(() => Wishlist.create({ ...validProps, title: 'a'.repeat(121) })).toThrow(DomainValidationError);
@@ -82,8 +102,6 @@ describe('Wishlist.create', () => {
 });
 
 describe('Wishlist.reconstitute', () => {
-  const persisted = { ...validProps, keyGen: 3 };
-
   it('enforces the title invariant on persisted rows too', () => {
     expect(() => Wishlist.reconstitute({ ...persisted, title: '' })).toThrow(DomainValidationError);
     expect(() => Wishlist.reconstitute({ ...persisted, title: '   ' })).toThrow(DomainValidationError);

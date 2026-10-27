@@ -52,6 +52,27 @@ describe('Item kinds, URL and price', () => {
     expect(Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'T', url: urlOf(2048) }).url).toHaveLength(2048);
     expect(() => Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'T', url: urlOf(2049) })).toThrow(DomainValidationError);
   });
+  it('limits an item\'s description to 1000 characters', () => {
+    const props = { asOf: T0, id: ID, wishlistId: WL, title: 'T' };
+    expect(Item.createSingle({ ...props, description: 'a'.repeat(1000) }).description).toHaveLength(1000);
+    expect(() => Item.createSingle({ ...props, description: 'a'.repeat(1001) })).toThrow('Item description must be at most 1000 characters');
+    expect(() => Item.createGroup({ ...props, priceMinor: 100, description: 'a'.repeat(1001) })).toThrow(DomainValidationError);
+    expect(() => Item.reconstitute({ ...base, description: 'a'.repeat(1001) })).toThrow('Item description must be at most 1000 characters');
+  });
+
+  it('trims a description\'s ends but keeps the line breaks inside it', () => {
+    const props = { asOf: T0, id: ID, wishlistId: WL, title: 'T' };
+    expect(Item.createSingle({ ...props, description: '\n  Size M\nin blue \n' }).description).toBe('Size M\nin blue');
+    expect(Item.createGroup({ ...props, priceMinor: 100, description: ' Size M ' }).description).toBe('Size M');
+  });
+
+  it('stores a blank description as none', () => {
+    const props = { asOf: T0, id: ID, wishlistId: WL, title: 'T' };
+    expect(Item.createSingle({ ...props, description: ' \n ' }).description).toBeNull();
+    expect(Item.createSingle(props).description).toBeNull();
+    expect(Item.reconstitute(base).description).toBeNull();
+  });
+
   it('accepts a title of 120 characters and refuses 121', () => {
     expect(Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'a'.repeat(120) }).title).toHaveLength(120);
     expect(() => Item.createSingle({ asOf: T0, id: ID, wishlistId: WL, title: 'a'.repeat(121) })).toThrow(DomainValidationError);
