@@ -5,6 +5,7 @@ import { GuestKeyGate } from '../features/guest-key/GuestKeyGate';
 import { ApiError } from '../api/client';
 import { ItemView } from '../features/holds/ItemView';
 import { HowHoldingWorks } from '../features/holds/HowHoldingWorks';
+import { ItemFilter, filterKey, type ItemFilterValue } from '../features/holds/ItemFilter';
 import { YourHolds } from '../features/holds/YourHolds';
 
 export default function ListPage() {
@@ -16,6 +17,7 @@ export default function ListPage() {
   // "Try again" sends the query back to pending, which unmounts the error
   // view; this outlives it so a failed retry can hand focus back.
   const [retried, setRetried] = useState(false);
+  const [filter, setFilter] = useState<ItemFilterValue>('all');
   if (!slug) return null;
 
   if (query.status === 'pending') {
@@ -53,6 +55,7 @@ export default function ListPage() {
 
   const items = query.data.items;
   const days = query.data.capabilities.holdDurationDays;
+  const shown = filter === 'all' ? items : items.filter((i) => filterKey(i) === filter);
   return (
     <main className="min-h-screen bg-paper p-6 text-ink">
       <div className="mx-auto max-w-sm space-y-8">
@@ -62,9 +65,11 @@ export default function ListPage() {
         </header>
         <HowHoldingWorks holdDurationDays={days} />
         <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn't refresh the list, so it may be out of date." : ''}</p>
+        <ItemFilter items={items} value={filter} onChange={setFilter} />
         {/* explicit role: Safari/VoiceOver drops list semantics under list-style none */}
+        {shown.length === 0 ? <p className="text-center">No gifts here yet.</p> : (
         <ul role="list">
-          {items.map((item) => (
+          {shown.map((item) => (
             <li key={item.id} className="border-b border-line py-5">
               <ItemView
                 slug={slug}
@@ -77,6 +82,7 @@ export default function ListPage() {
             </li>
           ))}
         </ul>
+        )}
         <YourHolds slug={slug} holds={query.data.myHolds} itemTitles={Object.fromEntries(items.map((i) => [i.id, i.title]))} />
       </div>
     </main>

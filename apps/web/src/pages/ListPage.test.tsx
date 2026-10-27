@@ -54,6 +54,30 @@ describe('ListPage', () => {
     expect(within(screen.getByRole('region', { name: 'Your holds' })).getByRole('heading', { name: 'Cot' })).toBeInTheDocument();
   });
 
+  it('shows only held gifts when Held is chosen', async () => {
+    const [stroller] = view(false).items!;
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({
+      ...twoItems,
+      items: [stroller, { ...twoItems.items![1], status: 'held', availableUnits: 0 }],
+    })));
+    renderListPage();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Held · 1' }));
+
+    expect(screen.queryByRole('heading', { level: 2, name: 'Stroller' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Cot' })).toBeInTheDocument();
+  });
+
+  it('says so when no gifts match the chosen filter', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
+    renderListPage();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Held · 0' }));
+
+    expect(screen.getByText('No gifts here yet.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Stroller' })).not.toBeInTheDocument();
+  });
+
   it('tells guests to buy within 3 days of holding', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
     renderListPage();
