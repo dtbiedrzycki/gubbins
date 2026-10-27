@@ -23,7 +23,7 @@ const view = (held: boolean): ListViewResponse => ({
 function renderListPage() {
   // useListView's own retry wins over these defaults; retryDelay: 0 keeps its one retry instant.
   const client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 }, mutations: { retry: false } } });
-  render(
+  return render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={['/abc123']}>
         <Routes><Route path="/:slug" element={<ListPage />} /></Routes>
@@ -78,23 +78,40 @@ describe('ListPage', () => {
     expect(screen.queryByRole('heading', { level: 2, name: 'Stroller' })).not.toBeInTheDocument();
   });
 
-  it('tells guests to buy within 3 days of holding', async () => {
-    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
-    renderListPage();
-
-    expect(await screen.findByText('Buy it within 3 days.')).toBeInTheDocument();
-  });
-
   it('explains holding: hold before buying, buy within 3 days, then mark it purchased or the hold ends', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
     renderListPage();
 
     const box = (await screen.findByText('How holding a gift works')).closest('details')!;
-    expect(box).toHaveAttribute('open');
     expect(within(box).getByText('Hold it before you buy it.')).toBeInTheDocument();
     expect(within(box).getByText('Buy it within 3 days.')).toBeInTheDocument();
     expect(within(box).getByText('Come back and mark it purchased.')).toBeInTheDocument();
     expect(box).toHaveTextContent('If you don\u2019t, the hold ends after 3 days and another guest can buy the same gift.');
+  });
+
+  it.each([
+    ['only group gifts', { ...view(false), items: [{ id: 'item-1', title: 'Honeymoon fund', type: 'group', status: 'available', availableUnits: 0, url: null, priceMinor: 50000, pledgedMinor: 0 }] }],
+    ['no single gift left to hold', view(true)],
+  ] satisfies [string, ListViewResponse][])('leaves out the holding explainer when the list has %s', async (_, list) => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(list)));
+    renderListPage();
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Baby Shower' })).toBeInTheDocument();
+    expect(screen.queryByText('How holding a gift works')).not.toBeInTheDocument();
+  });
+
+  it('opens the holding explainer on the first visit that has a gift to hold, even after a visit with none', async () => {
+    localStorage.clear();
+    const fundsOnly: ListViewResponse = { ...view(false), items: [{ id: 'item-1', title: 'Honeymoon fund', type: 'group', status: 'available', availableUnits: 0, url: null, priceMinor: 50000, pledgedMinor: 0 }] };
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(fundsOnly)));
+    const firstVisit = renderListPage();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Baby Shower' })).toBeInTheDocument();
+    firstVisit.unmount();
+
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
+    renderListPage();
+    expect((await screen.findByText('How holding a gift works')).closest('details')).toHaveAttribute('open');
+    localStorage.clear();
   });
 
   it('says "1 day" for a one-day hold', async () => {
@@ -146,7 +163,7 @@ describe('ListPage', () => {
     await waitFor(() => expect(gets).toBe(3));
     const yourHolds = screen.getByRole('region', { name: 'Your holds' });
     expect(await within(yourHolds).findByRole('button', { name: 'Extend hold' })).toBeInTheDocument();
-    expect(screen.queryByLabelText('Enter the guest key')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Guest key')).not.toBeInTheDocument();
     expect(statuses).toContain(screen.getByText("Couldn't refresh the list, so it may be out of date."));
     expect(gets).toBe(3);
   });
@@ -164,7 +181,7 @@ describe('ListPage', () => {
     await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
-    expect(await screen.findByLabelText('Enter the guest key')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Guest key')).toBeInTheDocument();
   });
 
   it('moves focus to Your holds when the guest cancels after losing the item to someone else', async () => {
@@ -192,7 +209,7 @@ describe('ListPage', () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ message: 'Not found' }, { status })));
     renderListPage();
 
-    expect(await screen.findByLabelText('Enter the guest key')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Guest key')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
   });
 
@@ -204,7 +221,7 @@ describe('ListPage', () => {
     renderListPage();
 
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
-    expect(screen.queryByLabelText('Enter the guest key')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Guest key')).not.toBeInTheDocument();
   });
 
   it('shows the list once the server answers after "Try again"', async () => {

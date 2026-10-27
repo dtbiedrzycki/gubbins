@@ -15,7 +15,8 @@ import type { AccessContext } from '../application/AccessContext.js';
 import type { HoldCommand } from '../application/use-cases/holdCommand.js';
 import type { Wishlist } from '../domain/entities/Wishlist.js';
 import { WishlistNotFoundError, InvalidGuestKeyError } from '../domain/errors.js';
-import { OWNER_COOKIE, SESSION_COOKIE, SIGNED_COOKIE_OPTIONS, accessContextFor, readOwnerSession, readSignedSession, type OwnerSessionPayload, type SessionPayload } from './accessContext.js';
+import { GUEST_SESSION_COOKIE_OPTIONS, OWNER_COOKIE, SESSION_COOKIE, SIGNED_COOKIE_OPTIONS, accessContextFor, readOwnerSession, readSignedSession, type OwnerSessionPayload, type SessionPayload } from './accessContext.js';
+import { instanceResponseSchema } from './instanceConfig.js';
 import { NOT_FOUND, domainErrorResponse } from './domainErrorResponse.js';
 
 // Path parameters are an HTTP concern, so their schemas live here rather than
@@ -110,7 +111,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     try {
       const result = await deps.enterGuestKey.execute({ slug, key: request.body.key });
       const payload: SessionPayload = { wishlistId: result.wishlistId, keyGen: result.keyGen, sessionId: result.sessionId };
-      reply.setCookie(SESSION_COOKIE, JSON.stringify(payload), SIGNED_COOKIE_OPTIONS);
+      reply.setCookie(SESSION_COOKIE, JSON.stringify(payload), GUEST_SESSION_COOKIE_OPTIONS);
       return reply.code(200).send({ ok: true });
     } catch (err) {
       // Same generic response for "no such list" and "wrong key" —
@@ -121,6 +122,13 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       throw err;
     }
   });
+
+  app.get('/api/instance', {
+    schema: {
+      operationId: 'getInstance',
+      response: { 200: json("Where this instance's source code is published, and who to contact about privacy (null when none is set).", instanceResponseSchema) },
+    },
+  }, async () => deps.instance);
 
   app.post('/api/lists/:slug/owner-session', {
     schema: {

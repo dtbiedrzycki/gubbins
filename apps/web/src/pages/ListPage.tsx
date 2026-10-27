@@ -56,6 +56,8 @@ export default function ListPage() {
   const items = query.data.items;
   const days = query.data.capabilities.holdDurationDays;
   const shown = filter === 'all' ? items : items.filter((i) => filterKey(i) === filter);
+  // A guest with a hold already saw the box when they held; with nothing to hold, it explains nothing.
+  const canHold = items.some((item) => item.type === 'single' && item.status === 'available');
   return (
     <main className="min-h-screen bg-paper p-6 text-ink">
       <div className="mx-auto max-w-sm space-y-8">
@@ -63,7 +65,7 @@ export default function ListPage() {
           <h1 className="font-display text-[2.05rem] leading-tight text-balance break-words">{query.data.title}</h1>
           <span className="vine" aria-hidden="true" />
         </header>
-        <HowHoldingWorks holdDurationDays={days} />
+        {canHold && <HowHoldingWorks holdDurationDays={days} />}
         <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn't refresh the list, so it may be out of date." : ''}</p>
         <ItemFilter items={items} value={filter} onChange={setFilter} />
         {/* explicit role: Safari/VoiceOver drops list semantics under list-style none */}
