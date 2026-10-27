@@ -1,3 +1,10 @@
+import { z } from 'zod';
+
+export const instanceResponseSchema = z.object({
+  sourceUrl: z.string(),
+  privacyContact: z.string().nullable(),
+});
+
 export interface InstanceConfig {
   sourceUrl: string;
   privacyContact: string | null;

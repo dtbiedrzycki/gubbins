@@ -16,7 +16,6 @@ export * from './createList.js';
 export * from './enterGuestKey.js';
 export * from './holdItem.js';
 export * from './holdView.js';
-export * from './instance.js';
 export * from './listView.js';
 export * from './ownerSession.js';
 export * from './pledge.js';
