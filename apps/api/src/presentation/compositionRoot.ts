@@ -23,6 +23,7 @@ import type { Logger } from '../application/ports/Logger.js';
 import type { Clock } from '../application/ports/Clock.js';
 import type { Hasher } from '../application/ports/Hasher.js';
 import { DEFAULT_HOLD_POLICY, type HoldPolicy } from '../application/HoldPolicy.js';
+import { DEFAULT_INSTANCE_CONFIG, type InstanceConfig } from './instanceConfig.js';
 
 export interface BuildDependenciesOptions {
   /** Defaults to the system clock; integration tests pass a FixedClock to step through expiry. */
@@ -31,6 +32,8 @@ export interface BuildDependenciesOptions {
   holdPolicy?: HoldPolicy;
   /** Validated from CREATE_SECRET by the server; when absent, every list creation is refused. */
   createSecret?: string;
+  /** Defaults to the upstream source URL and no privacy contact. */
+  instance?: InstanceConfig;
 }
 
 export interface AppDependencies {
@@ -49,6 +52,7 @@ export interface AppDependencies {
   logger: Logger;
   clock: Clock;
   hasher: Hasher;
+  instance: InstanceConfig;
 }
 
 export function buildDependencies(db: Kysely<Database>, logger: Logger = new ConsoleLogger(), options: BuildDependenciesOptions = {}): AppDependencies {
@@ -75,5 +79,6 @@ export function buildDependencies(db: Kysely<Database>, logger: Logger = new Con
     logger,
     clock,
     hasher,
+    instance: options.instance ?? DEFAULT_INSTANCE_CONFIG,
   };
 }
