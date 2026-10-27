@@ -192,6 +192,7 @@ export interface operations {
                 "application/json": {
                     listTitle: string;
                     itemTitle: string;
+                    listDescription?: string;
                     createSecret?: string;
                     venmoHandle?: string;
                     zelleHandle?: string;
@@ -420,6 +421,7 @@ export interface operations {
                     /** @enum {string} */
                     type: "single";
                     title: string;
+                    description?: string;
                     /** @default 1 */
                     quantity?: number;
                     /** Format: uri */
@@ -429,6 +431,7 @@ export interface operations {
                     /** @enum {string} */
                     type: "group";
                     title: string;
+                    description?: string;
                     /** Format: uri */
                     url?: string;
                     priceMinor: number;

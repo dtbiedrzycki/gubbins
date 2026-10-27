@@ -65,6 +65,14 @@ describe('CreateList', () => {
     expect(persisted?.paymentMethods.zelleHandle).toBe('me@example.com');
   });
 
+  it('stores the list description given at creation', async () => {
+    const { useCase, wishlists } = makeUseCase();
+
+    await useCase.execute({ listTitle: 'L', itemTitle: 'I', createSecret: 'right', listDescription: 'Ship to 1 Main St' });
+
+    expect((await wishlists.findBySlug('slug-1', NOW))?.description).toBe('Ship to 1 Main St');
+  });
+
   it('persists nothing when a handle is refused', async () => {
     const { useCase, wishlists } = makeUseCase();
 

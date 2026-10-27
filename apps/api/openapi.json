@@ -53,6 +53,9 @@
                     "type": "string",
                     "minLength": 1
                   },
+                  "listDescription": {
+                    "type": "string"
+                  },
                   "createSecret": {
                     "type": "string"
                   },
@@ -519,6 +522,9 @@
                         "type": "string",
                         "minLength": 1
                       },
+                      "description": {
+                        "type": "string"
+                      },
                       "quantity": {
                         "default": 1,
                         "type": "integer",
@@ -553,6 +559,9 @@
                       "title": {
                         "type": "string",
                         "minLength": 1
+                      },
+                      "description": {
+                        "type": "string"
                       },
                       "url": {
                         "type": "string",
