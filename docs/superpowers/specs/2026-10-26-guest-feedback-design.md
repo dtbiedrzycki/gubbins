@@ -25,7 +25,8 @@ create/ready. Open it after `npm ci` so the self-hosted fonts load.
 
 1. **Holding explained.** On the guest list, under the header, a
    "How holding a gift works" box (a `<details>`, open by default), three
-   numbered steps:
+   numbered steps. The box replaces the one-line hold sentence under the
+   list title:
    1. **Hold it before you buy it.** Other guests see it's taken, so
       nobody buys it twice.
    2. **Buy it within N days.** The hold is yours until then, and you can
@@ -33,8 +34,8 @@ create/ready. Open it after `npm ci` so the self-hosted fonts load.
    3. **Come back and mark it purchased.** If you don't, the hold ends
       after N days and another guest can buy the same gift.
 
-   N is `capabilities.holdDurationDays`. The step-2 extension clause shows
-   only while the hold policy allows an extension. The hold dialog adds a
+   N is `capabilities.holdDurationDays`. Step 2 always says the hold can
+   be extended once (ADR-0002). The hold dialog adds a
    boxed note: "After you buy it, come back and tap 'Mark as purchased'.
    If you don't, the hold ends after N days and another guest could buy
    it too." and its subtitle becomes "Other guests will see it's taken
@@ -60,8 +61,9 @@ create/ready. Open it after `npm ci` so the self-hosted fonts load.
    joined by `-`, drawn uniformly with `crypto.randomInt` from the EFF
    large wordlist (7,776 words, ~38.8 bits), minus any entry containing
    a hyphen or other non-letter, so every key is exactly three words
-   joined by dashes (owner-approved; note "modified" in the attribution). The wordlist and the drawing
-   live in infrastructure beside `TokenGeneratorCrypto`;
+   joined by dashes (owner-approved). The filtering happens in code; the
+   vendored file stays verbatim, so the attribution needs no "modified"
+   note. The wordlist and the drawing live in infrastructure beside `TokenGeneratorCrypto`;
    `TokenGenerator.generateGuestKey()` still returns a string the domain
    wraps (settled). `GuestKey` gets a maximum
    length of **32** characters, enforced in `GuestKey.from`, so a
@@ -109,7 +111,8 @@ create/ready. Open it after `npm ci` so the self-hosted fonts load.
    (ADR-0005 already says so; the form hint says it too). Both are set
    only at creation: lists and items have no edit flow and this round
    adds none; the form hint says it can't be changed later. Rendering:
-   - paragraphs, line breaks, bold, italic, ordered/unordered lists and
+   - paragraphs, line breaks (a single newline is a line break, so an
+     address typed one line per row stays that way), bold, italic, ordered/unordered lists and
      links; `http`/`https` URLs only, bare URLs become links (GFM
      autolink); links open in a new tab with
      `rel="noopener noreferrer nofollow ugc"`
@@ -253,8 +256,8 @@ come later (owner, 2026-10-26).
 
 - Markdown library and configuration (e.g. `react-markdown` +
   `remark-gfm` with an element allowlist and URL transform), as long as
-  the rendering rules above hold and it adds one or two dependencies at
-  most.
+  the rendering rules above hold and it adds at most three dependencies
+  (renderer, GFM, line breaks).
 - How the runtime instance config (`SOURCE_URL`, `PRIVACY_CONTACT`)
   reaches the SPA: a small public endpoint or server-side injection into
   `index.html`. It must not require a guest session.
