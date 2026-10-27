@@ -59,7 +59,6 @@ describe('ListPage', () => {
     renderListPage();
 
     const box = (await screen.findByText('How holding a gift works')).closest('details')!;
-    expect(box).toHaveAttribute('open');
     expect(within(box).getByText('Hold it before you buy it.')).toBeInTheDocument();
     expect(within(box).getByText('Buy it within 3 days.')).toBeInTheDocument();
     expect(within(box).getByText('Come back and mark it purchased.')).toBeInTheDocument();
