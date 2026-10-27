@@ -1,3 +1,6 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { createDb } from '../infrastructure/db/createDb.js';
@@ -7,9 +10,6 @@ import type { Logger } from '../application/ports/Logger.js';
 import { buildDependencies, type BuildDependenciesOptions } from './compositionRoot.js';
 import { buildApp } from './app.js';
 import { disposeWithApp } from './lifecycle.js';
-import { mkdtemp, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
 import { DomainValidationError } from '../domain/errors.js';
 
 function extractCookieHeader(response: LightMyRequestResponse): string {
@@ -41,6 +41,7 @@ describe('GET /health', () => {
 describe('Content-Security-Policy', () => {
   it('forbids images from other sites on every response', async () => {
     const webDist = await mkdtemp(path.join(tmpdir(), 'gubbins-web-'));
+    onTestFinished(() => rm(webDist, { recursive: true, force: true }));
     await writeFile(path.join(webDist, 'index.html'), '<!doctype html><title>spa</title>');
     const withSpa = buildApp(buildDependencies(db, undefined, {}), { cookieSecret: 'test-secret', webDist });
     onTestFinished(() => withSpa.close());
