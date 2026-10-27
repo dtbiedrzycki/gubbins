@@ -18,7 +18,19 @@ describe('GuestKeyGate', () => {
     renderWithQueryClient(<GuestKeyGate slug="abc123" onSuccess={vi.fn()} />);
 
     expect(screen.getByRole('heading', { level: 1, name: 'Knock, knock.' })).toBeInTheDocument();
-    expect(screen.getByText('Enter the guest key from your invite.')).toBeInTheDocument();
+    expect(screen.getByText(/This is a/)).toHaveTextContent(
+      'This is a gift list on Gubbins, a small wishlist app with no accounts, no ads and no tracking.',
+    );
+    expect(screen.getByText('Enter the guest key from your invite to see what they’re hoping for.')).toBeInTheDocument();
+
+    const input = screen.getByLabelText('Guest key');
+    const hint = screen.getByText('The list owner sent it with your invite: three words joined by dashes.');
+    expect(input).toHaveAccessibleDescription(hint.textContent!);
+    expect(input).toHaveAttribute('placeholder', 'maple-lantern-otter');
+    expect(input).toHaveAttribute('autocapitalize', 'none');
+    expect(input).toHaveAttribute('autocorrect', 'off');
+    expect(input).toHaveAttribute('spellcheck', 'false');
+    expect(input).toHaveAttribute('autocomplete', 'off');
   });
 
   it('calls onSuccess after a valid key is accepted', async () => {
@@ -27,7 +39,7 @@ describe('GuestKeyGate', () => {
     const user = userEvent.setup();
     renderWithQueryClient(<GuestKeyGate slug="abc123" onSuccess={onSuccess} />);
 
-    await user.type(screen.getByLabelText('Enter the guest key'), 'correct-key');
+    await user.type(screen.getByLabelText('Guest key'), 'correct-key');
     await user.click(screen.getByRole('button', { name: 'View list' }));
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
@@ -43,7 +55,7 @@ describe('GuestKeyGate', () => {
     const user = userEvent.setup();
     renderWithQueryClient(<GuestKeyGate slug="abc123" onSuccess={onSuccess} />);
 
-    await user.type(screen.getByLabelText('Enter the guest key'), ' correct-key ');
+    await user.type(screen.getByLabelText('Guest key'), ' correct-key ');
     await user.click(screen.getByRole('button', { name: 'View list' }));
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
@@ -59,7 +71,7 @@ describe('GuestKeyGate', () => {
     const alert = screen.getByRole('alert');
     expect(alert).toBeEmptyDOMElement();
 
-    await user.type(screen.getByLabelText('Enter the guest key'), 'wrong-key');
+    await user.type(screen.getByLabelText('Guest key'), 'wrong-key');
     await user.click(screen.getByRole('button', { name: 'View list' }));
 
     await waitFor(() => expect(alert).toHaveTextContent('This list could not be found.'));

@@ -61,7 +61,11 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
   return (
     <dialog ref={dialogRef} onCancel={handleCancel} onClose={handleClose} aria-labelledby="hold-dialog-title" className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-[22px] bg-paper p-6 text-ink backdrop:bg-ink/50">
       <p id="hold-dialog-title" className="mb-2 break-words font-display text-[1.3rem] leading-tight">Hold &ldquo;{itemTitle}&rdquo; for yourself?</p>
-      <p className="mb-4 text-muted">Held for you for {duration}.</p>
+      <p className="mb-4 text-muted">Other guests will see it&rsquo;s taken while you buy it.</p>
+      <div className="mb-4 space-y-2 rounded-[18px] border-[1.5px] border-line bg-white p-4">
+        <p className="font-bold">After you buy it, come back and tap &ldquo;Mark as purchased&rdquo;.</p>
+        <p>If you don&rsquo;t, the hold ends after {duration} and another guest could buy it too.</p>
+      </div>
       <label className="mb-1 block" htmlFor="hold-name">Your name</label>
       <LimitedInput id="hold-name" required describedBy={['hold-name-privacy', sent && 'hold-details-locked']} value={name} onChange={(e) => setName(e.target.value)} max={NAME_MAX} disabled={isPending} readOnly={sent} className="field mb-1" />
       <p id="hold-name-privacy" className="mb-4 text-sm text-muted">Your name is only shared with the list owner.</p>
