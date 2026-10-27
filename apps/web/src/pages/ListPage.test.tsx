@@ -23,7 +23,7 @@ const view = (held: boolean): ListViewResponse => ({
 function renderListPage() {
   // useListView's own retry wins over these defaults; retryDelay: 0 keeps its one retry instant.
   const client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 }, mutations: { retry: false } } });
-  render(
+  return render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={['/abc123']}>
         <Routes><Route path="/:slug" element={<ListPage />} /></Routes>
@@ -54,18 +54,47 @@ describe('ListPage', () => {
     expect(within(screen.getByRole('region', { name: 'Your holds' })).getByRole('heading', { name: 'Cot' })).toBeInTheDocument();
   });
 
-  it('tells guests a hold lasts 3 days', async () => {
+  it('explains holding: hold before buying, buy within 3 days, then mark it purchased or the hold ends', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
     renderListPage();
 
-    expect(await screen.findByText("When you hold an item, it's held for you for 3 days.")).toBeInTheDocument();
+    const box = (await screen.findByText('How holding a gift works')).closest('details')!;
+    expect(within(box).getByText('Hold it before you buy it.')).toBeInTheDocument();
+    expect(within(box).getByText('Buy it within 3 days.')).toBeInTheDocument();
+    expect(within(box).getByText('Come back and mark it purchased.')).toBeInTheDocument();
+    expect(box).toHaveTextContent('If you don\u2019t, the hold ends after 3 days and another guest can buy the same gift.');
+  });
+
+  it.each([
+    ['only group gifts', { ...view(false), items: [{ id: 'item-1', title: 'Honeymoon fund', type: 'group', status: 'available', availableUnits: 0, url: null, priceMinor: 50000, pledgedMinor: 0 }] }],
+    ['no single gift left to hold', view(true)],
+  ] satisfies [string, ListViewResponse][])('leaves out the holding explainer when the list has %s', async (_, list) => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(list)));
+    renderListPage();
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Baby Shower' })).toBeInTheDocument();
+    expect(screen.queryByText('How holding a gift works')).not.toBeInTheDocument();
+  });
+
+  it('opens the holding explainer on the first visit that has a gift to hold, even after a visit with none', async () => {
+    localStorage.clear();
+    const fundsOnly: ListViewResponse = { ...view(false), items: [{ id: 'item-1', title: 'Honeymoon fund', type: 'group', status: 'available', availableUnits: 0, url: null, priceMinor: 50000, pledgedMinor: 0 }] };
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(fundsOnly)));
+    const firstVisit = renderListPage();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Baby Shower' })).toBeInTheDocument();
+    firstVisit.unmount();
+
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
+    renderListPage();
+    expect((await screen.findByText('How holding a gift works')).closest('details')).toHaveAttribute('open');
+    localStorage.clear();
   });
 
   it('says "1 day" for a one-day hold', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), capabilities: { holdDurationDays: 1 } })));
     renderListPage();
 
-    expect(await screen.findByText("When you hold an item, it's held for you for 1 day.")).toBeInTheDocument();
+    expect(await screen.findByText('Buy it within 1 day.')).toBeInTheDocument();
   });
 
   it('holds the item, then shows it held and under "Your holds" with its actions', async () => {
@@ -78,7 +107,7 @@ describe('ListPage', () => {
     renderListPage();
 
     await user.click(await screen.findByRole('button', { name: /^Hold this item/ }));
-    expect(screen.getByText('Held for you for 3 days.')).toBeInTheDocument();
+    expect(screen.getByText('After you buy it, come back and tap \u201cMark as purchased\u201d.')).toBeInTheDocument();
     await user.type(screen.getByLabelText('Your name'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
