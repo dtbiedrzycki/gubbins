@@ -41,7 +41,7 @@ describe('Item.createSingle', () => {
   });
 });
 
-describe('Item kinds, URL and price', () => {
+describe('Item kinds, URL, price and description', () => {
   const ID = ITEM_ID;
   const WL = WISHLIST_ID;
   it.each(['javascript:alert(1)', 'http://shop.example/x', 'data:text/html,hi', 'shop.example'])('refuses a store URL that is not an https URL (%j)', (url) => {
