@@ -11,7 +11,9 @@ import { Slug } from '../value-objects/Slug.js';
 import { UuidId } from '../value-objects/UuidId.js';
 import type { Contribution } from './Contribution.js';
 import type { Hold, HoldStatus } from './Hold.js';
-import { Item, type ItemStatus } from './Item.js';
+import { cleanDescription, Item, type ItemStatus } from './Item.js';
+
+const WISHLIST_DESCRIPTION_MAX = 2000; // room for an address and delivery notes; bounds stored input
 
 /** What a hold command returns: the hold it changed, the item whose stream moved, and the event to append at `expectedSeq`. */
 export interface HoldCommandResult<E> {
@@ -34,8 +36,6 @@ export interface HoldCommandResult<E> {
  * time argument, so no caller can decide on the loaded data using an
  * older or newer date than the one it was loaded at.
  */
-const WISHLIST_DESCRIPTION_MAX = 2000; // room for an address and delivery notes; bounds stored input
-
 export class Wishlist {
   private _items: Item[] = [];
 
@@ -69,7 +69,7 @@ export class Wishlist {
     return new Wishlist(
       UuidId.from(props.id), Slug.from(props.slug), props.title.trim(),
       OwnerToken.from(props.ownerToken), GuestKey.from(props.key), 1, new Date(props.asOf.getTime()), props.paymentMethods,
-      props.description?.trim() || null,
+      cleanDescription(props.description),
     );
   }
 

@@ -20,7 +20,7 @@ export type ItemStatus = 'available' | 'held' | 'purchased';
 const sumMinor = (contributions: readonly Contribution[]): number => contributions.reduce((sum, c) => sum + c.amount.amountMinor, 0);
 
 /** Trims the ends only, so inner line breaks survive; a blank description is none. */
-function cleanDescription(description: string | null | undefined): string | null {
+export function cleanDescription(description: string | null | undefined): string | null {
   return description?.trim() || null;
 }
 
