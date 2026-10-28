@@ -13,13 +13,27 @@ export function ClampedText({ children, id }: { children: ReactNode; id: string 
       if (!expanded) setOverflows(el.scrollHeight > el.clientHeight);
     };
     measure();
+    let cancelled = false;
+    // Web fonts swap in after first paint and can add a line.
+    void document.fonts?.ready.then(() => {
+      if (!cancelled) measure();
+    });
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('resize', measure);
+    };
   }, [children, expanded]);
 
   return (
     <div>
-      <div id={id} ref={ref} className={expanded ? undefined : 'line-clamp-2'}>
+      {/* Focus on a clipped link would be invisible, so expand. */}
+      <div
+        id={id}
+        ref={ref}
+        className={expanded ? undefined : 'line-clamp-2'}
+        onFocus={() => setExpanded(true)}
+      >
         {children}
       </div>
       {overflows && (

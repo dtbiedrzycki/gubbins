@@ -34,11 +34,13 @@ describe('Markdown', () => {
     expect(container.querySelector('li')?.textContent).toBe('one');
   });
 
-  it('renders no image and no raw HTML', () => {
+  it('renders no image and shows raw HTML as inert text', () => {
     const { container } = render(
-      <Markdown text={'![x](http://e.com/a.png)\n\n<img src=x>\n\n<script>alert(1)</script>'} />,
+      <Markdown text={'![x](http://e.com/a.png)\n\n<img src=x>\n\nT-shirt size <L> <script>alert(1)</script>'} />,
     );
     expect(container.querySelector('img, script')).toBeNull();
+    expect(container.textContent).toContain('<img src=x>');
+    expect(container.textContent).toContain('T-shirt size <L> <script>alert(1)</script>');
   });
 
   it('keeps the text of headings, code and quotes without their elements', () => {

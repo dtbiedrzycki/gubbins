@@ -7,12 +7,12 @@ const allowedElements = ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'a'];
 // Anything but http(s) becomes '', so the link renders as plain text.
 const httpOnly = (url: string) => (/^https?:\/\//i.test(url) ? url : '');
 
-// Owner text reaches guests: no images, raw HTML or non-http(s) links.
+// Owner text reaches guests: no images or non-http(s) links. Raw HTML stays
+// literal text (no rehype-raw), so "size <L>" is shown, not deleted.
 export function Markdown({ text }: { text: string }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkBreaks]}
-      skipHtml
       allowedElements={allowedElements}
       unwrapDisallowed
       urlTransform={httpOnly}
