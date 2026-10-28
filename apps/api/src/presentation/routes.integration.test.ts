@@ -39,7 +39,7 @@ describe('GET /health', () => {
 });
 
 describe('Content-Security-Policy', () => {
-  it('forbids images from other sites on every response', async () => {
+  it('sends the image policy on API responses and the SPA fallback', async () => {
     const webDist = await mkdtemp(path.join(tmpdir(), 'gubbins-web-'));
     onTestFinished(() => rm(webDist, { recursive: true, force: true }));
     await writeFile(path.join(webDist, 'index.html'), '<!doctype html><title>spa</title>');
