@@ -10,11 +10,11 @@ export function filterKey(item: Item): Exclude<ItemFilterValue, 'all'> {
   return item.status === 'purchased' || funded ? 'purchased' : item.status;
 }
 
-const options: { value: ItemFilterValue; label: string; seal?: 'wax' | 'gold' }[] = [
+const options: { value: ItemFilterValue; label: string; seal?: 'red-wax' | 'gold-wax' }[] = [
   { value: 'all', label: 'All' },
   { value: 'available', label: 'Available' },
-  { value: 'held', label: 'Held', seal: 'wax' },
-  { value: 'purchased', label: 'Purchased or funded', seal: 'gold' },
+  { value: 'held', label: 'Held', seal: 'red-wax' },
+  { value: 'purchased', label: 'Purchased or funded', seal: 'gold-wax' },
 ];
 
 export interface ItemFilterProps {

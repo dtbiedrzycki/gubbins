@@ -105,7 +105,7 @@ describe('ItemView', () => {
     expect(screen.queryByRole('button', { name: /^Hold this item/ })).not.toBeInTheDocument();
   });
 
-  it.each([['held', 'wax'], ['purchased', 'gold']] as const)('marks a %s item with a %s seal that does not stamp in and is hidden from screen readers', (status, tone) => {
+  it.each([['held', 'red-wax'], ['purchased', 'gold-wax']] as const)('marks a %s item with a %s seal that does not stamp in and is hidden from screen readers', (status, tone) => {
     renderItem({ status });
     const seal = document.querySelector('[data-seal]');
     expect(seal).toHaveAttribute('data-seal', tone);

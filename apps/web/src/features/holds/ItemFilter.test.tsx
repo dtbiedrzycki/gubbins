@@ -40,8 +40,8 @@ describe('ItemFilter', () => {
     const sealed = (name: string) => screen.getByRole('button', { name }).querySelector('[data-seal]');
     expect(sealed('All · 0')).toBeNull();
     expect(sealed('Available · 0')).toBeNull();
-    expect(sealed('Held · 0')).toHaveAttribute('data-seal', 'wax');
-    expect(sealed('Purchased or funded · 0')).toHaveAttribute('data-seal', 'gold');
+    expect(sealed('Held · 0')).toHaveAttribute('data-seal', 'red-wax');
+    expect(sealed('Purchased or funded · 0')).toHaveAttribute('data-seal', 'gold-wax');
     expect(container.querySelectorAll('[data-seal]')).toHaveLength(2);
   });
 });

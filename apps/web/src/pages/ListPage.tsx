@@ -72,7 +72,9 @@ export default function ListPage() {
         <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn't refresh the list, so it may be out of date." : ''}</p>
         <ItemFilter items={items} value={filter.value} onChange={chooseFilter} />
         {/* explicit role: Safari/VoiceOver drops list semantics under list-style none */}
-        {shown.length === 0 ? <p className="text-center">No gifts here yet.</p> : (
+        {shown.length === 0 ? (
+          <p className="text-center">{filter.value === 'available' && items.length > 0 ? 'Every gift is already held, purchased or funded.' : 'No gifts here yet.'}</p>
+        ) : (
         <ul role="list">
           {shown.map((item) => (
             <li key={item.id} className="border-b border-line py-5">

@@ -46,11 +46,11 @@ async function renderYourHolds() {
 }
 
 describe('YourHolds', () => {
-  it('shows an active hold with a wax seal, its expiry and every action the server offers', async () => {
+  it('shows an active hold with a red wax seal, its expiry and every action the server offers', async () => {
     listViews(list([active]));
     const region = await renderYourHolds();
 
-    expect(region.querySelector('[data-seal]')).toHaveAttribute('data-seal', 'wax');
+    expect(region.querySelector('[data-seal]')).toHaveAttribute('data-seal', 'red-wax');
     expect(within(region).getByText(`Held until ${formatExpiry(EXPIRES)}.`)).toBeInTheDocument();
     for (const name of ['Mark as purchased', 'Extend hold', 'Release hold']) {
       expect(within(region).getByRole('button', { name })).toBeInTheDocument();
@@ -65,12 +65,12 @@ describe('YourHolds', () => {
     expect(within(region).getAllByRole('button').map((b) => b.textContent)).toEqual(['Mark as purchased']);
   });
 
-  it('shows a purchased hold as done, with a gold seal and no actions', async () => {
+  it('shows a purchased hold as done, with a gold wax seal and no actions', async () => {
     listViews(list([purchased]));
     const region = await renderYourHolds();
 
     expect(within(region).getByText('Marked as purchased.')).toBeInTheDocument();
-    expect(region.querySelector('[data-seal]')).toHaveAttribute('data-seal', 'gold');
+    expect(region.querySelector('[data-seal]')).toHaveAttribute('data-seal', 'gold-wax');
     expect(within(region).queryAllByRole('button')).toEqual([]);
   });
 

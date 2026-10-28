@@ -96,6 +96,15 @@ describe('ListPage', () => {
     expect(screen.queryByRole('heading', { level: 2, name: 'Stroller' })).not.toBeInTheDocument();
   });
 
+  it('says every gift is held, purchased or funded when Available is chosen and none are left', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(true))));
+    renderListPage();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Available · 0' }));
+
+    expect(screen.getByText('Every gift is already held, purchased or funded.')).toBeInTheDocument();
+  });
+
   it('explains holding: hold before buying, buy within 3 days, then mark it purchased or the hold ends', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
     renderListPage();
