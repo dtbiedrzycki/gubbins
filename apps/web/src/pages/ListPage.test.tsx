@@ -68,6 +68,24 @@ describe('ListPage', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Cot' })).toBeInTheDocument();
   });
 
+  it('keeps a gift held from the Available filter on screen and moves focus to "Your holds"', async () => {
+    let held = false;
+    server.use(
+      http.get('/api/lists/abc123', () => HttpResponse.json(view(held))),
+      http.post('/api/lists/abc123/items/item-1/hold', () => { held = true; return HttpResponse.json(hold, { status: 201 }); }),
+    );
+    const user = userEvent.setup();
+    renderListPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Available · 1' }));
+    await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
+    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+    expect(await screen.findByText('Stroller is held.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Your holds' })).toHaveFocus();
+  });
+
   it('says so when no gifts match the chosen filter', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
     renderListPage();

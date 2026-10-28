@@ -17,7 +17,8 @@ export default function ListPage() {
   // "Try again" sends the query back to pending, which unmounts the error
   // view; this outlives it so a failed retry can hand focus back.
   const [retried, setRetried] = useState(false);
-  const [filter, setFilter] = useState<ItemFilterValue>('all');
+  // The ids are fixed when the guest picks a filter, so a gift that changes state stays shown (with any open dialog) until they pick again.
+  const [filter, setFilter] = useState<{ value: ItemFilterValue; ids?: Set<string> }>({ value: 'all' });
   if (!slug) return null;
 
   if (query.status === 'pending') {
@@ -55,7 +56,9 @@ export default function ListPage() {
 
   const items = query.data.items;
   const days = query.data.capabilities.holdDurationDays;
-  const shown = filter === 'all' ? items : items.filter((i) => filterKey(i) === filter);
+  const shown = filter.ids ? items.filter((i) => filter.ids!.has(i.id)) : items;
+  const chooseFilter = (value: ItemFilterValue) =>
+    setFilter({ value, ids: value === 'all' ? undefined : new Set(items.filter((i) => filterKey(i) === value).map((i) => i.id)) });
   // A guest with a hold already saw the box when they held; with nothing to hold, it explains nothing.
   const canHold = items.some((item) => item.type === 'single' && item.status === 'available');
   return (
@@ -67,7 +70,7 @@ export default function ListPage() {
         </header>
         {canHold && <HowHoldingWorks holdDurationDays={days} />}
         <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn't refresh the list, so it may be out of date." : ''}</p>
-        <ItemFilter items={items} value={filter} onChange={setFilter} />
+        <ItemFilter items={items} value={filter.value} onChange={chooseFilter} />
         {/* explicit role: Safari/VoiceOver drops list semantics under list-style none */}
         {shown.length === 0 ? <p className="text-center">No gifts here yet.</p> : (
         <ul role="list">
