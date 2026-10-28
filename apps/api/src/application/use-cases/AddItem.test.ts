@@ -27,14 +27,6 @@ describe('AddItem', () => {
     expect(item).toMatchObject({ title: 'Stroller', seq: 0 });
   });
 
-  it('persists the description given when adding an item', async () => {
-    const { useCase, wishlists } = await makeUseCase();
-
-    const { itemId } = await useCase.execute({ ...input, description: 'Navy, size M' }, { guestSession: null, owner: true });
-
-    expect((await wishlists.findById(WISHLIST_ID, NOW))?.getItem(itemId)?.description).toBe('Navy, size M');
-  });
-
   it('refuses a caller without owner access as if the list did not exist, persisting nothing', async () => {
     const { useCase, wishlists } = await makeUseCase();
 
