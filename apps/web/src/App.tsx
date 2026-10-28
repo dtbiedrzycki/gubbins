@@ -7,11 +7,14 @@ const CreateListPage = lazy(() => import('./pages/CreateListPage'));
 const ListPage = lazy(() => import('./pages/ListPage'));
 const ManagePage = lazy(() => import('./pages/ManagePage'));
 
-// Pages render their own <main>; the layout route puts the footer after it on every page.
+// Pages render their own <main>; the layout route puts the footer after it on every page,
+// and suspends only the page so the footer stays while a page chunk loads.
 function Layout() {
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
-      <Outlet />
+      <Suspense fallback={<p className="p-6">Loading…</p>}>
+        <Outlet />
+      </Suspense>
       <Footer />
     </div>
   );
@@ -29,9 +32,5 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
-  return (
-    <Suspense fallback={<p className="p-6">Loading…</p>}>
-      <RouterProvider router={router} />
-    </Suspense>
-  );
+  return <RouterProvider router={router} />;
 }

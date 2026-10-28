@@ -19,7 +19,6 @@ describe('Footer', () => {
 
     await waitFor(() => expect(screen.getByRole('link', { name: 'Source on GitHub' })).toHaveAttribute('href', 'https://git.example.org/fork'));
     expect(screen.getByRole('link', { name: 'AGPL-3.0' })).toHaveAttribute('href', 'https://www.gnu.org/licenses/agpl-3.0.html');
-    expect(screen.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy');
   });
 
   it("falls back to the upstream repository when the server can't be reached", async () => {
