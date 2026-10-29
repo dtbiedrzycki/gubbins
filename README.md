@@ -11,8 +11,8 @@ the back-end.
 ## Using it
 
 Open `/wishlists/new` on a running instance and enter its `CREATE_SECRET` to
-create a list. Guests open the list's invitation link (`/wishlists/:slug`, with
-the three-word guest key in the link's fragment); the owner manages it at
+create a list. Guests open the list's invitation link (`/wishlists/:slug`) and
+enter the three-word guest key the owner gives them; the owner manages it at
 `/wishlists/:slug/manage`. See [`docs/deploy.md`](docs/deploy.md) to run one.
 
 ## Development

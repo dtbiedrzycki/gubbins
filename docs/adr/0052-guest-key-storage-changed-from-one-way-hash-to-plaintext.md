@@ -23,8 +23,8 @@ introducing new risk, and enables on-demand QR regeneration.
 ## Amendment: word keys
 
 New guest keys are three lowercase words from the EFF large wordlist
-(7,776 words, ~38.8 bits), joined by `-`; the four hyphenated entries are
-filtered out so every key is exactly three words. `GuestKey` allows at most 32
+(7,772 of the list's 7,776 words, ~38.8 bits), joined by `-`; the four
+hyphenated entries are filtered out so every key is exactly three words. `GuestKey` allows at most 32
 characters, which fits three words (at most 29) and older 32-character
 base64url keys, which keep working.
 
