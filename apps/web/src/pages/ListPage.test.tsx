@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -34,10 +34,6 @@ function renderListPage() {
 }
 
 describe('ListPage', () => {
-  afterEach(() => {
-    localStorage.clear();
-  });
-
   const twoItems: ListViewResponse = {
     ...view(false),
     items: [
