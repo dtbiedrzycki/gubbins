@@ -12,11 +12,17 @@ import { UuidId } from '../value-objects/UuidId.js';
 
 export type ItemType = 'single' | 'group';
 export const MAX_CONTRIBUTION_TARGET_MULTIPLE = 5; // shortcut: constant, not the MAX_CONTRIBUTION_TARGET_MULTIPLE env var; add the env var when an operator needs another value
+const ITEM_DESCRIPTION_MAX = 1000; // a few paragraphs of notes (size, colour, where to buy); bounds stored input
 const MAX_URL_LENGTH = 2048; // the de facto browser/CDN limit; bounds stored input
 
 export type ItemStatus = 'available' | 'held' | 'purchased';
 
 const sumMinor = (contributions: readonly Contribution[]): number => contributions.reduce((sum, c) => sum + c.amount.amountMinor, 0);
+
+/** Trims the ends only, so inner line breaks survive; a blank description is none. */
+export function cleanDescription(description: string | null | undefined): string | null {
+  return description?.trim() || null;
+}
 
 function isNonNegativeInteger(value: number): boolean {
   return Number.isInteger(value) && value >= 0;
@@ -48,6 +54,7 @@ export class Item {
     readonly quantity: number,
     readonly url: string | null,
     readonly priceMinor: number | null,
+    readonly description: string | null,
     private _seq: number,
     private readonly asOf: Date,
     private _holds: Hold[],
@@ -61,6 +68,9 @@ export class Item {
     if (priceMinor !== null && (!Number.isSafeInteger(priceMinor) || priceMinor < 1 || priceMinor > MAX_MONEY_MINOR)) {
       throw new DomainValidationError('Item price must be a positive whole number of minor units within the limit');
     }
+    if (description !== null && description.length > ITEM_DESCRIPTION_MAX) {
+      throw new DomainValidationError(`Item description must be at most ${ITEM_DESCRIPTION_MAX} characters`);
+    }
     if (type === 'group' && (priceMinor === null || quantity !== 1)) throw new DomainValidationError('A group gift is one unit with a price');
     if (!isNonNegativeInteger(_seq)) throw new DomainValidationError('Item seq must be a non-negative integer');
     if ([..._holds, ..._contributions].some((member) => member.itemId.value !== id.value)) {
@@ -70,18 +80,18 @@ export class Item {
   }
 
   static createSingle(props: {
-    id: string; wishlistId: string; title: string; quantity?: number; url?: string | null; priceMinor?: number | null; asOf: Date;
+    id: string; wishlistId: string; title: string; quantity?: number; url?: string | null; priceMinor?: number | null; description?: string | null; asOf: Date;
   }): Item {
     return new Item(
       UuidId.from(props.id), UuidId.from(props.wishlistId), 'single', props.title.trim(), props.quantity ?? 1,
-      props.url?.trim() ?? null, props.priceMinor ?? null, 0, new Date(props.asOf.getTime()), [], [],
+      props.url?.trim() ?? null, props.priceMinor ?? null, cleanDescription(props.description), 0, new Date(props.asOf.getTime()), [], [],
     );
   }
 
-  static createGroup(props: { id: string; wishlistId: string; title: string; priceMinor: number; url?: string | null; asOf: Date }): Item {
+  static createGroup(props: { id: string; wishlistId: string; title: string; priceMinor: number; url?: string | null; description?: string | null; asOf: Date }): Item {
     return new Item(
       UuidId.from(props.id), UuidId.from(props.wishlistId), 'group', props.title.trim(), 1,
-      props.url?.trim() ?? null, props.priceMinor, 0, new Date(props.asOf.getTime()), [], [],
+      props.url?.trim() ?? null, props.priceMinor, cleanDescription(props.description), 0, new Date(props.asOf.getTime()), [], [],
     );
   }
 
@@ -94,12 +104,12 @@ export class Item {
    */
   static reconstitute(props: {
     id: string; wishlistId: string; type: string; title: string; quantity: number;
-    url?: string | null; priceMinor?: number | null; seq: number;
+    url?: string | null; priceMinor?: number | null; description?: string | null; seq: number;
     asOf: Date; holds?: readonly Hold[]; contributions?: readonly Contribution[];
   }): Item {
     return new Item(
       UuidId.from(props.id), UuidId.from(props.wishlistId), props.type as ItemType,
-      props.title, props.quantity, props.url ?? null, props.priceMinor ?? null, props.seq,
+      props.title, props.quantity, props.url ?? null, props.priceMinor ?? null, props.description ?? null, props.seq,
       new Date(props.asOf.getTime()), [...(props.holds ?? [])], [...(props.contributions ?? [])],
     );
   }

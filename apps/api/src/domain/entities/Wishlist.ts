@@ -11,7 +11,9 @@ import { Slug } from '../value-objects/Slug.js';
 import { UuidId } from '../value-objects/UuidId.js';
 import type { Contribution } from './Contribution.js';
 import type { Hold, HoldStatus } from './Hold.js';
-import { Item, type ItemStatus } from './Item.js';
+import { cleanDescription, Item, type ItemStatus } from './Item.js';
+
+const WISHLIST_DESCRIPTION_MAX = 2000; // room for an address and delivery notes; bounds stored input
 
 /** What a hold command returns: the hold it changed, the item whose stream moved, and the event to append at `expectedSeq`. */
 export interface HoldCommandResult<E> {
@@ -52,16 +54,22 @@ export class Wishlist {
     readonly keyGen: number,
     private readonly asOf: Date,
     readonly paymentMethods: PaymentMethods = PaymentMethods.none,
+    readonly description: string | null = null,
   ) {
     if (title.trim().length === 0) throw new DomainValidationError('Wishlist title must not be empty');
     if (title.length > 120) throw new DomainValidationError('Wishlist title must be at most 120 characters');
+    if (description !== null && description.length > WISHLIST_DESCRIPTION_MAX) {
+      throw new DomainValidationError(`Wishlist description must be at most ${WISHLIST_DESCRIPTION_MAX} characters`);
+    }
   }
 
   /** A new list, deciding as of `asOf`: the instant it is created at. */
-  static create(props: { id: string; slug: string; title: string; ownerToken: string; key: string; asOf: Date; paymentMethods?: PaymentMethods }): Wishlist {
+  static create(props: { id: string; slug: string; title: string; ownerToken: string; key: string; asOf: Date; paymentMethods?: PaymentMethods;
+    description?: string | null }): Wishlist {
     return new Wishlist(
       UuidId.from(props.id), Slug.from(props.slug), props.title.trim(),
       OwnerToken.from(props.ownerToken), GuestKey.from(props.key), 1, new Date(props.asOf.getTime()), props.paymentMethods,
+      cleanDescription(props.description),
     );
   }
 
@@ -71,7 +79,7 @@ export class Wishlist {
    * one every decision is taken at; each item must have been loaded at it.
    */
   static reconstitute(props: {
-    id: string; slug: string; title: string; ownerToken: string; key: string; keyGen: number; asOf: Date; paymentMethods?: PaymentMethods;
+    id: string; slug: string; title: string; ownerToken: string; key: string; keyGen: number; asOf: Date; paymentMethods?: PaymentMethods; description?: string | null;
     items?: readonly Item[];
   }): Wishlist {
     const items = props.items ?? [];
@@ -84,6 +92,7 @@ export class Wishlist {
     const wishlist = new Wishlist(
       UuidId.from(props.id), Slug.from(props.slug), props.title,
       OwnerToken.from(props.ownerToken), GuestKey.from(props.key), props.keyGen, new Date(props.asOf.getTime()), props.paymentMethods,
+      props.description ?? null,
     );
     wishlist._items = [...items];
     return wishlist;
@@ -95,8 +104,8 @@ export class Wishlist {
    * application/, ADR-0012).
    */
   addItem(
-    props: { type: 'single'; title: string; quantity?: number; url?: string | null; priceMinor?: number | null }
-      | { type: 'group'; title: string; priceMinor: number; url?: string | null },
+    props: { type: 'single'; title: string; quantity?: number; url?: string | null; priceMinor?: number | null; description?: string | null }
+      | { type: 'group'; title: string; priceMinor: number; url?: string | null; description?: string | null },
     ids: { generateEntityId(): string },
   ): Item {
     // Spread last, so a caller passing extra keys can never override what the aggregate assigns.
