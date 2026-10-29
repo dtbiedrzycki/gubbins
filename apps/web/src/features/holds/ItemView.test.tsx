@@ -43,7 +43,7 @@ describe('ItemView', () => {
 
     await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
     expect(screen.getByText('Other guests will see it\u2019s taken while you buy it.')).toBeInTheDocument();
-    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.type(screen.getByLabelText('Message to the owner (optional)'), 'Collecting Friday');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
@@ -57,7 +57,7 @@ describe('ItemView', () => {
     renderItem();
 
     await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
-    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
     await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
@@ -72,13 +72,13 @@ describe('ItemView', () => {
     renderItem();
 
     await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
-    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
     await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
     expect(screen.getByRole('alert')).toBeEmptyDOMElement();
-    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     await vi.waitFor(() => expect(bodies).toHaveLength(2));
@@ -240,7 +240,7 @@ describe('ItemView', () => {
     await user.click(screen.getByRole('button', { name: 'Chip in' }));
     await user.click(screen.getByLabelText('Cover the rest ($287.50)'));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: "I've sent it" }));
 
     await vi.waitFor(() => expect(screen.queryByRole('dialog', { hidden: true })).not.toBeInTheDocument());

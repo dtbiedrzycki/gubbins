@@ -66,9 +66,10 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
         <p className="font-bold">After you buy it, come back and tap &ldquo;Mark as purchased&rdquo;.</p>
         <p>If you don&rsquo;t, the hold ends after {duration} and another guest could buy it too.</p>
       </div>
-      <label className="mb-1 block" htmlFor="hold-name">Your name</label>
-      <LimitedInput id="hold-name" required describedBy={['hold-name-privacy', sent && 'hold-details-locked']} value={name} onChange={(e) => setName(e.target.value)} max={NAME_MAX} disabled={isPending} readOnly={sent} className="field mb-1" />
-      <p id="hold-name-privacy" className="mb-4 text-sm text-muted">Your name is only shared with the list owner.</p>
+      <label className="mb-1 block" htmlFor="hold-name">Gifter name(s)</label>
+      <LimitedInput id="hold-name" required describedBy={['hold-name-hint', 'hold-name-privacy', sent && 'hold-details-locked']} value={name} onChange={(e) => setName(e.target.value)} max={NAME_MAX} disabled={isPending} readOnly={sent} className="field mb-1" />
+      <p id="hold-name-hint" className="text-sm text-muted">Include everyone the gift is from, e.g. Sam &amp; Alex Smith.</p>
+      <p id="hold-name-privacy" className="mb-4 text-sm text-muted">Names are only shared with the list owner.</p>
       <label className="mb-1 block" htmlFor="hold-message">Message to the owner (optional)</label>
       <LimitedTextarea id="hold-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} readOnly={sent} describedBy={[sent && 'hold-details-locked']} className="field mb-4" />
       {sent && <p id="hold-details-locked" className="mb-4 text-sm text-muted">To change your details, cancel and start again.</p>}

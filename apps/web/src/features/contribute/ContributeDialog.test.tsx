@@ -91,7 +91,7 @@ describe('ContributeDialog', () => {
     expect(within(screen.getByRole('list', { name: 'How to chip in' })).getAllByRole('listitem').map((step) => step.textContent)).toEqual([
       'Check the amount, then send it with Zelle.',
       'Once it has gone through, come back to this page.',
-      'Add your name and choose \u201cI\'ve sent it\u201d, so the list shows your gift.',
+      'Add who the gift is from and choose \u201cI\'ve sent it\u201d, so the list shows the gift.',
     ]);
   });
 
@@ -191,19 +191,26 @@ describe('ContributeDialog', () => {
     expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
   });
 
-  it('needs a name before the pledge can be sent', async () => {
+  it('needs the gifter names before the pledge can be sent', async () => {
     const user = userEvent.setup();
     renderDialog();
     await continueWithTheRest(user);
-    expect(screen.getByLabelText('Your name')).toBeRequired();
+    expect(screen.getByLabelText('Gifter name(s)')).toBeRequired();
     expect(screen.getByRole('button', { name: "I've sent it" })).toBeDisabled();
   });
 
-  it('limits the name to 100 characters and the message to 300', async () => {
+  it('describes the gifter names field with a hint to include everyone the gift is from', async () => {
     const user = userEvent.setup();
     renderDialog();
     await continueWithTheRest(user);
-    expect(screen.getByLabelText('Your name')).toHaveAttribute('maxlength', '100');
+    expect(screen.getByLabelText('Gifter name(s)')).toHaveAccessibleDescription('Include everyone the gift is from, e.g. Sam & Alex Smith.');
+  });
+
+  it('limits the gifter names to 100 characters and the message to 300', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    expect(screen.getByLabelText('Gifter name(s)')).toHaveAttribute('maxlength', '100');
     expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAttribute('maxlength', '300');
   });
 
@@ -212,7 +219,7 @@ describe('ContributeDialog', () => {
     const user = userEvent.setup();
     const { props } = renderDialog();
     await continueWithTheRest(user);
-    await user.type(screen.getByLabelText('Your name'), ' Amara ');
+    await user.type(screen.getByLabelText('Gifter name(s)'), ' Amara ');
     await user.type(screen.getByLabelText('Message to the owner (optional)'), ' Enjoy! ');
     await user.click(screen.getByRole('button', { name: "I've sent it" }));
 
@@ -225,7 +232,7 @@ describe('ContributeDialog', () => {
     const user = userEvent.setup();
     const { props } = renderDialog();
     await continueWithTheRest(user);
-    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     const send = screen.getByRole('button', { name: "I've sent it" });
     await user.dblClick(send);
 
@@ -244,11 +251,11 @@ describe('ContributeDialog', () => {
     await continueWithTheRest(user);
     const alert = screen.getByRole('alert');
     expect(alert).toBeEmptyDOMElement();
-    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: "I've sent it" }));
 
     await vi.waitFor(() => expect(alert).toHaveTextContent(message));
-    for (const label of ['Amount (USD)', 'Your name', 'Message to the owner (optional)']) {
+    for (const label of ['Amount (USD)', 'Gifter name(s)', 'Message to the owner (optional)']) {
       expect(screen.getByLabelText(label)).toHaveAttribute('readonly');
       expect(screen.getByLabelText(label)).toHaveAccessibleDescription(expect.stringContaining('To change your details, cancel and start again.'));
     }
