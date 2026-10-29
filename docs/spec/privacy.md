@@ -1,7 +1,7 @@
 # Privacy
 
 - Zero outbound requests at runtime by default; self-hosted fonts
-- Strict CSP, no inline scripts; `img-src 'self'` on every response, so a page cannot load an image from another origin
+- Strict CSP, no inline scripts (the target; today only `img-src 'self'` ships, on every response, so a page cannot load an image from another origin)
 - Instance settings `SOURCE_URL` (where the source is offered, default the project repository) and `PRIVACY_CONTACT` (shown on the privacy page, `/privacy`; none if unset) come from the environment ([deploy](../deploy.md))
 - URL metadata scraping **opt-in and SSRF-guarded**: block private IP ranges, block redirects into them, timeouts. Note that fetching reveals the server IP to the retailer.
 - Images: prefer owner upload; if fetched, cache locally, strip EXIF, resize. **Never hotlink** (leaks guest IPs).

@@ -120,12 +120,12 @@
   forced.
 - Failed attempts return the same generic message, per ADR-[016](../adr/0016-no-public-list-directory-lookups-fail-generically.md) and
   ADR-[054](../adr/0054-post-purgeat-lookups-return-the-same-generic-not-found.md), unchanged by this transport change.
-- Guest session cookie lifetime: 30 days (`Max-Age`) or `purgeAt`, whichever
-  is sooner. A guest who returns within the month is not asked for the key
+- Guest session cookie lifetime: 30 days (`Max-Age`); the list itself is
+  deleted at `purgeAt`. A guest who returns within the month is not asked for the key
   again; a longer absence costs one re-entry of the key from the invitation.
   Key rotation is the revocation mechanism (above), not expiry.
-- Owner-access cookie lifetime: the browser session (no `Max-Age`), or
-  `purgeAt`, whichever is sooner. Closing the browser signs the owner out;
+- Owner-access cookie lifetime: the browser session (no `Max-Age`); the list
+  itself is deleted at `purgeAt`. Closing the browser signs the owner out;
   re-entry costs one paste of the saved token. *(ADR-[062](../adr/0062-the-owner-token-never-travels-in-a-url.md))*
 - The owner-access cookie also grants guest-view access to its own list,
   so an owner can preview what guests see without holding the guest key
