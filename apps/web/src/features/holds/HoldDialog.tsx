@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { useHoldCredential, type HoldCredential } from './useHoldCredential';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
+import { readGifterNames, writeGifterNames } from '../../lib/gifterNames';
 
 /** The longest name and message the API takes. */
 const NAME_MAX = 100;
@@ -27,7 +28,7 @@ export interface HoldDialogProps {
 export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onConfirm, onClose }: HoldDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const credential = useHoldCredential();
-  const [name, setName] = useState('');
+  const [name, setName] = useState(readGifterNames);
   const [message, setMessage] = useState('');
   const [sent, setSent] = useState(false);
 
@@ -46,6 +47,7 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
   // Escape fires `cancel` before the dialog closes; refusing it keeps the
   // dialog up until the request settles.
   function handleCancel(event: SyntheticEvent<HTMLDialogElement>) {
+    writeGifterNames(name); // Escape can close the dialog without the name field ever losing focus
     if (isPending) event.preventDefault();
   }
 
@@ -67,7 +69,7 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
         <p>If you don&rsquo;t, the hold ends after {duration} and another guest could buy it too.</p>
       </div>
       <label className="mb-1 block" htmlFor="hold-name">Gifter name(s)</label>
-      <LimitedInput id="hold-name" required describedBy={['hold-name-hint', 'hold-name-privacy', sent && 'hold-details-locked']} value={name} onChange={(e) => setName(e.target.value)} max={NAME_MAX} disabled={isPending} readOnly={sent} className="field mb-1" />
+      <LimitedInput id="hold-name" required describedBy={['hold-name-hint', 'hold-name-privacy', sent && 'hold-details-locked']} value={name} onChange={(e) => setName(e.target.value)} onBlur={() => writeGifterNames(name)} max={NAME_MAX} disabled={isPending} readOnly={sent} className="field mb-1" />
       <p id="hold-name-hint" className="text-sm text-muted">Include everyone the gift is from, e.g. Sam &amp; Alex Smith.</p>
       <p id="hold-name-privacy" className="mb-4 text-sm text-muted">Names are only shared with the list owner.</p>
       <label className="mb-1 block" htmlFor="hold-message">Message to the owner (optional)</label>

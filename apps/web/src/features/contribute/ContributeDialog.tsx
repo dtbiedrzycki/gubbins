@@ -8,6 +8,7 @@ import { parseUsd } from '../../lib/parseUsd';
 import { venmoPayLink } from './paymentLinks';
 import { readPreferredPayMethod, writePreferredPayMethod, type PayMethod } from './preferredPayMethod';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
+import { readGifterNames, writeGifterNames } from '../../lib/gifterNames';
 
 export interface ContributeDialogProps {
   slug: string;
@@ -41,7 +42,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   const [coverRest, setCoverRest] = useState(false);
   const [other, setOther] = useState('');
   const [amountText, setAmountText] = useState('');
-  const [name, setName] = useState('');
+  const [name, setName] = useState(readGifterNames);
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState('');
   const [chosenMethod, setChosenMethod] = useState<PayMethod | null>(readPreferredPayMethod);
@@ -62,6 +63,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   useEffect(show, []);
 
   function handleCancel(event: SyntheticEvent<HTMLDialogElement>) {
+    writeGifterNames(name); // Escape can close the dialog without the name field ever losing focus
     if (isPending) event.preventDefault();
   }
   // Chrome won't let a page refuse a second Escape in a row: reopen, so the outcome is not lost.
@@ -151,7 +153,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           )}
           <p role="status" aria-live="polite" className="mb-4 text-sm empty:mb-0">{copied}</p>
           <label className="mb-1 block" htmlFor="contribute-name">Gifter name(s)</label>
-          <LimitedInput id="contribute-name" required value={name} onChange={(e) => setName(e.target.value)} max={NAME_MAX} disabled={isPending} readOnly={sent} describedBy={['contribute-name-hint', lockedHint]} className={`${field} mb-1`} />
+          <LimitedInput id="contribute-name" required value={name} onChange={(e) => setName(e.target.value)} onBlur={() => writeGifterNames(name)} max={NAME_MAX} disabled={isPending} readOnly={sent} describedBy={['contribute-name-hint', lockedHint]} className={`${field} mb-1`} />
           <p id="contribute-name-hint" className="mb-4 text-sm text-muted">Include everyone the gift is from, e.g. Sam &amp; Alex Smith.</p>
           <label className="mb-1 block" htmlFor="contribute-message">Message to the owner (optional)</label>
           <LimitedTextarea id="contribute-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} readOnly={sent} describedBy={[lockedHint]} className="field mb-4" />

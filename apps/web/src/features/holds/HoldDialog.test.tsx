@@ -19,6 +19,12 @@ describe('HoldDialog', () => {
     expect(screen.getByText('If you don\u2019t, the hold ends after 3 days and another guest could buy it too.')).toBeInTheDocument();
   });
 
+  it('starts with the gifter names last used on this device', () => {
+    localStorage.setItem('gubbins.gifterNames', 'Sam & Alex Smith');
+    renderDialog();
+    expect(screen.getByLabelText('Gifter name(s)')).toHaveValue('Sam & Alex Smith');
+  });
+
   it('says "1 day", not "1 days"', () => {
     renderDialog({ holdDurationDays: 1 });
     expect(screen.getByText(/the hold ends after 1 day and/)).toBeInTheDocument();
@@ -47,6 +53,37 @@ describe('HoldDialog', () => {
 
     await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     expect(confirm).toBeEnabled();
+  });
+
+  it('remembers the names once the name field loses focus', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Sam & Alex');
+    await user.tab();
+
+    expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
+  });
+
+  it('remembers the names when the dialog is escaped', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Sam & Alex');
+    screen.getByRole('dialog', { hidden: true }).dispatchEvent(new Event('cancel', { cancelable: true }));
+
+    expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
+  });
+
+  it('remembers the names when a button is pressed, even without holding', async () => {
+    const user = userEvent.setup();
+    const { props } = renderDialog();
+
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Sam & Alex');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(props.onConfirm).not.toHaveBeenCalled();
+    expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
   });
 
   it('confirms with the trimmed name and message', async () => {

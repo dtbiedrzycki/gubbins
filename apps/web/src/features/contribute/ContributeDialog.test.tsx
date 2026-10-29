@@ -41,7 +41,6 @@ async function chooseZelle(user: ReturnType<typeof userEvent.setup>) {
 describe('ContributeDialog', () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    localStorage.clear();
   });
 
   it('offers to cover the rest, and carries that amount into the payment step', async () => {
@@ -225,6 +224,46 @@ describe('ContributeDialog', () => {
 
     await vi.waitFor(() => expect(props.onPledged).toHaveBeenCalledWith(28750));
     expect(bodies).toEqual([{ idempotencyKey: expect.any(String), amountMinor: 28750, name: 'Amara', message: 'Enjoy!' }]);
+  });
+
+  it('remembers the names once the name field loses focus', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Sam & Alex');
+    await user.tab();
+
+    expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
+  });
+
+  it('remembers the names when the dialog is escaped', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Sam & Alex');
+    screen.getByRole('dialog', { hidden: true }).dispatchEvent(new Event('cancel', { cancelable: true }));
+
+    expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
+  });
+
+  it('remembers the names when a button is pressed, even if the pledge then fails', async () => {
+    server.use(mock('post', '/api/lists/{slug}/items/{itemId}/contributions', 409, { code: 'amount_out_of_range', message: 'Try a smaller amount.' }));
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Sam & Alex');
+    await user.click(screen.getByRole('button', { name: "I've sent it" }));
+
+    await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
+    expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
+  });
+
+  it('starts with the gifter names last used on this device', async () => {
+    localStorage.setItem('gubbins.gifterNames', 'Sam & Alex Smith');
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    expect(screen.getByLabelText('Gifter name(s)')).toHaveValue('Sam & Alex Smith');
   });
 
   it('sends one request for two fast taps, and cannot be escaped meanwhile', async () => {
