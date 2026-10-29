@@ -61,11 +61,22 @@ describe('GetListView items and payment', () => {
 });
 
 describe('GetListView', () => {
+  it("carries the list's description", async () => {
+    const persistence = inMemoryPersistence();
+    const wishlist = Wishlist.create({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0, description: 'Ship to 1 Main St' });
+    await persistence.wishlists.insert(wishlist);
+
+    const shown = await new GetListView(persistence.unitOfWork, new FixedClock(T0), { durationDays: 3 })
+      .execute({ wishlistId: WISHLIST_ID }, NO_SESSION);
+
+    expect(shown.description).toBe('Ship to 1 Main St');
+  });
+
   it('shows the list, its available item, no holds, and the hold duration guests will get', async () => {
     const { view } = await setup({ durationDays: 5 });
 
     expect(await view()).toEqual({
-      title: 'Baby Shower',
+      title: 'Baby Shower', description: null,
       items: [{ id: ITEM_ID, title: 'Stroller', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null, pledgedMinor: null }],
       payment: { venmoHandle: null, zelleHandle: null },
       myHolds: [],

@@ -16,7 +16,7 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 const listView = (status: 'available' | 'held'): ListViewResponse => ({
-  title: 'Baby Shower',
+  title: 'Baby Shower', description: null,
   items: [{ id: 'item-1', title: 'Stroller', type: 'single', status, availableUnits: status === 'held' ? 0 : 1, url: null, priceMinor: null, pledgedMinor: null }],
   payment: { venmoHandle: null, zelleHandle: null },
   myHolds: [],

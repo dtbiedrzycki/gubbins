@@ -342,6 +342,10 @@
                     "title": {
                       "type": "string"
                     },
+                    "description": {
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "items": {
                       "type": "array",
                       "items": {
@@ -498,6 +502,7 @@
                   },
                   "required": [
                     "title",
+                    "description",
                     "items",
                     "payment",
                     "myHolds",

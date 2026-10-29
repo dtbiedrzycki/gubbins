@@ -390,6 +390,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         title: string;
+                        description: string | null;
                         items: {
                             id: string;
                             title: string;
