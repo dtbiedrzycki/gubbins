@@ -10,7 +10,7 @@ export interface ListView {
   title: string;
   description: string | null;
   items: {
-    id: string; title: string; type: ItemType; status: ItemStatus; availableUnits: number; url: string | null; priceMinor: number | null;
+    id: string; title: string; type: ItemType; status: ItemStatus; availableUnits: number; url: string | null; description: string | null; priceMinor: number | null;
     /** Sum of pledges for a group gift; null for a single. */
     pledgedMinor: number | null;
   }[];
@@ -44,7 +44,7 @@ export class GetListView {
         description: wishlist.description,
         items: wishlist.items.map((i) => ({
           id: i.id.value, title: i.title, type: i.type, status: wishlist.itemStatus(i.id.value),
-          availableUnits: wishlist.availableUnitsOf(i.id.value), url: i.url, priceMinor: i.priceMinor,
+          availableUnits: wishlist.availableUnitsOf(i.id.value), url: i.url, description: i.description, priceMinor: i.priceMinor,
           pledgedMinor: i.type === 'group' ? i.pledgedTotal().amountMinor : null,
         })),
         payment: { venmoHandle: wishlist.paymentMethods.venmoHandle, zelleHandle: wishlist.paymentMethods.zelleHandle },
