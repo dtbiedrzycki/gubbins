@@ -54,8 +54,9 @@ that risk; rate limiting is the next follow-up.
   now treated identically, fixing the actual inconsistency and adding no
   new failure mode.
 - Plaintext storage is no weaker against the threats this spec already
-  defends against: brute-force guessing is stopped by rate limiting and
-  unguessable `TokenGenerator` output, not by hashing
+  defends against: brute-force guessing is resisted by unguessable
+  `TokenGenerator` output, not by hashing; rate limiting would add to that
+  but is not built yet, as the amendment above says
   (ADR-[016](./0016-no-public-list-directory-lookups-fail-generically.md),
   ADR-[040](./0040-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md)).
   Constant-time comparison
