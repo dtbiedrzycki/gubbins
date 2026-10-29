@@ -173,7 +173,7 @@ describe('ItemView', () => {
   it('shows no description when the item has none', () => {
     renderItem({ priceMinor: 45000, description: null });
     // The status row comes straight after the price; a description of any shape would sit between.
-    expect(screen.getByText('$450.00').nextElementSibling).toHaveClass('flex');
+    expect(screen.getByText('$450.00').nextElementSibling).toContainElement(screen.getByRole('status'));
   });
 
   it('links to the store in a new tab, naming the item', () => {
