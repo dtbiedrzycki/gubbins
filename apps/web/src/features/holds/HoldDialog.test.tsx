@@ -19,6 +19,12 @@ describe('HoldDialog', () => {
     expect(screen.getByText('If you don\u2019t, the hold ends after 3 days and another guest could buy it too.')).toBeInTheDocument();
   });
 
+  it('starts with the gifter names last used on this device', () => {
+    localStorage.setItem('gubbins.gifterNames', 'Sam & Alex Smith');
+    renderDialog();
+    expect(screen.getByLabelText('Gifter name(s)')).toHaveValue('Sam & Alex Smith');
+  });
+
   it('says "1 day", not "1 days"', () => {
     renderDialog({ holdDurationDays: 1 });
     expect(screen.getByText(/the hold ends after 1 day and/)).toBeInTheDocument();

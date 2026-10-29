@@ -181,6 +181,7 @@ describe('ContributeDialog', () => {
     expect(screen.getByRole('radio', { name: 'Venmo' })).toBeChecked();
     await chooseZelle(user);
     expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Gifter name(s)')).toHaveValue('');
   });
 
   it('shows no switch when the list offers one method', async () => {
@@ -219,6 +220,15 @@ describe('ContributeDialog', () => {
 
     await vi.waitFor(() => expect(props.onPledged).toHaveBeenCalledWith(28750));
     expect(bodies).toEqual([{ idempotencyKey: expect.any(String), amountMinor: 28750, name: 'Amara', message: 'Enjoy!' }]);
+    expect(localStorage.getItem('gubbins.gifterNames')).toBe('Amara');
+  });
+
+  it('starts with the gifter names last used on this device', async () => {
+    localStorage.setItem('gubbins.gifterNames', 'Sam & Alex Smith');
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    expect(screen.getByLabelText('Gifter name(s)')).toHaveValue('Sam & Alex Smith');
   });
 
   it('sends one request for two fast taps, and cannot be escaped meanwhile', async () => {

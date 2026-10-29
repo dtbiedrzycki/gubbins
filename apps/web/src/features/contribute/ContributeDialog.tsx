@@ -8,6 +8,7 @@ import { parseUsd } from '../../lib/parseUsd';
 import { venmoPayLink } from './paymentLinks';
 import { readPreferredPayMethod, writePreferredPayMethod, type PayMethod } from './preferredPayMethod';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
+import { readGifterNames, writeGifterNames } from '../../lib/gifterNames';
 
 export interface ContributeDialogProps {
   slug: string;
@@ -41,7 +42,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   const [coverRest, setCoverRest] = useState(false);
   const [other, setOther] = useState('');
   const [amountText, setAmountText] = useState('');
-  const [name, setName] = useState('');
+  const [name, setName] = useState(readGifterNames);
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState('');
   const [chosenMethod, setChosenMethod] = useState<PayMethod | null>(readPreferredPayMethod);
@@ -83,7 +84,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
     const trimmedMessage = message.trim();
     mutate(
       { idempotencyKey, amountMinor: amount, name: name.trim(), ...(trimmedMessage && { message: trimmedMessage }) },
-      { onSuccess: (pledge) => onPledged(pledge.amountMinor) },
+      { onSuccess: (pledge) => { writeGifterNames(name.trim()); onPledged(pledge.amountMinor); } },
     );
   }
 

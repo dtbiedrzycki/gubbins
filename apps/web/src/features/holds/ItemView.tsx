@@ -8,6 +8,7 @@ import { formatMoney } from '../../lib/formatMoney';
 import { ClampedText } from '../../lib/ClampedText';
 import { Markdown } from '../../lib/Markdown';
 import { ContributeDialog } from '../contribute/ContributeDialog';
+import { writeGifterNames } from '../../lib/gifterNames';
 
 export interface ItemViewProps {
   slug: string;
@@ -117,7 +118,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
           holdDurationDays={holdDurationDays}
           isPending={isPending}
           error={error}
-          onConfirm={(credential, details) => mutate({ idempotencyKey: credential.idempotencyKey, ...details }, { onSuccess: () => { closedBy.current = 'hold'; setDialogOpen(false); } })}
+          onConfirm={(credential, details) => mutate({ idempotencyKey: credential.idempotencyKey, ...details }, { onSuccess: () => { writeGifterNames(details.name); closedBy.current = 'hold'; setDialogOpen(false); } })}
           onClose={closeDialog}
         />
       )}

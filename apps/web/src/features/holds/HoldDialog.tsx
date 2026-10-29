@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { useHoldCredential, type HoldCredential } from './useHoldCredential';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
+import { readGifterNames } from '../../lib/gifterNames';
 
 /** The longest name and message the API takes. */
 const NAME_MAX = 100;
@@ -27,7 +28,7 @@ export interface HoldDialogProps {
 export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onConfirm, onClose }: HoldDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const credential = useHoldCredential();
-  const [name, setName] = useState('');
+  const [name, setName] = useState(readGifterNames);
   const [message, setMessage] = useState('');
   const [sent, setSent] = useState(false);
 

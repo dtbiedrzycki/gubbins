@@ -49,6 +49,7 @@ describe('ItemView', () => {
 
     await vi.waitFor(() => expect(screen.queryByRole('dialog', { hidden: true })).not.toBeInTheDocument());
     expect(bodies).toEqual([{ idempotencyKey: expect.any(String), name: 'Amara', message: 'Collecting Friday' }]);
+    expect(localStorage.getItem('gubbins.gifterNames')).toBe('Amara');
   });
 
   it('sends the key minted at opening on every retry — not a fresh one per tap (ADR-0048)', async () => {
@@ -60,6 +61,7 @@ describe('ItemView', () => {
     await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
     await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
+    expect(localStorage.getItem('gubbins.gifterNames')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     await vi.waitFor(() => expect(bodies).toHaveLength(2));
