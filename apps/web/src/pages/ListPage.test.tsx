@@ -97,7 +97,7 @@ describe('ListPage', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Available · 1' }));
     await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
-    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     expect(await screen.findByText('Stroller is held.')).toBeInTheDocument();
@@ -163,7 +163,7 @@ describe('ListPage', () => {
 
     await user.click(await screen.findByRole('button', { name: /^Hold this item/ }));
     expect(screen.getByText('After you buy it, come back and tap \u201cMark as purchased\u201d.')).toBeInTheDocument();
-    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     const yourHolds = screen.getByRole('region', { name: 'Your holds' });
@@ -187,7 +187,7 @@ describe('ListPage', () => {
     // Screen readers miss a live region that arrives already holding its text.
     const statuses = screen.getAllByRole('status');
     for (const status of statuses) expect(status).toBeEmptyDOMElement();
-    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     // The refetch, then its one retry.
@@ -209,7 +209,7 @@ describe('ListPage', () => {
     renderListPage();
 
     await user.click(await screen.findByRole('button', { name: /^Hold this item/ }));
-    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     expect(await screen.findByLabelText('Guest key')).toBeInTheDocument();
@@ -228,7 +228,7 @@ describe('ListPage', () => {
     renderListPage();
 
     await user.click(await screen.findByRole('button', { name: /^Hold this item/ }));
-    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
     await waitFor(() => expect(screen.getByText('Stroller is held.')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: 'Cancel' }));

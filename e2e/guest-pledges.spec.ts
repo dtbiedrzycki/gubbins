@@ -33,7 +33,7 @@ test('a guest covers the rest of a group gift with Venmo, and the card shows it 
   await guest.getByLabel('Cover the rest ($450.00)').check();
   await guest.getByRole('button', { name: 'Continue' }).click();
   await expect(guest.getByRole('link', { name: 'Pay $450.00 with Venmo' })).toHaveAttribute('href', /^https:\/\/venmo\.com\/my-venmo\?txn=pay&amount=450\.00/);
-  await guest.getByLabel('Your name').fill('Amara');
+  await guest.getByLabel('Gifter name(s)').fill('Amara');
   await guest.getByRole('button', { name: "I've sent it" }).click();
 
   await expect(mixer.getByText('$450.00 of $450.00 pledged · 100%')).toBeVisible();

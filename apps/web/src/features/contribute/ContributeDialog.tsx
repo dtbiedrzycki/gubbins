@@ -112,7 +112,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           <ol aria-label="How to chip in" className="mb-4 list-decimal pl-5 text-sm">
             <li>Check the amount, then send it with {waysToPay}.</li>
             <li>Once it has gone through, come back to this page.</li>
-            <li>Add your name and choose &ldquo;I&apos;ve sent it&rdquo;, so the list shows your gift.</li>
+            <li>Add the gifters&rsquo; names and choose &ldquo;I&apos;ve sent it&rdquo;, so the list shows your gift.</li>
           </ol>
           <label className="mb-1 block" htmlFor="contribute-amount">Amount (USD)</label>
           <input id="contribute-amount" inputMode="decimal" value={amountText} onChange={(e) => setAmountText(e.target.value)} disabled={isPending} readOnly={sent}
@@ -150,8 +150,9 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
             </div>
           )}
           <p role="status" aria-live="polite" className="mb-4 text-sm empty:mb-0">{copied}</p>
-          <label className="mb-1 block" htmlFor="contribute-name">Your name</label>
-          <LimitedInput id="contribute-name" required value={name} onChange={(e) => setName(e.target.value)} max={NAME_MAX} disabled={isPending} readOnly={sent} describedBy={[lockedHint]} className={`${field} mb-4`} />
+          <label className="mb-1 block" htmlFor="contribute-name">Gifter name(s)</label>
+          <LimitedInput id="contribute-name" required value={name} onChange={(e) => setName(e.target.value)} max={NAME_MAX} disabled={isPending} readOnly={sent} describedBy={['contribute-name-hint', lockedHint]} className={`${field} mb-1`} />
+          <p id="contribute-name-hint" className="mb-4 text-sm text-muted">Include everyone the gift is from, e.g. Sam &amp; Alex Smith.</p>
           <label className="mb-1 block" htmlFor="contribute-message">Message to the owner (optional)</label>
           <LimitedTextarea id="contribute-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} readOnly={sent} describedBy={[lockedHint]} className="field mb-4" />
           {sent && <p id="contribute-locked" className="mb-4 text-sm text-muted">To change your details, cancel and start again.</p>}

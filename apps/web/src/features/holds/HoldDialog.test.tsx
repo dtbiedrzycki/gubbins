@@ -28,7 +28,7 @@ describe('HoldDialog', () => {
     const user = userEvent.setup();
     const { props } = renderDialog();
 
-    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
@@ -42,10 +42,10 @@ describe('HoldDialog', () => {
     const confirm = screen.getByRole('button', { name: 'Yes, hold it' });
     expect(confirm).toBeDisabled();
 
-    await user.type(screen.getByLabelText('Your name'), '   ');
+    await user.type(screen.getByLabelText('Gifter name(s)'), '   ');
     expect(confirm).toBeDisabled();
 
-    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     expect(confirm).toBeEnabled();
   });
 
@@ -53,7 +53,7 @@ describe('HoldDialog', () => {
     const user = userEvent.setup();
     const { props } = renderDialog();
 
-    await user.type(screen.getByLabelText('Your name'), '  Amara ');
+    await user.type(screen.getByLabelText('Gifter name(s)'), '  Amara ');
     await user.type(screen.getByLabelText('Message to the owner (optional)'), ' Happy to collect Friday ');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
@@ -64,28 +64,28 @@ describe('HoldDialog', () => {
     const user = userEvent.setup();
     const { props } = renderDialog();
 
-    await user.type(screen.getByLabelText('Your name'), 'Amra');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amra');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
-    await user.type(screen.getByLabelText('Your name'), 'a');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'a');
     await user.type(screen.getByLabelText('Message to the owner (optional)'), 'Hi');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     expect(vi.mocked(props.onConfirm).mock.calls[1][1]).toEqual({ name: 'Amra', message: '' });
-    expect(screen.getByLabelText('Your name')).toHaveAccessibleDescription('Your name is only shared with the list owner. To change your details, cancel and start again.');
+    expect(screen.getByLabelText('Gifter name(s)')).toHaveAccessibleDescription('Include everyone the gift is from, e.g. Sam & Alex Smith. Names are only shared with the list owner. To change your details, cancel and start again.');
     expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAccessibleDescription('To change your details, cancel and start again.');
   });
 
   it('limits the name to 100 characters and the message to 300', () => {
     renderDialog();
-    expect(screen.getByLabelText('Your name')).toHaveAttribute('maxlength', '100');
+    expect(screen.getByLabelText('Gifter name(s)')).toHaveAttribute('maxlength', '100');
     expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAttribute('maxlength', '300');
   });
 
-  it('marks the name as required and describes it with the privacy line', () => {
+  it('marks the name as required and asks for everyone the gift is from, with the privacy line', () => {
     renderDialog();
-    const name = screen.getByLabelText('Your name');
+    const name = screen.getByLabelText('Gifter name(s)');
     expect(name).toBeRequired();
-    expect(name).toHaveAccessibleDescription('Your name is only shared with the list owner.');
+    expect(name).toHaveAccessibleDescription('Include everyone the gift is from, e.g. Sam & Alex Smith. Names are only shared with the list owner.');
   });
 
   it('cannot be cancelled or escaped while the hold is in flight', () => {
