@@ -32,8 +32,12 @@ function cookieOf(response: LightMyRequestResponse): string {
 }
 
 async function listWithGuests(guests: number) {
-  const list = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'test-create-secret' } }))
-    .json() as { slug: string; key: string; itemId: string };
+  const created = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', createSecret: 'test-create-secret' } }))
+    .json() as { slug: string; ownerToken: string; key: string };
+  const owner = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${created.slug}/owner-session`, payload: { ownerToken: created.ownerToken } }));
+  const { itemId } = (await app.inject({ method: 'POST', url: `/api/lists/${created.slug}/items`, headers: { cookie: owner }, payload: { type: 'single', title: 'Stroller' } }))
+    .json() as { itemId: string };
+  const list = { ...created, itemId };
   const cookies: string[] = [];
   for (let i = 0; i < guests; i += 1) {
     cookies.push(cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } })));
