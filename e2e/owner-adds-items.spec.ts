@@ -15,7 +15,7 @@ test('the owner adds a single item and a group gift, and a guest sees both', asy
   context.on('console', (message) => {
     if (message.text().includes('Content Security Policy')) policyViolations.push(message.text());
   });
-  await page.goto('/');
+  await page.goto('/wishlists/new');
   await page.getByLabel('List title').fill('Baby Shower');
   await page.getByLabel('First item').fill('Stroller');
   await page.getByLabel('Create secret').fill('e2e-create-secret');

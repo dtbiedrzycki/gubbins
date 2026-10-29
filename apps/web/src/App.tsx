@@ -1,8 +1,9 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-router-dom';
 import { Footer } from './features/instance/Footer';
 
 // Route-level code-splitting: each page is its own chunk.
+const HomePage = lazy(() => import('./pages/HomePage'));
 const CreateListPage = lazy(() => import('./pages/CreateListPage'));
 const ListPage = lazy(() => import('./pages/ListPage'));
 const ManagePage = lazy(() => import('./pages/ManagePage'));
@@ -24,9 +25,11 @@ const router = createBrowserRouter([
   {
     element: <Layout />,
     children: [
-      { path: '/', element: <CreateListPage /> },
-      { path: '/:slug', element: <ListPage /> },
-      { path: '/:slug/manage', element: <ManagePage /> },
+      { path: '/', element: <HomePage /> },
+      { path: '/wishlists', element: <Navigate replace to="/wishlists/new" /> },
+      { path: '/wishlists/new', element: <CreateListPage /> },
+      { path: '/wishlists/:slug', element: <ListPage /> },
+      { path: '/wishlists/:slug/manage', element: <ManagePage /> },
     ],
   },
 ]);
