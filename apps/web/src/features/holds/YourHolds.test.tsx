@@ -9,6 +9,7 @@ import { mock } from '../../test/msw/mock';
 import { useListView } from './useListView';
 import { YourHolds } from './YourHolds';
 import { formatExpiry } from './formatExpiry';
+import { aListItem } from '../../test/listItem';
 
 const EXPIRES = '2026-01-04T00:00:00.000Z';
 const EXTENDED_EXPIRES = '2026-01-07T00:00:00.000Z';
@@ -19,7 +20,7 @@ const purchased: HoldView = { ...active, status: 'purchased', actions: { extend:
 
 const list = (myHolds: HoldView[]): ListViewResponse => ({
   title: 'Baby Shower', description: null,
-  items: [{ id: 'item-1', title: 'Stroller', type: 'single', status: myHolds.length ? 'held' : 'available', availableUnits: myHolds.length ? 0 : 1, url: null, priceMinor: null, pledgedMinor: null }],
+  items: [aListItem({ status: myHolds.length ? 'held' : 'available', availableUnits: myHolds.length ? 0 : 1 })],
   payment: { venmoHandle: null, zelleHandle: null },
   myHolds, capabilities: { holdDurationDays: 3 },
 });

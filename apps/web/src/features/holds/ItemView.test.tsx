@@ -7,6 +7,7 @@ import type { HoldView, ListViewResponse } from '@gubbins/shared-types';
 import { server } from '../../test/msw/server';
 import { mock } from '../../test/msw/mock';
 import { ItemView } from './ItemView';
+import { aListItem } from '../../test/listItem';
 
 const heldView: HoldView = {
   holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: '2026-01-04T00:00:00.000Z',
@@ -16,9 +17,7 @@ const heldView: HoldView = {
 const payment: ListViewResponse['payment'] = { venmoHandle: 'my-venmo', zelleHandle: null };
 
 type Item = NonNullable<ListViewResponse['items']>[number];
-const single = (over: Partial<Item> = {}): Item => ({
-  id: 'item-1', title: 'Stroller', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null, pledgedMinor: null, ...over,
-});
+const single = aListItem;
 
 function renderItem(over: Partial<Item> = {}): void {
   const ui = <ItemView slug="abc123" holdDurationDays={3} item={single(over)} payment={payment} />;
