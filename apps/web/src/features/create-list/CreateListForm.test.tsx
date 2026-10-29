@@ -55,7 +55,7 @@ describe('CreateListForm', () => {
     expect(screen.getByRole('alert')).toBe(alert);
   });
 
-  it('sends the list title, the create secret and both payment handles, each trimmed, and no item', async () => {
+  it('sends the list title, the create secret and both payment handles, each trimmed', async () => {
     let body: unknown;
     server.use(http.post('/api/lists', async ({ request }) => {
       body = await request.json();
