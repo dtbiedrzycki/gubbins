@@ -19,8 +19,8 @@ coverage the spec did not provide.
 We will never carry the owner token in a URL: entry is a paste into the
 existing homepage input, setting the owner-access cookie, with no
 `?token=` link and no bookmarkable manage URL holding the credential.
-The owner-access cookie is 30 days rolling, or `purgeAt`, whichever is
-sooner.
+The owner-access cookie lasts the browser session (no `Max-Age`); the
+guest cookie lasts 30 days.
 
 ## Alternatives considered
 
@@ -77,11 +77,9 @@ sooner.
   of which read as a POST rather than a link. This decision makes the
   token *only* travel that way, and renames the acknowledgement screen
   accordingly.
-- The accepted cost is one paste per cookie expiry. A 30-day rolling
-  cookie keeps re-entry rare: refreshed on each authenticated request,
-  it prompts only after a genuine month-long absence, which for a
-  typical list falls outside the setup-and-reconcile window `purgeAt`
-  already bounds.
+- The accepted cost is one paste per browser session. The owner saved
+  the token, so re-entry is one paste; the list is deleted at `purgeAt`
+  regardless.
 - [Governance, licensing & release](../spec/governance-licensing-and-release.md)'s
   reverse-proxy examples recommend query-string redaction on the
   `?key=` route and need no second route added, since the owner token
