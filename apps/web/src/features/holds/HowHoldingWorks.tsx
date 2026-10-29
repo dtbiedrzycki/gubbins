@@ -1,40 +1,52 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
-const SEEN_KEY = 'gubbins.holdingExplained';
+const DISMISSED_KEY = 'gubbins.holdingExplainerDismissed';
 
-/** Blocked or empty storage reads as not seen, so the box opens. */
-function hasSeenExplanation(): boolean {
+/** Blocked or empty storage reads as not dismissed, so the card shows. */
+function wasDismissed(): boolean {
   try {
-    return localStorage.getItem(SEEN_KEY) === 'yes';
+    return localStorage.getItem(DISMISSED_KEY) === 'yes';
   } catch {
     return false;
   }
 }
 
-function rememberExplanationSeen(): void {
+function rememberDismissed(): void {
   try {
-    localStorage.setItem(SEEN_KEY, 'yes');
+    localStorage.setItem(DISMISSED_KEY, 'yes');
   } catch {
-    // Not remembered: the box opens again next visit.
+    // Not remembered: the card shows again next visit.
   }
 }
 
 /**
- * Open on a guest's first visit on this device, closed after, so returning guests reach the items first.
+ * Shows on every visit until the guest dismisses it on this device.
  * Every hold can be extended exactly once (ADR-0002), so that clause always shows.
  */
-export function HowHoldingWorks({ holdDurationDays }: { holdDurationDays: number }) {
-  const [openAtFirst] = useState(() => !hasSeenExplanation());
-  useEffect(rememberExplanationSeen, []);
+export function HowHoldingWorks({ holdDurationDays, onDismiss }: {
+  holdDurationDays: number;
+  /** Called on dismiss, so the page can move focus off the button that is going away. */
+  onDismiss?: () => void;
+}) {
+  const [dismissed, setDismissed] = useState(wasDismissed);
+  if (dismissed) return null;
   const duration = `${holdDurationDays} ${holdDurationDays === 1 ? 'day' : 'days'}`;
   return (
-    <details open={openAtFirst} className="rounded-[18px] border-[1.5px] border-line bg-white p-4">
-      <summary className="flex min-h-11 cursor-pointer items-center font-display text-xl">How holding a gift works</summary>
+    <section aria-labelledby="how-holding-title" className="relative rounded-[18px] border-[1.5px] border-line bg-white p-4">
+      <h2 id="how-holding-title" className="flex min-h-11 items-center pr-12 font-display text-xl">How holding a gift works</h2>
+      <button
+        type="button"
+        aria-label="Dismiss"
+        onClick={() => { rememberDismissed(); setDismissed(true); onDismiss?.(); }}
+        className="absolute top-2 right-2 grid size-11 place-items-center rounded-full text-2xl leading-none text-muted hover:text-ink"
+      >
+        <span aria-hidden="true">&times;</span>
+      </button>
       <ol className="mt-3 list-decimal space-y-2 pl-6">
         <li><strong>Hold it before you buy it.</strong> Other guests see it&rsquo;s taken, so nobody buys it twice.</li>
         <li><strong>Buy it within {duration}.</strong> The hold is yours until then, and you can extend it once.</li>
         <li><strong>Come back and mark it purchased.</strong> If you don&rsquo;t, the hold ends after {duration} and another guest can buy the same gift.</li>
       </ol>
-    </details>
+    </section>
   );
 }

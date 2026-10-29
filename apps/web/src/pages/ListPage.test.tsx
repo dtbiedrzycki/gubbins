@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -34,6 +34,10 @@ function renderListPage() {
 }
 
 describe('ListPage', () => {
+  afterEach(() => {
+    localStorage.clear();
+  });
+
   const twoItems: ListViewResponse = {
     ...view(false),
     items: [
@@ -127,7 +131,7 @@ describe('ListPage', () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
     renderListPage();
 
-    const box = (await screen.findByText('How holding a gift works')).closest('details')!;
+    const box = await screen.findByRole('region', { name: 'How holding a gift works' });
     expect(within(box).getByText('Hold it before you buy it.')).toBeInTheDocument();
     expect(within(box).getByText('Buy it within 3 days.')).toBeInTheDocument();
     expect(within(box).getByText('Come back and mark it purchased.')).toBeInTheDocument();
@@ -145,18 +149,14 @@ describe('ListPage', () => {
     expect(screen.queryByText('How holding a gift works')).not.toBeInTheDocument();
   });
 
-  it('opens the holding explainer on the first visit that has a gift to hold, even after a visit with none', async () => {
-    localStorage.clear();
-    const fundsOnly: ListViewResponse = { ...view(false), items: [aListItem({ title: 'Honeymoon fund', type: 'group', availableUnits: 0, priceMinor: 50000, pledgedMinor: 0 })] };
-    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(fundsOnly)));
-    const firstVisit = renderListPage();
-    expect(await screen.findByRole('heading', { level: 1, name: 'Baby Shower' })).toBeInTheDocument();
-    firstVisit.unmount();
-
+  it('moves focus to the gift filter when the guest dismisses the holding explainer', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
+    const user = userEvent.setup();
     renderListPage();
-    expect((await screen.findByText('How holding a gift works')).closest('details')).toHaveAttribute('open');
-    localStorage.clear();
+
+    await user.click(await screen.findByRole('button', { name: 'Dismiss' }));
+
+    expect(screen.getByRole('button', { name: 'All · 1' })).toHaveFocus();
   });
 
   it('says "1 day" for a one-day hold', async () => {
