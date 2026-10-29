@@ -6,6 +6,8 @@ import { ApiError } from '../api/client';
 import { ItemView } from '../features/holds/ItemView';
 import { HowHoldingWorks } from '../features/holds/HowHoldingWorks';
 import { ItemFilter, filterKey, type ItemFilterValue } from '../features/holds/ItemFilter';
+import { ClampedText } from '../lib/ClampedText';
+import { Markdown } from '../lib/Markdown';
 import { YourHolds } from '../features/holds/YourHolds';
 
 export default function ListPage() {
@@ -68,6 +70,11 @@ export default function ListPage() {
           <h1 className="font-display text-[2.05rem] leading-tight text-balance break-words">{query.data.title}</h1>
           <span className="vine" aria-hidden="true" />
         </header>
+        {query.data.description && (
+          <section aria-label="About this list">
+            <ClampedText id="list-description"><Markdown text={query.data.description} /></ClampedText>
+          </section>
+        )}
         {canHold && <HowHoldingWorks holdDurationDays={days} />}
         <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn't refresh the list, so it may be out of date." : ''}</p>
         <ItemFilter items={items} value={filter.value} onChange={chooseFilter} />

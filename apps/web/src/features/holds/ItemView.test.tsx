@@ -162,6 +162,20 @@ describe('ItemView', () => {
     expect(screen.getByText('$450.00')).toBeInTheDocument();
   });
 
+  it('shows an item\'s description under its price', () => {
+    renderItem({ priceMinor: 45000, description: 'The *blue* one' });
+    const price = screen.getByText('$450.00');
+    const description = screen.getByText('blue');
+    expect(description.tagName).toBe('EM');
+    expect(price.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('shows no description when the item has none', () => {
+    renderItem({ priceMinor: 45000, description: null });
+    // The status row comes straight after the price; a description of any shape would sit between.
+    expect(screen.getByText('$450.00').nextElementSibling).toContainElement(screen.getByRole('status'));
+  });
+
   it('links to the store in a new tab, naming the item', () => {
     renderItem({ url: 'https://shop.example/stroller' });
     const link = screen.getByRole('link', { name: 'View in store for Stroller (opens in a new tab)' });

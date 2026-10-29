@@ -55,6 +55,23 @@ describe('ListPage', () => {
     expect(within(screen.getByRole('region', { name: 'Your holds' })).getByRole('heading', { name: 'Cot' })).toBeInTheDocument();
   });
 
+  it("shows the list's description above the gifts", async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), description: 'Shipping: **12 Elm Street**' })));
+    renderListPage();
+
+    const about = await screen.findByRole('region', { name: 'About this list' });
+    expect(within(about).getByText('12 Elm Street').tagName).toBe('STRONG');
+    expect(about.compareDocumentPosition(screen.getByRole('heading', { level: 2, name: 'Stroller' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('shows no description section when the list has none', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
+    renderListPage();
+
+    await screen.findByRole('heading', { level: 1, name: 'Baby Shower' });
+    expect(screen.queryByRole('region', { name: 'About this list' })).not.toBeInTheDocument();
+  });
+
   it('shows only held gifts when Held is chosen', async () => {
     const [stroller] = view(false).items!;
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json({
