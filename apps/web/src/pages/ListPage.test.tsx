@@ -54,6 +54,57 @@ describe('ListPage', () => {
     expect(within(screen.getByRole('region', { name: 'Your holds' })).getByRole('heading', { name: 'Cot' })).toBeInTheDocument();
   });
 
+  it('shows only held gifts when Held is chosen', async () => {
+    const [stroller] = view(false).items!;
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({
+      ...twoItems,
+      items: [stroller, { ...twoItems.items![1], status: 'held', availableUnits: 0 }],
+    })));
+    renderListPage();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Held · 1' }));
+
+    expect(screen.queryByRole('heading', { level: 2, name: 'Stroller' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Cot' })).toBeInTheDocument();
+  });
+
+  it('keeps a gift held from the Available filter on screen and moves focus to "Your holds"', async () => {
+    let held = false;
+    server.use(
+      http.get('/api/lists/abc123', () => HttpResponse.json(view(held))),
+      http.post('/api/lists/abc123/items/item-1/hold', () => { held = true; return HttpResponse.json(hold, { status: 201 }); }),
+    );
+    const user = userEvent.setup();
+    renderListPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Available · 1' }));
+    await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
+    await user.type(screen.getByLabelText('Your name'), 'Amara');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+    expect(await screen.findByText('Stroller is held.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Your holds' })).toHaveFocus();
+  });
+
+  it('says so when no gifts match the chosen filter', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
+    renderListPage();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Held · 0' }));
+
+    expect(screen.getByText('No gifts here yet.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Stroller' })).not.toBeInTheDocument();
+  });
+
+  it('says every gift is held, purchased or funded when Available is chosen and none are left', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(true))));
+    renderListPage();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Available · 0' }));
+
+    expect(screen.getByText('Every gift is already held, purchased or funded.')).toBeInTheDocument();
+  });
+
   it('explains holding: hold before buying, buy within 3 days, then mark it purchased or the hold ends', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
     renderListPage();

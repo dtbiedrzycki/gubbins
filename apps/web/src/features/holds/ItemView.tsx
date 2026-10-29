@@ -74,7 +74,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
       {/* Mounted while available too: screen readers miss a live region that arrives already filled.
           While it's empty, the row adds no gap of its own. */}
       <div className="flex items-center gap-2.5 has-[>p:empty:only-child]:mb-0">
-        {item.status !== 'available' && <Seal tone={item.status === 'purchased' ? 'gold' : 'wax'} />}
+        {item.status !== 'available' && <Seal tone={item.status === 'purchased' ? 'gold-wax' : 'red-wax'} />}
         <ItemAnnouncement message={thanks || (item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is held.` : `${item.title} has been purchased.`)} />
       </div>
       {group && (
