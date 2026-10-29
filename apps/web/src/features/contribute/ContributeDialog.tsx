@@ -81,10 +81,11 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
 
   function send() {
     if (amount === null || isPending) return;
+    const trimmedName = name.trim();
     const trimmedMessage = message.trim();
     mutate(
-      { idempotencyKey, amountMinor: amount, name: name.trim(), ...(trimmedMessage && { message: trimmedMessage }) },
-      { onSuccess: (pledge) => { writeGifterNames(name.trim()); onPledged(pledge.amountMinor); } },
+      { idempotencyKey, amountMinor: amount, name: trimmedName, ...(trimmedMessage && { message: trimmedMessage }) },
+      { onSuccess: (pledge) => { onPledged(pledge.amountMinor); writeGifterNames(trimmedName); } },
     );
   }
 
@@ -113,7 +114,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           <ol aria-label="How to chip in" className="mb-4 list-decimal pl-5 text-sm">
             <li>Check the amount, then send it with {waysToPay}.</li>
             <li>Once it has gone through, come back to this page.</li>
-            <li>Add the gifters&rsquo; names and choose &ldquo;I&apos;ve sent it&rdquo;, so the list shows your gift.</li>
+            <li>Add who the gift is from and choose &ldquo;I&apos;ve sent it&rdquo;, so the list shows the gift.</li>
           </ol>
           <label className="mb-1 block" htmlFor="contribute-amount">Amount (USD)</label>
           <input id="contribute-amount" inputMode="decimal" value={amountText} onChange={(e) => setAmountText(e.target.value)} disabled={isPending} readOnly={sent}

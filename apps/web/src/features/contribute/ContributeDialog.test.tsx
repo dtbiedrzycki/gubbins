@@ -41,7 +41,6 @@ async function chooseZelle(user: ReturnType<typeof userEvent.setup>) {
 describe('ContributeDialog', () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    localStorage.clear();
   });
 
   it('offers to cover the rest, and carries that amount into the payment step', async () => {
@@ -91,7 +90,7 @@ describe('ContributeDialog', () => {
     expect(within(screen.getByRole('list', { name: 'How to chip in' })).getAllByRole('listitem').map((step) => step.textContent)).toEqual([
       'Check the amount, then send it with Zelle.',
       'Once it has gone through, come back to this page.',
-      'Add the gifters\u2019 names and choose \u201cI\'ve sent it\u201d, so the list shows your gift.',
+      'Add who the gift is from and choose \u201cI\'ve sent it\u201d, so the list shows the gift.',
     ]);
   });
 
@@ -181,7 +180,6 @@ describe('ContributeDialog', () => {
     expect(screen.getByRole('radio', { name: 'Venmo' })).toBeChecked();
     await chooseZelle(user);
     expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Gifter name(s)')).toHaveValue('');
   });
 
   it('shows no switch when the list offers one method', async () => {
@@ -192,16 +190,22 @@ describe('ContributeDialog', () => {
     expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
   });
 
-  it('needs a name before the pledge can be sent, and asks for everyone the gift is from', async () => {
+  it('needs the gifter names before the pledge can be sent', async () => {
     const user = userEvent.setup();
     renderDialog();
     await continueWithTheRest(user);
     expect(screen.getByLabelText('Gifter name(s)')).toBeRequired();
-    expect(screen.getByLabelText('Gifter name(s)')).toHaveAccessibleDescription('Include everyone the gift is from, e.g. Sam & Alex Smith.');
     expect(screen.getByRole('button', { name: "I've sent it" })).toBeDisabled();
   });
 
-  it('limits the name to 100 characters and the message to 300', async () => {
+  it('describes the gifter names field with a hint to include everyone the gift is from', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    expect(screen.getByLabelText('Gifter name(s)')).toHaveAccessibleDescription('Include everyone the gift is from, e.g. Sam & Alex Smith.');
+  });
+
+  it('limits the gifter names to 100 characters and the message to 300', async () => {
     const user = userEvent.setup();
     renderDialog();
     await continueWithTheRest(user);
@@ -209,7 +213,7 @@ describe('ContributeDialog', () => {
     expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAttribute('maxlength', '300');
   });
 
-  it('records the pledge with the trimmed details and reports the amount', async () => {
+  it('records the pledge with the trimmed details, remembers the trimmed names and reports the amount', async () => {
     const bodies = pledgeEndpoint();
     const user = userEvent.setup();
     const { props } = renderDialog();
@@ -221,6 +225,18 @@ describe('ContributeDialog', () => {
     await vi.waitFor(() => expect(props.onPledged).toHaveBeenCalledWith(28750));
     expect(bodies).toEqual([{ idempotencyKey: expect.any(String), amountMinor: 28750, name: 'Amara', message: 'Enjoy!' }]);
     expect(localStorage.getItem('gubbins.gifterNames')).toBe('Amara');
+  });
+
+  it('does not remember the names when the pledge fails', async () => {
+    server.use(mock('post', '/api/lists/{slug}/items/{itemId}/contributions', 409, { code: 'amount_out_of_range', message: 'Try a smaller amount.' }));
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: "I've sent it" }));
+
+    await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
+    expect(localStorage.getItem('gubbins.gifterNames')).toBeNull();
   });
 
   it('starts with the gifter names last used on this device', async () => {

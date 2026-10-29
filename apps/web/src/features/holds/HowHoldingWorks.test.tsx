@@ -12,6 +12,7 @@ describe('HowHoldingWorks', () => {
 
   it('shows on every visit until the guest dismisses it, then stays hidden', async () => {
     const first = render(<HowHoldingWorks holdDurationDays={3} />);
+    expect(card()).toBeInTheDocument();
     first.unmount();
     const second = render(<HowHoldingWorks holdDurationDays={3} />);
     expect(card()).toBeInTheDocument();

@@ -23,7 +23,11 @@ function rememberDismissed(): void {
  * Shows on every visit until the guest dismisses it on this device.
  * Every hold can be extended exactly once (ADR-0002), so that clause always shows.
  */
-export function HowHoldingWorks({ holdDurationDays }: { holdDurationDays: number }) {
+export function HowHoldingWorks({ holdDurationDays, onDismiss }: {
+  holdDurationDays: number;
+  /** Called on dismiss, so the page can move focus off the button that is going away. */
+  onDismiss?: () => void;
+}) {
   const [dismissed, setDismissed] = useState(wasDismissed);
   if (dismissed) return null;
   const duration = `${holdDurationDays} ${holdDurationDays === 1 ? 'day' : 'days'}`;
@@ -33,7 +37,7 @@ export function HowHoldingWorks({ holdDurationDays }: { holdDurationDays: number
       <button
         type="button"
         aria-label="Dismiss"
-        onClick={() => { rememberDismissed(); setDismissed(true); }}
+        onClick={() => { rememberDismissed(); setDismissed(true); onDismiss?.(); }}
         className="absolute top-2 right-2 grid size-11 place-items-center rounded-full text-2xl leading-none text-muted hover:text-ink"
       >
         <span aria-hidden="true">&times;</span>
