@@ -23,17 +23,6 @@ async function setup(policy?: HoldPolicy) {
 }
 
 describe('GetListView items and payment', () => {
-  it("carries the list's description", async () => {
-    const persistence = inMemoryPersistence();
-    const wishlist = Wishlist.create({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0, description: 'Ship to 1 Main St' });
-    await persistence.wishlists.insert(wishlist);
-
-    const shown = await new GetListView(persistence.unitOfWork, new FixedClock(T0), { durationDays: 3 })
-      .execute({ wishlistId: WISHLIST_ID }, NO_SESSION);
-
-    expect(shown.description).toBe('Ship to 1 Main St');
-  });
-
   it('lists every item in order with its type, units left, url, price and description, and the payment handles', async () => {
     const persistence = inMemoryPersistence();
     const wishlist = Wishlist.create({
@@ -72,6 +61,17 @@ describe('GetListView items and payment', () => {
 });
 
 describe('GetListView', () => {
+  it("carries the list's description", async () => {
+    const persistence = inMemoryPersistence();
+    const wishlist = Wishlist.create({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0, description: 'Ship to 1 Main St' });
+    await persistence.wishlists.insert(wishlist);
+
+    const shown = await new GetListView(persistence.unitOfWork, new FixedClock(T0), { durationDays: 3 })
+      .execute({ wishlistId: WISHLIST_ID }, NO_SESSION);
+
+    expect(shown.description).toBe('Ship to 1 Main St');
+  });
+
   it('shows the list, its available item, no holds, and the hold duration guests will get', async () => {
     const { view } = await setup({ durationDays: 5 });
 
