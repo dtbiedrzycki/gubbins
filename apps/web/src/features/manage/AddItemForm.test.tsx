@@ -78,7 +78,7 @@ describe('AddItemForm', () => {
     expect(field).toHaveAccessibleDescription("Supports **bold**, *italics*, lists and links. You can\u2019t change it after adding the item.");
   });
 
-  it('sends the description trimmed, and leaves it out when blank', async () => {
+  it('sends the description trimmed, clears it after adding, and leaves it out when blank', async () => {
     const bodies: Record<string, unknown>[] = [];
     server.use(http.post('/api/lists/:slug/items', async ({ request }) => {
       bodies.push((await request.json()) as Record<string, unknown>);

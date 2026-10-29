@@ -42,7 +42,7 @@ export function CreateListForm() {
         </div>
         <div>
           <p className="text-sm font-medium">Guest key</p>
-          <p data-testid="guest-key" className="font-mono text-2xl font-bold">{data.key}</p>
+          <p data-testid="guest-key" className="text-2xl font-bold">{data.key}</p>
         </div>
         <div>
           {/* Never rendered inside a link — ADR-062: the owner token must never travel in a URL. */}
@@ -66,19 +66,19 @@ export function CreateListForm() {
         />
       </div>
       <div>
+        <label htmlFor="list-description" className="block text-sm font-medium">About this list (optional)</label>
+        <LimitedTextarea
+          id="list-description" describedBy={['list-description-hint']} rows={5} max={DESCRIPTION_MAX} value={description} onChange={(e) => setDescription(e.target.value)}
+          className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
+        />
+        <p id="list-description-hint" className="mt-1 text-sm text-gray-600">Guests see this above your list. If you want gifts mailed, add your shipping address here. Supports **bold**, *italics*, lists and links. You can’t change it after the list is created.</p>
+      </div>
+      <div>
         <label htmlFor="item-title" className="block text-sm font-medium">First item</label>
         <LimitedInput
           id="item-title" required max={TITLE_MAX} value={itemTitle} onChange={(e) => setItemTitle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
-      </div>
-      <div>
-        <label htmlFor="list-description" className="block text-sm font-medium">About this list (optional)</label>
-        <LimitedTextarea
-          id="list-description" describedBy={['list-description-hint']} rows={4} max={DESCRIPTION_MAX} value={description} onChange={(e) => setDescription(e.target.value)}
-          className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-        />
-        <p id="list-description-hint" className="mt-1 text-sm text-gray-600">Guests see this above your list. If you want gifts mailed, add your shipping address here. Supports **bold**, *italics*, lists and links. You can’t change it after the list is created.</p>
       </div>
       <div>
         <label htmlFor="create-secret" className="block text-sm font-medium">Create secret</label>
