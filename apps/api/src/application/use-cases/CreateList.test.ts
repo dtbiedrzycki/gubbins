@@ -35,6 +35,15 @@ describe('CreateList', () => {
     expect(persistedItem?.wishlistId.value).toBe(persistedWishlist?.id.value);
   });
 
+  it('creates a list with no items when no item title is sent', async () => {
+    const { useCase, wishlists } = makeUseCase();
+
+    const result = await useCase.execute({ listTitle: 'Baby Shower', createSecret: 'right' });
+
+    expect(result).toEqual({ slug: 'slug-1', ownerToken: 'owner-token-1', key: 'guest-key-1' });
+    expect((await wishlists.findBySlug('slug-1', NOW))?.items).toEqual([]);
+  });
+
   it('accepts a sent secret with surrounding whitespace', async () => {
     const { useCase } = makeUseCase();
 

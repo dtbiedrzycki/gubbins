@@ -69,8 +69,7 @@
                   }
                 },
                 "required": [
-                  "listTitle",
-                  "itemTitle"
+                  "listTitle"
                 ]
               }
             }
@@ -100,8 +99,7 @@
                   "required": [
                     "slug",
                     "ownerToken",
-                    "key",
-                    "itemId"
+                    "key"
                   ],
                   "additionalProperties": false
                 }

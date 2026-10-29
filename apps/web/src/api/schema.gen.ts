@@ -207,7 +207,7 @@ export interface operations {
             content: {
                 "application/json": {
                     listTitle: string;
-                    itemTitle: string;
+                    itemTitle?: string;
                     listDescription?: string;
                     createSecret?: string;
                     venmoHandle?: string;
@@ -226,7 +226,7 @@ export interface operations {
                         slug: string;
                         ownerToken: string;
                         key: string;
-                        itemId: string;
+                        itemId?: string;
                     };
                 };
             };

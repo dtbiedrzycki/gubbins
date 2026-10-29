@@ -55,16 +55,17 @@ async function projections() {
 }
 
 async function newList() {
-  const { slug, itemId } = await deps.createList.execute({ listTitle: 'L', itemTitle: 'I', createSecret: 'test-create-secret' });
+  const { slug } = await deps.createList.execute({ listTitle: 'L', createSecret: 'test-create-secret' });
   const wishlist = await deps.wishlists.findBySlug(slug, clock.now());
   const wishlistId = wishlist!.id.value;
+  const { itemId } = await deps.addItem.execute({ wishlistId, type: 'single', title: 'I', quantity: 1 }, { guestSession: null, owner: true });
   const hold = (access: AccessContext, idempotencyKey: string) => deps.holdItem.execute({ wishlistId, itemId, idempotencyKey, name: 'Ada' }, access);
   const command = { wishlistId };
   return { hold, command };
 }
 
 async function aGroupGift() {
-  const { slug } = await deps.createList.execute({ listTitle: 'G', itemTitle: 'I', createSecret: 'test-create-secret', venmoHandle: 'my-venmo' });
+  const { slug } = await deps.createList.execute({ listTitle: 'G', createSecret: 'test-create-secret', venmoHandle: 'my-venmo' });
   const wishlistId = (await deps.wishlists.findBySlug(slug, clock.now()))!.id.value;
   const { itemId } = await deps.addItem.execute({ wishlistId, type: 'group', title: 'Pram', priceMinor: 50_000 }, { guestSession: null, owner: true });
   const pledge = (access: AccessContext, idempotencyKey: string) =>
