@@ -30,6 +30,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
       id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
       owner_token: wishlist.ownerToken.value, key: wishlist.key.value, key_gen: wishlist.keyGen,
       venmo_handle: wishlist.paymentMethods.venmoHandle, zelle_handle: wishlist.paymentMethods.zelleHandle,
+      description: wishlist.description,
       created_at: new Date().toISOString(),
     }).execute();
     for (const item of wishlist.items) await this.items.insert(item);
@@ -91,7 +92,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     }));
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
-      ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now,
+      ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now, description: row.description,
       paymentMethods: PaymentMethods.from({ venmoHandle: row.venmo_handle, zelleHandle: row.zelle_handle }),
       items,
     });
