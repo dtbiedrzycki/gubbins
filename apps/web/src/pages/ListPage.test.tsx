@@ -61,6 +61,7 @@ describe('ListPage', () => {
 
     const about = await screen.findByRole('region', { name: 'About this list' });
     expect(within(about).getByText('12 Elm Street').tagName).toBe('STRONG');
+    expect(document.getElementById('list-description')).not.toHaveClass('line-clamp-2');
     expect(about.compareDocumentPosition(screen.getByRole('heading', { level: 2, name: 'Stroller' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 

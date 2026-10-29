@@ -1,16 +1,40 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 
-export function ClampedText({ children, id }: { children: ReactNode; id: string }) {
+/** Blocked or empty storage reads as expanded. */
+function readExpanded(key: string): boolean {
+  try {
+    return localStorage.getItem(key) !== 'collapsed';
+  } catch {
+    return true;
+  }
+}
+
+function writeExpanded(key: string, expanded: boolean): void {
+  try {
+    localStorage.setItem(key, expanded ? 'expanded' : 'collapsed');
+  } catch {
+    // Not remembered: the text starts expanded next visit.
+  }
+}
+
+/**
+ * Clamps to two lines with a Show more toggle. With `rememberAs`, it starts
+ * expanded instead and remembers the guest's last toggle under that storage key.
+ */
+export function ClampedText({ children, id, rememberAs }: { children: ReactNode; id: string; rememberAs?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [overflows, setOverflows] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(() => rememberAs !== undefined && readExpanded(rememberAs));
 
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    // Measured only while clamped; once expanded the text is known to overflow.
+    // Clamped just for the reading, so it works while expanded too; nothing paints in between.
     const measure = () => {
-      if (!expanded) setOverflows(el.scrollHeight > el.clientHeight);
+      const clamped = el.classList.contains('line-clamp-2');
+      el.classList.add('line-clamp-2');
+      setOverflows(el.scrollHeight > el.clientHeight);
+      if (!clamped) el.classList.remove('line-clamp-2');
     };
     measure();
     let cancelled = false;
@@ -23,7 +47,7 @@ export function ClampedText({ children, id }: { children: ReactNode; id: string 
       cancelled = true;
       window.removeEventListener('resize', measure);
     };
-  }, [children, expanded]);
+  }, [children]);
 
   return (
     <div>
@@ -42,7 +66,10 @@ export function ClampedText({ children, id }: { children: ReactNode; id: string 
           className="inline-flex min-h-11 items-center font-bold text-moss underline"
           aria-expanded={expanded}
           aria-controls={id}
-          onClick={() => setExpanded((e) => !e)}
+          onClick={() => {
+            setExpanded(!expanded);
+            if (rememberAs) writeExpanded(rememberAs, !expanded);
+          }}
         >
           {expanded ? 'Show less' : 'Show more'}
         </button>
