@@ -1,3 +1,6 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { createDb } from '../infrastructure/db/createDb.js';
@@ -32,6 +35,21 @@ afterEach(async () => {
 describe('GET /health', () => {
   it('answers 200 so a probe can tell the process is up', async () => {
     expect((await app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
+  });
+});
+
+describe('Content-Security-Policy', () => {
+  it('sends the image policy on API responses and the SPA fallback', async () => {
+    const webDist = await mkdtemp(path.join(tmpdir(), 'gubbins-web-'));
+    onTestFinished(() => rm(webDist, { recursive: true, force: true }));
+    await writeFile(path.join(webDist, 'index.html'), '<!doctype html><title>spa</title>');
+    const withSpa = buildApp(buildDependencies(db, undefined, {}), { cookieSecret: 'test-secret', webDist });
+    onTestFinished(() => withSpa.close());
+    for (const url of ['/api/instance', '/wishlists/abc']) {
+      const response = await withSpa.inject({ method: 'GET', url });
+      expect(response.statusCode).toBe(200);
+      expect(response.headers['content-security-policy']).toBe("img-src 'self'");
+    }
   });
 });
 
