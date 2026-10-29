@@ -9,6 +9,7 @@ import { InvalidCreateSecretError } from '../../domain/errors.js';
 export interface CreateListInput {
   listTitle: string;
   itemTitle: string;
+  listDescription?: string;
   createSecret?: string;
   venmoHandle?: string;
   zelleHandle?: string;
@@ -40,6 +41,7 @@ export class CreateList {
         id: this.tokenGenerator.generateEntityId(),
         slug: this.tokenGenerator.generateSlug(),
         title: input.listTitle,
+        description: input.listDescription,
         ownerToken: this.tokenGenerator.generateOwnerToken(),
         key: this.tokenGenerator.generateGuestKey(),
         asOf: this.clock.now(),

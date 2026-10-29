@@ -16,6 +16,11 @@ describe('createListRequestSchema', () => {
     const result = createListRequestSchema.safeParse({ listTitle: 'Baby Shower', itemTitle: '' });
     expect(result.success).toBe(false);
   });
+
+  it('keeps the list description', () => {
+    const request = createListRequestSchema.parse({ listTitle: 'Baby Shower', itemTitle: 'Stroller', listDescription: 'Due in May' });
+    expect(request.listDescription).toBe('Due in May');
+  });
 });
 
 describe('createListResponseSchema', () => {
