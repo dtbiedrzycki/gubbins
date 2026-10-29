@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { useHoldCredential, type HoldCredential } from './useHoldCredential';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
-import { readGifterNames } from '../../lib/gifterNames';
+import { readGifterNames, writeGifterNames } from '../../lib/gifterNames';
 
 /** The longest name and message the API takes. */
 const NAME_MAX = 100;
@@ -76,7 +76,7 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
       {sent && <p id="hold-details-locked" className="mb-4 text-sm text-muted">To change your details, cancel and start again.</p>}
       <p role="alert" className="mb-4 text-error empty:mb-0">{error?.message}</p>
       <div className="flex gap-2">
-        <button type="button" onClick={() => { setSent(true); onConfirm(credential, { name: name.trim(), message: message.trim() }); }} disabled={isPending || !name.trim()} className="btn-primary">
+        <button type="button" onClick={() => { const trimmedName = name.trim(); setSent(true); writeGifterNames(trimmedName); onConfirm(credential, { name: trimmedName, message: message.trim() }); }} disabled={isPending || !name.trim()} className="btn-primary">
           {isPending ? 'Holding…' : 'Yes, hold it'}
         </button>
         <button type="button" onClick={onClose} disabled={isPending} className="btn-secondary">
