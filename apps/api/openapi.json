@@ -381,6 +381,10 @@
                             "nullable": true,
                             "type": "string"
                           },
+                          "description": {
+                            "nullable": true,
+                            "type": "string"
+                          },
                           "priceMinor": {
                             "nullable": true,
                             "type": "integer",
@@ -401,6 +405,7 @@
                           "status",
                           "availableUnits",
                           "url",
+                          "description",
                           "priceMinor",
                           "pledgedMinor"
                         ],

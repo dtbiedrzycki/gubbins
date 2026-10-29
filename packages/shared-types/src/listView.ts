@@ -11,6 +11,7 @@ export const listItemSchema = z.object({
   status: itemStatusSchema,
   availableUnits: z.number().int().nonnegative(),
   url: z.string().nullable(),
+  description: z.string().nullable(),
   priceMinor: z.number().int().nullable(),
   /** Total pledged toward a group gift; null for a single. */
   pledgedMinor: z.number().int().nonnegative().nullable(),

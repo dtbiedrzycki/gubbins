@@ -400,6 +400,7 @@ export interface operations {
                             status: "available" | "held" | "purchased";
                             availableUnits: number;
                             url: string | null;
+                            description: string | null;
                             priceMinor: number | null;
                             pledgedMinor: number | null;
                         }[];
