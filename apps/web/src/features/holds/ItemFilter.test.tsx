@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { ItemFilter } from './ItemFilter';
 import { aListItem } from '../../test/listItem';
 
-const item = (over: Partial<Parameters<typeof aListItem>[0]>) => aListItem({ id: 'i', title: 'Gift', ...over });
+const item = (over: NonNullable<Parameters<typeof aListItem>[0]>) => aListItem({ id: 'i', title: 'Gift', ...over });
 
 describe('ItemFilter', () => {
   it('counts a fully pledged group gift as funded, and a partly pledged one as available', () => {
