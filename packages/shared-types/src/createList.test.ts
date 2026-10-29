@@ -12,6 +12,11 @@ describe('createListRequestSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('accepts a request without an item', () => {
+    const result = createListRequestSchema.safeParse({ listTitle: 'Baby Shower' });
+    expect(result.success).toBe(true);
+  });
+
   it('rejects an empty itemTitle', () => {
     const result = createListRequestSchema.safeParse({ listTitle: 'Baby Shower', itemTitle: '' });
     expect(result.success).toBe(false);
@@ -24,6 +29,12 @@ describe('createListRequestSchema', () => {
 });
 
 describe('createListResponseSchema', () => {
+  it('accepts a response without an itemId', () => {
+    const result = createListResponseSchema.safeParse({ slug: 'abc123', ownerToken: 'owner-tok', key: 'guest-key' });
+    expect(result.success).toBe(true);
+  });
+
+
   it('accepts a valid response', () => {
     const result = createListResponseSchema.safeParse({
       slug: 'abc123', ownerToken: 'owner-tok', key: 'guest-key', itemId: 'item-1',

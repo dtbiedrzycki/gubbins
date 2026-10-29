@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const createListRequestSchema = z.object({
   listTitle: z.string().min(1),
-  itemTitle: z.string().min(1),
+  itemTitle: z.string().min(1).optional(),
   listDescription: z.string().optional(),
   createSecret: z.string().optional(),
   // Capped tightly here: the domain checks only a handle's format, and its email pattern is slow on long input.
@@ -15,6 +15,6 @@ export const createListResponseSchema = z.object({
   slug: z.string(),
   ownerToken: z.string(),
   key: z.string(),
-  itemId: z.string(),
+  itemId: z.string().optional(),
 });
 export type CreateListResponse = z.infer<typeof createListResponseSchema>;

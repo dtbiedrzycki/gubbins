@@ -58,7 +58,7 @@ async function newList() {
   const { slug, itemId } = await deps.createList.execute({ listTitle: 'L', itemTitle: 'I', createSecret: 'test-create-secret' });
   const wishlist = await deps.wishlists.findBySlug(slug, clock.now());
   const wishlistId = wishlist!.id.value;
-  const hold = (access: AccessContext, idempotencyKey: string) => deps.holdItem.execute({ wishlistId, itemId, idempotencyKey, name: 'Ada' }, access);
+  const hold = (access: AccessContext, idempotencyKey: string) => deps.holdItem.execute({ wishlistId, itemId: itemId!, idempotencyKey, name: 'Ada' }, access);
   const command = { wishlistId };
   return { hold, command };
 }

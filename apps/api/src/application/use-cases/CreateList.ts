@@ -8,7 +8,7 @@ import { InvalidCreateSecretError } from '../../domain/errors.js';
 
 export interface CreateListInput {
   listTitle: string;
-  itemTitle: string;
+  itemTitle?: string;
   listDescription?: string;
   createSecret?: string;
   venmoHandle?: string;
@@ -19,7 +19,7 @@ export interface CreateListOutput {
   slug: string;
   ownerToken: string;
   key: string;
-  itemId: string;
+  itemId?: string;
 }
 
 export class CreateList {
@@ -48,7 +48,7 @@ export class CreateList {
         paymentMethods: PaymentMethods.from({ venmoHandle: input.venmoHandle, zelleHandle: input.zelleHandle }),
       });
       // Wishlist mints its own item id via the generator it's handed.
-      const item = wishlist.addItem({ type: 'single', title: input.itemTitle }, this.tokenGenerator);
+      const item = input.itemTitle === undefined ? null : wishlist.addItem({ type: 'single', title: input.itemTitle }, this.tokenGenerator);
       // Attach before insert: the repository persists the aggregate it is
       // handed, so the item must already be part of it.
       await ctx.wishlists.insert(wishlist);
@@ -57,7 +57,7 @@ export class CreateList {
         slug: wishlist.slug.value,
         ownerToken: wishlist.ownerToken.value,
         key: wishlist.key.value,
-        itemId: item.id.value,
+        ...(item && { itemId: item.id.value }),
       };
     });
   }
