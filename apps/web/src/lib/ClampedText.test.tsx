@@ -60,7 +60,7 @@ describe('ClampedText', () => {
     expect(screen.getByRole('button', { name: 'Show less' })).toBeTruthy();
   });
 
-  it('offers Show less for text that starts expanded', () => {
+  it("starts expanded, offering Show less, when it remembers the guest's choice", () => {
     stubHeights(80, 40);
     render(<ClampedText id="d" rememberAs="test.expanded">long</ClampedText>);
     expect(screen.getByRole('button', { name: 'Show less' }).getAttribute('aria-expanded')).toBe('true');
