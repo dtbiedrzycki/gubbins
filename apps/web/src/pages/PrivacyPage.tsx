@@ -11,7 +11,7 @@ export default function PrivacyPage() {
       <section className="space-y-2">
         <h2 className="text-2xl font-semibold">What guests enter</h2>
         <p>
-          When you hold a gift or chip in, you enter the gifters’ names (everyone the gift is from) and, if you
+          When you hold a gift or chip in, you enter the gifter names (everyone the gift is from) and, if you
           like, a message. The amounts you pledge are kept too. Gubbins does not ask for your email address.
         </p>
         <p>Other guests never see these names or your message. These details are stored on this site’s server.</p>

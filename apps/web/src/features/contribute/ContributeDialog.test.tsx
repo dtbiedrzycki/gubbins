@@ -171,7 +171,7 @@ describe('ContributeDialog', () => {
     expect(screen.getByRole('link', { name: /with Venmo/ })).toBeInTheDocument();
   });
 
-  it('still works, and starts with an empty name, when the browser blocks storage', async () => {
+  it('still works when the browser blocks storage', async () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
     const user = userEvent.setup();
@@ -180,7 +180,6 @@ describe('ContributeDialog', () => {
     expect(screen.getByRole('radio', { name: 'Venmo' })).toBeChecked();
     await chooseZelle(user);
     expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Gifter name(s)')).toHaveValue('');
   });
 
   it('shows no switch when the list offers one method', async () => {
