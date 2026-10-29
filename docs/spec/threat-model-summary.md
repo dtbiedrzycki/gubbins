@@ -67,8 +67,8 @@ distinct "too many attempts" message would itself leak slug existence.
 |---|---|---|---|
 | Guest key entry | 5 failed / 15 min | 15 min | 30 failed/hr across all IPs → 2s added delay per attempt for 1hr (deliberately **not** a full slug lockout — a guest who knows the slug shouldn't be able to lock out the entire guest list by feeding it wrong keys on purpose) |
 | Owner token entry | 5 failed / 15 min | 30 min | — (single credential; no meaningful aggregate) |
-| Hold-secret link (`/{slug}/hold/{holdSecret}`) | 10 failed / 15 min | 15 min | — |
-| Guest-data-access link (`/{slug}/my-data/{secret}`) | 10 failed / 15 min | 15 min | — |
+| Hold-secret link (`/wishlists/{slug}/holds/{holdSecret}`) | 10 failed / 15 min | 15 min | — |
+| Guest-data-access link (`/wishlists/{slug}/my-data/{secret}`) | 10 failed / 15 min | 15 min | — |
 | `CREATE_SECRET` | 5 failed / hr | 1 hr | — |
 
 Counters reset on successful auth. *(ADR-[040](../adr/0040-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md))*

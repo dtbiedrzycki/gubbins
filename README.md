@@ -8,6 +8,13 @@ the back-end.
 > and back-end structure and the framework stack have not been chosen
 > yet — see `docs/adr/` as those decisions land.
 
+## Using it
+
+Open `/wishlists/new` on a running instance and enter its `CREATE_SECRET` to
+create a list. Guests open the list's invitation link (`/wishlists/:slug`, with
+the three-word guest key in the link's fragment); the owner manages it at
+`/wishlists/:slug/manage`. See [`docs/deploy.md`](docs/deploy.md) to run one.
+
 ## Development
 
 The supported environment is the dev container in `.devcontainer/`

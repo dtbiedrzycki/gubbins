@@ -20,6 +20,20 @@ hash (`keyHash`), matching the existing unhashed treatment of
 `ownerToken` and hold `secret`. This removes an inconsistency rather than
 introducing new risk, and enables on-demand QR regeneration.
 
+## Amendment: word keys
+
+New guest keys are three lowercase words from the EFF large wordlist
+(7,776 words, ~38.8 bits), joined by `-`; the four hyphenated entries are
+filtered out so every key is exactly three words. `GuestKey` allows at most 32
+characters, which fits three words (at most 29) and older 32-character
+base64url keys, which keep working.
+
+Rate limiting (ADR-[040](./0040-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md))
+is still unbuilt, so this key currently relies on its size alone. With the
+list URL known, an unthrottled attacker averages about 75 years at 100
+guesses/s, 7.5 years at 1,000/s and 9 months at 10,000/s. The owner accepted
+that risk; rate limiting is the next follow-up.
+
 ## Alternatives considered
 
 - **Keep the one-way hash** — rejected: it was never a considered

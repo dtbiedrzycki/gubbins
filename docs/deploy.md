@@ -35,6 +35,16 @@ SQLite lives on the `gubbins-data` volume. The server refuses to start without
 
 Leave `TRUSTED_PROXY_HOPS` unset. Nothing reads it yet.
 
+## Instance settings
+
+Both are optional and read at startup.
+
+- `SOURCE_URL`: where the footer offers the source code (AGPL-3.0). An http(s)
+  URL; empty means `https://github.com/dtbiedrzycki/gubbins`. A malformed value
+  stops startup. Set it to your fork's URL if you run modified code.
+- `PRIVACY_CONTACT`: how guests reach you about their data, shown on `/privacy`
+  (an email address or other text). Empty means none is shown.
+
 ## Payment handles
 
 Guests pay for group gifts with the Venmo or Zelle handle you enter when you
