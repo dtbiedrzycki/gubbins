@@ -7,12 +7,12 @@
 ## Context
 
 The holds design (D17) keyed owner lookup on an `owner_token_lookup` hash
-column, so a bare token could be resolved to a list. `/{slug}/manage` already
+column, so a bare token could be resolved to a list. `/wishlists/{slug}/manage` already
 carries the slug.
 
 ## Decision
 
-`/{slug}/manage` exchanges the owner token for a signed `gubbins_owner`
+`/wishlists/{slug}/manage` exchanges the owner token for a signed `gubbins_owner`
 cookie via `POST /api/lists/:slug/owner-session`. The route looks the list up
 by slug and compares the token in constant time
 (ADR-[035](./0035-constant-time-comparison-generalized-to-all-secret.md)).

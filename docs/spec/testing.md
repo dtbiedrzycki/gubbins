@@ -37,7 +37,7 @@
   - **Owner-token transport** (ADR-[062](../adr/0062-the-owner-token-never-travels-in-a-url.md)): no route accepts the owner
     token as a query or path parameter, and no owner-facing response
     embeds it in a link.
-  - **Guest-key transport** (ADR-[067](../adr/0067-the-guest-key-travels-in-a-fragment.md)): no request to `/{slug}` carries
+  - **Guest-key transport** (ADR-[067](../adr/0067-the-guest-key-travels-in-a-fragment.md)): no request to `/wishlists/{slug}` carries
     the key in a query string or path; the key-entry POST body is
     redacted in logs; key entry rejects a cross-origin POST.
   - Rate-limit threshold enforcement ([threat model](threat-model-summary.md))
@@ -114,7 +114,7 @@
   "[Redacted]" in the reconciliation view, the thank-you view, and the
   CSV export. Redaction succeeds regardless of `revealedAt` or the
   spoiler toggles ([privacy](privacy.md)). For guest-initiated erasure via
-  `/{slug}/my-data/{secret}`: the bulk action redacts every hold and
+  `/wishlists/{slug}/my-data/{secret}`: the bulk action redacts every hold and
   contribution belonging to that session on that list and nothing
   belonging to any other session or list; a secret issued for one list
   does not resolve on another; and the `GuestDataAccess` row is created

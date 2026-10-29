@@ -27,7 +27,7 @@ recommended mitigation was unavailable.
 
 ## Decision
 
-We will move the guest key into the URL fragment (`/{slug}#key=`), not
+We will move the guest key into the URL fragment (`/wishlists/{slug}#key=`), not
 the query string; it is POSTed to the existing key-entry endpoint by a
 same-origin script. Per RFC 3986, a fragment is interpreted solely by the agent
 dereferencing the URI — it is never sent to a server, so it reaches no
