@@ -81,13 +81,13 @@ describe('HoldDialog', () => {
     expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAccessibleDescription('To change your details, cancel and start again.');
   });
 
-  it('limits the name to 100 characters and the message to 300', () => {
+  it('limits the gifter names to 100 characters and the message to 300', () => {
     renderDialog();
     expect(screen.getByLabelText('Gifter name(s)')).toHaveAttribute('maxlength', '100');
     expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAttribute('maxlength', '300');
   });
 
-  it('marks the name as required and asks for everyone the gift is from, with the privacy line', () => {
+  it('marks the gifter names as required and describes them with the hint and the privacy line', () => {
     renderDialog();
     const name = screen.getByLabelText('Gifter name(s)');
     expect(name).toBeRequired();

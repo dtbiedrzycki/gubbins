@@ -90,7 +90,7 @@ describe('ContributeDialog', () => {
     expect(within(screen.getByRole('list', { name: 'How to chip in' })).getAllByRole('listitem').map((step) => step.textContent)).toEqual([
       'Check the amount, then send it with Zelle.',
       'Once it has gone through, come back to this page.',
-      'Add the gifters\u2019 names and choose \u201cI\'ve sent it\u201d, so the list shows your gift.',
+      'Add who the gift is from and choose \u201cI\'ve sent it\u201d, so the list shows the gift.',
     ]);
   });
 
@@ -190,16 +190,22 @@ describe('ContributeDialog', () => {
     expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
   });
 
-  it('needs a name before the pledge can be sent, and asks for everyone the gift is from', async () => {
+  it('needs the gifter names before the pledge can be sent', async () => {
     const user = userEvent.setup();
     renderDialog();
     await continueWithTheRest(user);
     expect(screen.getByLabelText('Gifter name(s)')).toBeRequired();
-    expect(screen.getByLabelText('Gifter name(s)')).toHaveAccessibleDescription('Include everyone the gift is from, e.g. Sam & Alex Smith.');
     expect(screen.getByRole('button', { name: "I've sent it" })).toBeDisabled();
   });
 
-  it('limits the name to 100 characters and the message to 300', async () => {
+  it('describes the gifter names field with a hint to include everyone the gift is from', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    expect(screen.getByLabelText('Gifter name(s)')).toHaveAccessibleDescription('Include everyone the gift is from, e.g. Sam & Alex Smith.');
+  });
+
+  it('limits the gifter names to 100 characters and the message to 300', async () => {
     const user = userEvent.setup();
     renderDialog();
     await continueWithTheRest(user);
