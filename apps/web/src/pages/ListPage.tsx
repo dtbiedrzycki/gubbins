@@ -19,7 +19,7 @@ export default function ListPage() {
   if (!slug) return null;
 
   if (query.status === 'pending') {
-    return <main className="min-h-screen bg-paper p-6 text-ink">Loading…</main>;
+    return <main className="flex-1 bg-paper p-6 text-ink">Loading…</main>;
   }
 
   // 401 (no session yet) and 404 (unknown slug) both mean "enter the key":
@@ -33,7 +33,7 @@ export default function ListPage() {
     // on arrival; focus stays put the first time, since the guest didn't ask
     // for this view, but returns to the button after a failed "Try again".
     return (
-      <main className="min-h-screen bg-paper p-6 text-ink">
+      <main className="flex-1 bg-paper p-6 text-ink">
         <div className="mx-auto max-w-sm space-y-4">
           <p role="alert" className="text-error">{query.error.message}</p>
           <button type="button" autoFocus={retried} onClick={() => { setRetried(true); void query.refetch(); }} className="btn-primary">
@@ -45,7 +45,7 @@ export default function ListPage() {
   }
   if (!query.data || sessionGone) {
     return (
-      <main className="min-h-screen bg-paper p-6 text-ink">
+      <main className="flex-1 bg-paper p-6 text-ink">
         <GuestKeyGate slug={slug} onSuccess={() => query.refetch()} />
       </main>
     );
@@ -56,7 +56,7 @@ export default function ListPage() {
   // A guest with a hold already saw the box when they held; with nothing to hold, it explains nothing.
   const canHold = items.some((item) => item.type === 'single' && item.status === 'available');
   return (
-    <main className="min-h-screen bg-paper p-6 text-ink">
+    <main className="flex-1 bg-paper p-6 text-ink">
       <div className="mx-auto max-w-sm space-y-8">
         <header className="text-center">
           <h1 className="font-display text-[2.05rem] leading-tight text-balance break-words">{query.data.title}</h1>
