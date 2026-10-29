@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ClampedText } from './ClampedText';
 
 function stubHeights(scrollHeight: number, clientHeight: number) {
@@ -11,6 +11,7 @@ afterEach(() => {
   Reflect.deleteProperty(HTMLElement.prototype, 'scrollHeight');
   Reflect.deleteProperty(HTMLElement.prototype, 'clientHeight');
   Reflect.deleteProperty(document, 'fonts');
+  vi.restoreAllMocks();
 });
 
 describe('ClampedText', () => {
@@ -56,6 +57,38 @@ describe('ClampedText', () => {
       </ClampedText>,
     );
     fireEvent.focus(screen.getByRole('link'));
+    expect(screen.getByRole('button', { name: 'Show less' })).toBeTruthy();
+  });
+
+  it("starts expanded, offering Show less, when it remembers the guest's choice", () => {
+    stubHeights(80, 40);
+    render(<ClampedText id="d" rememberAs="test.expanded">long</ClampedText>);
+    expect(screen.getByRole('button', { name: 'Show less' }).getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it("remembers the guest's last choice on this device", () => {
+    stubHeights(80, 40);
+    const first = render(<ClampedText id="d" rememberAs="test.expanded">long</ClampedText>);
+    fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
+    first.unmount();
+    const second = render(<ClampedText id="d" rememberAs="test.expanded">long</ClampedText>);
+    fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
+    second.unmount();
+
+    render(<ClampedText id="d" rememberAs="test.expanded">long</ClampedText>);
+    expect(screen.getByRole('button', { name: 'Show less' })).toBeTruthy();
+  });
+
+  it('collapses for this visit only where storage is blocked', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
+    stubHeights(80, 40);
+    const first = render(<ClampedText id="d" rememberAs="test.expanded">long</ClampedText>);
+    fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
+    expect(screen.getByRole('button', { name: 'Show more' })).toBeTruthy();
+    first.unmount();
+
+    render(<ClampedText id="d" rememberAs="test.expanded">long</ClampedText>);
     expect(screen.getByRole('button', { name: 'Show less' })).toBeTruthy();
   });
 });

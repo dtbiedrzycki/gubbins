@@ -72,7 +72,7 @@ export default function ListPage() {
         </header>
         {query.data.description && (
           <section aria-label="About this list">
-            <ClampedText id="list-description"><Markdown text={query.data.description} /></ClampedText>
+            <ClampedText id="list-description" rememberAs="gubbins.listDescription"><Markdown text={query.data.description} /></ClampedText>
           </section>
         )}
         {canHold && (

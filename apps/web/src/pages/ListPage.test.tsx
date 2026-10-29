@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -34,10 +34,6 @@ function renderListPage() {
 }
 
 describe('ListPage', () => {
-  afterEach(() => {
-    localStorage.clear();
-  });
-
   const twoItems: ListViewResponse = {
     ...view(false),
     items: [
@@ -59,12 +55,13 @@ describe('ListPage', () => {
     expect(within(screen.getByRole('region', { name: 'Your holds' })).getByRole('heading', { name: 'Cot' })).toBeInTheDocument();
   });
 
-  it("shows the list's description above the gifts", async () => {
+  it("shows the list's description in full, above the gifts", async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), description: 'Shipping: **12 Elm Street**' })));
     renderListPage();
 
     const about = await screen.findByRole('region', { name: 'About this list' });
     expect(within(about).getByText('12 Elm Street').tagName).toBe('STRONG');
+    expect(document.getElementById('list-description')).not.toHaveClass('line-clamp-2');
     expect(about.compareDocumentPosition(screen.getByRole('heading', { level: 2, name: 'Stroller' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
