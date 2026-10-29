@@ -46,29 +46,28 @@ function cookieOf(response: LightMyRequestResponse): string {
   return String(Array.isArray(setCookie) ? setCookie[0] : setCookie).split(';')[0];
 }
 
+/** A new list holding one item its owner added, and a guest's session cookie on it. */
+async function itemOnNewList(list: object, item: object) {
+  const { slug, ownerToken, key } = (await app.inject({ method: 'POST', url: '/api/lists', payload: { ...list, createSecret: 'test-create-secret' } })).json() as { slug: string; ownerToken: string; key: string };
+  const owner = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${slug}/owner-session`, payload: { ownerToken } }));
+  const { itemId } = (await app.inject({ method: 'POST', url: `/api/lists/${slug}/items`, headers: { cookie: owner }, payload: item })).json() as { itemId: string };
+  const cookie = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${slug}/session`, payload: { key } }));
+  return { slug, itemId, cookie };
+}
+
 async function holdOnNewList() {
-  const list = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'L', createSecret: 'test-create-secret' } })).json() as { slug: string; ownerToken: string; key: string };
-  const owner = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } }));
-  const { itemId } = (await app.inject({
-    method: 'POST', url: `/api/lists/${list.slug}/items`, headers: { cookie: owner }, payload: { type: 'single', title: 'I' },
-  })).json() as { itemId: string };
-  const cookie = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } }));
+  const { slug, itemId, cookie } = await itemOnNewList({ listTitle: 'L' }, { type: 'single', title: 'I' });
   const { holdId } = (await app.inject({
-    method: 'POST', url: `/api/lists/${list.slug}/items/${itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'k', name: 'Ada' },
+    method: 'POST', url: `/api/lists/${slug}/items/${itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'k', name: 'Ada' },
   })).json() as { holdId: string };
-  const act = (action: string) => app.inject({ method: 'POST', url: `/api/lists/${list.slug}/holds/${holdId}/${action}`, headers: { cookie } });
+  const act = (action: string) => app.inject({ method: 'POST', url: `/api/lists/${slug}/holds/${holdId}/${action}`, headers: { cookie } });
   return { act };
 }
 
 async function pledgeOnNewList() {
-  const list = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'G', venmoHandle: 'my-venmo', createSecret: 'test-create-secret' } })).json() as { slug: string; ownerToken: string; key: string };
-  const owner = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } }));
-  const { itemId } = (await app.inject({
-    method: 'POST', url: `/api/lists/${list.slug}/items`, headers: { cookie: owner }, payload: { type: 'group', title: 'Pram', priceMinor: 50000 },
-  })).json() as { itemId: string };
-  const cookie = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } }));
+  const { slug, itemId, cookie } = await itemOnNewList({ listTitle: 'G', venmoHandle: 'my-venmo' }, { type: 'group', title: 'Pram', priceMinor: 50000 });
   return app.inject({
-    method: 'POST', url: `/api/lists/${list.slug}/items/${itemId}/contributions`, headers: { cookie }, payload: { idempotencyKey: 'k', amountMinor: 2500, name: 'Ada' },
+    method: 'POST', url: `/api/lists/${slug}/items/${itemId}/contributions`, headers: { cookie }, payload: { idempotencyKey: 'k', amountMinor: 2500, name: 'Ada' },
   });
 }
 
