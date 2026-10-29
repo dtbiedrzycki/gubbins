@@ -13,7 +13,7 @@ const hold: HoldView = {
   extendedAt: null, actions: { extend: true, release: true, purchase: true },
 };
 const view = (held: boolean): ListViewResponse => ({
-  title: 'Baby Shower',
+  title: 'Baby Shower', description: null,
   items: [{ id: 'item-1', title: 'Stroller', type: 'single', status: held ? 'held' : 'available', availableUnits: held ? 0 : 1, url: null, priceMinor: null, pledgedMinor: null }],
   payment: { venmoHandle: null, zelleHandle: null },
   myHolds: held ? [hold] : [],

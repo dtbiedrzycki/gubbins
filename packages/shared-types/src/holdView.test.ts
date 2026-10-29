@@ -24,7 +24,7 @@ describe('holdViewSchema', () => {
 describe('listViewResponseSchema', () => {
   const listItem = { id: 'i', title: 'x', type: 'single', status: 'held', availableUnits: 0, url: null, priceMinor: null, pledgedMinor: null };
   const list = {
-    title: 't', items: [listItem], payment: { venmoHandle: null, zelleHandle: 'a@b.co' },
+    title: 't', description: null, items: [listItem], payment: { venmoHandle: null, zelleHandle: 'a@b.co' },
     myHolds: [view], capabilities: { holdDurationDays: 3 },
   };
 

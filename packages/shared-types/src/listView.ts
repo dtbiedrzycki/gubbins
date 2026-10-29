@@ -18,6 +18,7 @@ export const listItemSchema = z.object({
 
 export const listViewResponseSchema = z.object({
   title: z.string(),
+  description: z.string().nullable(),
   items: z.array(listItemSchema),
   /** How guests pay for a group gift. */
   payment: z.object({ venmoHandle: z.string().nullable(), zelleHandle: z.string().nullable() }),
