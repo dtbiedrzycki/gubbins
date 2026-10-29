@@ -25,7 +25,7 @@ function rememberDismissed(): void {
  */
 export function HowHoldingWorks({ holdDurationDays, onDismiss }: {
   holdDurationDays: number;
-  /** Moves focus once the card, and the Dismiss button with it, has gone. */
+  /** Called on dismiss, so the page can move focus off the button that is going away. */
   onDismiss?: () => void;
 }) {
   const [dismissed, setDismissed] = useState(wasDismissed);

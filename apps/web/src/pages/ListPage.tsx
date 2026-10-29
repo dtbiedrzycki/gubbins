@@ -78,7 +78,7 @@ export default function ListPage() {
         {canHold && (
           <HowHoldingWorks
             holdDurationDays={days}
-            // The card has gone; the gift filter comes next.
+            // The card is going; the gift filter comes next.
             onDismiss={() => document.querySelector<HTMLButtonElement>('[aria-label="Show gifts"] button')?.focus()}
           />
         )}
