@@ -79,12 +79,13 @@ describe('ClampedText', () => {
     expect(screen.getByRole('button', { name: 'Show less' })).toBeTruthy();
   });
 
-  it('starts expanded every visit where storage is blocked', () => {
+  it('collapses for this visit only where storage is blocked', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
     stubHeights(80, 40);
     const first = render(<ClampedText id="d" rememberAs="test.expanded">long</ClampedText>);
     fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
+    expect(screen.getByRole('button', { name: 'Show more' })).toBeTruthy();
     first.unmount();
 
     render(<ClampedText id="d" rememberAs="test.expanded">long</ClampedText>);

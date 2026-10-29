@@ -13,7 +13,7 @@ function writeExpanded(key: string, expanded: boolean): void {
   try {
     localStorage.setItem(key, expanded ? 'expanded' : 'collapsed');
   } catch {
-    // Not remembered: the next visit keeps the last stored choice, or starts expanded.
+    // Not remembered: collapsed for this visit only.
   }
 }
 
