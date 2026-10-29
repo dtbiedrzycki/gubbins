@@ -6,6 +6,7 @@ import { listViewKey } from '../holds/useListView';
 import { formatMoney } from '../../lib/formatMoney';
 import { parseUsd } from '../../lib/parseUsd';
 import { venmoPayLink } from './paymentLinks';
+import { readPreferredPayMethod, writePreferredPayMethod, type PayMethod } from './preferredPayMethod';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
 
 export interface ContributeDialogProps {
@@ -23,6 +24,7 @@ const NAME_MAX = 100;
 const MESSAGE_MAX = 300;
 const invalidAmount = 'Enter an amount like 25 or 25.50.';
 const field = 'field mb-1';
+const PAY_METHOD_LABEL: Record<PayMethod, string> = { venmo: 'Venmo', zelle: 'Zelle' };
 
 /**
  * A real <dialog> (ADR-0024) in the HoldDialog style, mounted only while
@@ -42,6 +44,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState('');
+  const [chosenMethod, setChosenMethod] = useState<PayMethod | null>(readPreferredPayMethod);
   const queryClient = useQueryClient();
   const { mutate, isPending, isIdle, error } = useMutation({
     mutationFn: (input: PledgeRequest) => api.pledgeContribution(slug, itemId, input),
@@ -71,7 +74,9 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   const lockedHint = sent && 'contribute-locked';
   const chosen = coverRest ? remainingMinor : parseUsd(other);
   const amount = parseUsd(amountText);
-  const waysToPay = [payment.venmoHandle && 'Venmo', payment.zelleHandle && 'Zelle'].filter(Boolean).join(' or ');
+  const offered: PayMethod[] = [payment.venmoHandle && 'venmo', payment.zelleHandle && 'zelle'].filter((m): m is PayMethod => Boolean(m));
+  const method = chosenMethod && offered.includes(chosenMethod) ? chosenMethod : offered.includes('venmo') ? 'venmo' : 'zelle';
+  const waysToPay = offered.map((m) => PAY_METHOD_LABEL[m]).join(' or ');
 
   function send() {
     if (amount === null || isPending) return;
@@ -104,7 +109,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
         </>
       ) : (
         <>
-          <ol className="mb-4 list-decimal pl-5 text-sm">
+          <ol aria-label="How to chip in" className="mb-4 list-decimal pl-5 text-sm">
             <li>Check the amount, then send it with {waysToPay}.</li>
             <li>Once it has gone through, come back to this page.</li>
             <li>Add your name and choose &ldquo;I&apos;ve sent it&rdquo;, so the list shows your gift.</li>
@@ -113,16 +118,36 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           <input id="contribute-amount" inputMode="decimal" value={amountText} onChange={(e) => setAmountText(e.target.value)} disabled={isPending} readOnly={sent}
             aria-invalid={amount === null} aria-describedby={sent ? 'contribute-amount-error contribute-locked' : 'contribute-amount-error'} className={field} />
           <p id="contribute-amount-error" className="mb-4 text-sm text-error">{amount === null ? invalidAmount : ''}</p>
-          {payment.venmoHandle && amount !== null && (
-            <p className="mb-4 flex flex-wrap items-center gap-4">
-              <a href={venmoPayLink(payment.venmoHandle, amount, itemTitle)} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center">Pay {formatMoney(amount)} with Venmo</a>
-            </p>
+          {offered.length > 1 && (
+            <fieldset className="mb-4 grid grid-cols-2 rounded-[22px] border-[1.5px] border-ink bg-white p-1">
+              <legend className="sr-only">Pay with</legend>
+              {offered.map((option) => (
+                <label key={option} className="relative grid min-h-11 cursor-pointer place-items-center rounded-[18px] has-checked:bg-ink has-checked:text-white has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-blue-500">
+                  <input type="radio" name="pay-method" value={option} checked={method === option} className="absolute opacity-0"
+                    onChange={() => { setChosenMethod(option); writePreferredPayMethod(option); setCopied(''); }} />
+                  {PAY_METHOD_LABEL[option]}
+                </label>
+              ))}
+            </fieldset>
           )}
-          {payment.zelleHandle && (
-            <p className="mb-4 flex flex-wrap items-center gap-2">
-              <span>Zelle: {payment.zelleHandle}</span>
-              <button type="button" onClick={() => navigator.clipboard.writeText(payment.zelleHandle!).then(() => setCopied('Copied.'), () => setCopied("Couldn't copy. Select the handle instead."))} className="btn-secondary">Copy</button>
-            </p>
+          {method === 'venmo' && amount !== null && (
+            <div className="mb-4">
+              <p className="mb-2"><a href={venmoPayLink(payment.venmoHandle!, amount, itemTitle)} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center">Pay {formatMoney(amount)} with Venmo</a></p>
+              <p className="text-sm text-muted">Opens Venmo with the payment information pre-filled.</p>
+            </div>
+          )}
+          {method === 'zelle' && (
+            <div className="mb-4">
+              <ol aria-label="Paying with Zelle" className="mb-2 list-decimal pl-5 text-sm">
+                <li>Open your bank&rsquo;s app and choose <strong>Send money with Zelle</strong>.</li>
+                <li>Send <strong>{amount === null ? 'the amount' : formatMoney(amount)}</strong> to the handle below.</li>
+                <li>Add &ldquo;{itemTitle}&rdquo; as the memo.</li>
+              </ol>
+              <p className="flex flex-wrap items-center gap-2">
+                <strong>{payment.zelleHandle}</strong>
+                <button type="button" onClick={() => navigator.clipboard.writeText(payment.zelleHandle!).then(() => setCopied('Copied.'), () => setCopied("Couldn't copy. Select the handle instead."))} className="btn-secondary">Copy</button>
+              </p>
+            </div>
           )}
           <p role="status" aria-live="polite" className="mb-4 text-sm empty:mb-0">{copied}</p>
           <label className="mb-1 block" htmlFor="contribute-name">Your name</label>

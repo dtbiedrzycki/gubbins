@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse, delay } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -34,7 +34,16 @@ async function continueWithTheRest(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: 'Continue' }));
 }
 
+async function chooseZelle(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('radio', { name: 'Zelle' }));
+}
+
 describe('ContributeDialog', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+  });
+
   it('offers to cover the rest, and carries that amount into the payment step', async () => {
     const user = userEvent.setup();
     renderDialog();
@@ -72,14 +81,14 @@ describe('ContributeDialog', () => {
     const user = userEvent.setup();
     renderDialog({ payment });
     await continueWithTheRest(user);
-    expect(screen.getAllByRole('listitem')[0]).toHaveTextContent(`Check the amount, then send it with ${waysToPay}.`);
+    expect(within(screen.getByRole('list', { name: 'How to chip in' })).getAllByRole('listitem')[0]).toHaveTextContent(`Check the amount, then send it with ${waysToPay}.`);
   });
 
   it('lists the steps to pay and then record the gift', async () => {
     const user = userEvent.setup();
     renderDialog({ payment: { venmoHandle: null, zelleHandle: 'me@example.com' } });
     await continueWithTheRest(user);
-    expect(screen.getAllByRole('listitem').map((step) => step.textContent)).toEqual([
+    expect(within(screen.getByRole('list', { name: 'How to chip in' })).getAllByRole('listitem').map((step) => step.textContent)).toEqual([
       'Check the amount, then send it with Zelle.',
       'Once it has gone through, come back to this page.',
       'Add your name and choose \u201cI\'ve sent it\u201d, so the list shows your gift.',
@@ -106,14 +115,80 @@ describe('ContributeDialog', () => {
     const user = userEvent.setup();
     renderDialog();
     await continueWithTheRest(user);
+    await chooseZelle(user);
     const announcement = screen.getByRole('status');
     expect(announcement).toBeEmptyDOMElement();
 
-    expect(screen.getByText('Zelle: me@example.com')).toBeInTheDocument();
+    expect(screen.getByText('me@example.com')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Copy' }));
 
     await expect(navigator.clipboard.readText()).resolves.toBe('me@example.com');
     expect(announcement).toHaveTextContent('Copied.');
+  });
+
+  it('clears the copy message when the guest switches method', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    await chooseZelle(user);
+    await user.click(screen.getByRole('button', { name: 'Copy' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Copied.');
+
+    await user.click(screen.getByRole('radio', { name: 'Venmo' }));
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+
+  it('starts on Venmo when the list offers both', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    expect(screen.getByRole('radio', { name: 'Venmo' })).toBeChecked();
+    expect(screen.getByText('Opens Venmo with the payment information pre-filled.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Copy' })).not.toBeInTheDocument();
+  });
+
+  it("shows only the chosen method's panel and remembers the choice for next time", async () => {
+    const user = userEvent.setup();
+    const first = renderDialog();
+    await continueWithTheRest(user);
+    await chooseZelle(user);
+    expect(screen.queryByRole('link', { name: /with Venmo/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
+    const steps = screen.getByRole('list', { name: 'Paying with Zelle' });
+    expect(steps).toHaveTextContent('Send $287.50 to the handle below.');
+    expect(steps).toHaveTextContent('Add \u201cStand mixer\u201d as the memo.');
+
+    first.unmount();
+    renderDialog();
+    await continueWithTheRest(user);
+    expect(screen.getByRole('radio', { name: 'Zelle' })).toBeChecked();
+  });
+
+  it("falls back to the method the list offers when the remembered one isn't", async () => {
+    localStorage.setItem('gubbins.payMethod', 'zelle');
+    const user = userEvent.setup();
+    renderDialog({ payment: { venmoHandle: 'my-venmo', zelleHandle: null } });
+    await continueWithTheRest(user);
+    expect(screen.getByRole('link', { name: /with Venmo/ })).toBeInTheDocument();
+  });
+
+  it('still works when the browser blocks storage', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    expect(screen.getByRole('radio', { name: 'Venmo' })).toBeChecked();
+    await chooseZelle(user);
+    expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
+  });
+
+  it('shows no switch when the list offers one method', async () => {
+    const user = userEvent.setup();
+    renderDialog({ payment: { venmoHandle: null, zelleHandle: 'me@example.com' } });
+    await continueWithTheRest(user);
+    expect(screen.queryByRole('group', { name: 'Pay with' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
   });
 
   it('needs a name before the pledge can be sent', async () => {
