@@ -41,7 +41,6 @@ async function chooseZelle(user: ReturnType<typeof userEvent.setup>) {
 describe('ContributeDialog', () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    localStorage.clear();
   });
 
   it('offers to cover the rest, and carries that amount into the payment step', async () => {
@@ -172,7 +171,7 @@ describe('ContributeDialog', () => {
     expect(screen.getByRole('link', { name: /with Venmo/ })).toBeInTheDocument();
   });
 
-  it('still works when the browser blocks storage', async () => {
+  it('still works, and starts with an empty name, when the browser blocks storage', async () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
     const user = userEvent.setup();
@@ -209,7 +208,7 @@ describe('ContributeDialog', () => {
     expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAttribute('maxlength', '300');
   });
 
-  it('records the pledge with the trimmed details and reports the amount', async () => {
+  it('records the pledge with the trimmed details, remembers the trimmed names and reports the amount', async () => {
     const bodies = pledgeEndpoint();
     const user = userEvent.setup();
     const { props } = renderDialog();
@@ -221,6 +220,18 @@ describe('ContributeDialog', () => {
     await vi.waitFor(() => expect(props.onPledged).toHaveBeenCalledWith(28750));
     expect(bodies).toEqual([{ idempotencyKey: expect.any(String), amountMinor: 28750, name: 'Amara', message: 'Enjoy!' }]);
     expect(localStorage.getItem('gubbins.gifterNames')).toBe('Amara');
+  });
+
+  it('does not remember the names when the pledge fails', async () => {
+    server.use(mock('post', '/api/lists/{slug}/items/{itemId}/contributions', 409, { code: 'amount_out_of_range', message: 'Try a smaller amount.' }));
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: "I've sent it" }));
+
+    await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
+    expect(localStorage.getItem('gubbins.gifterNames')).toBeNull();
   });
 
   it('starts with the gifter names last used on this device', async () => {
