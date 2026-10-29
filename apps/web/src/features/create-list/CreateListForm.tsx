@@ -14,7 +14,6 @@ const DESCRIPTION_MAX = 2000;
 
 export function CreateListForm() {
   const [listTitle, setListTitle] = useState('');
-  const [itemTitle, setItemTitle] = useState('');
   const [createSecret, setCreateSecret] = useState('');
   const [venmoHandle, setVenmoHandle] = useState('');
   const [zelleHandle, setZelleHandle] = useState('');
@@ -25,7 +24,7 @@ export function CreateListForm() {
     event.preventDefault();
     const listDescription = description.trim();
     mutate({
-      listTitle: listTitle.trim(), itemTitle: itemTitle.trim(), createSecret: createSecret.trim(),
+      listTitle: listTitle.trim(), createSecret: createSecret.trim(),
       venmoHandle: venmoHandle.trim(), zelleHandle: zelleHandle.trim(),
       ...(listDescription && { listDescription }),
     });
@@ -73,13 +72,6 @@ export function CreateListForm() {
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
         <p id="list-description-hint" className="mt-1 text-sm text-gray-600">Guests see this above your list. If you want gifts mailed, add your shipping address here. Supports **bold**, *italics*, lists and links. You can’t change it after the list is created.</p>
-      </div>
-      <div>
-        <label htmlFor="item-title" className="block text-sm font-medium">First item</label>
-        <LimitedInput
-          id="item-title" required max={TITLE_MAX} value={itemTitle} onChange={(e) => setItemTitle(e.target.value)}
-          className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-        />
       </div>
       <div>
         <label htmlFor="create-secret" className="block text-sm font-medium">Create secret</label>

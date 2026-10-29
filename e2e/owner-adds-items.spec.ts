@@ -17,7 +17,6 @@ test('the owner adds a single item and a group gift, and a guest sees both', asy
   });
   await page.goto('/wishlists/new');
   await page.getByLabel('List title').fill('Baby Shower');
-  await page.getByLabel('First item').fill('Stroller');
   await page.getByLabel('Create secret').fill('e2e-create-secret');
   await page.getByLabel('Venmo username').fill('my-venmo');
   await page.getByRole('button', { name: 'Create list' }).click();
@@ -54,7 +53,6 @@ test('the owner adds a single item and a group gift, and a guest sees both', asy
   await expect(crib.getByRole('link', { name: 'View in store' })).toBeVisible();
   const mixer = guest.getByRole('listitem').filter({ has: guest.getByRole('heading', { name: 'Stand mixer' }) });
   await expect(mixer.getByText('$450.00', { exact: true })).toBeVisible();
-  await expect(guest.getByRole('heading', { name: 'Stroller' })).toBeVisible();
 
   expect(policyViolations).toEqual([]);
   // A remote image would leak the guest's IP address to its host.

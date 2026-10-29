@@ -5,12 +5,19 @@ import AxeBuilder from '@axe-core/playwright';
 async function guestOnNewList(page: Page, context: BrowserContext): Promise<Page> {
   await page.goto('/wishlists/new');
   await page.getByLabel('List title').fill('Baby Shower');
-  await page.getByLabel('First item').fill('Stroller');
   await page.getByLabel('Create secret').fill('e2e-create-secret');
   await page.getByRole('button', { name: 'Create list' }).click();
   const guestLink = await page.getByTestId('guest-link').getAttribute('href');
   const guestKey = (await page.getByTestId('guest-key').textContent())?.trim();
+  const ownerToken = (await page.getByTestId('owner-token').textContent())?.trim();
   await expectNoSeriousAxeViolations(page);
+
+  const [manage] = await Promise.all([context.waitForEvent('page'), page.getByRole('link', { name: 'Manage your list' }).click()]);
+  await manage.getByLabel('Owner token').fill(ownerToken!);
+  await manage.getByRole('button', { name: 'Manage list' }).click();
+  await manage.getByLabel('Title').fill('Stroller');
+  await manage.getByRole('button', { name: 'Add item' }).click();
+  await expect(manage.getByRole('status')).toHaveText('Added "Stroller".');
 
   const guest = await context.newPage();
   await guest.goto(guestLink!);

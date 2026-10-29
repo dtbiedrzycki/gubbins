@@ -18,14 +18,13 @@ async function fillAndSubmit(beforeSubmit: (user: ReturnType<typeof userEvent.se
   renderWithQueryClient(<CreateListForm />);
   await beforeSubmit(user);
   await user.type(screen.getByLabelText('List title'), 'Baby Shower');
-  await user.type(screen.getByLabelText('First item'), 'Stroller');
   await user.type(screen.getByLabelText('Create secret'), 'the-secret');
   await user.click(screen.getByRole('button', { name: 'Create list' }));
 }
 
 describe('CreateListForm', () => {
   it('shows the guest link, guest key, and owner token after a successful submit', async () => {
-    server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'owner-secret-token', key: 'guest-key-value', itemId: 'item-1' }));
+    server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'owner-secret-token', key: 'guest-key-value' }));
     await fillAndSubmit();
 
     expect(await screen.findByText('guest-key-value')).toBeInTheDocument();
@@ -34,7 +33,7 @@ describe('CreateListForm', () => {
   });
 
   it('never renders the owner token inside a link href (ADR-062)', async () => {
-    server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'owner-secret-token', key: 'guest-key-value', itemId: 'item-1' }));
+    server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'owner-secret-token', key: 'guest-key-value' }));
     await fillAndSubmit();
     await screen.findByText('owner-secret-token');
 
@@ -56,30 +55,29 @@ describe('CreateListForm', () => {
     expect(screen.getByRole('alert')).toBe(alert);
   });
 
-  it('sends both titles, the create secret and both payment handles, each trimmed', async () => {
+  it('sends the list title, the create secret and both payment handles, each trimmed, and no item', async () => {
     let body: unknown;
     server.use(http.post('/api/lists', async ({ request }) => {
       body = await request.json();
-      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k', itemId: 'i' } satisfies CreateListResponse, { status: 201 });
+      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k' } satisfies CreateListResponse, { status: 201 });
     }));
     const user = userEvent.setup();
     renderWithQueryClient(<CreateListForm />);
     await user.type(screen.getByLabelText('List title'), ' Baby Shower ');
-    await user.type(screen.getByLabelText('First item'), ' Stroller ');
     await user.type(screen.getByLabelText('Create secret'), ' the-secret ');
     await user.type(screen.getByLabelText('Venmo username'), ' @my-venmo ');
     await user.type(screen.getByLabelText('Zelle email or US phone'), ' me@example.com ');
     await user.click(screen.getByRole('button', { name: 'Create list' }));
     await screen.findByText('k');
+    expect(body).not.toHaveProperty('itemTitle');
     expect(body).toMatchObject({
-      listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'the-secret', venmoHandle: '@my-venmo', zelleHandle: 'me@example.com',
+      listTitle: 'Baby Shower', createSecret: 'the-secret', venmoHandle: '@my-venmo', zelleHandle: 'me@example.com',
     });
   });
 
-  it('limits the list and first item titles to 120 characters, the Venmo username to 31 and the Zelle handle to 254', () => {
+  it('limits the list title to 120 characters, the Venmo username to 31 and the Zelle handle to 254', () => {
     renderWithQueryClient(<CreateListForm />);
     expect(screen.getByLabelText('List title')).toHaveAttribute('maxlength', '120');
-    expect(screen.getByLabelText('First item')).toHaveAttribute('maxlength', '120');
     expect(screen.getByLabelText('Venmo username')).toHaveAttribute('maxlength', '31');
     expect(screen.getByLabelText('Zelle email or US phone')).toHaveAttribute('maxlength', '254');
   });
@@ -95,7 +93,7 @@ describe('CreateListForm', () => {
     const bodies: Record<string, unknown>[] = [];
     server.use(http.post('/api/lists', async ({ request }) => {
       bodies.push((await request.json()) as Record<string, unknown>);
-      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k', itemId: 'i' } satisfies CreateListResponse, { status: 201 });
+      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k' } satisfies CreateListResponse, { status: 201 });
     }));
     await fillAndSubmit((user) => user.type(screen.getByLabelText('About this list (optional)'), '  12 Elm St  '));
     await screen.findByText('k');
@@ -114,7 +112,7 @@ describe('CreateListForm', () => {
   });
 
   it('links to the manage page without the owner token and tells the owner to save it', async () => {
-    server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'owner-secret-token', key: 'guest-key-value', itemId: 'item-1' }));
+    server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'owner-secret-token', key: 'guest-key-value' }));
     await fillAndSubmit();
 
     const link = await screen.findByRole('link', { name: 'Manage your list (opens in a new tab)' });
