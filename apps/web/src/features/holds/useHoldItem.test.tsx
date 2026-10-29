@@ -8,6 +8,7 @@ import { server } from '../../test/msw/server';
 import { mock } from '../../test/msw/mock';
 import { useHoldItem } from './useHoldItem';
 import { useListView } from './useListView';
+import { aListItem } from '../../test/listItem';
 
 function wrapper({ children }: { children: ReactNode }) {
   // useListView's own retry wins over these defaults; retryDelay: 0 keeps its one retry instant.
@@ -17,7 +18,7 @@ function wrapper({ children }: { children: ReactNode }) {
 
 const listView = (status: 'available' | 'held'): ListViewResponse => ({
   title: 'Baby Shower', description: null,
-  items: [{ id: 'item-1', title: 'Stroller', type: 'single', status, availableUnits: status === 'held' ? 0 : 1, url: null, priceMinor: null, pledgedMinor: null }],
+  items: [aListItem({ status, availableUnits: status === 'held' ? 0 : 1 })],
   payment: { venmoHandle: null, zelleHandle: null },
   myHolds: [],
   capabilities: { holdDurationDays: 3 },

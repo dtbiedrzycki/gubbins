@@ -1,13 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ListViewResponse } from '@gubbins/shared-types';
 import { ItemFilter } from './ItemFilter';
+import { aListItem } from '../../test/listItem';
 
-type Item = NonNullable<ListViewResponse['items']>[number];
-const item = (over: Partial<Item>): Item => ({
-  id: 'i', title: 'Gift', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null, pledgedMinor: null, ...over,
-});
+const item = (over: Partial<Parameters<typeof aListItem>[0]>) => aListItem({ id: 'i', title: 'Gift', ...over });
 
 describe('ItemFilter', () => {
   it('counts a fully pledged group gift as funded, and a partly pledged one as available', () => {

@@ -7,6 +7,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type { HoldView, ListViewResponse } from '@gubbins/shared-types';
 import { server } from '../test/msw/server';
 import ListPage from './ListPage';
+import { aListItem } from '../test/listItem';
 
 const hold: HoldView = {
   holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: '2026-01-04T00:00:00.000Z',
@@ -14,7 +15,7 @@ const hold: HoldView = {
 };
 const view = (held: boolean): ListViewResponse => ({
   title: 'Baby Shower', description: null,
-  items: [{ id: 'item-1', title: 'Stroller', type: 'single', status: held ? 'held' : 'available', availableUnits: held ? 0 : 1, url: null, priceMinor: null, pledgedMinor: null }],
+  items: [aListItem({ status: held ? 'held' : 'available', availableUnits: held ? 0 : 1 })],
   payment: { venmoHandle: null, zelleHandle: null },
   myHolds: held ? [hold] : [],
   capabilities: { holdDurationDays: 3 },
@@ -37,7 +38,7 @@ describe('ListPage', () => {
     ...view(false),
     items: [
       ...view(false).items!,
-      { id: 'item-2', title: 'Cot', type: 'single', status: 'available', availableUnits: 1, url: null, priceMinor: null, pledgedMinor: null },
+      aListItem({ id: 'item-2', title: 'Cot' }),
     ],
     myHolds: [{ ...hold, itemId: 'item-2' }],
   };
@@ -117,7 +118,7 @@ describe('ListPage', () => {
   });
 
   it.each([
-    ['only group gifts', { ...view(false), items: [{ id: 'item-1', title: 'Honeymoon fund', type: 'group', status: 'available', availableUnits: 0, url: null, priceMinor: 50000, pledgedMinor: 0 }] }],
+    ['only group gifts', { ...view(false), items: [aListItem({ title: 'Honeymoon fund', type: 'group', availableUnits: 0, priceMinor: 50000, pledgedMinor: 0 })] }],
     ['no single gift left to hold', view(true)],
   ] satisfies [string, ListViewResponse][])('leaves out the holding explainer when the list has %s', async (_, list) => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(list)));
@@ -129,7 +130,7 @@ describe('ListPage', () => {
 
   it('opens the holding explainer on the first visit that has a gift to hold, even after a visit with none', async () => {
     localStorage.clear();
-    const fundsOnly: ListViewResponse = { ...view(false), items: [{ id: 'item-1', title: 'Honeymoon fund', type: 'group', status: 'available', availableUnits: 0, url: null, priceMinor: 50000, pledgedMinor: 0 }] };
+    const fundsOnly: ListViewResponse = { ...view(false), items: [aListItem({ title: 'Honeymoon fund', type: 'group', availableUnits: 0, priceMinor: 50000, pledgedMinor: 0 })] };
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(fundsOnly)));
     const firstVisit = renderListPage();
     expect(await screen.findByRole('heading', { level: 1, name: 'Baby Shower' })).toBeInTheDocument();
