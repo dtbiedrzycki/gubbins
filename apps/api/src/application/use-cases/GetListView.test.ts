@@ -23,39 +23,14 @@ async function setup(policy?: HoldPolicy) {
 }
 
 describe('GetListView items and payment', () => {
-  it("carries each item's description", async () => {
-    const persistence = inMemoryPersistence();
-    const wishlist = Wishlist.create({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0 });
-    const ids = ['33333333-3333-7333-8333-333333333333', '44444444-4444-7444-8444-444444444444'];
-    wishlist.addItem({ type: 'single', title: 'Crib', description: 'White, no drawers' }, { generateEntityId: () => ids[0] });
-    wishlist.addItem({ type: 'single', title: 'Mobile' }, { generateEntityId: () => ids[1] });
-    await persistence.wishlists.insert(wishlist);
-
-    const shown = await new GetListView(persistence.unitOfWork, new FixedClock(T0), { durationDays: 3 })
-      .execute({ wishlistId: WISHLIST_ID }, NO_SESSION);
-
-    expect(shown.items.map((i) => i.description)).toEqual(['White, no drawers', null]);
-  });
-
-  it("carries the list's description", async () => {
-    const persistence = inMemoryPersistence();
-    const wishlist = Wishlist.create({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0, description: 'Ship to 1 Main St' });
-    await persistence.wishlists.insert(wishlist);
-
-    const shown = await new GetListView(persistence.unitOfWork, new FixedClock(T0), { durationDays: 3 })
-      .execute({ wishlistId: WISHLIST_ID }, NO_SESSION);
-
-    expect(shown.description).toBe('Ship to 1 Main St');
-  });
-
-  it('lists every item in order with its type, units left, url and price, and the payment handles', async () => {
+  it('lists every item in order with its type, units left, url, price and description, and the payment handles', async () => {
     const persistence = inMemoryPersistence();
     const wishlist = Wishlist.create({
       id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0,
       paymentMethods: PaymentMethods.from({ venmoHandle: 'sam-w' }),
     });
     const ids = ['33333333-3333-7333-8333-333333333333', '44444444-4444-7444-8444-444444444444'];
-    wishlist.addItem({ type: 'single', title: 'Crib', quantity: 2, url: 'https://shop.example/crib', priceMinor: 19999 }, { generateEntityId: () => ids[0] });
+    wishlist.addItem({ type: 'single', title: 'Crib', quantity: 2, url: 'https://shop.example/crib', priceMinor: 19999, description: 'White, no drawers' }, { generateEntityId: () => ids[0] });
     wishlist.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, { generateEntityId: () => ids[1] });
     await persistence.wishlists.insert(wishlist);
 
@@ -63,7 +38,7 @@ describe('GetListView items and payment', () => {
       .execute({ wishlistId: WISHLIST_ID }, NO_SESSION);
 
     expect(shown.items).toEqual([
-      { id: ids[0], title: 'Crib', type: 'single', status: 'available', availableUnits: 2, url: 'https://shop.example/crib', priceMinor: 19999, pledgedMinor: null, description: null },
+      { id: ids[0], title: 'Crib', type: 'single', status: 'available', availableUnits: 2, url: 'https://shop.example/crib', description: 'White, no drawers', priceMinor: 19999, pledgedMinor: null },
       { id: ids[1], title: 'Mixer', type: 'group', status: 'available', availableUnits: 1, url: null, description: null, priceMinor: 45000, pledgedMinor: 0 },
     ]);
     expect(shown.payment).toEqual({ venmoHandle: 'sam-w', zelleHandle: null });
@@ -86,6 +61,17 @@ describe('GetListView items and payment', () => {
 });
 
 describe('GetListView', () => {
+  it("carries the list's description", async () => {
+    const persistence = inMemoryPersistence();
+    const wishlist = Wishlist.create({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0, description: 'Ship to 1 Main St' });
+    await persistence.wishlists.insert(wishlist);
+
+    const shown = await new GetListView(persistence.unitOfWork, new FixedClock(T0), { durationDays: 3 })
+      .execute({ wishlistId: WISHLIST_ID }, NO_SESSION);
+
+    expect(shown.description).toBe('Ship to 1 Main St');
+  });
+
   it('shows the list, its available item, no holds, and the hold duration guests will get', async () => {
     const { view } = await setup({ durationDays: 5 });
 
