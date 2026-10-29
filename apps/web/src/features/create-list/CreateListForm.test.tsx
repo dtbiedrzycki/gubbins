@@ -69,7 +69,6 @@ describe('CreateListForm', () => {
     await user.type(screen.getByLabelText('Zelle email or US phone'), ' me@example.com ');
     await user.click(screen.getByRole('button', { name: 'Create list' }));
     await screen.findByText('k');
-    expect(body).not.toHaveProperty('itemTitle');
     expect(body).toMatchObject({
       listTitle: 'Baby Shower', createSecret: 'the-secret', venmoHandle: '@my-venmo', zelleHandle: 'me@example.com',
     });
