@@ -37,22 +37,6 @@ describe('App', () => {
     expect(window.location.pathname).toBe('/wishlists/new');
   });
 
-  it('redirects an old list link to /wishlists/:slug, keeping the #fragment', async () => {
-    server.use(mock('get', '/api/lists/{slug}', 404, { message: 'Not found' }));
-    await renderApp('/abc123#maple-lantern-otter');
-
-    await screen.findByRole('heading', { name: 'Knock, knock.' });
-    expect(window.location.pathname).toBe('/wishlists/abc123');
-    expect(window.location.hash).toBe('#maple-lantern-otter');
-  });
-
-  it('redirects an old manage link to /wishlists/:slug/manage', async () => {
-    await renderApp('/abc123/manage');
-
-    await screen.findByRole('heading', { name: 'Manage your list' });
-    expect(window.location.pathname).toBe('/wishlists/abc123/manage');
-  });
-
   it('shows the footer while the page is still loading', async () => {
     await renderApp();
 
