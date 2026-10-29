@@ -13,12 +13,12 @@ function wrapper({ children }: { children: ReactNode }) {
 
 describe('useCreateList', () => {
   it('resolves with the created list on success', async () => {
-    server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'tok', key: 'key', itemId: 'item-1' }));
+    server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'tok', key: 'key' }));
     const { result } = renderHook(() => useCreateList(), { wrapper });
 
-    result.current.mutate({ listTitle: 'Baby Shower', itemTitle: 'Stroller' });
+    result.current.mutate({ listTitle: 'Baby Shower' });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual({ slug: 'abc123', ownerToken: 'tok', key: 'key', itemId: 'item-1' });
+    expect(result.current.data).toEqual({ slug: 'abc123', ownerToken: 'tok', key: 'key' });
   });
 });

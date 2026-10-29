@@ -7,17 +7,17 @@ import type { HoldView } from '@gubbins/shared-types';
 
 describe('api.createList', () => {
   it('returns the response body on success', async () => {
-    server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'owner-tok', key: 'guest-key', itemId: 'item-1' }));
+    server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'owner-tok', key: 'guest-key' }));
 
-    const result = await api.createList({ listTitle: 'Baby Shower', itemTitle: 'Stroller' });
+    const result = await api.createList({ listTitle: 'Baby Shower' });
 
-    expect(result).toEqual({ slug: 'abc123', ownerToken: 'owner-tok', key: 'guest-key', itemId: 'item-1' });
+    expect(result).toEqual({ slug: 'abc123', ownerToken: 'owner-tok', key: 'guest-key' });
   });
 
   it('throws ApiError carrying the status and the server message for a documented error', async () => {
     server.use(mock('post', '/api/lists', 400, { message: 'Invalid request' }));
 
-    await expect(api.createList({ listTitle: 'Baby Shower', itemTitle: 'Stroller' }))
+    await expect(api.createList({ listTitle: 'Baby Shower' }))
       .rejects.toMatchObject({ status: 400, message: 'Invalid request' });
   });
 
@@ -25,13 +25,13 @@ describe('api.createList', () => {
   it('throws ApiError for an undocumented status', async () => {
     server.use(http.post('/api/lists', () => HttpResponse.json({ message: 'Internal server error' }, { status: 500 })));
 
-    await expect(api.createList({ listTitle: 'Baby Shower', itemTitle: 'Stroller' })).rejects.toThrow(ApiError);
+    await expect(api.createList({ listTitle: 'Baby Shower' })).rejects.toThrow(ApiError);
   });
 
   it('falls back to a generic message when the error body is not JSON (e.g. a proxy page)', async () => {
     server.use(http.post('/api/lists', () => new HttpResponse('<html>Bad gateway</html>', { status: 502, headers: { 'Content-Type': 'text/html' } })));
 
-    await expect(api.createList({ listTitle: 'Baby Shower', itemTitle: 'Stroller' }))
+    await expect(api.createList({ listTitle: 'Baby Shower' }))
       .rejects.toMatchObject({ status: 502, message: 'Request failed' });
   });
 });
