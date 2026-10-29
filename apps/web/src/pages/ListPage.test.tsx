@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -34,6 +34,10 @@ function renderListPage() {
 }
 
 describe('ListPage', () => {
+  afterEach(() => {
+    localStorage.clear();
+  });
+
   const twoItems: ListViewResponse = {
     ...view(false),
     items: [
@@ -143,6 +147,16 @@ describe('ListPage', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Baby Shower' })).toBeInTheDocument();
     expect(screen.queryByText('How holding a gift works')).not.toBeInTheDocument();
+  });
+
+  it('moves focus to the gift filter when the guest dismisses the holding explainer', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
+    const user = userEvent.setup();
+    renderListPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Dismiss' }));
+
+    expect(screen.getByRole('button', { name: 'All · 1' })).toHaveFocus();
   });
 
   it('says "1 day" for a one-day hold', async () => {
