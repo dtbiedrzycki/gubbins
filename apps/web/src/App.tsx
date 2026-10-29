@@ -4,6 +4,7 @@ import { Footer } from './features/instance/Footer';
 
 // Route-level code-splitting: each page is its own chunk.
 const HomePage = lazy(() => import('./pages/HomePage'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const CreateListPage = lazy(() => import('./pages/CreateListPage'));
 const ListPage = lazy(() => import('./pages/ListPage'));
 const ManagePage = lazy(() => import('./pages/ManagePage'));
@@ -26,6 +27,7 @@ const router = createBrowserRouter([
     element: <Layout />,
     children: [
       { path: '/', element: <HomePage /> },
+      { path: '/privacy', element: <PrivacyPage /> },
       { path: '/wishlists', element: <Navigate replace to="/wishlists/new" /> },
       { path: '/wishlists/new', element: <CreateListPage /> },
       { path: '/wishlists/:slug', element: <ListPage /> },
