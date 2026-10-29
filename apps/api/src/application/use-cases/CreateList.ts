@@ -49,8 +49,8 @@ export class CreateList {
       });
       // Wishlist mints its own item id via the generator it's handed.
       const item = input.itemTitle === undefined ? null : wishlist.addItem({ type: 'single', title: input.itemTitle }, this.tokenGenerator);
-      // Attach before insert: the repository persists the aggregate it is
-      // handed, so the item must already be part of it.
+      // When a title is sent, add the item before insert: the repository
+      // persists the aggregate it is handed.
       await ctx.wishlists.insert(wishlist);
 
       return {

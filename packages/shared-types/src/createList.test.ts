@@ -34,7 +34,6 @@ describe('createListResponseSchema', () => {
     expect(result.success).toBe(true);
   });
 
-
   it('accepts a valid response', () => {
     const result = createListResponseSchema.safeParse({
       slug: 'abc123', ownerToken: 'owner-tok', key: 'guest-key', itemId: 'item-1',
