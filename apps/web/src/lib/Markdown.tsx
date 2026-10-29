@@ -19,7 +19,7 @@ export function Markdown({ text }: { text: string }) {
       components={{
         a: ({ href, children }) =>
           href ? (
-            <a href={href} target="_blank" rel="noopener noreferrer nofollow ugc">
+            <a href={href} className="text-moss underline" target="_blank" rel="noopener noreferrer nofollow ugc">
               {children}
             </a>
           ) : (

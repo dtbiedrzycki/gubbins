@@ -39,7 +39,7 @@ export function ClampedText({ children, id }: { children: ReactNode; id: string 
       {overflows && (
         <button
           type="button"
-          className="inline-flex min-h-11 items-center text-sm underline"
+          className="inline-flex min-h-11 items-center font-bold text-moss underline"
           aria-expanded={expanded}
           aria-controls={id}
           onClick={() => setExpanded((e) => !e)}
