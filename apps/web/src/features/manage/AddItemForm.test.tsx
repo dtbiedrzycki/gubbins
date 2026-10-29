@@ -71,6 +71,34 @@ describe('AddItemForm', () => {
     expect(screen.getByLabelText('Store link')).toHaveAttribute('maxlength', '2048');
   });
 
+  it('limits the item description to 1000 characters and explains that it is permanent', () => {
+    renderForm(<AddItemForm slug="abc123" onUnauthorized={() => {}} />);
+    const field = screen.getByLabelText('Description (optional)');
+    expect(field).toHaveAttribute('maxlength', '1000');
+    expect(field).toHaveAccessibleDescription("Supports **bold**, *italics*, lists and links. You can\u2019t change it after adding the item.");
+  });
+
+  it('sends the description trimmed, clears it after adding, and leaves it out when blank', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    server.use(http.post('/api/lists/:slug/items', async ({ request }) => {
+      bodies.push((await request.json()) as Record<string, unknown>);
+      return HttpResponse.json({ itemId: 'i1' } satisfies AddItemResponse, { status: 201 });
+    }));
+    const user = userEvent.setup();
+    renderForm(<AddItemForm slug="abc123" onUnauthorized={() => {}} />);
+    await user.type(screen.getByLabelText('Title'), 'Crib');
+    await user.type(screen.getByLabelText('Description (optional)'), '  White, oak  ');
+    await user.click(screen.getByRole('button', { name: 'Add item' }));
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(screen.getByLabelText('Description (optional)')).toHaveValue('');
+    await user.type(screen.getByLabelText('Title'), 'Pram');
+    await user.type(screen.getByLabelText('Description (optional)'), '   ');
+    await user.click(screen.getByRole('button', { name: 'Add item' }));
+    await waitFor(() => expect(bodies).toHaveLength(2));
+    expect(bodies[0]).toMatchObject({ description: 'White, oak' });
+    expect(bodies[1]).not.toHaveProperty('description');
+  });
+
   it('posts a group gift without a quantity', async () => {
     let body: unknown;
     server.use(http.post('/api/lists/:slug/items', async ({ request }) => {

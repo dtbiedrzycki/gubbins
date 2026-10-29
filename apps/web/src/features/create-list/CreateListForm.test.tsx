@@ -2,7 +2,7 @@ import type { ReactElement } from 'react';
 import type { CreateListResponse } from '@gubbins/shared-types';
 import { describe, expect, it } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mock } from '../../test/msw/mock';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -82,6 +82,28 @@ describe('CreateListForm', () => {
     expect(screen.getByLabelText('First item')).toHaveAttribute('maxlength', '120');
     expect(screen.getByLabelText('Venmo username')).toHaveAttribute('maxlength', '31');
     expect(screen.getByLabelText('Zelle email or US phone')).toHaveAttribute('maxlength', '254');
+  });
+
+  it('limits the list description to 2000 characters and explains where it shows and that it is permanent', () => {
+    renderWithQueryClient(<CreateListForm />);
+    const field = screen.getByLabelText('About this list (optional)');
+    expect(field).toHaveAttribute('maxlength', '2000');
+    expect(field).toHaveAccessibleDescription('Guests see this above your list. If you want gifts mailed, add your shipping address here. Supports **bold**, *italics*, lists and links. You can\u2019t change it after the list is created.');
+  });
+
+  it('sends the description trimmed, and leaves it out when blank', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    server.use(http.post('/api/lists', async ({ request }) => {
+      bodies.push((await request.json()) as Record<string, unknown>);
+      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k', itemId: 'i' } satisfies CreateListResponse, { status: 201 });
+    }));
+    await fillAndSubmit((user) => user.type(screen.getByLabelText('About this list (optional)'), '  12 Elm St  '));
+    await screen.findByText('k');
+    cleanup();
+    await fillAndSubmit((user) => user.type(screen.getByLabelText('About this list (optional)'), '   '));
+    await screen.findByText('k');
+    expect(bodies[0]).toMatchObject({ listDescription: '12 Elm St' });
+    expect(bodies[1]).not.toHaveProperty('listDescription');
   });
 
   it('explains that group gifts need a handle and handles are permanent', () => {
