@@ -3,9 +3,9 @@
 - **Duration `HOLD_DURATION_DAYS`, default 3** ([ops](ops.md)).
 - Language is "hold" / "I'm buying this now" — never "reserve"
 - Hold confirmation screen leads with **Mark as purchased** as primary action
-- Private hold link `/{slug}/hold/{holdSecret}` to confirm, extend, or release; cookie as secondary
+- Private hold link `/wishlists/{slug}/holds/{holdSecret}` to confirm, extend, or release; cookie as secondary
 - The hold confirmation screen additionally surfaces the guest
-  self-service data link (`/{slug}/my-data/{secret}`, [access & identity](access-identity.md), ADR-[058](../adr/0058-guest-self-service-data-access-erasure-via-guestdataaccess.md))
+  self-service data link (`/wishlists/{slug}/my-data/{secret}`, [access & identity](access-identity.md), ADR-[058](../adr/0058-guest-self-service-data-access-erasure-via-guestdataaccess.md))
   alongside the hold-secret link — shown once, same "Copy link" treatment
 - **One self-service extension**, adding a further `HOLD_DURATION_DAYS`.
   The extension is not separately configurable — a second knob adds

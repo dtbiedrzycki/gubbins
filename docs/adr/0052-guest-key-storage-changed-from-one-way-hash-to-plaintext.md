@@ -20,6 +20,20 @@ hash (`keyHash`), matching the existing unhashed treatment of
 `ownerToken` and hold `secret`. This removes an inconsistency rather than
 introducing new risk, and enables on-demand QR regeneration.
 
+## Amendment: word keys
+
+New guest keys are three lowercase words from the EFF large wordlist
+(7,772 of the list's 7,776 words, ~38.8 bits), joined by `-`; the four
+hyphenated entries are filtered out so every key is exactly three words. `GuestKey` allows at most 32
+characters, which fits three words (at most 29) and older 32-character
+base64url keys, which keep working.
+
+Rate limiting (ADR-[040](./0040-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md))
+is still unbuilt, so this key currently relies on its size alone. With the
+list URL known, an unthrottled attacker averages about 75 years at 100
+guesses/s, 7.5 years at 1,000/s and 9 months at 10,000/s. The owner accepted
+that risk; rate limiting is the next follow-up.
+
 ## Alternatives considered
 
 - **Keep the one-way hash** — rejected: it was never a considered
@@ -40,8 +54,9 @@ introducing new risk, and enables on-demand QR regeneration.
   now treated identically, fixing the actual inconsistency and adding no
   new failure mode.
 - Plaintext storage is no weaker against the threats this spec already
-  defends against: brute-force guessing is stopped by rate limiting and
-  unguessable `TokenGenerator` output, not by hashing
+  defends against: brute-force guessing is resisted by unguessable
+  `TokenGenerator` output, not by hashing; rate limiting would add to that
+  but is not built yet, as the amendment above says
   (ADR-[016](./0016-no-public-list-directory-lookups-fail-generically.md),
   ADR-[040](./0040-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md)).
   Constant-time comparison

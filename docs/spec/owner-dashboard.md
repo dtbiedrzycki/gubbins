@@ -149,7 +149,7 @@
 - **Duplicate detection**: advisory only (normalized URL match warns on add);
   no DB constraint, no hard block.
 - **Guest invite artifact**: an owner-authenticated "Get invite QR" action,
-  available at any time, builds the keyed link (`/{slug}#key={key}`, ADR-[067](../adr/0067-the-guest-key-travels-in-a-fragment.md)) from
+  available at any time, builds the keyed link (`/wishlists/{slug}#key={key}`, ADR-[067](../adr/0067-the-guest-key-travels-in-a-fragment.md)) from
   the plaintext key already on file and renders it as a locally generated
   SVG QR, alongside the plain-text link and bare key. No third-party
   service — reuses the existing local QR generation from [payments](payments.md). Because the

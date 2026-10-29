@@ -42,7 +42,7 @@
   (≤300 chars), subtitle "Other guests will see it's taken while you buy it", and a boxed note: buy it, come back and tap "Mark as purchased", or the hold ends after 3 days.
   Primary CTA: "Confirm hold."
 - Confirmation screen: **"Mark as purchased"** is the primary action (per
-  [holds](holds.md)). The private hold link (`/{slug}/hold/{holdSecret}`) is shown
+  [holds](holds.md)). The private hold link (`/wishlists/{slug}/holds/{holdSecret}`) is shown
   prominently with a "Copy link" button and a line explaining it's the way
   back in if they lose their session — non-technical guests without the
   optional email have no other recovery path, so this can't be buried in a

@@ -1,7 +1,7 @@
 # Access & identity
 
 - **Guest access** = slug (in URL) + key (entered once). Slug alone renders nothing.
-- Key is human-readable and speakable (`warm-otter-42`), suitable for a printed invitation
+- Key is human-readable and speakable (`maple-lantern-otter`: three lowercase words from the EFF large wordlist, at most 32 characters, ~38.8 bits; older 32-character keys keep working), suitable for a printed invitation
 - Key stored in plaintext, matching the existing treatment of `ownerToken`
   and hold `secret` — none of the system's bearer secrets are hashed.
   This is a deliberate change from the original design (which hashed only
@@ -10,7 +10,7 @@
   one, and is consistent with [privacy](privacy.md)'s existing stance that DB-file/backup
   theft is an out-of-scope, deployment-level concern rather than
   something the app defends against internally. Brute-force guessing is
-  stopped by rate limiting and unguessable `TokenGenerator` output
+  stopped by rate limiting (not yet built) and unguessable `TokenGenerator` output
   (ADR-[016](../adr/0016-no-public-list-directory-lookups-fail-generically.md), ADR-[040](../adr/0040-rate-limit-thresholds-set-as-concrete-hardcoded-defaults.md)), not by hashing.
 - Successful entry sets a signed, httpOnly, list-scoped session cookie
 - Rate limit key attempts per IP **and** per slug, with global lockout — see [threat model](threat-model-summary.md) for concrete thresholds
@@ -28,7 +28,7 @@
   URL**. The owner pastes or types it into the homepage input already
   specified above, which smart-routes on it; the server validates and
   sets the signed, httpOnly, list-scoped, `Secure` owner-access cookie
-  (ADR-[036](../adr/0036-session-and-owner-access-cookies-require-secure-https.md)), then routes to `/{slug}/manage`. There is no
+  (ADR-[036](../adr/0036-session-and-owner-access-cookies-require-secure-https.md)), then routes to `/wishlists/{slug}/manage`. There is no
   `?token=`-style link and no bookmarkable manage URL that carries the
   credential. *(ADR-[062](../adr/0062-the-owner-token-never-travels-in-a-url.md))*
 - Key rotation invalidates guest sessions but preserves holds,
@@ -38,7 +38,7 @@
   re-enters the new key. A re-entering guest receives a new session and
   therefore a new `sessionHash` and a new `GuestDataAccess` row — the
   same-session "you already sent this" hint ([access & identity](access-identity.md), ADR-[050](../adr/0050-contribution-amount-recorded-only-at-i-ve-sent-it.md)) does not
-  survive rotation. Previously issued `/{slug}/my-data/{secret}` links
+  survive rotation. Previously issued `/wishlists/{slug}/my-data/{secret}` links
   do: they resolve by secret to the pre-rotation row, so a guest's
   subject-access and erasure route is never revoked by an owner rotating
   the key.
@@ -91,7 +91,7 @@
 **Guest entry via link (ADR-[067](../adr/0067-the-guest-key-travels-in-a-fragment.md)):**
 
 - Invitation links carry the guest key in the URL **fragment**:
-  `/{slug}#key={key}`. The fragment is never transmitted to any server —
+  `/wishlists/{slug}#key={key}`. The fragment is never transmitted to any server —
   not the app, not a local reverse proxy, not Cloudflare's edge. A small
   same-origin script reads `location.hash`, POSTs the key to the existing
   key-entry endpoint, and calls `history.replaceState` to clear it from
@@ -114,27 +114,19 @@
 - If the script does not run, the guest lands on the manual key-entry
   page and types the key. Degraded, not broken, and the fallback already
   exists for printed invitations.
-- Manual key entry remains available at `/{slug}` for guests without a
+- Manual key entry remains available at `/wishlists/{slug}` for guests without a
   clickable link. Input field: autocomplete off, autocapitalize off,
   autocorrect off, spellcheck off, paste allowed, numeric keyboard not
   forced.
 - Failed attempts return the same generic message, per ADR-[016](../adr/0016-no-public-list-directory-lookups-fail-generically.md) and
   ADR-[054](../adr/0054-post-purgeat-lookups-return-the-same-generic-not-found.md), unchanged by this transport change.
-- Guest session cookie lifetime: `purgeAt`. No independent cap — the
-  cookie is scoped to one list which is deleted at that point, so it
-  cannot usefully outlive the data it grants access to, and an earlier
-  expiry falls hardest on guests least able to recover (a guest who no
-  longer has the invitation cannot re-enter a key they never kept).
-  Key rotation is the revocation mechanism (above), not expiry. This is
-  deliberately unlike the owner-access cookie's 30-day rolling window
-  (ADR-[062](../adr/0062-the-owner-token-never-travels-in-a-url.md)): the owner saved a token and re-entry costs one paste.
-- Owner-access cookie lifetime: 30 days **rolling** (refreshed on each
-  authenticated request) or `purgeAt`, whichever is sooner. Rolling
-  rather than absolute so an owner who checks in periodically never
-  re-enters, and only genuine month-long absence prompts it. Shorter
-  than the guest session deliberately: the owner has saved one token and
-  re-entry costs one paste, whereas re-keying a whole guest list does
-  not. *(ADR-[062](../adr/0062-the-owner-token-never-travels-in-a-url.md))*
+- Guest session cookie lifetime: 30 days (`Max-Age`); the list itself is
+  deleted at `purgeAt`. A guest who returns within the month is not asked for the key
+  again; a longer absence costs one re-entry of the key from the invitation.
+  Key rotation is the revocation mechanism (above), not expiry.
+- Owner-access cookie lifetime: the browser session (no `Max-Age`); the list
+  itself is deleted at `purgeAt`. Closing the browser signs the owner out;
+  re-entry costs one paste of the saved token. *(ADR-[062](../adr/0062-the-owner-token-never-travels-in-a-url.md))*
 - The owner-access cookie also grants guest-view access to its own list,
   so an owner can preview what guests see without holding the guest key
   — consistent with "the key is not required" above.
@@ -152,9 +144,9 @@ everything they've personally shared on a list — all holds and
 contributions tied to their session, joined through `piiRef` to
 `GuestPii` — without going through the owner. Two entry points:
 
-- **Live session**: `/{slug}/my-data`, using the existing session cookie,
+- **Live session**: `/wishlists/{slug}/my-data`, using the existing session cookie,
   no secret in the URL. Same-device, same-session, no extra step.
-- **Durable link**: `/{slug}/my-data/{secret}`, resolving via
+- **Durable link**: `/wishlists/{slug}/my-data/{secret}`, resolving via
   `GuestDataAccess.sessionHash` — covers a lost session or a different
   device. Shown once, with a "Copy link" affordance, on both the hold
   confirmation screen ([holds](holds.md), [guest UX](guest-ux.md)) and the contribution confirmation

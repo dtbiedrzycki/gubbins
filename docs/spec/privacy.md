@@ -1,10 +1,11 @@
 # Privacy
 
 - Zero outbound requests at runtime by default; self-hosted fonts
-- Strict CSP, no inline scripts
+- Strict CSP, no inline scripts (the target; today only `img-src 'self'` ships, on every response, so a page cannot load an image from another origin)
+- Instance settings `SOURCE_URL` (where the source is offered, default the project repository) and `PRIVACY_CONTACT` (shown on the privacy page, `/privacy`; none if unset) come from the environment ([deploy](../deploy.md))
 - URL metadata scraping **opt-in and SSRF-guarded**: block private IP ranges, block redirects into them, timeouts. Note that fetching reveals the server IP to the retailer.
 - Images: prefer owner upload; if fetched, cache locally, strip EXIF, resize. **Never hotlink** (leaks guest IPs).
-- **No shipping address collected** (decided). Owner may place it in the list description.
+- **No shipping address collected** (decided). Owner may place it in the list description (a Markdown subset: paragraphs, line breaks, bold, italic, lists, http(s) links; no images or raw HTML).
 - Giver emails are stored only until 7 days past the hold's `expiresAt`,
   then nulled by the periodic task ([holds](holds.md)). The grace is fixed rather than
   configurable: the email's only consumer is the reminder, which fires
@@ -65,7 +66,7 @@
   keep working. *(ADR-[057](../adr/0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md))*
 - **Subject-access requests from guests are served by self-service
   ([access & identity](access-identity.md), ADR-[058](../adr/0058-guest-self-service-data-access-erasure-via-guestdataaccess.md)), not by JSON export.** A guest asking "what do you
-  have on me" gets `/{slug}/my-data`, which shows that guest their own
+  have on me" gets `/wishlists/{slug}/my-data`, which shows that guest their own
   holds, contributions, and `GuestPii` and nothing else. The JSON export
   is a whole-list dump: handing it to a requesting guest would disclose
   every other guest's name, email, and message — a breach committed in
