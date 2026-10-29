@@ -63,6 +63,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   useEffect(show, []);
 
   function handleCancel(event: SyntheticEvent<HTMLDialogElement>) {
+    writeGifterNames(name); // Escape can close the dialog without the name field ever losing focus
     if (isPending) event.preventDefault();
   }
   // Chrome won't let a page refuse a second Escape in a row: reopen, so the outcome is not lost.

@@ -65,6 +65,16 @@ describe('HoldDialog', () => {
     expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
   });
 
+  it('remembers the names when the dialog is escaped', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Sam & Alex');
+    screen.getByRole('dialog', { hidden: true }).dispatchEvent(new Event('cancel', { cancelable: true }));
+
+    expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
+  });
+
   it('remembers the names when a button is pressed, even without holding', async () => {
     const user = userEvent.setup();
     const { props } = renderDialog();

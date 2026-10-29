@@ -236,6 +236,16 @@ describe('ContributeDialog', () => {
     expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
   });
 
+  it('remembers the names when the dialog is escaped', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Sam & Alex');
+    screen.getByRole('dialog', { hidden: true }).dispatchEvent(new Event('cancel', { cancelable: true }));
+
+    expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
+  });
+
   it('remembers the names when a button is pressed, even if the pledge then fails', async () => {
     server.use(mock('post', '/api/lists/{slug}/items/{itemId}/contributions', 409, { code: 'amount_out_of_range', message: 'Try a smaller amount.' }));
     const user = userEvent.setup();
