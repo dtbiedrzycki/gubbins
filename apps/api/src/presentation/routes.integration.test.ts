@@ -64,23 +64,22 @@ describe('GET /api/instance', () => {
 });
 
 describe('POST /api/lists', () => {
-  it('creates a list and returns slug/ownerToken/key/itemId', async () => {
-    const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'test-create-secret' } });
+  it('creates a list and returns slug/ownerToken/key', async () => {
+    const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', createSecret: 'test-create-secret' } });
     expect(response.statusCode).toBe(201);
     const body = response.json();
     expect(body).toHaveProperty('slug');
     expect(body).toHaveProperty('ownerToken');
     expect(body).toHaveProperty('key');
-    expect(body).toHaveProperty('itemId');
   });
 
   it('refuses a wrong create secret with 403', async () => {
-    const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'wrong' } });
+    const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', createSecret: 'wrong' } });
     expect(response.statusCode).toBe(403);
   });
 
   it('keeps the 400 body shape: message plus zod-style issues', async () => {
-    const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: '', itemTitle: 'Stroller' } });
+    const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: '' } });
     expect(response.statusCode).toBe(400);
     expect(response.json()).toEqual({
       message: 'Invalid request',
@@ -89,7 +88,7 @@ describe('POST /api/lists', () => {
   });
 
   it('refuses a body over 1 MiB, though each field is valid and the extra one would be ignored', async () => {
-    const payload = { listTitle: 'L', itemTitle: 'Stroller', createSecret: 'test-create-secret', padding: 'a'.repeat(1024 * 1024) };
+    const payload = { listTitle: 'L', createSecret: 'test-create-secret', padding: 'a'.repeat(1024 * 1024) };
     const response = await app.inject({ method: 'POST', url: '/api/lists', payload });
     expect(response.statusCode).toBe(400);
     expect(response.json()).toEqual({ message: 'Invalid request' });
@@ -102,14 +101,18 @@ describe('POST /api/lists', () => {
   });
 
   it('ignores unknown extra fields in the body', async () => {
-    const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'test-create-secret', admin: true } });
+    const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', createSecret: 'test-create-secret', admin: true } });
     expect(response.statusCode).toBe(201);
   });
 });
 
-async function createList() {
-  const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'test-create-secret' } });
-  return response.json() as { slug: string; ownerToken: string; key: string; itemId: string };
+/** A list holding one single item, Stroller, added by its owner. */
+async function createList(on: FastifyInstance = app) {
+  const list = (await on.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', createSecret: 'test-create-secret' } }))
+    .json() as { slug: string; ownerToken: string; key: string };
+  const owner = extractCookieHeader(await on.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } }));
+  const added = await on.inject({ method: 'POST', url: `/api/lists/${list.slug}/items`, headers: { cookie: owner }, payload: { type: 'single', title: 'Stroller' } });
+  return { ...list, itemId: (added.json() as { itemId: string }).itemId };
 }
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -123,8 +126,7 @@ function holdAction(slug: string, holdId: string, action: 'extend' | 'release' |
 }
 
 async function heldByGuest(on: FastifyInstance = app) {
-  const list = (await on.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'test-create-secret' } }))
-    .json() as { slug: string; key: string; itemId: string };
+  const list = await createList(on);
   const cookie = await guestOn(list, on);
   const response = await on.inject({
     method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada' },
@@ -280,7 +282,7 @@ describe('response validation', () => {
     disposeWithApp(brokenApp, db);
     onTestFinished(() => brokenApp.close());
 
-    const response = await brokenApp.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'test-create-secret' } });
+    const response = await brokenApp.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', createSecret: 'test-create-secret' } });
 
     expect(response.statusCode).toBe(500);
     expect(response.json()).toEqual({ message: 'Internal server error' });
@@ -298,7 +300,7 @@ describe('response validation', () => {
     disposeWithApp(brokenApp, db);
     onTestFinished(() => brokenApp.close());
 
-    await brokenApp.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'test-create-secret' } });
+    await brokenApp.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', createSecret: 'test-create-secret' } });
 
     const entry = logged.find((l) => l.message === 'response_schema_mismatch');
     expect(entry?.meta?.issues).toEqual(expect.arrayContaining([expect.objectContaining({ path: ['slug'], code: 'invalid_type' })]));
@@ -318,7 +320,7 @@ describe('domain validation', () => {
     disposeWithApp(refusingApp, db);
     onTestFinished(() => refusingApp.close());
 
-    const response = await refusingApp.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', createSecret: 'test-create-secret' } });
+    const response = await refusingApp.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', createSecret: 'test-create-secret' } });
 
     expect(response.statusCode).toBe(400);
     expect(response.json()).toEqual({ message: 'Venmo handle is invalid' });
@@ -341,7 +343,7 @@ describe('requests Fastify rejects before validation', () => {
   it.each([
     ['syntactically invalid JSON', 'application/json', '{"listTitle": "x", '],
     ['an empty body declared as JSON', 'application/json', ''],
-    ['an unsupported content type', 'application/x-www-form-urlencoded', 'listTitle=x&itemTitle=y'],
+    ['an unsupported content type', 'application/x-www-form-urlencoded', 'listTitle=x'],
   ])('answers %s with the 400 Invalid request body and logs no unhandled error', async (_name, contentType, payload) => {
     const { capturingApp, errors } = await appWithCapturedErrors();
 
@@ -485,8 +487,7 @@ describe('guest access is checked before any list is loaded', () => {
     const guarded = buildApp(deps, { cookieSecret: 'test-secret' });
     disposeWithApp(guarded, db);
     onTestFinished(() => guarded.close());
-    const list = (await guarded.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'L', itemTitle: 'I', createSecret: 'test-create-secret' } }))
-      .json() as { slug: string; itemId: string };
+    const list = await createList(guarded);
     findBySlug.mockClear();
 
     const forged = { cookie: 'gubbins_session=forged.signature' };
@@ -553,8 +554,8 @@ describe('POST /api/lists/:slug/items/:itemId/contributions', () => {
     app.inject({ method: 'POST', url: `/api/lists/${slug}/items/${itemId}/contributions`, headers: cookie ? { cookie } : {}, payload });
 
   async function groupGift() {
-    const list = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', itemTitle: 'Stroller', venmoHandle: 'my-venmo', createSecret: 'test-create-secret' } }))
-      .json() as { slug: string; ownerToken: string; key: string; itemId: string };
+    const list = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', venmoHandle: 'my-venmo', createSecret: 'test-create-secret' } }))
+      .json() as { slug: string; ownerToken: string; key: string };
     const owner = extractCookieHeader(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } }));
     const added = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/items`, headers: { cookie: owner }, payload: { type: 'group', title: 'Pram', priceMinor: 50000 } });
     return { list, groupId: (added.json() as { itemId: string }).itemId };

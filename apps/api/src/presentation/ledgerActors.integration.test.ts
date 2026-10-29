@@ -47,17 +47,21 @@ function cookieOf(response: LightMyRequestResponse): string {
 }
 
 async function holdOnNewList() {
-  const list = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'L', itemTitle: 'I', createSecret: 'test-create-secret' } })).json() as { slug: string; key: string; itemId: string };
+  const list = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'L', createSecret: 'test-create-secret' } })).json() as { slug: string; ownerToken: string; key: string };
+  const owner = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } }));
+  const { itemId } = (await app.inject({
+    method: 'POST', url: `/api/lists/${list.slug}/items`, headers: { cookie: owner }, payload: { type: 'single', title: 'I' },
+  })).json() as { itemId: string };
   const cookie = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } }));
   const { holdId } = (await app.inject({
-    method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'k', name: 'Ada' },
+    method: 'POST', url: `/api/lists/${list.slug}/items/${itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'k', name: 'Ada' },
   })).json() as { holdId: string };
   const act = (action: string) => app.inject({ method: 'POST', url: `/api/lists/${list.slug}/holds/${holdId}/${action}`, headers: { cookie } });
   return { act };
 }
 
 async function pledgeOnNewList() {
-  const list = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'G', itemTitle: 'I', venmoHandle: 'my-venmo', createSecret: 'test-create-secret' } })).json() as { slug: string; ownerToken: string; key: string };
+  const list = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'G', venmoHandle: 'my-venmo', createSecret: 'test-create-secret' } })).json() as { slug: string; ownerToken: string; key: string };
   const owner = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } }));
   const { itemId } = (await app.inject({
     method: 'POST', url: `/api/lists/${list.slug}/items`, headers: { cookie: owner }, payload: { type: 'group', title: 'Pram', priceMinor: 50000 },
