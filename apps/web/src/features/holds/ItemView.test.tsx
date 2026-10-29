@@ -36,7 +36,7 @@ function holdEndpoint(...statuses: number[]) {
 }
 
 describe('ItemView', () => {
-  it('opens the hold dialog from an available item, sends the details, closes once the hold succeeds and remembers the names', async () => {
+  it('opens the hold dialog from an available item, sends the details and closes once the hold succeeds', async () => {
     const bodies = holdEndpoint(201);
     const user = userEvent.setup();
     renderItem();
@@ -49,7 +49,6 @@ describe('ItemView', () => {
 
     await vi.waitFor(() => expect(screen.queryByRole('dialog', { hidden: true })).not.toBeInTheDocument());
     expect(bodies).toEqual([{ idempotencyKey: expect.any(String), name: 'Amara', message: 'Collecting Friday' }]);
-    expect(localStorage.getItem('gubbins.gifterNames')).toBe('Amara');
   });
 
   it('sends the key minted at opening on every retry — not a fresh one per tap (ADR-0048)', async () => {
@@ -65,19 +64,6 @@ describe('ItemView', () => {
 
     await vi.waitFor(() => expect(bodies).toHaveLength(2));
     expect(bodies[1].idempotencyKey).toBe(bodies[0].idempotencyKey);
-  });
-
-  it('does not remember the names when the hold fails', async () => {
-    holdEndpoint(503);
-    const user = userEvent.setup();
-    renderItem();
-
-    await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
-    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
-    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
-
-    await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
-    expect(localStorage.getItem('gubbins.gifterNames')).toBeNull();
   });
 
   it('mints a new key for a new opening, and forgets the old error', async () => {

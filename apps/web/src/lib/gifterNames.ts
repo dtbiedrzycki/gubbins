@@ -1,6 +1,6 @@
 const KEY = 'gubbins.gifterNames';
 
-/** The names this guest last held or chipped in under on this device; blocked or empty storage reads as ''. */
+/** The names this guest last sent with a hold or pledge on this device; blocked or empty storage reads as ''. */
 export function readGifterNames(): string {
   try {
     return localStorage.getItem(KEY) ?? '';

@@ -55,6 +55,17 @@ describe('HoldDialog', () => {
     expect(confirm).toBeEnabled();
   });
 
+  it('remembers the trimmed names as soon as the hold is sent, before it succeeds or fails', async () => {
+    const user = userEvent.setup();
+    const { props } = renderDialog();
+
+    await user.type(screen.getByLabelText('Gifter name(s)'), '  Sam & Alex ');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+    expect(props.onConfirm).toHaveBeenCalled();
+    expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
+  });
+
   it('confirms with the trimmed name and message', async () => {
     const user = userEvent.setup();
     const { props } = renderDialog();

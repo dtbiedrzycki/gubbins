@@ -83,9 +83,10 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
     if (amount === null || isPending) return;
     const trimmedName = name.trim();
     const trimmedMessage = message.trim();
+    writeGifterNames(trimmedName);
     mutate(
       { idempotencyKey, amountMinor: amount, name: trimmedName, ...(trimmedMessage && { message: trimmedMessage }) },
-      { onSuccess: (pledge) => { onPledged(pledge.amountMinor); writeGifterNames(trimmedName); } },
+      { onSuccess: (pledge) => onPledged(pledge.amountMinor) },
     );
   }
 
