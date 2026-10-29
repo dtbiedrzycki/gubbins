@@ -68,7 +68,7 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
         <p>If you don&rsquo;t, the hold ends after {duration} and another guest could buy it too.</p>
       </div>
       <label className="mb-1 block" htmlFor="hold-name">Gifter name(s)</label>
-      <LimitedInput id="hold-name" required describedBy={['hold-name-hint', 'hold-name-privacy', sent && 'hold-details-locked']} value={name} onChange={(e) => setName(e.target.value)} max={NAME_MAX} disabled={isPending} readOnly={sent} className="field mb-1" />
+      <LimitedInput id="hold-name" required describedBy={['hold-name-hint', 'hold-name-privacy', sent && 'hold-details-locked']} value={name} onChange={(e) => setName(e.target.value)} onBlur={() => writeGifterNames(name)} max={NAME_MAX} disabled={isPending} readOnly={sent} className="field mb-1" />
       <p id="hold-name-hint" className="text-sm text-muted">Include everyone the gift is from, e.g. Sam &amp; Alex Smith.</p>
       <p id="hold-name-privacy" className="mb-4 text-sm text-muted">Names are only shared with the list owner.</p>
       <label className="mb-1 block" htmlFor="hold-message">Message to the owner (optional)</label>
@@ -76,7 +76,7 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
       {sent && <p id="hold-details-locked" className="mb-4 text-sm text-muted">To change your details, cancel and start again.</p>}
       <p role="alert" className="mb-4 text-error empty:mb-0">{error?.message}</p>
       <div className="flex gap-2">
-        <button type="button" onClick={() => { const trimmedName = name.trim(); setSent(true); writeGifterNames(trimmedName); onConfirm(credential, { name: trimmedName, message: message.trim() }); }} disabled={isPending || !name.trim()} className="btn-primary">
+        <button type="button" onClick={() => { setSent(true); onConfirm(credential, { name: name.trim(), message: message.trim() }); }} disabled={isPending || !name.trim()} className="btn-primary">
           {isPending ? 'Holding…' : 'Yes, hold it'}
         </button>
         <button type="button" onClick={onClose} disabled={isPending} className="btn-secondary">

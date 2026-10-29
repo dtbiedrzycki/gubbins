@@ -55,14 +55,24 @@ describe('HoldDialog', () => {
     expect(confirm).toBeEnabled();
   });
 
-  it('remembers the trimmed names as soon as the hold is sent, before it succeeds or fails', async () => {
+  it('remembers the names once the name field loses focus', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Sam & Alex');
+    await user.tab();
+
+    expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
+  });
+
+  it('remembers the names when a button is pressed, even without holding', async () => {
     const user = userEvent.setup();
     const { props } = renderDialog();
 
-    await user.type(screen.getByLabelText('Gifter name(s)'), '  Sam & Alex ');
-    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Sam & Alex');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(props.onConfirm).toHaveBeenCalled();
+    expect(props.onConfirm).not.toHaveBeenCalled();
     expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
   });
 

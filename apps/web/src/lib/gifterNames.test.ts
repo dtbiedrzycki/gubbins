@@ -6,10 +6,16 @@ describe('gifterNames', () => {
     vi.restoreAllMocks();
   });
 
-  it('reads back the names last written', () => {
+  it('reads back the names last written, trimmed', () => {
     writeGifterNames('Amara');
-    writeGifterNames('Sam & Alex');
+    writeGifterNames('  Sam & Alex ');
     expect(readGifterNames()).toBe('Sam & Alex');
+  });
+
+  it('keeps the last names when blank names are written', () => {
+    writeGifterNames('Amara');
+    writeGifterNames('   ');
+    expect(readGifterNames()).toBe('Amara');
   });
 
   it('reads as empty when no names have been written', () => {
