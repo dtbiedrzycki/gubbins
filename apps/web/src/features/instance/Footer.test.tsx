@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
+import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server } from '../../test/msw/server';
 import { mock } from '../../test/msw/mock';
@@ -8,7 +9,7 @@ import { Footer, UPSTREAM_SOURCE_URL } from './Footer';
 
 function renderFooter() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  render(<QueryClientProvider client={client}><Footer /></QueryClientProvider>);
+  render(<QueryClientProvider client={client}><MemoryRouter><Footer /></MemoryRouter></QueryClientProvider>);
   return client;
 }
 
@@ -27,5 +28,11 @@ describe('Footer', () => {
 
     await waitFor(() => expect(client.getQueryState(['instance'])?.status).toBe('error'));
     expect(screen.getByRole('link', { name: 'Source on GitHub' })).toHaveAttribute('href', UPSTREAM_SOURCE_URL);
+  });
+
+  it('links to the privacy page', async () => {
+    renderFooter();
+
+    expect(await screen.findByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy');
   });
 });
