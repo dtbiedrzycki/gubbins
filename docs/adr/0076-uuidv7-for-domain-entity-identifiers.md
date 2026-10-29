@@ -114,8 +114,8 @@ to clients, since both appear in `listViewResponseSchema` and
 - **Monotonicity must come from the library, not a hand-rolled generator.**
   RFC 9562 §6.2 allows filling the bits after the version nibble with
   randomness, which makes ids generated in the same millisecond sort in
-  random order — and `CreateList` mints a wishlist id and an item id back
-  to back, always within one millisecond. `uuid`'s `v7()` implements the
+  random order — and `HoldItem` mints a guest-details ref and a hold id
+  back to back, always within one millisecond. `uuid`'s `v7()` implements the
   monotonic counter method, bumping the timestamp on counter rollover and
   holding order across clock rollback. Node's own `randomUUID()` has no v7
   support and silently ignores a `{ version: 7 }` option, returning a v4:
