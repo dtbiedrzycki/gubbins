@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 
 /** The owner makes a one-item list; a second tab in the same context stands in for the guest, keyed in. */
 async function guestOnNewList(page: Page, context: BrowserContext): Promise<Page> {
-  await page.goto('/');
+  await page.goto('/wishlists/new');
   await page.getByLabel('List title').fill('Baby Shower');
   await page.getByLabel('First item').fill('Stroller');
   await page.getByLabel('Create secret').fill('e2e-create-secret');

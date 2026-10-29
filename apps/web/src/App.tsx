@@ -1,8 +1,9 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation, useParams } from 'react-router-dom';
 import { Footer } from './features/instance/Footer';
 
 // Route-level code-splitting: each page is its own chunk.
+const HomePage = lazy(() => import('./pages/HomePage'));
 const CreateListPage = lazy(() => import('./pages/CreateListPage'));
 const ListPage = lazy(() => import('./pages/ListPage'));
 const ManagePage = lazy(() => import('./pages/ManagePage'));
@@ -20,13 +21,24 @@ function Layout() {
   );
 }
 
+// Old /:slug links carry the guest key in the #fragment (ADR-0067), so the redirect keeps it.
+function LegacyRedirect({ suffix = '' }: { suffix?: string }) {
+  const { slug } = useParams();
+  const { hash } = useLocation();
+  return <Navigate replace to={{ pathname: `/wishlists/${slug}${suffix}`, hash }} />;
+}
+
 const router = createBrowserRouter([
   {
     element: <Layout />,
     children: [
-      { path: '/', element: <CreateListPage /> },
-      { path: '/:slug', element: <ListPage /> },
-      { path: '/:slug/manage', element: <ManagePage /> },
+      { path: '/', element: <HomePage /> },
+      { path: '/wishlists', element: <Navigate replace to="/wishlists/new" /> },
+      { path: '/wishlists/new', element: <CreateListPage /> },
+      { path: '/wishlists/:slug', element: <ListPage /> },
+      { path: '/wishlists/:slug/manage', element: <ManagePage /> },
+      { path: '/:slug', element: <LegacyRedirect /> },
+      { path: '/:slug/manage', element: <LegacyRedirect suffix="/manage" /> },
     ],
   },
 ]);

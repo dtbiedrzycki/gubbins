@@ -30,6 +30,7 @@ describe('CreateListForm', () => {
 
     expect(await screen.findByText('guest-key-value')).toBeInTheDocument();
     expect(screen.getByText('owner-secret-token')).toBeInTheDocument();
+    expect(screen.getByTestId('guest-link')).toHaveAttribute('href', '/wishlists/abc123');
   });
 
   it('never renders the owner token inside a link href (ADR-062)', async () => {
@@ -95,7 +96,7 @@ describe('CreateListForm', () => {
     await fillAndSubmit();
 
     const link = await screen.findByRole('link', { name: 'Manage your list (opens in a new tab)' });
-    expect(link).toHaveAttribute('href', '/abc123/manage');
+    expect(link).toHaveAttribute('href', '/wishlists/abc123/manage');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(screen.getByText("Save your owner token now: you'll need it to manage the list, and it isn't shown again.")).toBeInTheDocument();

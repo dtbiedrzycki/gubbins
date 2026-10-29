@@ -4,7 +4,7 @@ import AxeBuilder from '@axe-core/playwright';
 test.use({ viewport: { width: 375, height: 812 } });
 
 test('a guest covers the rest of a group gift with Venmo, and the card shows it pledged', async ({ page, context }) => {
-  await page.goto('/');
+  await page.goto('/wishlists/new');
   await page.getByLabel('List title').fill('Baby Shower');
   await page.getByLabel('First item').fill('Stroller');
   await page.getByLabel('Create secret').fill('e2e-create-secret');
