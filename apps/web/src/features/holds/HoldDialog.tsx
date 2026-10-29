@@ -47,6 +47,7 @@ export function HoldDialog({ itemTitle, holdDurationDays, isPending, error, onCo
   // Escape fires `cancel` before the dialog closes; refusing it keeps the
   // dialog up until the request settles.
   function handleCancel(event: SyntheticEvent<HTMLDialogElement>) {
+    writeGifterNames(name); // Escape can close the dialog without the name field ever losing focus
     if (isPending) event.preventDefault();
   }
 
