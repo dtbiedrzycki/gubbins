@@ -55,7 +55,7 @@ describe('CreateListForm', () => {
     expect(screen.getByRole('alert')).toBe(alert);
   });
 
-  it('sends the list title, the create secret and both payment handles, each trimmed, and no item', async () => {
+  it('sends the list title, the create secret and both payment handles, each trimmed', async () => {
     let body: unknown;
     server.use(http.post('/api/lists', async ({ request }) => {
       body = await request.json();
@@ -69,7 +69,6 @@ describe('CreateListForm', () => {
     await user.type(screen.getByLabelText('Zelle email or US phone'), ' me@example.com ');
     await user.click(screen.getByRole('button', { name: 'Create list' }));
     await screen.findByText('k');
-    expect(body).not.toHaveProperty('itemTitle');
     expect(body).toMatchObject({
       listTitle: 'Baby Shower', createSecret: 'the-secret', venmoHandle: '@my-venmo', zelleHandle: 'me@example.com',
     });
