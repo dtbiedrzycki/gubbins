@@ -8,7 +8,6 @@ const card = () => screen.queryByRole('region', { name: 'How holding a gift work
 describe('HowHoldingWorks', () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    localStorage.clear();
   });
 
   it('shows on every visit until the guest dismisses it, then stays hidden', async () => {

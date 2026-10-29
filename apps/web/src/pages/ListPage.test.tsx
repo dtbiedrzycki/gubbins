@@ -55,7 +55,7 @@ describe('ListPage', () => {
     expect(within(screen.getByRole('region', { name: 'Your holds' })).getByRole('heading', { name: 'Cot' })).toBeInTheDocument();
   });
 
-  it("shows the list's description above the gifts", async () => {
+  it("shows the list's description in full, above the gifts", async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), description: 'Shipping: **12 Elm Street**' })));
     renderListPage();
 

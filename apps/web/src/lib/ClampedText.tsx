@@ -51,7 +51,7 @@ export function ClampedText({ children, id, rememberAs }: { children: ReactNode;
 
   return (
     <div>
-      {/* Focus on a clipped link would be invisible, so expand. */}
+      {/* Focus on a clipped link would be invisible, so expand; not remembered, as it isn't the guest's choice. */}
       <div
         id={id}
         ref={ref}

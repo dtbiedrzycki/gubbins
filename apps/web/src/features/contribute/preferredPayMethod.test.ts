@@ -4,7 +4,6 @@ import { readPreferredPayMethod, writePreferredPayMethod } from './preferredPayM
 describe('preferredPayMethod', () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    localStorage.clear();
   });
 
   it('reads a stored value that is not a known method as null', () => {
