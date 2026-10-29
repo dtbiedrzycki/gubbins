@@ -101,7 +101,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       <div>
         <label htmlFor="item-description" className="block text-sm font-medium">Description (optional)</label>
         <LimitedTextarea id="item-description" describedBy={['item-description-hint']} rows={3} max={DESCRIPTION_MAX} value={description} onChange={(e) => setDescription(e.target.value)} className={field} />
-        <p id="item-description-hint" className="mt-1 text-sm text-gray-600">Supports **bold**, *italics*, lists and links. You can't change it after adding the item.</p>
+        <p id="item-description-hint" className="mt-1 text-sm text-gray-600">Supports **bold**, *italics*, lists and links. You can’t change it after adding the item.</p>
       </div>
       <p id="item-error" role="alert" className="text-red-600 empty:mb-0">{priceError || error?.message}</p>
       <p role="status" aria-live="polite" className="text-green-800 empty:mb-0">{added}</p>
