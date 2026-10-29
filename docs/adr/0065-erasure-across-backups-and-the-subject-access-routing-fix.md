@@ -38,7 +38,7 @@ a stated date, and the quickstart and backup guide state the window up
 front. Separately, we will route
 guest subject-access requests to
 ADR-[058](./0058-guest-self-service-data-access-erasure-via-guestdataaccess.md)'s
-self-service view at `/{slug}/my-data`, never to JSON export.
+self-service view at `/wishlists/{slug}/my-data`, never to JSON export.
 
 ## Alternatives considered
 
@@ -78,7 +78,7 @@ self-service view at `/{slug}/my-data`, never to JSON export.
   un-redacts.
 - The subject-access fix is routing, not new machinery:
   ADR-058's self-service view already serves the guest-side case
-  correctly and per-guest, so guest requests go to `/{slug}/my-data`
+  correctly and per-guest, so guest requests go to `/wishlists/{slug}/my-data`
   while export stays owner-side portability and backup only.
 - ADR-033's crypto-shredding deferral was re-examined against backups
   kept beyond the window and still stands: every scheme relocates the

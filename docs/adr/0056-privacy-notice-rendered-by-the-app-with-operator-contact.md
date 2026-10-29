@@ -26,7 +26,7 @@ no way in.
 We will render an app-authored privacy notice on every list, after key
 entry: what is collected, when it is deleted (`purgeAt` and the
 giver-email purge, resolved for the list), the backup retention window,
-and a link to `/{slug}/my-data`. Controller identity and contact come
+and a link to `/wishlists/{slug}/my-data`. Controller identity and contact come
 from an operator-set `PRIVACY_CONTACT` environment variable; when it is
 unset, the notice says plainly that no contact has been provided. The
 owner may add an optional `privacyNotice` note, shown beneath the app's

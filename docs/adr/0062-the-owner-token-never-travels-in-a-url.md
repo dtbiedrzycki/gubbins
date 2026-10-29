@@ -25,7 +25,7 @@ sooner.
 ## Alternatives considered
 
 - **Mirror the original query-string design**
-  (`/{slug}/manage?token=`, validate, redirect to strip) — rejected.
+  (`/wishlists/{slug}/manage?token=`, validate, redirect to strip) — rejected.
   ADR-067's Alternatives considered section documents this same shape,
   already rejected for the guest key, and its justification is
   explicitly audience-specific: most guests arrive from a text message

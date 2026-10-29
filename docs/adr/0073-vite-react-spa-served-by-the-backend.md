@@ -34,7 +34,7 @@ process, one port, no separate host or build pipeline to deploy.
 - `apps/api`'s Fastify server registers a static-file plugin serving
   `apps/web`'s built `dist/` directory; there is no separate deploy
   target for the front-end.
-- Client-side routing (e.g. `/{slug}`) requires the static plugin to
+- Client-side routing (e.g. `/wishlists/{slug}`) requires the static plugin to
   fall back to `index.html` for unmatched paths rather than 404ing.
 - If a future requirement needs server-rendered HTML (unlikely per the
   no-public-directory design), that would be a new ADR superseding
