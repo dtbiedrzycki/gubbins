@@ -81,11 +81,9 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
 
   function send() {
     if (amount === null || isPending) return;
-    const trimmedName = name.trim();
     const trimmedMessage = message.trim();
-    writeGifterNames(trimmedName);
     mutate(
-      { idempotencyKey, amountMinor: amount, name: trimmedName, ...(trimmedMessage && { message: trimmedMessage }) },
+      { idempotencyKey, amountMinor: amount, name: name.trim(), ...(trimmedMessage && { message: trimmedMessage }) },
       { onSuccess: (pledge) => onPledged(pledge.amountMinor) },
     );
   }
@@ -154,7 +152,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           )}
           <p role="status" aria-live="polite" className="mb-4 text-sm empty:mb-0">{copied}</p>
           <label className="mb-1 block" htmlFor="contribute-name">Gifter name(s)</label>
-          <LimitedInput id="contribute-name" required value={name} onChange={(e) => setName(e.target.value)} max={NAME_MAX} disabled={isPending} readOnly={sent} describedBy={['contribute-name-hint', lockedHint]} className={`${field} mb-1`} />
+          <LimitedInput id="contribute-name" required value={name} onChange={(e) => setName(e.target.value)} onBlur={() => writeGifterNames(name)} max={NAME_MAX} disabled={isPending} readOnly={sent} describedBy={['contribute-name-hint', lockedHint]} className={`${field} mb-1`} />
           <p id="contribute-name-hint" className="mb-4 text-sm text-muted">Include everyone the gift is from, e.g. Sam &amp; Alex Smith.</p>
           <label className="mb-1 block" htmlFor="contribute-message">Message to the owner (optional)</label>
           <LimitedTextarea id="contribute-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} readOnly={sent} describedBy={[lockedHint]} className="field mb-4" />

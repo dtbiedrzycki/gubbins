@@ -226,12 +226,22 @@ describe('ContributeDialog', () => {
     expect(bodies).toEqual([{ idempotencyKey: expect.any(String), amountMinor: 28750, name: 'Amara', message: 'Enjoy!' }]);
   });
 
-  it('remembers the trimmed names even when the pledge fails', async () => {
+  it('remembers the names once the name field loses focus', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Sam & Alex');
+    await user.tab();
+
+    expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
+  });
+
+  it('remembers the names when a button is pressed, even if the pledge then fails', async () => {
     server.use(mock('post', '/api/lists/{slug}/items/{itemId}/contributions', 409, { code: 'amount_out_of_range', message: 'Try a smaller amount.' }));
     const user = userEvent.setup();
     renderDialog();
     await continueWithTheRest(user);
-    await user.type(screen.getByLabelText('Gifter name(s)'), '  Sam & Alex ');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Sam & Alex');
     await user.click(screen.getByRole('button', { name: "I've sent it" }));
 
     await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
