@@ -2,6 +2,7 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { useCreateList } from './useCreateList';
 import { LimitedInput } from '../../lib/LimitedField';
+import { listPath, managePath } from '../../lib/links';
 
 const TITLE_MAX = 120;
 /** A Venmo username is at most 30 characters, plus the "@" people often type first. */
@@ -31,8 +32,8 @@ export function CreateListForm() {
         <p>Your list is ready.</p>
         <div>
           <p className="text-sm font-medium">Guest link</p>
-          <a data-testid="guest-link" className="text-blue-600 underline" href={`/wishlists/${data.slug}`}>
-            {window.location.origin}/wishlists/{data.slug}
+          <a data-testid="guest-link" className="text-blue-600 underline" href={listPath(data.slug)}>
+            {window.location.origin}{listPath(data.slug)}
           </a>
         </div>
         <div>
@@ -46,7 +47,7 @@ export function CreateListForm() {
         </div>
         <p>Save your owner token now: you'll need it to manage the list, and it isn't shown again.</p>
         {/* A new tab, so one tap cannot lose the only display of the owner token and guest key. */}
-        <a className="text-blue-600 underline" href={`/wishlists/${data.slug}/manage`} target="_blank" rel="noopener noreferrer">Manage your list <span className="sr-only">(opens in a new tab)</span></a>
+        <a className="text-blue-600 underline" href={managePath(data.slug)} target="_blank" rel="noopener noreferrer">Manage your list <span className="sr-only">(opens in a new tab)</span></a>
       </div>
     );
   }

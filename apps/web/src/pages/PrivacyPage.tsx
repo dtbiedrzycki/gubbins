@@ -9,20 +9,22 @@ export default function PrivacyPage() {
       <p>Gubbins is a small wishlist app. It does not track people and it serves no ads.</p>
 
       <section className="space-y-2">
-        <h2 className="text-2xl font-semibold">What guests give us</h2>
+        <h2 className="text-2xl font-semibold">What guests enter</h2>
         <p>
-          When you hold a gift or chip in, you enter a name and, if you like, a message. We also keep the
-          amounts you pledge. We do not ask for your email address.
+          When you hold a gift or chip in, you enter a name and, if you like, a message. The amounts
+          you pledge are kept too. Gubbins does not ask for your email address.
         </p>
-        <p>Other guests never see your name or message. They are kept for the person who owns the list.</p>
+        <p>Other guests never see your name or message. These details are stored on this site’s server.</p>
       </section>
 
       <section className="space-y-2">
         <h2 className="text-2xl font-semibold">Cookies</h2>
         <p>
-          Gubbins sets one cookie, and only because the site cannot work without it. For guests it remembers
-          which gifts you hold and lasts 30 days. For a list owner it keeps you signed in and ends when you
-          close your browser.
+          Guests get a cookie when they enter the guest key. It lets you see the list and remembers your holds,
+          and it lasts 30 days. List owners get a separate cookie that keeps them signed in until the browser
+          closes. Your browser also remembers, on this device only, whether you last chose Venmo or Zelle and
+          whether you have seen “How holding works”. None of this leaves your device except the cookies, which
+          go only to this site.
         </p>
       </section>
 
@@ -37,7 +39,7 @@ export default function PrivacyPage() {
       <section className="space-y-2">
         <h2 className="text-2xl font-semibold">Keeping and deleting data</h2>
         <p>
-          Nothing is deleted automatically yet. To ask about your data or have it removed,{' '}
+          Nothing is deleted automatically yet. To ask about your data,{' '}
           {data?.privacyContact
             ? <>contact <strong>{data.privacyContact}</strong>.</>
             : 'contact whoever runs this site.'}
