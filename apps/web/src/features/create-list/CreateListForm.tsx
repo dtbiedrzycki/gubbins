@@ -1,13 +1,15 @@
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { useCreateList } from './useCreateList';
-import { LimitedInput } from '../../lib/LimitedField';
+import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
 
 const TITLE_MAX = 120;
 /** A Venmo username is at most 30 characters, plus the "@" people often type first. */
 const VENMO_MAX = 31;
 /** The longest email address there can be; the API caps the handle at the same length. */
 const ZELLE_MAX = 254;
+/** Room for a greeting, a shipping address and a few links; the domain enforces the same cap. */
+const DESCRIPTION_MAX = 2000;
 
 export function CreateListForm() {
   const [listTitle, setListTitle] = useState('');
@@ -15,13 +17,16 @@ export function CreateListForm() {
   const [createSecret, setCreateSecret] = useState('');
   const [venmoHandle, setVenmoHandle] = useState('');
   const [zelleHandle, setZelleHandle] = useState('');
+  const [description, setDescription] = useState('');
   const { mutate, data, error, isPending } = useCreateList();
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    const listDescription = description.trim();
     mutate({
       listTitle: listTitle.trim(), itemTitle: itemTitle.trim(), createSecret: createSecret.trim(),
       venmoHandle: venmoHandle.trim(), zelleHandle: zelleHandle.trim(),
+      ...(listDescription && { listDescription }),
     });
   }
 
@@ -37,7 +42,7 @@ export function CreateListForm() {
         </div>
         <div>
           <p className="text-sm font-medium">Guest key</p>
-          <p data-testid="guest-key" className="font-mono">{data.key}</p>
+          <p data-testid="guest-key" className="font-mono text-2xl font-bold">{data.key}</p>
         </div>
         <div>
           {/* Never rendered inside a link — ADR-062: the owner token must never travel in a URL. */}
@@ -66,6 +71,14 @@ export function CreateListForm() {
           id="item-title" required max={TITLE_MAX} value={itemTitle} onChange={(e) => setItemTitle(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
+      </div>
+      <div>
+        <label htmlFor="list-description" className="block text-sm font-medium">About this list (optional)</label>
+        <LimitedTextarea
+          id="list-description" describedBy={['list-description-hint']} rows={4} max={DESCRIPTION_MAX} value={description} onChange={(e) => setDescription(e.target.value)}
+          className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
+        />
+        <p id="list-description-hint" className="mt-1 text-sm text-gray-600">Guests see this above your list. If you want gifts mailed, add your shipping address here. Supports **bold**, *italics*, lists and links. You can’t change it after the list is created.</p>
       </div>
       <div>
         <label htmlFor="create-secret" className="block text-sm font-medium">Create secret</label>
