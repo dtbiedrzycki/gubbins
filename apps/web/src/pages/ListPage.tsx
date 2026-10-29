@@ -75,7 +75,13 @@ export default function ListPage() {
             <ClampedText id="list-description"><Markdown text={query.data.description} /></ClampedText>
           </section>
         )}
-        {canHold && <HowHoldingWorks holdDurationDays={days} />}
+        {canHold && (
+          <HowHoldingWorks
+            holdDurationDays={days}
+            // The card has gone; the gift filter comes next.
+            onDismiss={() => document.querySelector<HTMLButtonElement>('[aria-label="Show gifts"] button')?.focus()}
+          />
+        )}
         <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn't refresh the list, so it may be out of date." : ''}</p>
         <ItemFilter items={items} value={filter.value} onChange={chooseFilter} />
         {/* explicit role: Safari/VoiceOver drops list semantics under list-style none */}
