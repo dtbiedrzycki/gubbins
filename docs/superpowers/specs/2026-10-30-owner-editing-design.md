@@ -1,7 +1,7 @@
 # Owner editing: list details, chosen guest key, items — design
 
-Mockups: https://claude.ai/artifact/L4CzgCDEYni36nShTyLjra (six phone
-screens; copy to `docs/design/owner-editing-mockups.html` in Phase 1).
+Mockups: [`docs/design/owner-editing-mockups.html`](../../design/owner-editing-mockups.html)
+(six phone screens).
 
 ## Why
 
@@ -146,7 +146,7 @@ into PRs of at most 10 files (small-prs skill).
    rule as other owner routes) returning title, description, key, and items
    with what the delete and warning rules need: whether the item has any
    activity, its committed count, its pledged total. The manage page renders
-   it above the add form. Commit the mockups to `docs/design/`.
+   it above the add form.
 2. **Edit list details**: title and description.
 3. **Choose the key at creation**: suggestion endpoint, create request
    requires a key and checks it, create form shows the suggestion with
