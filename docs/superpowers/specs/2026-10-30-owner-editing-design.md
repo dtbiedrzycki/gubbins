@@ -27,10 +27,8 @@ only the "add item" form. Editing needs a manage view first.
    submits that key with the list.
 4. **Edit items.** Title, quantity, price, store link, description.
 5. **Delete items** that no guest has acted on.
-6. **Audit trail.** Every edit and delete writes the old and new values to
-   the audit table the product spec already calls for.
-7. **Schema first.** Every schema change this work needs, plus the
-   `archived_at` column a later archive feature needs, lands in Phase 0, so
+6. **Schema first.** The `archived_at` column a later archive feature
+   needs lands in Phase 0, so
    the owner can start hosting production right after Phase 0 merges and
    the later phases need no migrations.
 
@@ -102,52 +100,12 @@ only the "add item" form. Editing needs a manage view first.
   refuses it too.
 - Archiving such items is later work; Phase 0 adds its column only.
 
-### Audit table
+### Audit trail: deferred (owner ruling, 2026-10-30)
 
-`docs/spec/data-and-persistence.md` already specifies one; this work builds
-it. The shape follows the established "versions table" pattern (Rails
-PaperTrail, `audited`, Supabase `supa_audit`): one append-only row per
-change to one entity, holding full JSON snapshots of the entity before and
-after. Researched and agreed with the owner 2026-10-30.
-
-| column | notes |
-|---|---|
-| `id` | integer primary key; the order of changes (never order by time) |
-| `change_id` | not null; groups the rows one owner action writes. Every action in this work writes one row, so each is unique for now; it exists so a later multi-row action (reordering, bulk delete) needs no migration |
-| `wishlist_id` | not null, references `wishlists.id` (no cascade, like the other tables; purge deletes audit rows first) |
-| `entity_type` | not null, CHECK in (`wishlist`, `item`) |
-| `entity_id` | not null; **no** foreign key, so rows outlive a deleted item |
-| `event` | not null, CHECK in (`create`, `update`, `delete`) |
-| `actor` | not null, CHECK in (`guest`, `owner`), the same roles as `event_log` (ADR-0075); only `owner` is written in this work |
-| `shape` | not null integer; the version of the snapshot format, starting at 1, bumped when an audited field is renamed or changes meaning |
-| `old_state` | JSON text or null; CHECK `json_valid` when present |
-| `new_state` | JSON text or null; CHECK `json_valid` when present |
-| `changed_at` | not null; ISO text from the `Clock` port, like every other timestamp column |
-
-Table CHECK: `create` has only `new_state`, `update` has both, `delete` has
-only `old_state`. Indexes: (`entity_type`, `entity_id`, `id`) and
-(`wishlist_id`, `id`). All CHECKs are structural (ADR-0083).
-
-Rules:
-- Snapshots hold an explicit allowlist of fields per entity type: for a
-  wishlist, title and description; for an item, type, title, description,
-  url, price_minor, quantity. Every allowlisted field is always present;
-  `null` means none. Integers stay JSON integers. Nothing derived (holds,
-  pledges, status) and nothing secret (key, owner token) goes in.
-- Creating a list and adding an item write a `create` row; edits write an
-  `update` row; deleting an item writes a `delete` row.
-- A save that changes nothing writes nothing.
-- The row is written in the same transaction as the change, from what the
-  domain decided.
-- The audit table is a plain table outside the event stream, like
-  `guest_pii` (domain-model spec); `rebuildProjections` leaves it alone.
-- No UI reads it in this work.
-
-Considered and rejected: one row per changed field (loses types, splits one
-save); a field diff instead of snapshots (rebuilding a past state needs
-replay, and SQLite's `json_patch` can't express "set to null"); per-table
-history tables like Hibernate Envers (every later migration done twice);
-SQLite triggers (can't see the actor, and put the rule outside the domain).
+Out of scope for the launch timeline (YAGNI). Edits overwrite in place and
+deletes remove the row, with no history. The researched design (a versions
+table with before/after snapshots) is parked for later. Adding it later
+needs a migration.
 
 ## Input handling (one ruling, 2026-10-30)
 
@@ -177,7 +135,7 @@ absent optional field means "none". That makes "cleared" unambiguous.
 Each phase is deployable and useful on its own, in this order. Each splits
 into PRs of at most 10 files (small-prs skill).
 
-0. **Schema.** Audit table and `items.archived_at` (nullable text, unused).
+0. **Schema.** `items.archived_at` (nullable text, unused).
    Schema types and `assertSchemaMatches` updated. Amended into
    `0001_init.ts` in place (migrations are edited in place until the first
    release). No behaviour change. Existing databases (dev, the Tailscale dev
@@ -189,14 +147,13 @@ into PRs of at most 10 files (small-prs skill).
    with what the delete and warning rules need: whether the item has any
    activity, its committed count, its pledged total. The manage page renders
    it above the add form. Commit the mockups to `docs/design/`.
-2. **Audit writes and edit list details**: `create` rows from creating a
-   list and adding an item, then editing the title and description.
+2. **Edit list details**: title and description.
 3. **Choose the key at creation**: suggestion endpoint, create request
    requires a key and checks it, create form shows the suggestion with
    "Regenerate". Independent of Phases 1–2; may go first.
-4. **Edit items**, with the quantity and target warnings, audit rows, add
+4. **Edit items**, with the quantity and target warnings, add
    form hint removed.
-5. **Delete items**, with the disabled button and hint, audit row.
+5. **Delete items**, with the disabled button and hint.
 
 ## Non-goals
 
@@ -205,7 +162,7 @@ into PRs of at most 10 files (small-prs skill).
 - Changing the slug, payment handles, owner token, or an item's kind.
   ADR-0013 allows a kind change before an item's first hold or pledge;
   that stays unbuilt for now.
-- Reordering items, archiving, spoiler settings, a UI for the audit trail.
+- Reordering items, archiving, spoiler settings, an audit trail of edits.
 - Gift pictures (parked separately).
 
 ## Anti-goals
@@ -223,16 +180,13 @@ into PRs of at most 10 files (small-prs skill).
   - The **Item** decides whether it can be deleted (no events on its
     stream) and validates its own edits; **Wishlist** resolves the item
     (`getItem`) and removes or replaces it.
-  - An edit command returns which fields changed, old and new, so the use
-    case writes audit rows from what the domain decided rather than
-    diffing rows itself.
   - The check that a submitted key is one the generator could have made
     lives beside the generator (it owns the word list); the domain's
     `GuestKey` keeps its own invariants unchanged, since older keys must
     still load.
   - The constructors keep enforcing every invariant, so an edited list or
-    item can't be invalid whatever path built it. List and item edits aren't ledger events (ADR-0007): they're
-  CRUD with an audit row.
+    item can't be invalid whatever path built it.
+- List and item edits aren't ledger events (ADR-0007): they're plain CRUD.
 - Writes run in an immediate transaction, so an owner edit or delete and a
   guest hold on the same item are serialized; the delete's "no events"
   check and the quantity rule decide on committed state.
@@ -242,8 +196,8 @@ into PRs of at most 10 files (small-prs skill).
   client types.
 - Tests at the owning layer, one per rule (testing-at-the-owning-layer).
 - Docs to update as the phases land: `owner-dashboard.md` (editing as
-  built), `access-identity.md` (open item closed), `data-and-persistence.md`
-  (audit columns).
+  built). `data-and-persistence.md` keeps its audit-table line as
+  unbuilt; `access-identity.md`'s rotation open item stays open.
 
 ## Left to the builder
 
