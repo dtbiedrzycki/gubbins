@@ -23,7 +23,7 @@ only the "add item" form. Editing needs a manage view first.
    every item, above the existing "add item" form.
 2. **Edit list details.** Title and description.
 3. **Choose the key at creation.** The create form shows a suggested key
-   with a "New words" button; the owner taps until they like the words and
+   with a "Regenerate" button; the owner taps until they like the words and
    submits that key with the list.
 4. **Edit items.** Title, quantity, price, store link, description.
 5. **Delete items** that no guest has acted on.
@@ -46,8 +46,9 @@ only the "add item" form. Editing needs a manage view first.
 
 ### Guest key (chosen at creation)
 
-- The create form shows a suggested three-word key, with a "New words"
-  button that replaces it with another suggestion. No confirmation: nobody
+- The create form shows a suggested three-word key, with a "Regenerate"
+  button (restart icon beside the label; the label is its accessible name,
+  the icon is decorative) that replaces it with another suggestion. No confirmation: nobody
   has a key before the list exists.
 - Suggestions come from the server, through a new endpoint that uses the
   existing generator (three EFF words), so the word list stays on the server.
@@ -57,7 +58,7 @@ only the "add item" form. Editing needs a manage view first.
   is three words from the generator's word list, joined as the generator
   joins them; anything else is a 400. The owner can't type their own words.
 - The "Your list is ready" screen shows the key that was submitted. It has
-  no "New words" button.
+  no "Regenerate" button.
 - **No key change after creation in this work.** The manage page shows the
   key read-only. `keyGen` stays at 1, guest sessions are never invalidated
   by this work, and the access spec's open item for the rotation change
@@ -168,7 +169,7 @@ into PRs of at most 10 files (small-prs skill).
 2. **Edit list details**, with audit rows.
 3. **Choose the key at creation**: suggestion endpoint, create request
    requires a key and checks it, create form shows the suggestion with
-   "New words". Independent of Phases 1–2; may go first.
+   "Regenerate". Independent of Phases 1–2; may go first.
 4. **Edit items**, with the quantity and target warnings, audit rows, add
    form hint removed.
 5. **Delete items**, with the disabled button and hint, audit row.
