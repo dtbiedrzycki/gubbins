@@ -104,27 +104,50 @@ only the "add item" form. Editing needs a manage view first.
 
 ### Audit table
 
-`docs/spec/data-and-persistence.md` already specifies it; this work builds
-it. One row per changed field:
+`docs/spec/data-and-persistence.md` already specifies one; this work builds
+it. The shape follows the established "versions table" pattern (Rails
+PaperTrail, `audited`, Supabase `supa_audit`): one append-only row per
+change to one entity, holding full JSON snapshots of the entity before and
+after. Researched and agreed with the owner 2026-10-30.
 
 | column | notes |
 |---|---|
-| `id` | primary key |
-| `wishlist_id` | not null, references `wishlists.id`; purge deletes by it |
-| `entity_id` | the list's or item's id; **no** foreign key, so rows outlive a deleted item |
-| `field` | e.g. `title`, `description`, `quantity`, `price_minor`, `url`, `deleted` |
-| `old_value`, `new_value` | text, nullable (a cleared field is null) |
-| `changed_at` | not null |
+| `id` | integer primary key; the order of changes (never order by time) |
+| `change_id` | not null; groups the rows one owner action writes. Every action in this work writes one row, so each is unique for now; it exists so a later multi-row action (reordering, bulk delete) needs no migration |
+| `wishlist_id` | not null, references `wishlists.id` (no cascade, like the other tables; purge deletes audit rows first) |
+| `entity_type` | not null, CHECK in (`wishlist`, `item`) |
+| `entity_id` | not null; **no** foreign key, so rows outlive a deleted item |
+| `event` | not null, CHECK in (`create`, `update`, `delete`) |
+| `actor` | not null, CHECK in (`guest`, `owner`), the same roles as `event_log` (ADR-0075); only `owner` is written in this work |
+| `shape` | not null integer; the version of the snapshot format, starting at 1, bumped when an audited field is renamed or changes meaning |
+| `old_state` | JSON text or null; CHECK `json_valid` when present |
+| `new_state` | JSON text or null; CHECK `json_valid` when present |
+| `changed_at` | not null; ISO text from the `Clock` port, like every other timestamp column |
 
-My calls, marked as such:
-- A delete writes one row, `field = 'deleted'`, `old_value` = a JSON
-  snapshot of the item's editable fields and type, `new_value` null.
-- An edit writes rows only for fields whose value actually changed; saving
-  with nothing changed writes nothing.
-- The audit row is written in the same transaction as the change.
-- The audit table is a plain mutable table outside the event stream, like
+Table CHECK: `create` has only `new_state`, `update` has both, `delete` has
+only `old_state`. Indexes: (`entity_type`, `entity_id`, `id`) and
+(`wishlist_id`, `id`). All CHECKs are structural (ADR-0083).
+
+Rules:
+- Snapshots hold an explicit allowlist of fields per entity type: for a
+  wishlist, title and description; for an item, type, title, description,
+  url, price_minor, quantity. Every allowlisted field is always present;
+  `null` means none. Integers stay JSON integers. Nothing derived (holds,
+  pledges, status) and nothing secret (key, owner token) goes in.
+- Creating a list and adding an item write a `create` row; edits write an
+  `update` row; deleting an item writes a `delete` row.
+- A save that changes nothing writes nothing.
+- The row is written in the same transaction as the change, from what the
+  domain decided.
+- The audit table is a plain table outside the event stream, like
   `guest_pii` (domain-model spec); `rebuildProjections` leaves it alone.
 - No UI reads it in this work.
+
+Considered and rejected: one row per changed field (loses types, splits one
+save); a field diff instead of snapshots (rebuilding a past state needs
+replay, and SQLite's `json_patch` can't express "set to null"); per-table
+history tables like Hibernate Envers (every later migration done twice);
+SQLite triggers (can't see the actor, and put the rule outside the domain).
 
 ## Input handling (one ruling, 2026-10-30)
 
@@ -166,7 +189,8 @@ into PRs of at most 10 files (small-prs skill).
    with what the delete and warning rules need: whether the item has any
    activity, its committed count, its pledged total. The manage page renders
    it above the add form. Commit the mockups to `docs/design/`.
-2. **Edit list details**, with audit rows.
+2. **Audit writes and edit list details**: `create` rows from creating a
+   list and adding an item, then editing the title and description.
 3. **Choose the key at creation**: suggestion endpoint, create request
    requires a key and checks it, create form shows the suggestion with
    "Regenerate". Independent of Phases 1–2; may go first.
