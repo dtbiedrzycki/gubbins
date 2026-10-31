@@ -87,7 +87,7 @@ describe('CreateListForm', () => {
     expect(screen.getByLabelText('Zelle email or US phone')).toHaveAttribute('maxlength', '254');
   });
 
-  it('limits the list description to 2000 characters and explains and where it shows', () => {
+  it('limits the list description to 2000 characters and explains where it shows', () => {
     renderWithQueryClient(<CreateListForm />);
     const field = screen.getByLabelText('About this list (optional)');
     expect(field).toHaveAttribute('maxlength', '2000');
