@@ -203,6 +203,19 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect((await fx.wishlists.findById(LIST_A, NOW))?.description).toBeNull();
     });
 
+    it('save stores an edited title and description', async () => {
+      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+      wishlist.editDetails({ title: 'Renamed', description: 'New note' });
+      await fx.wishlists.save(wishlist);
+
+      const loaded = await fx.wishlists.findById(LIST_A, NOW);
+      expect([loaded?.title, loaded?.description]).toEqual(['Renamed', 'New note']);
+
+      loaded!.editDetails({ title: 'Renamed', description: null });
+      await fx.wishlists.save(loaded!);
+      expect((await fx.wishlists.findById(LIST_A, NOW))?.description).toBeNull();
+    });
+
     it('save adds a new item to the list, with its stream at seq 0', async () => {
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
       wishlist.addItem({ type: 'single', title: 'Bib' }, { generateEntityId: () => ITEM_A2 });

@@ -101,6 +101,57 @@ describe('Wishlist.create', () => {
   });
 });
 
+describe('Wishlist.editDetails', () => {
+  const edited = () => Wishlist.create({ ...validProps, description: 'old' });
+
+  it('replaces the title and description', () => {
+    const wishlist = edited();
+
+    wishlist.editDetails({ title: 'New title', description: 'new' });
+
+    expect([wishlist.title, wishlist.description]).toEqual(['New title', 'new']);
+  });
+
+  it('trims the title', () => {
+    const wishlist = edited();
+
+    wishlist.editDetails({ title: '  New title ', description: 'new' });
+
+    expect(wishlist.title).toBe('New title');
+  });
+
+  it('trims a description\'s ends but keeps the line breaks inside it', () => {
+    const wishlist = edited();
+
+    wishlist.editDetails({ title: 'New title', description: '\n 1 Main St\nApt 2 \n' });
+
+    expect(wishlist.description).toBe('1 Main St\nApt 2');
+  });
+
+  it('stores a blank description as none', () => {
+    const wishlist = edited();
+
+    wishlist.editDetails({ title: 'New title', description: '  ' });
+
+    expect(wishlist.description).toBeNull();
+  });
+
+  it('refuses a blank title and keeps the old details', () => {
+    const wishlist = edited();
+
+    expect(() => wishlist.editDetails({ title: '  ', description: 'new' })).toThrow(DomainValidationError);
+    expect([wishlist.title, wishlist.description]).toEqual(['Baby Shower', 'old']);
+  });
+
+  it('applies the same length limits as creation', () => {
+    const wishlist = edited();
+
+    expect(() => wishlist.editDetails({ title: 'a'.repeat(121), description: 'new' })).toThrow(DomainValidationError);
+    expect(() => wishlist.editDetails({ title: 'New title', description: 'a'.repeat(2001) })).toThrow(DomainValidationError);
+    expect([wishlist.title, wishlist.description]).toEqual(['Baby Shower', 'old']);
+  });
+});
+
 describe('Wishlist.reconstitute', () => {
   it('enforces the title invariant on persisted rows too', () => {
     expect(() => Wishlist.reconstitute({ ...persisted, title: '' })).toThrow(DomainValidationError);

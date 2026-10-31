@@ -38,29 +38,54 @@ export interface HoldCommandResult<E> {
  */
 export class Wishlist {
   private _items: Item[] = [];
+  private _title: string;
+  private _description: string | null;
 
   /**
    * Enforces the aggregate's own invariants, so neither `create` nor
    * `reconstitute` can produce an invalid Wishlist. Blankness is checked
-   * against the title's trimmed content; trimming itself stays in `create`,
-   * where the untrusted caller input arrives.
+   * against the title's trimmed content; trimming itself stays where the
+   * untrusted caller input arrives (`create` and `editDetails`).
    */
   private constructor(
     readonly id: UuidId,
     readonly slug: Slug,
-    readonly title: string,
+    title: string,
     readonly ownerToken: OwnerToken,
     readonly key: GuestKey,
     readonly keyGen: number,
     private readonly asOf: Date,
     readonly paymentMethods: PaymentMethods = PaymentMethods.none,
-    readonly description: string | null = null,
+    description: string | null = null,
   ) {
+    Wishlist.checkDetails(title, description);
+    this._title = title;
+    this._description = description;
+  }
+
+  private static checkDetails(title: string, description: string | null): void {
     if (title.trim().length === 0) throw new DomainValidationError('Wishlist title must not be empty');
     if (title.length > 120) throw new DomainValidationError('Wishlist title must be at most 120 characters');
     if (description !== null && description.length > WISHLIST_DESCRIPTION_MAX) {
       throw new DomainValidationError(`Wishlist description must be at most ${WISHLIST_DESCRIPTION_MAX} characters`);
     }
+  }
+
+  get title(): string {
+    return this._title;
+  }
+
+  get description(): string | null {
+    return this._description;
+  }
+
+  /** Replaces the title and description, trimmed as at creation; a refused edit leaves the old details. */
+  editDetails(props: { title: string; description?: string | null }): void {
+    const title = props.title.trim();
+    const description = cleanDescription(props.description);
+    Wishlist.checkDetails(title, description);
+    this._title = title;
+    this._description = description;
   }
 
   /** A new list, deciding as of `asOf`: the instant it is created at. */

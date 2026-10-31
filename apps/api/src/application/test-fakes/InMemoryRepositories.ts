@@ -20,6 +20,18 @@ const toRow = (item: Item): ItemRow => ({
 });
 
 /**
+ * Details and identity only, for `insert` and `save`: `hydrate` reads the list's own fields from this
+ * copy and rebuilds the items and their holds from the store's rows with the caller's instant. The
+ * copy's own instant and items are never read, so a throwaway instant is safe.
+ */
+function copyWishlist(wishlist: Wishlist): Wishlist {
+  return Wishlist.reconstitute({
+    id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title, ownerToken: wishlist.ownerToken.value,
+    key: wishlist.key.value, keyGen: wishlist.keyGen, asOf: new Date(0), paymentMethods: wishlist.paymentMethods, description: wishlist.description,
+  });
+}
+
+/**
  * Copies through `reconstitute`, the way a real repository rebuilds rows.
  * Neither reads nor writes may share an instance with the store: the
  * domain mutates holds in place, so a shared instance would let an
@@ -67,7 +79,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   constructor(private store: InMemoryStore) {}
 
   async insert(wishlist: Wishlist): Promise<void> {
-    this.store.wishlists.set(wishlist.id.value, wishlist);
+    this.store.wishlists.set(wishlist.id.value, copyWishlist(wishlist));
     for (const item of wishlist.items) this.store.items.set(item.id.value, toRow(item));
   }
 
@@ -81,6 +93,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
 
   async save(wishlist: Wishlist): Promise<void> {
     if (!this.store.wishlists.has(wishlist.id.value)) throw new WishlistNotFoundError(wishlist.id.value);
+    this.store.wishlists.set(wishlist.id.value, copyWishlist(wishlist));
     // The purchased count is derived from the holds, never stored.
     for (const item of wishlist.items) this.store.items.set(item.id.value, toRow(item));
     const holds = new InMemoryHoldRepository(this.store);
