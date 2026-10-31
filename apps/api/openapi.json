@@ -19,7 +19,8 @@
               "hold_not_active",
               "hold_already_extended",
               "no_payment_method",
-              "amount_out_of_range"
+              "amount_out_of_range",
+              "item_has_guest_history"
             ]
           },
           "issues": {
