@@ -44,8 +44,8 @@ export class Wishlist {
   /**
    * Enforces the aggregate's own invariants, so neither `create` nor
    * `reconstitute` can produce an invalid Wishlist. Blankness is checked
-   * against the title's trimmed content; trimming itself stays in `create`,
-   * where the untrusted caller input arrives.
+   * against the title's trimmed content; trimming itself stays where the
+   * untrusted caller input arrives (`create` and `editDetails`).
    */
   private constructor(
     readonly id: UuidId,

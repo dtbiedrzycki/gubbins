@@ -16,6 +16,17 @@ const hasher = { hash: (value: string) => value };
  * the one thing only a fake can get wrong: sharing instances with its store.
  */
 describe('in-memory fakes never share instances with the store', () => {
+  it('keeps an edit the caller never saved out of the next load', async () => {
+    const { wishlists } = inMemoryPersistence();
+    const list = aWishlist().build();
+    await wishlists.insert(list);
+    list.editDetails({ title: 'Saved' });
+    await wishlists.save(list);
+    list.editDetails({ title: 'Never saved' });
+
+    expect((await wishlists.findBySlug('abc123', T0))?.title).toBe('Saved');
+  });
+
   it('reconstitutes on every read', async () => {
     const { wishlists } = inMemoryPersistence();
     const inserted = aWishlist().withItem({ id: ITEM_ID, title: 'Stroller' }).build();
