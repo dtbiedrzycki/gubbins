@@ -15,11 +15,11 @@ export interface AddItemFormProps {
 
 const field = 'mt-1 block w-full rounded border border-gray-300 px-3 py-2';
 
-const TITLE_MAX = 120;
+export const TITLE_MAX = 120;
 /** The longest store link the API takes. */
-const URL_MAX = 2048;
+export const URL_MAX = 2048;
 /** Room for an item's size, colour and store notes; the domain enforces the same cap. */
-const DESCRIPTION_MAX = 1000;
+export const DESCRIPTION_MAX = 1000;
 
 export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
   const [type, setType] = useState<'single' | 'group'>('single');
@@ -105,7 +105,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       <div>
         <label htmlFor="item-description" className="block text-sm font-medium">Description (optional)</label>
         <LimitedTextarea id="item-description" describedBy={['item-description-hint']} rows={3} max={DESCRIPTION_MAX} value={description} onChange={(e) => setDescription(e.target.value)} className={field} />
-        <p id="item-description-hint" className="mt-1 text-sm text-gray-600">Supports **bold**, *italics*, lists and links. You can’t change it after adding the item.</p>
+        <p id="item-description-hint" className="mt-1 text-sm text-gray-600">Supports **bold**, *italics*, lists and links.</p>
       </div>
       <p id="item-error" role="alert" className="text-red-600 empty:mb-0">{priceError || error?.message}</p>
       <p role="status" aria-live="polite" className="text-green-800 empty:mb-0">{added}</p>
