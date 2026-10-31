@@ -1,8 +1,9 @@
 import type { FormEvent } from 'react';
 import { useRef, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { AddItemRequest } from '@gubbins/shared-types';
 import { api, ApiError } from '../../api/client';
+import { manageViewKey } from './manageViewKey';
 import { parseUsd } from '../../lib/parseUsd';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
 
@@ -30,8 +31,11 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
   const [priceError, setPriceError] = useState('');
   const [added, setAdded] = useState('');
   const priceInput = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
   const { mutate, error, isPending, reset } = useMutation({
     mutationFn: (input: AddItemRequest) => api.addItem(slug, input),
+    // Returned, so the mutation stays pending until the list has refetched.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: manageViewKey(slug) }),
   });
 
   function handleSubmit(event: FormEvent) {
