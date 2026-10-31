@@ -33,14 +33,12 @@ export default function ManagePage() {
         <h1 ref={heading} tabIndex={-1} className="text-2xl font-semibold">Manage your list</h1>
         {entered && !gone ? (
           <>
-            {query.data && (
-              <>
-                <ListDetails slug={slug} onUnauthorized={unauthorized} view={query.data} />
-                <ManageItems slug={slug} items={query.data.items} onUnauthorized={unauthorized} />
-              </>
-            )}
+            {/* At the top, so a failed refresh isn't hidden below a long list. */}
             {query.error && <p role="alert" className="text-red-600">{query.error.message}</p>}
+            {query.data && <ListDetails slug={slug} onUnauthorized={unauthorized} view={query.data} />}
+            {/* Above the items, so adding never means scrolling past a long list. */}
             <AddItemForm slug={slug} onUnauthorized={unauthorized} />
+            {query.data && <ManageItems slug={slug} items={query.data.items} onUnauthorized={unauthorized} />}
           </>
         ) : (
           <OwnerTokenGate
