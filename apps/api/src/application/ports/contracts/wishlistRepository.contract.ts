@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Wishlist } from '../../../domain/entities/Wishlist.js';
 import { PaymentMethods } from '../../../domain/value-objects/PaymentMethods.js';
-import { WishlistNotFoundError } from '../../../domain/errors.js';
+import { Item } from '../../../domain/entities/Item.js';
+import { ItemHasGuestHistoryError, WishlistNotFoundError } from '../../../domain/errors.js';
 import {
   ITEM_A, ITEM_B, LIST_A, NOW, SESSION,
   holdFixture, later, seedTwoLists, type PersistenceFactory, type PersistenceFixture,
@@ -245,6 +246,16 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       await fx.wishlists.save(wishlist);
 
       expect((await fx.wishlists.findById(LIST_A, NOW))?.items.map((i) => i.id.value)).toEqual([ITEM_A]);
+    });
+
+    it('save refuses to delete an item with guest history, which is still there on the next load', async () => {
+      const item = (seq: number) => Item.reconstitute({ id: ITEM_C1, wishlistId: LIST_C, type: 'single', title: 'Pram', quantity: 1, seq, asOf: NOW });
+      const list = (items: Item[]) => Wishlist.reconstitute({ id: LIST_C, slug: 'list-c', title: 'C', ownerToken: 'o', key: 'k', keyGen: 1, asOf: NOW, items });
+      await fx.wishlists.insert(list([item(1)]));
+
+      await expect(fx.wishlists.save(list([]))).rejects.toThrow(ItemHasGuestHistoryError);
+
+      expect((await fx.wishlists.findById(LIST_C, NOW))?.items.map((i) => i.id.value)).toEqual([ITEM_C1]);
     });
 
     it('save inserts a pledge the aggregate made, once: a second save inserts nothing', async () => {

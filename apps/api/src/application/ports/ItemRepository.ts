@@ -18,7 +18,7 @@ export interface ItemRepository {
   findAllByWishlistId(wishlistId: string): Promise<ItemRow[]>;
   /** Writes the item's editable columns: title, quantity, url, price and description. */
   update(item: Item): Promise<void>;
-  /** Deletes the item's state row, then the item; the foreign keys from events, holds and contributions refuse an item with guest history. */
+  /** Deletes the item's state row, then the item; the foreign keys from holds and contributions refuse an item with those rows; `event_log` has none, so callers check `seq` first. */
   delete(itemId: string): Promise<void>;
   /** Writes the item's `seq`; `WishlistRepository.save` calls it for each changed item. */
   saveState(item: Item): Promise<void>;

@@ -4,7 +4,7 @@ import { Item } from '../../domain/entities/Item.js';
 import { Wishlist } from '../../domain/entities/Wishlist.js';
 import type { Actor } from '../../domain/Actor.js';
 import type { LedgerEvent } from '../../domain/events/LedgerEvent.js';
-import { ConcurrencyError, WishlistNotFoundError } from '../../domain/errors.js';
+import { ConcurrencyError, ItemHasGuestHistoryError, WishlistNotFoundError } from '../../domain/errors.js';
 import type { ContributionRepository } from '../ports/ContributionRepository.js';
 import type { EventStore } from '../ports/EventStore.js';
 import type { HoldRepository } from '../ports/HoldRepository.js';
@@ -94,9 +94,10 @@ export class InMemoryWishlistRepository implements WishlistRepository {
   async save(wishlist: Wishlist): Promise<void> {
     if (!this.store.wishlists.has(wishlist.id.value)) throw new WishlistNotFoundError(wishlist.id.value);
     this.store.wishlists.set(wishlist.id.value, copyWishlist(wishlist));
-    for (const [id, row] of this.store.items) {
-      if (row.wishlistId === wishlist.id.value && !wishlist.items.some((item) => item.id.value === id)) this.store.items.delete(id);
-    }
+    const removed = [...this.store.items.values()].filter((row) => row.wishlistId === wishlist.id.value && !wishlist.items.some((item) => item.id.value === row.id));
+    const withHistory = removed.find((row) => row.seq !== 0);
+    if (withHistory) throw new ItemHasGuestHistoryError(withHistory.id);
+    for (const row of removed) this.store.items.delete(row.id);
     // The purchased count is derived from the holds, never stored.
     for (const item of wishlist.items) this.store.items.set(item.id.value, toRow(item));
     const holds = new InMemoryHoldRepository(this.store);
