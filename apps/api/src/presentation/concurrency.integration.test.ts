@@ -9,6 +9,7 @@ import { buildDependencies } from './compositionRoot.js';
 import { buildApp } from './app.js';
 import { disposeWithApp } from './lifecycle.js';
 
+const guestKey = 'abacus-abdomen-able';
 const silent: Logger = { logInfo: () => {}, logWarn: () => {}, logError: () => {} };
 const N = 10;
 
@@ -32,7 +33,7 @@ function cookieOf(response: LightMyRequestResponse): string {
 }
 
 async function listWithGuests(guests: number) {
-  const created = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', createSecret: 'test-create-secret' } }))
+  const created = (await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', createSecret: 'test-create-secret', key: guestKey } }))
     .json() as { slug: string; ownerToken: string; key: string };
   const owner = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${created.slug}/owner-session`, payload: { ownerToken: created.ownerToken } }));
   const { itemId } = (await app.inject({ method: 'POST', url: `/api/lists/${created.slug}/items`, headers: { cookie: owner }, payload: { type: 'single', title: 'Stroller' } }))

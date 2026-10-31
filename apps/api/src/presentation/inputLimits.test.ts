@@ -53,7 +53,7 @@ const minimums: { field: string; schema: (n: number) => boolean; domain: (n: num
 const nonBlank: { field: string; schema: (t: string) => boolean; domain: (t: string) => boolean }[] = [
   {
     field: 'list title',
-    schema: (t) => createListRequestSchema.safeParse({ listTitle: t }).success,
+    schema: (t) => createListRequestSchema.safeParse({ listTitle: t, key: 'a-b-c' }).success,
     domain: (t) => accepts(() => Wishlist.create({ id: ID, slug: 'abc123', title: t, ownerToken: 'o', key: 'k', asOf: T0 })),
   },
   {

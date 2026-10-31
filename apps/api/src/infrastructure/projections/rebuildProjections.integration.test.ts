@@ -12,6 +12,7 @@ import type { Logger } from '../../application/ports/Logger.js';
 const DAY = 24 * 60 * 60 * 1000;
 const GUEST: AccessContext = { guestSession: { sessionHash: 'a'.repeat(64) } };
 const OTHER_GUEST: AccessContext = { guestSession: { sessionHash: 'b'.repeat(64) } };
+const guestKey = 'abacus-abdomen-able';
 const silent: Logger = { logInfo: () => {}, logWarn: () => {}, logError: () => {} };
 
 let db: Kysely<Database>;
@@ -55,7 +56,7 @@ async function projections() {
 }
 
 async function newList() {
-  const { slug } = await deps.createList.execute({ listTitle: 'L', createSecret: 'test-create-secret' });
+  const { slug } = await deps.createList.execute({ listTitle: 'L', createSecret: 'test-create-secret', key: guestKey });
   const wishlist = await deps.wishlists.findBySlug(slug, clock.now());
   const wishlistId = wishlist!.id.value;
   const { itemId } = await deps.addItem.execute({ wishlistId, type: 'single', title: 'I', quantity: 1 }, { guestSession: null, owner: true });
@@ -65,7 +66,7 @@ async function newList() {
 }
 
 async function aGroupGift() {
-  const { slug } = await deps.createList.execute({ listTitle: 'G', createSecret: 'test-create-secret', venmoHandle: 'my-venmo' });
+  const { slug } = await deps.createList.execute({ listTitle: 'G', createSecret: 'test-create-secret', venmoHandle: 'my-venmo', key: guestKey });
   const wishlistId = (await deps.wishlists.findBySlug(slug, clock.now()))!.id.value;
   const { itemId } = await deps.addItem.execute({ wishlistId, type: 'group', title: 'Pram', priceMinor: 50_000 }, { guestSession: null, owner: true });
   const pledge = (access: AccessContext, idempotencyKey: string) =>
