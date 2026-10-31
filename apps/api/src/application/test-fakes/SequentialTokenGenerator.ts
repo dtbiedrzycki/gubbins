@@ -48,6 +48,7 @@ export class SequentialTokenGenerator implements TokenGenerator {
   generateSlug(): string { return this.label('slug'); }
   generateOwnerToken(): string { return this.label('owner-token'); }
   generateGuestKey(): string { return this.label('guest-key'); }
+  isGuestKey(candidate: string): boolean { return /^guest-key-\d+$/.test(candidate); }
   generateHoldSecret(): string { return this.label('hold-secret'); }
   generateSessionId(): string { return this.label('session'); }
 }

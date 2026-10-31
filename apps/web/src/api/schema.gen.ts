@@ -209,6 +209,7 @@ export interface operations {
                     listTitle: string;
                     listDescription?: string;
                     createSecret?: string;
+                    key?: string;
                     venmoHandle?: string;
                     zelleHandle?: string;
                 };

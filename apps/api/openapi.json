@@ -55,6 +55,9 @@
                   "createSecret": {
                     "type": "string"
                   },
+                  "key": {
+                    "type": "string"
+                  },
                   "venmoHandle": {
                     "type": "string",
                     "maxLength": 254

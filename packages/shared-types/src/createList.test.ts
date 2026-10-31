@@ -12,6 +12,11 @@ describe('createListRequestSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('passes a chosen key through', () => {
+    const request = createListRequestSchema.parse({ listTitle: 'Baby Shower', key: 'abacus-abdomen-able' });
+    expect(request.key).toBe('abacus-abdomen-able');
+  });
+
   it('passes the list description through', () => {
     const request = createListRequestSchema.parse({ listTitle: 'Baby Shower', listDescription: 'Due in May' });
     expect(request.listDescription).toBe('Due in May');
