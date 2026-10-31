@@ -51,14 +51,14 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
                 {item.type === 'group' && <span className="ml-2 text-sm font-normal text-muted">group gift</span>}
               </p>
               <p className="text-[0.92rem] text-muted">{meta}</p>
-              <DeleteItemControl slug={slug} item={item} onUnauthorized={onUnauthorized}>
+              <ItemActions slug={slug} item={item} onUnauthorized={onUnauthorized}>
                 <button
                   id={`edit-item-${item.id}`} type="button" aria-label={`Edit ${item.title}`} onClick={() => setEditingId(item.id)}
                   className="min-h-11 rounded border border-gray-300 px-4 py-2"
                 >
                   Edit
                 </button>
-              </DeleteItemControl>
+              </ItemActions>
             </li>
           );
         })}
@@ -67,18 +67,20 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
   );
 }
 
-interface DeleteItemControlProps {
+interface ItemActionsProps {
   slug: string;
   item: ManageViewResponse['items'][number];
   onUnauthorized: () => void;
-  /** The item's other actions, shown in the same row as Delete. */
+  /** Edit, shown before Delete. */
   children: ReactNode;
 }
 
-function DeleteItemControl({ slug, item, onUnauthorized, children }: DeleteItemControlProps) {
+/** The item's action row, and Delete's confirmation, reason and error. */
+function ItemActions({ slug, item, onUnauthorized, children }: ItemActionsProps) {
   const [confirming, setConfirming] = useState(false);
   const deleteButton = useRef<HTMLButtonElement>(null);
   const keepButton = useRef<HTMLButtonElement>(null);
+  const alert = useRef<HTMLParagraphElement>(null);
   const restoreFocus = useRef(false);
   // Focus follows into the confirmation, and back to Delete when the owner keeps the item.
   useEffect(() => {
@@ -88,18 +90,24 @@ function DeleteItemControl({ slug, item, onUnauthorized, children }: DeleteItemC
   const queryClient = useQueryClient();
   const { mutate, error, isPending } = useMutation({
     mutationFn: () => api.deleteItem(slug, item.id),
+    // Here rather than on mutate, whose callbacks don't run once the caller has unmounted, as this item does after the refetch.
+    // The item leaves the list, so focus goes to the list's heading rather than to nothing.
+    onSuccess: () => document.getElementById('manage-items-heading')?.focus(),
     // Returned, so the mutation stays pending until the list has refetched.
     onSettled: () => queryClient.invalidateQueries({ queryKey: manageViewKey(slug) }),
   });
   const hintId = `delete-hint-${item.id}`;
+  const alertId = `delete-error-${item.id}`;
+  // A refused delete's reason replaces the standing hint, so it shows once.
+  const describedBy = error ? alertId : item.deletable ? undefined : hintId;
 
   function confirmDelete() {
     mutate(undefined, {
-      // The item leaves the list, so focus goes to the list's heading rather than to nothing.
-      onSuccess: () => document.getElementById('manage-items-heading')?.focus(),
       onError: (e) => {
         setConfirming(false);
         if (e instanceof ApiError && e.status === 404) onUnauthorized();
+        // The confirmation's buttons are gone, so focus moves to the reason.
+        else alert.current?.focus();
       },
     });
   }
@@ -110,16 +118,16 @@ function DeleteItemControl({ slug, item, onUnauthorized, children }: DeleteItemC
         {children}
         <button
           ref={deleteButton} type="button" aria-label={`Delete ${item.title}`} disabled={!item.deletable}
-          aria-describedby={item.deletable ? undefined : hintId} onClick={() => setConfirming(true)}
+          aria-describedby={describedBy} onClick={() => setConfirming(true)}
           className="min-h-11 rounded border border-wax px-4 py-2 text-wax disabled:opacity-50"
         >
           Delete
         </button>
       </div>
-      {!item.deletable && <p id={hintId} className="text-sm text-muted">Guests have already picked this one, so it can’t be deleted.</p>}
+      {!item.deletable && !error && <p id={hintId} className="text-[0.92rem] text-muted">Guests have already picked this one, so it can’t be deleted.</p>}
       {confirming && (
-        <div className="grid gap-2.5 rounded-[10px] border-[1.5px] border-wax p-3.5">
-          <p>Delete “{item.title}”? This can’t be undone.</p>
+        <div role="group" aria-labelledby={`delete-confirm-${item.id}`} className="grid gap-2.5 rounded-[10px] border-[1.5px] border-wax p-3.5">
+          <p id={`delete-confirm-${item.id}`}>Delete “{item.title}”? This can’t be undone.</p>
           <div className="flex gap-3">
             <button type="button" onClick={confirmDelete} disabled={isPending} className="min-h-11 rounded bg-wax px-4 py-2 text-white disabled:opacity-50">
               Delete
@@ -133,7 +141,7 @@ function DeleteItemControl({ slug, item, onUnauthorized, children }: DeleteItemC
           </div>
         </div>
       )}
-      <p role="alert" className="text-red-600 empty:hidden">{error?.message}</p>
+      <p ref={alert} id={alertId} role="alert" tabIndex={-1} className="text-red-600 empty:hidden">{error?.message}</p>
     </>
   );
 }

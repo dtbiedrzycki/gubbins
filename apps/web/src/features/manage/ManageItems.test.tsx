@@ -13,11 +13,14 @@ const item = (over: Partial<ManageViewResponse['items'][number]>): ManageViewRes
 });
 
 function renderItems(items: ManageViewResponse['items']) {
-  render(
-    <QueryClientProvider client={new QueryClient()}>
-      <ManageItems slug="abc123" onUnauthorized={() => {}} items={items} />
-    </QueryClientProvider>,
+  const client = new QueryClient();
+  const view = (shown: ManageViewResponse['items']) => (
+    <QueryClientProvider client={client}>
+      <ManageItems slug="abc123" onUnauthorized={() => {}} items={shown} />
+    </QueryClientProvider>
   );
+  const { rerender } = render(view(items));
+  return { rerender: (shown: ManageViewResponse['items']) => rerender(view(shown)) };
 }
 
 describe('ManageItems', () => {
@@ -62,7 +65,7 @@ describe('ManageItems', () => {
     renderItems([item({})]);
 
     await user.click(screen.getByRole('button', { name: 'Delete Rings' }));
-    expect(screen.getByText('Delete \u201cRings\u201d? This can\u2019t be undone.')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Delete \u201cRings\u201d? This can\u2019t be undone.' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Keep it' })).toHaveFocus();
 
     await user.click(screen.getByRole('button', { name: 'Keep it' }));
@@ -73,6 +76,7 @@ describe('ManageItems', () => {
     await user.click(screen.getByRole('button', { name: 'Delete Rings' }));
     await user.click(screen.getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(deleted).toEqual(['i1']));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Items' })).toHaveFocus());
   });
 
   it('disables Delete with the reason once a guest has acted on the item', () => {
@@ -83,15 +87,20 @@ describe('ManageItems', () => {
     expect(button).toHaveAccessibleDescription('Guests have already picked this one, so it can\u2019t be deleted.');
   });
 
-  it("shows the server's reason when a guest got there first", async () => {
+  it("shows the server's reason once, with focus on it, when a guest got there first", async () => {
     const reason = "Guests have already picked this one, so it can't be deleted.";
     server.use(http.delete('/api/lists/:slug/items/:itemId', () => HttpResponse.json({ message: reason, code: 'item_has_guest_history' }, { status: 409 })));
     const user = userEvent.setup();
-    renderItems([item({})]);
+    const { rerender } = renderItems([item({})]);
 
     await user.click(screen.getByRole('button', { name: 'Delete Rings' }));
     await user.click(screen.getByRole('button', { name: 'Delete' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(reason);
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(reason));
+    expect(screen.getByRole('alert')).toHaveFocus();
+    // The refreshed list now marks the item undeletable; the reason still shows only once.
+    rerender([item({ deletable: false })]);
+    expect(screen.getAllByText(/can.t be deleted/)).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Delete Rings' })).toHaveAccessibleDescription(reason);
   });
 });
