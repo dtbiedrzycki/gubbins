@@ -61,9 +61,12 @@ describe('EditItemForm', () => {
     expect(screen.queryByText(/More may already be held/)).not.toBeInTheDocument();
 
     await user.clear(screen.getByLabelText('Quantity'));
+    expect(screen.queryByText(/More may already be held/)).not.toBeInTheDocument();
     await user.type(screen.getByLabelText('Quantity'), '1');
 
-    expect(screen.getByText('More may already be held or bought than this new quantity. Those stay as they are; guests can’t pick this item again until the count drops below 1.')).toBeInTheDocument();
+    const warning = screen.getByText('More may already be held or bought than this new quantity. Those stay as they are; guests can’t pick this item again until the count drops below 1.');
+    expect(screen.getByLabelText('Quantity')).toHaveAccessibleDescription(warning.textContent!);
+    expect(warning).toHaveAttribute('aria-live', 'polite');
     await user.click(screen.getByRole('button', { name: 'Save anyway' }));
     await waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(bodies).toEqual([expect.objectContaining({ quantity: 1 })]);
@@ -80,17 +83,35 @@ describe('EditItemForm', () => {
     await user.type(screen.getByLabelText('Target (USD)'), '150');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
-    expect(screen.getByText('This target is already met')).toBeInTheDocument();
+    expect(screen.getByText('This target is already met')).toHaveFocus();
     expect(screen.getByText('Guests have chipped in more than $150.00. Saving marks the gift as fully funded.')).toBeInTheDocument();
     expect(bodies).toEqual([]);
 
     await user.click(screen.getByRole('button', { name: 'Go back' }));
     expect(screen.queryByText('This target is already met')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveFocus();
     expect(bodies).toEqual([]);
 
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await user.click(screen.getByRole('button', { name: 'Save new target' }));
     await waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(bodies).toEqual([{ title: 'Stroller fund', quantity: 1, priceMinor: 15000 }]);
+  });
+
+  it.each([
+    ['a target above what is pledged', group, '250', 25000],
+    ['a group with nothing pledged', { ...group, pledgedMinor: 0 }, '100', 10000],
+  ])('saves straight away with %s', async (_name, item, typed, priceMinor) => {
+    const onDone = vi.fn();
+    const user = userEvent.setup();
+    const bodies = renderForm(item, { onDone });
+
+    await user.clear(screen.getByLabelText('Target (USD)'));
+    await user.type(screen.getByLabelText('Target (USD)'), typed);
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onDone).toHaveBeenCalled());
+    expect(bodies).toEqual([{ title: 'Stroller fund', quantity: 1, priceMinor }]);
+    expect(screen.queryByText('This target is already met')).not.toBeInTheDocument();
   });
 });
