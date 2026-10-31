@@ -35,7 +35,7 @@ export default function ManagePage() {
           <>
             {query.data && (
               <>
-                <ListDetails slug={slug} view={query.data} />
+                <ListDetails slug={slug} onUnauthorized={unauthorized} view={query.data} />
                 <ManageItems items={query.data.items} />
               </>
             )}

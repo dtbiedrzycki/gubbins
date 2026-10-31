@@ -91,7 +91,7 @@ describe('CreateListForm', () => {
     renderWithQueryClient(<CreateListForm />);
     const field = screen.getByLabelText('About this list (optional)');
     expect(field).toHaveAttribute('maxlength', '2000');
-    expect(field).toHaveAccessibleDescription('Guests see this above your list. If you want gifts mailed, add your shipping address here. Supports **bold**, *italics*, lists and links. You can\u2019t change it after the list is created.');
+    expect(field).toHaveAccessibleDescription('Guests see this above your list. If you want gifts mailed, add your shipping address here. Supports **bold**, *italics*, lists and links.');
   });
 
   it('sends the description trimmed, and leaves it out when blank', async () => {
