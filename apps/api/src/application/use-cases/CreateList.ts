@@ -4,12 +4,13 @@ import type { TokenGenerator } from '../ports/TokenGenerator.js';
 import type { Clock } from '../ports/Clock.js';
 import type { SecretComparer } from '../ports/SecretComparer.js';
 import { PaymentMethods } from '../../domain/value-objects/PaymentMethods.js';
-import { InvalidCreateSecretError } from '../../domain/errors.js';
+import { DomainValidationError, InvalidCreateSecretError } from '../../domain/errors.js';
 
 export interface CreateListInput {
   listTitle: string;
   listDescription?: string;
   createSecret?: string;
+  key?: string;
   venmoHandle?: string;
   zelleHandle?: string;
 }
@@ -34,6 +35,10 @@ export class CreateList {
     if (this.createSecret === null || !this.secretComparer.compareInConstantTime(this.createSecret, (input.createSecret ?? '').trim())) {
       throw new InvalidCreateSecretError();
     }
+    const chosenKey = input.key?.trim();
+    if (chosenKey !== undefined && !this.tokenGenerator.isGuestKey(chosenKey)) {
+      throw new DomainValidationError('Choose a guest key from the suggestions');
+    }
     return this.unitOfWork.execute(async (ctx) => {
       const wishlist = Wishlist.create({
         id: this.tokenGenerator.generateEntityId(),
@@ -41,7 +46,7 @@ export class CreateList {
         title: input.listTitle,
         description: input.listDescription,
         ownerToken: this.tokenGenerator.generateOwnerToken(),
-        key: this.tokenGenerator.generateGuestKey(),
+        key: chosenKey ?? this.tokenGenerator.generateGuestKey(),
         asOf: this.clock.now(),
         paymentMethods: PaymentMethods.from({ venmoHandle: input.venmoHandle, zelleHandle: input.zelleHandle }),
       });

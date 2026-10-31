@@ -26,6 +26,22 @@ describe('CreateList', () => {
     expect(persistedWishlist?.items).toEqual([]);
   });
 
+  it('stores the chosen key, trimmed', async () => {
+    const { useCase, wishlists } = makeUseCase();
+
+    const result = await useCase.execute({ listTitle: 'L', createSecret: 'right', key: ' guest-key-7 ' });
+
+    expect(result.key).toBe('guest-key-7');
+    expect((await wishlists.findBySlug('slug-1', NOW))?.key.value).toBe('guest-key-7');
+  });
+
+  it('refuses a key the generator could not have made, persisting nothing', async () => {
+    const { useCase, wishlists } = makeUseCase();
+
+    await expect(useCase.execute({ listTitle: 'L', createSecret: 'right', key: 'my-own-words' })).rejects.toThrow(DomainValidationError);
+    expect(await wishlists.findBySlug('slug-1', NOW)).toBeNull();
+  });
+
   it('accepts a sent secret with surrounding whitespace', async () => {
     const { useCase } = makeUseCase();
 

@@ -6,6 +6,7 @@ import { EFF_LARGE_WORDLIST } from './effLargeWordlist.js';
 // Letters only, so a key reads aloud and types the same everywhere: drops the
 // four hyphenated entries (drop-down, felt-tip, t-shirt, yo-yo).
 export const GUEST_KEY_WORDS = EFF_LARGE_WORDLIST.filter((w) => /^[a-z]+$/.test(w));
+const GUEST_KEY_WORD_SET = new Set(GUEST_KEY_WORDS);
 
 export class TokenGeneratorCrypto implements TokenGenerator {
   /**
@@ -30,6 +31,10 @@ export class TokenGeneratorCrypto implements TokenGenerator {
   generateOwnerToken(): string { return randomBytes(24).toString('base64url'); }
   generateGuestKey(): string {
     return Array.from({ length: 3 }, () => GUEST_KEY_WORDS[randomInt(GUEST_KEY_WORDS.length)]).join('-');
+  }
+  isGuestKey(candidate: string): boolean {
+    const parts = candidate.split('-');
+    return parts.length === 3 && parts.every((w) => GUEST_KEY_WORD_SET.has(w));
   }
   generateHoldSecret(): string { return randomBytes(24).toString('base64url'); }
   /**
