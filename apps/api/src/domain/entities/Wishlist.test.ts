@@ -4,7 +4,7 @@ import { Item } from './Item.js';
 import { Hold } from './Hold.js';
 import { Contribution } from './Contribution.js';
 import {
-  DomainValidationError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError, NoPaymentMethodError,
+  DomainValidationError, HoldNotFoundError, ItemHasGuestHistoryError, ItemNotFoundError, ItemUnavailableError, NoPaymentMethodError,
 } from '../errors.js';
 import { PaymentMethods } from '../value-objects/PaymentMethods.js';
 
@@ -228,6 +228,24 @@ describe('Wishlist.editItem', () => {
 
     expect(wishlist.items.map((i) => i.title)).toEqual(['Cot mattress', 'Crib']);
     expect(wishlist.getItem(ITEM_ID)).toBe(edited);
+  });
+});
+
+describe('Wishlist.removeItem', () => {
+  it('removes an item no guest has acted on', () => {
+    const second = Item.reconstitute({ id: OTHER_ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Crib', quantity: 1, seq: 0, asOf: T0 });
+    const wishlist = Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [itemOf(), second] });
+
+    wishlist.removeItem(ITEM_ID);
+
+    expect(wishlist.items.map((i) => i.id.value)).toEqual([OTHER_ITEM_ID]);
+  });
+
+  it('refuses to remove an item with guest history, keeping it', () => {
+    const wishlist = Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [itemOf(WISHLIST_ID, { seq: 1 })] });
+
+    expect(() => wishlist.removeItem(ITEM_ID)).toThrow(ItemHasGuestHistoryError);
+    expect(wishlist.items.map((i) => i.id.value)).toEqual([ITEM_ID]);
   });
 });
 

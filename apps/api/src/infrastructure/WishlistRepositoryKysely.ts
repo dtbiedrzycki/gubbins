@@ -61,6 +61,9 @@ export class WishlistRepositoryKysely implements WishlistRepository {
         || row.priceMinor !== item.priceMinor || row.description !== item.description) await this.items.update(item);
       if (row.seq !== item.seq) await this.items.saveState(item);
     }
+    // Before holds are written; the database refuses any item that has history.
+    const kept = new Set(wishlist.items.map((item) => item.id.value));
+    for (const id of stored.keys()) if (!kept.has(id)) await this.items.delete(id);
     // After the items, so a new hold's item row already exists.
     const holdIds = wishlist.holds.map((hold) => hold.id.value);
     const storedRows = holdIds.length === 0 ? [] : await this.db.selectFrom('holds')

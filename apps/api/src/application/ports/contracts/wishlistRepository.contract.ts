@@ -236,6 +236,17 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect(reloaded?.getItem(ITEM_A2).seq).toBe(0);
     });
 
+    it('save deletes an item the aggregate removed, so the next load has no trace of it', async () => {
+      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+      wishlist.addItem({ type: 'single', title: 'Bib' }, { generateEntityId: () => ITEM_A2 });
+      await fx.wishlists.save(wishlist);
+
+      wishlist.removeItem(ITEM_A2);
+      await fx.wishlists.save(wishlist);
+
+      expect((await fx.wishlists.findById(LIST_A, NOW))?.items.map((i) => i.id.value)).toEqual([ITEM_A]);
+    });
+
     it('save inserts a pledge the aggregate made, once: a second save inserts nothing', async () => {
       await fx.seedGuestPii(PII_REF);
       const list = Wishlist.create({ id: LIST_C, slug: 'list-c', title: 'C', ownerToken: 'o', key: 'k', asOf: NOW,
