@@ -27,10 +27,8 @@ only the "add item" form. Editing needs a manage view first.
    submits that key with the list.
 4. **Edit items.** Title, quantity, price, store link, description.
 5. **Delete items** that no guest has acted on.
-6. **Schema first.** The `archived_at` column a later archive feature
-   needs lands in Phase 0, so
-   the owner can start hosting production right after Phase 0 merges and
-   the later phases need no migrations.
+6. **No schema changes.** Every phase works on the current schema, so the
+   owner can host production now and none of this work needs a migration.
 
 ## Behaviour (owner rulings, 2026-10-30)
 
@@ -94,11 +92,14 @@ only the "add item" form. Editing needs a manage view first.
 - An item whose stream has no events (`item_state.seq` is 0) can be deleted,
   after an in-page confirmation. It's a hard delete: the item, its
   `item_state` row, nothing else (it has no holds or contributions).
+  No record of the deleted item is kept: no tombstone, snapshot or audit
+  row (owner ruling, 2026-10-31).
 - An item with **any** event, including a hold later released or expired,
   can't be deleted (ADR-0017). The Delete button is disabled and a hint says
   why: "Guests have already picked this one, so it can't be deleted." The API
   refuses it too.
-- Archiving such items is later work; Phase 0 adds its column only.
+- No archiving (owner ruling, 2026-10-31): no `archived_at` column and no
+  archive action.
 
 ### Audit trail: deferred (owner ruling, 2026-10-30)
 
@@ -135,13 +136,6 @@ absent optional field means "none". That makes "cleared" unambiguous.
 Each phase is deployable and useful on its own, in this order. Each splits
 into PRs of at most 10 files (small-prs skill).
 
-0. **Schema.** `items.archived_at` (nullable text, unused).
-   Schema types and `assertSchemaMatches` updated. Amended into
-   `0001_init.ts` in place (migrations are edited in place until the first
-   release). No behaviour change. Existing databases (dev, the Tailscale dev
-   instance) fail `assertSchemaMatches` after this and are recreated: no
-   migration runner is built. The owner deploys production after this,
-   so from then on no phase may touch the schema.
 1. **Manage view.** An owner-only read of the list (owner cookie, same 404
    rule as other owner routes) returning title, description, key, and items
    with what the delete and warning rules need: whether the item has any
@@ -169,7 +163,7 @@ into PRs of at most 10 files (small-prs skill).
 
 - Any path that changes a list's key after it's created.
 - Deleting an item that carries any guest history, by any path.
-- Any schema change after Phase 0.
+- Any schema change.
 
 ## Constraints
 
