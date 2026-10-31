@@ -90,12 +90,14 @@ function ItemActions({ slug, item, onUnauthorized, children }: ItemActionsProps)
   const queryClient = useQueryClient();
   const { mutate, error, isPending } = useMutation({
     mutationFn: () => api.deleteItem(slug, item.id),
-    // Here rather than on mutate, whose callbacks don't run once the caller has unmounted, as this item does after the refetch.
+    // On the hook rather than on mutate: mutate's callbacks are skipped if the item has already unmounted.
     // The item leaves the list, so focus goes to the list's heading rather than to nothing.
     onSuccess: () => document.getElementById('manage-items-heading')?.focus(),
     // Returned, so the mutation stays pending until the list has refetched.
     onSettled: () => queryClient.invalidateQueries({ queryKey: manageViewKey(slug) }),
   });
+  // The confirmation's buttons are gone, so focus moves to the reason once it has rendered (the alert hides while empty).
+  useEffect(() => { if (error) alert.current?.focus(); }, [error]);
   const hintId = `delete-hint-${item.id}`;
   const alertId = `delete-error-${item.id}`;
   // A refused delete's reason replaces the standing hint, so it shows once.
@@ -106,8 +108,6 @@ function ItemActions({ slug, item, onUnauthorized, children }: ItemActionsProps)
       onError: (e) => {
         setConfirming(false);
         if (e instanceof ApiError && e.status === 404) onUnauthorized();
-        // The confirmation's buttons are gone, so focus moves to the reason.
-        else alert.current?.focus();
       },
     });
   }

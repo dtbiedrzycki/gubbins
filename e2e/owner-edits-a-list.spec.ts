@@ -74,3 +74,25 @@ test('the owner edits their list and deletes an untouched item', async ({ page, 
   await expect(deleteStroller).toBeVisible();
   await expectNoSeriousAxeViolations(manage);
 });
+
+test('a refused delete moves focus to the server's reason', async ({ page, context }) => {
+  await page.goto('/wishlists/new');
+  await page.getByLabel('List title').fill('Baby Shower');
+  await expect(page.getByRole('region', { name: 'Guest key' }).locator('[aria-live]')).not.toBeEmpty();
+  await page.getByLabel('Create secret').fill('e2e-create-secret');
+  await page.getByRole('button', { name: 'Create list' }).click();
+  const ownerToken = (await page.getByTestId('owner-token').textContent())?.trim();
+  const [manage] = await Promise.all([context.waitForEvent('page'), page.getByRole('link', { name: 'Manage your list' }).click()]);
+  await manage.getByLabel('Owner token').fill(ownerToken!);
+  await manage.getByRole('button', { name: 'Manage list' }).click();
+  await manage.getByLabel('Title').fill('Bib');
+  await manage.getByRole('button', { name: 'Add item' }).click();
+  await expect(manage.getByRole('status')).toHaveText('Added "Bib".');
+  // Stands in for a guest holding the item between the page loading and the owner confirming.
+  await manage.route('**/api/lists/*/items/*', (route) => route.request().method() === 'DELETE'
+    ? route.fulfill({ status: 409, json: { message: 'Guests have already picked this one.', code: 'item_has_guest_history' } })
+    : route.continue());
+  await manage.getByRole('button', { name: 'Delete Bib' }).click();
+  await manage.getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(manage.getByRole('alert').filter({ hasText: 'Guests have already picked' })).toBeFocused();
+});
