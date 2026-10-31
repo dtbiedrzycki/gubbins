@@ -117,14 +117,14 @@ describe('ItemView', () => {
     expect(document.querySelector('[data-seal]')).toBeNull();
   });
 
-  it('fills the jar to 100%, not 150%, when $15.00 is pledged toward $10.00', () => {
+  it('fills the bar to 100%, not 150%, when $15.00 is pledged toward $10.00', () => {
     renderItem({ type: 'group', priceMinor: 1000, pledgedMinor: 1500, availableUnits: 0 });
-    expect(document.querySelector<HTMLElement>('[data-jar-fill]')!.style.height).toBe('100%');
+    expect(document.querySelector<HTMLElement>('[data-bar-fill]')!.style.width).toBe('100%');
   });
 
-  it('hides the wishing jar from screen readers, since the pledged text says the same', () => {
+  it('hides the coin bar from screen readers, since the pledged text says the same', () => {
     renderItem({ type: 'group', priceMinor: 1000, pledgedMinor: 500, availableUnits: 0 });
-    expect(document.querySelector('[data-jar-fill]')!.parentElement).toHaveAttribute('aria-hidden', 'true');
+    expect(document.querySelector('[data-bar-fill]')!.parentElement).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('hides the progress bar visually but keeps it for screen readers', () => {
