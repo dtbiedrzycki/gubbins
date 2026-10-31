@@ -52,12 +52,14 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     if (list.title !== wishlist.title || list.description !== wishlist.description) {
       await this.db.updateTable('wishlists').set({ title: wishlist.title, description: wishlist.description }).where('id', '=', wishlist.id.value).execute();
     }
-    const storedSeq = await this.items.seqsByWishlistId(wishlist.id.value);
-    // Writes only items the domain added or moved on, so an untouched row keeps its updated_at.
+    const stored = new Map((await this.items.findAllByWishlistId(wishlist.id.value)).map((row) => [row.id, row]));
+    // Writes only items the domain added, edited or moved on, so an untouched row keeps its updated_at.
     for (const item of wishlist.items) {
-      const seq = storedSeq.get(item.id.value);
-      if (seq === undefined) await this.items.insert(item);
-      else if (seq !== item.seq) await this.items.saveState(item);
+      const row = stored.get(item.id.value);
+      if (row === undefined) { await this.items.insert(item); continue; }
+      if (row.title !== item.title || row.quantity !== item.quantity || row.url !== item.url
+        || row.priceMinor !== item.priceMinor || row.description !== item.description) await this.items.update(item);
+      if (row.seq !== item.seq) await this.items.saveState(item);
     }
     // After the items, so a new hold's item row already exists.
     const holdIds = wishlist.holds.map((hold) => hold.id.value);
