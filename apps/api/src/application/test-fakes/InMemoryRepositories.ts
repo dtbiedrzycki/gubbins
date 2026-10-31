@@ -20,13 +20,10 @@ const toRow = (item: Item): ItemRow => ({
 });
 
 /**
- * Copies through `reconstitute`, the way a real repository rebuilds rows.
- * Neither reads nor writes may share an instance with the store: the
- * domain mutates holds in place, so a shared instance would let an
- * unpersisted decision show up on the next read — which a SELECT never
- * could.
+ * Details and identity only, for `insert` and `save`: `hydrate` reads the list's own fields from this
+ * copy and rebuilds the items and their holds from the store's rows with the caller's instant. The
+ * copy's own instant and items are never read, so a throwaway instant is safe.
  */
-/** Details and identity only: `hydrate` rebuilds the items, so the copy needs none and any instant will do. */
 function copyWishlist(wishlist: Wishlist): Wishlist {
   return Wishlist.reconstitute({
     id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title, ownerToken: wishlist.ownerToken.value,
@@ -34,6 +31,13 @@ function copyWishlist(wishlist: Wishlist): Wishlist {
   });
 }
 
+/**
+ * Copies through `reconstitute`, the way a real repository rebuilds rows.
+ * Neither reads nor writes may share an instance with the store: the
+ * domain mutates holds in place, so a shared instance would let an
+ * unpersisted decision show up on the next read — which a SELECT never
+ * could.
+ */
 function copyHold(hold: Hold): Hold {
   return Hold.reconstitute({
     id: hold.id.value, itemId: hold.itemId.value, secret: hold.secret.value, sessionHash: hold.sessionHash.value,
@@ -89,7 +93,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
 
   async save(wishlist: Wishlist): Promise<void> {
     if (!this.store.wishlists.has(wishlist.id.value)) throw new WishlistNotFoundError(wishlist.id.value);
-    this.store.wishlists.set(wishlist.id.value, copyWishlist(wishlist)); // hydrate reads title and description from it
+    this.store.wishlists.set(wishlist.id.value, copyWishlist(wishlist));
     // The purchased count is derived from the holds, never stored.
     for (const item of wishlist.items) this.store.items.set(item.id.value, toRow(item));
     const holds = new InMemoryHoldRepository(this.store);
