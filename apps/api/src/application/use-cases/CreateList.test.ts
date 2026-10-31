@@ -15,10 +15,10 @@ function makeUseCase() {
 }
 
 describe('CreateList', () => {
-  it('creates an empty wishlist, returning slug/ownerToken/key', async () => {
+  it('creates an empty wishlist, returning its slug, owner token and the chosen key', async () => {
     const { useCase, wishlists } = makeUseCase();
 
-    const result = await useCase.execute({ listTitle: 'Baby Shower', createSecret: 'right' });
+    const result = await useCase.execute({ listTitle: 'Baby Shower', createSecret: 'right', key: 'guest-key-1' });
 
     expect(result).toEqual({ slug: 'slug-1', ownerToken: 'owner-token-1', key: 'guest-key-1' });
     const persistedWishlist = await wishlists.findBySlug('slug-1', NOW);
@@ -45,13 +45,13 @@ describe('CreateList', () => {
   it('accepts a sent secret with surrounding whitespace', async () => {
     const { useCase } = makeUseCase();
 
-    await expect(useCase.execute({ listTitle: 'L', createSecret: ' right\n' })).resolves.toMatchObject({ slug: 'slug-1' });
+    await expect(useCase.execute({ listTitle: 'L', createSecret: ' right\n', key: 'guest-key-1' })).resolves.toMatchObject({ slug: 'slug-1' });
   });
 
   it.each([undefined, '', 'wrong'])('refuses creation with a missing or wrong secret (%j), persisting nothing', async (candidate) => {
     const { useCase, wishlists } = makeUseCase();
 
-    await expect(useCase.execute({ listTitle: 'L', createSecret: candidate })).rejects.toThrow(InvalidCreateSecretError);
+    await expect(useCase.execute({ listTitle: 'L', createSecret: candidate, key: 'guest-key-1' })).rejects.toThrow(InvalidCreateSecretError);
     expect(await wishlists.findBySlug('slug-1', NOW)).toBeNull();
   });
 
@@ -59,13 +59,13 @@ describe('CreateList', () => {
     const { unitOfWork } = inMemoryPersistence();
     const useCase = new CreateList(unitOfWork, new SequentialTokenGenerator(), new FixedClock(NOW), new PlainSecretComparer(), null);
 
-    await expect(useCase.execute({ listTitle: 'L', createSecret: candidate })).rejects.toThrow(InvalidCreateSecretError);
+    await expect(useCase.execute({ listTitle: 'L', createSecret: candidate, key: 'guest-key-1' })).rejects.toThrow(InvalidCreateSecretError);
   });
 
   it('stores the payment handles given at creation', async () => {
     const { useCase, wishlists } = makeUseCase();
 
-    await useCase.execute({ listTitle: 'L', createSecret: 'right', venmoHandle: 'my-venmo', zelleHandle: 'me@example.com' });
+    await useCase.execute({ listTitle: 'L', createSecret: 'right', venmoHandle: 'my-venmo', zelleHandle: 'me@example.com', key: 'guest-key-1' });
 
     const persisted = await wishlists.findBySlug('slug-1', NOW);
     expect(persisted?.paymentMethods.venmoHandle).toBe('my-venmo');
@@ -75,7 +75,7 @@ describe('CreateList', () => {
   it('stores the list description given at creation', async () => {
     const { useCase, wishlists } = makeUseCase();
 
-    await useCase.execute({ listTitle: 'L', createSecret: 'right', listDescription: 'Ship to 1 Main St' });
+    await useCase.execute({ listTitle: 'L', createSecret: 'right', listDescription: 'Ship to 1 Main St', key: 'guest-key-1' });
 
     expect((await wishlists.findBySlug('slug-1', NOW))?.description).toBe('Ship to 1 Main St');
   });
@@ -83,7 +83,7 @@ describe('CreateList', () => {
   it('persists nothing when a handle is refused', async () => {
     const { useCase, wishlists } = makeUseCase();
 
-    await expect(useCase.execute({ listTitle: 'L', createSecret: 'right', zelleHandle: 'not a handle' })).rejects.toThrow(DomainValidationError);
+    await expect(useCase.execute({ listTitle: 'L', createSecret: 'right', zelleHandle: 'not a handle', key: 'guest-key-1' })).rejects.toThrow(DomainValidationError);
     expect(await wishlists.findBySlug('slug-1', NOW)).toBeNull();
   });
 });

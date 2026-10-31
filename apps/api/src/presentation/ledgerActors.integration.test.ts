@@ -26,6 +26,7 @@ const PERMITTED_ACTORS: Record<LedgerEvent['type'], readonly Actor[]> = {
   ContributionPledged: ['guest'],
 };
 
+const guestKey = 'abacus-abdomen-able';
 const silent: Logger = { logInfo: () => {}, logWarn: () => {}, logError: () => {} };
 let db: Kysely<Database>;
 let app: FastifyInstance;
@@ -48,7 +49,7 @@ function cookieOf(response: LightMyRequestResponse): string {
 
 /** A new list holding one item its owner added, and a guest's session cookie on it. */
 async function itemOnNewList(list: object, item: object) {
-  const { slug, ownerToken, key } = (await app.inject({ method: 'POST', url: '/api/lists', payload: { ...list, createSecret: 'test-create-secret' } })).json() as { slug: string; ownerToken: string; key: string };
+  const { slug, ownerToken, key } = (await app.inject({ method: 'POST', url: '/api/lists', payload: { ...list, createSecret: 'test-create-secret', key: guestKey } })).json() as { slug: string; ownerToken: string; key: string };
   const owner = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${slug}/owner-session`, payload: { ownerToken } }));
   const { itemId } = (await app.inject({ method: 'POST', url: `/api/lists/${slug}/items`, headers: { cookie: owner }, payload: item })).json() as { itemId: string };
   const cookie = cookieOf(await app.inject({ method: 'POST', url: `/api/lists/${slug}/session`, payload: { key } }));

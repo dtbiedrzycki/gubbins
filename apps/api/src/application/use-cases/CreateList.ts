@@ -10,7 +10,7 @@ export interface CreateListInput {
   listTitle: string;
   listDescription?: string;
   createSecret?: string;
-  key?: string;
+  key: string;
   venmoHandle?: string;
   zelleHandle?: string;
 }
@@ -35,8 +35,8 @@ export class CreateList {
     if (this.createSecret === null || !this.secretComparer.compareInConstantTime(this.createSecret, (input.createSecret ?? '').trim())) {
       throw new InvalidCreateSecretError();
     }
-    const chosenKey = input.key?.trim();
-    if (chosenKey !== undefined && !this.tokenGenerator.isGuestKey(chosenKey)) {
+    const chosenKey = input.key.trim();
+    if (!this.tokenGenerator.isGuestKey(chosenKey)) {
       throw new DomainValidationError('Choose a guest key from the suggestions');
     }
     return this.unitOfWork.execute(async (ctx) => {
@@ -46,7 +46,7 @@ export class CreateList {
         title: input.listTitle,
         description: input.listDescription,
         ownerToken: this.tokenGenerator.generateOwnerToken(),
-        key: chosenKey ?? this.tokenGenerator.generateGuestKey(),
+        key: chosenKey,
         asOf: this.clock.now(),
         paymentMethods: PaymentMethods.from({ venmoHandle: input.venmoHandle, zelleHandle: input.zelleHandle }),
       });
