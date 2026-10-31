@@ -4,7 +4,7 @@ import type { WishlistRepository } from '../application/ports/WishlistRepository
 import { Item } from '../domain/entities/Item.js';
 import { Wishlist } from '../domain/entities/Wishlist.js';
 import { PaymentMethods } from '../domain/value-objects/PaymentMethods.js';
-import { WishlistNotFoundError } from '../domain/errors.js';
+import { ItemHasGuestHistoryError, WishlistNotFoundError } from '../domain/errors.js';
 import { ContributionRepositoryKysely } from './ContributionRepositoryKysely.js';
 import { HoldRepositoryKysely, lifecycleColumns } from './HoldRepositoryKysely.js';
 import { ItemRepositoryKysely } from './ItemRepositoryKysely.js';
@@ -49,10 +49,16 @@ export class WishlistRepositoryKysely implements WishlistRepository {
   async save(wishlist: Wishlist): Promise<void> {
     const list = await this.db.selectFrom('wishlists').select(['id', 'title', 'description']).where('id', '=', wishlist.id.value).executeTakeFirst();
     if (list === undefined) throw new WishlistNotFoundError(wishlist.id.value);
+    const stored = new Map((await this.items.findAllByWishlistId(wishlist.id.value)).map((row) => [row.id, row]));
+    // Assumes the aggregate holds the list's full set of items, as findById/findBySlug always load.
+    // Refused before anything is written.
+    const kept = new Set(wishlist.items.map((item) => item.id.value));
+    const removed = [...stored.values()].filter((row) => !kept.has(row.id));
+    // The stored seq is the guard: event_log has no foreign key to items; only holds and contributions do.
+    if (removed.some((row) => row.seq !== 0)) throw new ItemHasGuestHistoryError(removed.find((row) => row.seq !== 0)!.id);
     if (list.title !== wishlist.title || list.description !== wishlist.description) {
       await this.db.updateTable('wishlists').set({ title: wishlist.title, description: wishlist.description }).where('id', '=', wishlist.id.value).execute();
     }
-    const stored = new Map((await this.items.findAllByWishlistId(wishlist.id.value)).map((row) => [row.id, row]));
     // Writes only items the domain added, edited or moved on, so an untouched row keeps its updated_at.
     for (const item of wishlist.items) {
       const row = stored.get(item.id.value);
@@ -61,6 +67,8 @@ export class WishlistRepositoryKysely implements WishlistRepository {
         || row.priceMinor !== item.priceMinor || row.description !== item.description) await this.items.update(item);
       if (row.seq !== item.seq) await this.items.saveState(item);
     }
+    // Before holds are written.
+    for (const row of removed) await this.items.delete(row.id);
     // After the items, so a new hold's item row already exists.
     const holdIds = wishlist.holds.map((hold) => hold.id.value);
     const storedRows = holdIds.length === 0 ? [] : await this.db.selectFrom('holds')
