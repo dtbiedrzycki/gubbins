@@ -21,22 +21,16 @@ export default function ManagePage() {
     retry: false,
   });
   const queryClient = useQueryClient();
-  const unauthorized = () => {
-    // Drop the failed view so entering the token again fetches afresh.
-    queryClient.removeQueries({ queryKey: ['manage', slug] });
-    setEntered(false);
-    setExpired(true);
-  };
   // The owner cookie no longer works (404): back to the gate.
   const gone = query.error instanceof ApiError && query.error.status === 404;
-  useEffect(() => { if (gone) unauthorized(); }); // eslint-disable-line react-hooks/exhaustive-deps
+  const unauthorized = () => { setEntered(false); setExpired(true); };
   if (!slug) return null;
 
   return (
     <main className="flex-1 bg-paper p-6">
       <div className="max-w-sm space-y-6">
         <h1 ref={heading} tabIndex={-1} className="text-2xl font-semibold">Manage your list</h1>
-        {entered ? (
+        {entered && !gone ? (
           <>
             {query.data && (
               <>
@@ -49,8 +43,13 @@ export default function ManagePage() {
           </>
         ) : (
           <OwnerTokenGate
-            slug={slug} onSuccess={() => { setEntered(true); setExpired(false); }}
-            notice={expired ? 'Enter your owner token again.' : undefined}
+            slug={slug}
+            onSuccess={() => {
+              // Drop a failed view so the new session fetches afresh.
+              queryClient.removeQueries({ queryKey: ['manage', slug] });
+              setEntered(true); setExpired(false);
+            }}
+            notice={expired || gone ? 'Enter your owner token again.' : undefined}
           />
         )}
       </div>
