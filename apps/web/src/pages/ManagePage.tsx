@@ -36,10 +36,10 @@ export default function ManagePage() {
             {query.data && (
               <>
                 <ListDetails slug={slug} view={query.data} />
-                <ManageItems slug={slug} items={query.data.items} onUnauthorized={unauthorized} />
+                <ManageItems items={query.data.items} />
               </>
             )}
-            {query.error && !gone && <p role="alert" className="text-red-600">{query.error.message}</p>}
+            {query.error && <p role="alert" className="text-red-600">{query.error.message}</p>}
             <AddItemForm slug={slug} onUnauthorized={unauthorized} />
           </>
         ) : (
@@ -47,7 +47,7 @@ export default function ManagePage() {
             slug={slug}
             onSuccess={() => {
               // Drop a failed view so the new session fetches afresh.
-              queryClient.removeQueries({ queryKey: manageViewKey(slug!) });
+              queryClient.removeQueries({ queryKey: manageViewKey(slug) });
               setEntered(true); setExpired(false);
             }}
             notice={expired || gone ? 'Enter your owner token again.' : undefined}
