@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gubbins Owner Editing Mockups</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Alegreya+Sans:wght@400;700&display=swap">
+<style>
+/* Layout: a stack of phone-width screens, each with a caption saying what it shows; the app's own palette and faces. */
+:root {
+  --paper: #F6F3FB; --ink: #2E2447; --muted: #625A78; --line: #DCD3EA;
+  --moss: #34603F; --petal: #F2CBD6; --wax: #9E2A45; --gold: #D9A93A;
+  --card: #FFFFFF; --note: #FBF4E2; --frame: #E9E3F3;
+  --display: "IM Fell English", Georgia, serif;
+  --sans: "Alegreya Sans", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --paper: #1E1830; --ink: #EDE7F8; --muted: #B3AACB; --line: #3E3558;
+  --moss: #7DB38A; --petal: #5A3442; --wax: #E07A92; --gold: #E6BE62;
+  --card: #2A2240; --note: #3A3220; --frame: #15111F; color-scheme: dark } }
+body { margin: 0; background: var(--frame); color: var(--ink); font: 17px/1.45 var(--sans); padding: 24px 16px 48px; }
+.wrap { max-width: 420px; margin: 0 auto; display: grid; gap: 36px; }
+header h1 { font: 2rem/1.1 var(--display); margin: 0 0 8px; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); }
+.shot { display: grid; gap: 10px; }
+.cap { font-size: .95rem; color: var(--muted); }
+.cap b { color: var(--ink); letter-spacing: .04em; text-transform: uppercase; font-size: .8rem; display: block; margin-bottom: 2px; }
+.screen { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 20px 18px; display: grid; gap: 18px; }
+h2 { font: 1.5rem/1.15 var(--display); margin: 0; }
+h3 { font: 700 .8rem/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+section { display: grid; gap: 10px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.row > .grow { flex: 1; min-width: 0; }
+.key { font: 700 1.5rem/1.2 var(--sans); overflow-wrap: anywhere; }
+button { font: inherit; min-height: 44px; padding: 8px 14px; border-radius: 6px; cursor: pointer;
+  border: 1.5px solid var(--ink); background: transparent; color: var(--ink); }
+button.primary { background: var(--ink); color: var(--paper); }
+button.danger { border-color: var(--wax); color: var(--wax); }
+button[disabled] { opacity: .45; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.item { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; }
+.item .t { font-weight: 700; }
+.meta { color: var(--muted); font-size: .92rem; }
+.hint { font-size: .92rem; color: var(--muted); margin: 0; }
+.warn { background: var(--note); border-left: 3px solid var(--gold); padding: 10px 12px; border-radius: 4px; font-size: .95rem; margin: 0; }
+.confirm { background: var(--card); border: 1.5px solid var(--wax); border-radius: 10px; padding: 14px; display: grid; gap: 10px; }
+.confirm p { margin: 0; }
+label { font-weight: 700; font-size: .92rem; display: block; }
+input, textarea { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+  padding: 8px 10px; width: 100%; box-sizing: border-box; margin-top: 4px; }
+.field { display: grid; gap: 2px; }
+.count { font-size: .8rem; color: var(--muted); text-align: right; }
+.q { background: var(--petal); border-radius: 10px; padding: 12px 14px; font-size: .95rem; }
+.q b { display: block; margin-bottom: 4px; }
+.tag { font-size: .78rem; border: 1px solid var(--line); border-radius: 99px; padding: 1px 8px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Editing a list and its items</h1>
+  <p>Mockups for the owner-editing spec. Example list and items; buttons that open a confirmation are tappable.</p>
+</header>
+
+<div class="shot">
+  <div class="cap"><b>1 · Create form, choosing the key</b>The form suggests a key. Don’t like the words? Tap “Regenerate” until you do, then create the list with that key. Tap it to try.</div>
+  <div class="screen">
+    <h2>Create a list</h2>
+    <div class="field"><label for="ct">List title</label><input id="ct" value="Robin & Sam’s baby shower"></div>
+    <section>
+      <h3>Guest key</h3>
+      <div class="row"><span class="key grow" id="k1">maple-lantern-otter</span>
+        <button id="r1" type="button" style="display:inline-flex;align-items:center;gap:6px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>Regenerate</button></div>
+      <p class="hint">Guests type this to open your list. You can’t change it once the list is created.</p>
+    </section>
+    <div class="row"><button class="primary" type="button">Create list</button></div>
+  </div>
+</div>
+
+<div class="shot">
+  <div class="cap"><b>2 · Manage page, top</b>List details can be edited. The key and guest link are shown read-only.</div>
+  <div class="screen">
+    <h2>Manage your list</h2>
+    <section>
+      <div class="row"><h3 class="grow">List details</h3><button type="button">Edit</button></div>
+      <div class="t" style="font:1.25rem var(--display)">Robin &amp; Sam’s baby shower</div>
+      <p class="hint" style="color:var(--ink)">Ship to 14 Elm Row. We’d love secondhand books!</p>
+    </section>
+    <section>
+      <h3>Guest key</h3>
+      <span class="key">maple-lantern-otter</span>
+    </section>
+    <section>
+      <h3>Guest link</h3>
+      <span style="overflow-wrap:anywhere;color:var(--moss)">https://gifts.example/wishlists/k7Rm2pQx</span>
+    </section>
+  </div>
+</div>
+
+<div class="shot">
+  <div class="cap"><b>3 · Editing list details</b>Same fields and limits as at creation.</div>
+  <div class="screen">
+    <div class="field"><label for="lt">List title</label><input id="lt" value="Robin & Sam’s baby shower" maxlength="120"><span class="count">25 / 120</span></div>
+    <div class="field"><label for="ld">About this list (optional)</label><textarea id="ld" rows="3" maxlength="2000">Ship to 14 Elm Row. We’d love secondhand books!</textarea><span class="count">48 / 2000</span></div>
+    <div class="row"><button class="primary" type="button">Save</button><button type="button">Cancel</button></div>
+  </div>
+</div>
+
+<div class="shot">
+  <div class="cap"><b>4 · Manage page, items</b>Every item can be edited. One that a guest has acted on can’t be deleted, and says why.</div>
+  <div class="screen">
+    <h3>Items</h3>
+    <div class="item">
+      <div class="t">Wooden stacking rings</div><div class="meta">$24.00 · quantity 1</div>
+      <div class="row"><button type="button">Edit</button><button class="danger" id="d1" type="button">Delete</button></div>
+      <div class="confirm" id="c3" hidden>
+        <p>Delete “Wooden stacking rings”? This can’t be undone.</p>
+        <div class="row"><button class="primary" id="y3" type="button" style="background:var(--wax);border-color:var(--wax)">Delete</button><button id="n3" type="button">Keep it</button></div>
+      </div>
+    </div>
+    <div class="item">
+      <div class="t">Muslin swaddles, 3-pack</div><div class="meta">$32.00 · quantity 2</div>
+      <div class="row"><button type="button">Edit</button><button class="danger" disabled type="button" aria-describedby="h1">Delete</button></div>
+      <p class="hint" id="h1">Guests have already picked this one, so it can’t be deleted.</p>
+    </div>
+    <div class="item">
+      <div class="t">Stroller fund <span class="tag">group gift</span></div><div class="meta">$400.00 target</div>
+      <div class="row"><button type="button">Edit</button><button class="danger" disabled type="button" aria-describedby="h2">Delete</button></div>
+      <p class="hint" id="h2">Guests have already picked this one, so it can’t be deleted.</p>
+    </div>
+  </div>
+</div>
+
+<div class="shot">
+  <div class="cap"><b>5 · Editing an item</b>Title, quantity, price, link and description. The kind of item is shown but not changeable.</div>
+  <div class="screen">
+    <h2>Edit item</h2>
+    <p class="meta" style="margin:0">Single item</p>
+    <div class="field"><label for="it">Title</label><input id="it" value="Muslin swaddles, 3-pack" maxlength="120"></div>
+    <div class="field"><label for="iq">Quantity</label><input id="iq" value="1" inputmode="numeric"></div>
+    <p class="warn">More may already be held or bought than this new quantity. Those stay as they are; guests can’t pick this item again until the count drops below 1.</p>
+    <div class="field"><label for="ip">Price (USD)</label><input id="ip" value="32.00" inputmode="decimal"></div>
+    <div class="field"><label for="iu">Store link</label><input id="iu" value="https://example.com/swaddles"></div>
+    <div class="field"><label for="idesc">Description (optional)</label><textarea id="idesc" rows="2">Any neutral colour.</textarea></div>
+    <div class="row"><button class="primary" type="button">Save anyway</button><button type="button">Cancel</button></div>
+  </div>
+</div>
+
+<div class="shot">
+  <div class="cap"><b>6 · Lowering a group gift’s target</b>Allowed any time. If people have already chipped in more than the new target, you confirm first.</div>
+  <div class="screen">
+    <h2>Edit item</h2>
+    <p class="meta" style="margin:0">Group gift · price is required</p>
+    <div class="field"><label for="gp">Target (USD)</label><input id="gp" value="150.00" inputmode="decimal"></div>
+    <div class="confirm">
+      <p><b>This target is already met</b></p>
+      <p>Guests have chipped in more than $150.00. Saving marks the gift as fully funded.</p>
+      <div class="row"><button class="primary" type="button">Save new target</button><button type="button">Go back</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="shot">
+  <div class="cap"><b>Decided</b></div>
+  <div class="q"><b>Hints say it plainly.</b>“Guests have already picked this one” is shown as is. Spoiler wording waits until a spoiler setting exists.</div>
+</div>
+</div>
+
+<script>
+const words = ['cedar-pocket-wren','amber-thimble-cove','briar-lantern-moth','sorrel-kettle-dune'];
+let i = 0;
+const $ = (id) => document.getElementById(id);
+$('r1').onclick = () => { $('k1').textContent = words[i++ % words.length]; };
+$('d1').onclick = () => { $('c3').hidden = false; };
+$('n3').onclick = $('y3').onclick = () => { $('c3').hidden = true; };
+</script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Group Gift Progress</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* Fonts come from the repo's own Fontsource packages (run npm ci first); without them the Georgia and system-ui fallbacks show. */
+@font-face { font-family: "IM Fell English"; font-style: normal; font-weight: 400; src: url(../../node_modules/@fontsource/im-fell-english/files/im-fell-english-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-style: normal; font-weight: 400; src: url(../../node_modules/@fontsource/alegreya-sans/files/alegreya-sans-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-style: normal; font-weight: 700; src: url(../../node_modules/@fontsource/alegreya-sans/files/alegreya-sans-latin-700-normal.woff2) format("woff2"); }
+
+:root {
+  --page: #EEF0F3; --page-fg: #1C2230; --page-muted: #5B6474; --frame: #232833;
+  --paper: #F6F3FB; --ink: #2E2447; --muted: #625A78; --line: #DCD3EA; --moss: #34603F; --petal: #F2CBD6; --gold: #D9A93A; --wax: #9E2A45;
+  --f-display: "IM Fell English", Georgia, serif; --f-sans: "Alegreya Sans", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --page: #161A21; --page-fg: #E7EAF0; --page-muted: #9AA3B2; --frame: #05070A; color-scheme: dark } }
+:root[data-theme="dark"] { --page: #161A21; --page-fg: #E7EAF0; --page-muted: #9AA3B2; --frame: #05070A; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--page-fg); font: 16px/1.5 system-ui, sans-serif; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 32px 16px 64px; }
+.intro h1 { font-size: 1.75rem; line-height: 1.2; margin: 0 0 8px; }
+.intro p { margin: 0 0 28px; color: var(--page-muted); max-width: 70ch; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 32px; align-items: start; }
+figure { margin: 0; }
+figcaption { margin: 0 0 10px; font-weight: 600; }
+.phone { max-width: 390px; border: 10px solid var(--frame); border-radius: 32px; overflow: hidden; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 3px solid #3B82F6; outline-offset: 2px; }
+
+/* The Storybook guest view, as in apps/web/src/index.css. */
+.s { background: var(--paper); color: var(--ink); font: 16px/1.45 var(--f-sans); padding: 24px 20px 0; min-height: 720px; display: flex; flex-direction: column; gap: 20px; }
+.s.dim { background: rgba(46,36,71,.5); padding: 16px; justify-content: center; }
+.s a { color: var(--moss); }
+.s h1, .s h2.d, .disp { font-family: var(--f-display); font-weight: 400; margin: 0; }
+.s h1 { font-size: 2.05rem; line-height: 1.15; }
+.s p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+.center { text-align: center; }
+.vine { display: block; width: 70%; height: 18px; margin: 14px auto 0; background: radial-gradient(circle, var(--petal) 0 4px, var(--wax) 4px 5px, transparent 5.5px) center / 18px 18px no-repeat, linear-gradient(var(--moss), var(--moss)) center / 100% 1.5px no-repeat; }
+.btn, .btn2 { min-height: 44px; padding: 8px 20px; border: 0; border-radius: 22px 22px 22px 6px; font: 700 16px var(--f-sans); cursor: pointer; align-self: flex-start; }
+.btn { background: var(--moss); color: #fff; }
+.btn2 { background: none; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.link { background: none; border: 0; padding: 10px 0; color: var(--moss); text-decoration: underline; font: 700 15px var(--f-sans); cursor: pointer; align-self: flex-start; }
+.field { display: block; width: 100%; min-height: 44px; padding: 8px 12px; border: 1.5px solid var(--ink); border-radius: 14px; background: #fff; color: var(--ink); font: 16px/1.45 var(--f-sans); }
+label { display: block; margin-bottom: 4px; font-weight: 700; }
+.card { border: 1.5px solid var(--line); border-radius: 14px; background: #fff; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.seal { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; transform: rotate(-8deg); color: var(--petal); font: 1.35rem/1 var(--f-display); background: radial-gradient(circle at 38% 34%, #C2455F, var(--wax) 60%, #6E1830); }
+.seal.gold { color: var(--ink); background: radial-gradient(circle at 38% 34%, #F3D27A, var(--gold) 60%, #A57E22); }
+.seal.sm { width: 26px; height: 26px; font-size: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 4px 14px; border-radius: 22px; border: 1.5px solid var(--ink); background: #fff; color: var(--ink); font: 700 15px var(--f-sans); cursor: pointer; }
+.chip:has(.seal) { padding-left: 8px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.items { list-style: none; margin: 0; padding: 0; }
+.items li { border-bottom: 1px solid var(--line); padding: 20px 0; display: flex; flex-direction: column; gap: 12px; }
+.items h2 { font: 400 1.3rem/1.2 var(--f-display); margin: 0; }
+.status { display: flex; align-items: center; gap: 10px; }
+.jar { position: relative; flex: none; width: 46px; height: 58px; overflow: hidden; border: 2.5px solid var(--ink); border-radius: 10px 10px 14px 14px; background: #fff; }
+.jar i { position: absolute; inset: auto 0 0 0; background: radial-gradient(circle at 30% 40%, #F3D27A 0 3px, transparent 3.5px) 0 0 / 10px 9px, var(--gold); }
+/* Proposed: the jar's coin-filled gold, laid flat in an ink-outlined track. */
+.bar { height: 16px; border: 2px solid var(--ink); border-radius: 8px; background: #fff; overflow: hidden; }
+.bar i { display: block; height: 100%; background: radial-gradient(circle at 30% 50%, #F3D27A 0 3px, transparent 3.5px) 0 0 / 10px 12px, var(--gold); }
+.amount { display: flex; flex-direction: column; gap: 6px; }
+</style>
+</head>
+<body><div class="wrap">
+<div class="intro"><h1>Group gift progress</h1><p>The jar beside the pledged amount goes, and a horizontal bar under the amount takes its place. The text stays the same. The bar fills from the left and stops at full, even when pledges go past the price.</p></div>
+<div class="grid">
+<figure><figcaption>Now: the jar</figcaption><div class="phone"><div class="s"><ul class="items">
+  <li><h2>Espresso machine</h2><p><strong>$400.00</strong></p><div style="display:flex;align-items:flex-end;gap:14px"><div class="jar" aria-hidden="true"><i style="height:60%"></i></div><p>$240.00 of $400.00 pledged · 60%</p></div><button type="button" class="btn">Chip in</button></li>
+</ul></div></div></figure>
+<figure><figcaption>Proposed: a bar, at 0%, 60% and over-pledged</figcaption><div class="phone"><div class="s"><ul class="items">
+  <li><h2>Tent, two person</h2><p><strong>$250.00</strong></p><div class="amount"><p>$0.00 of $250.00 pledged · 0%</p><div class="bar" aria-hidden="true"><i style="width:0%"></i></div></div><button type="button" class="btn">Chip in</button></li>
+  <li><h2>Espresso machine</h2><p><strong>$400.00</strong></p><div class="amount"><p>$240.00 of $400.00 pledged · 60%</p><div class="bar" aria-hidden="true"><i style="width:60%"></i></div></div><button type="button" class="btn">Chip in</button></li>
+  <li><h2>Stand mixer</h2><p><strong>$300.00</strong></p><div class="amount"><p>$330.00 of $300.00 pledged · 110%</p><div class="bar" aria-hidden="true"><i style="width:100%"></i></div></div><button type="button" class="btn">Chip in</button></li>
+</ul></div></div></figure>
+</div></div></body></html>

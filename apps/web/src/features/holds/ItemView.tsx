@@ -83,12 +83,12 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
       {group && (
         <>
           <progress max={group.price} value={Math.min(group.pledged, group.price)} aria-label={progress!} className="sr-only" />
-          <div className="flex items-end gap-3.5">
-            {/* A wishing jar of gold coins, filled to the pledged share and never past full. */}
-            <div aria-hidden="true" className="relative h-[58px] w-[46px] flex-none overflow-hidden rounded-[10px_10px_14px_14px] border-[2.5px] border-ink bg-white before:absolute before:inset-x-2 before:-top-0.5 before:h-[7px] before:rounded-b-[3px] before:bg-moss before:content-['']">
-              <div data-jar-fill className="absolute inset-x-0 bottom-0 bg-gold bg-[radial-gradient(circle_at_30%_40%,#F3D27A_0_3px,transparent_3.5px)] bg-[length:10px_9px]" style={{ height: `${Math.min(pledgedPercent, 100)}%` }} />
+          <div className="space-y-1.5">
+            <p>{progress}</p>
+            {/* Gold coins laid along a bar, filled to the pledged share and never past full. */}
+            <div aria-hidden="true" className="h-4 overflow-hidden rounded-lg border-2 border-ink bg-white">
+              <div data-bar-fill className="h-full bg-gold bg-[radial-gradient(circle_at_30%_50%,#F3D27A_0_3px,transparent_3.5px)] bg-[length:10px_12px]" style={{ width: `${Math.min(pledgedPercent, 100)}%` }} />
             </div>
-            <p className="min-w-0">{progress}</p>
           </div>
           <button ref={chipInButton} type="button" onClick={() => { setThanks(''); setChipInOpen(true); }} className="btn-primary">
             Chip in
