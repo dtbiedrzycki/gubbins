@@ -49,6 +49,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/guest-key-suggestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["suggestGuestKey"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lists/{slug}/owner-session": {
         parameters: {
             query?: never;
@@ -316,6 +332,28 @@ export interface operations {
                     "application/json": {
                         sourceUrl: string;
                         privacyContact: string | null;
+                    };
+                };
+            };
+        };
+    };
+    suggestGuestKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A freshly generated guest key the create form can offer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        key: string;
                     };
                 };
             };

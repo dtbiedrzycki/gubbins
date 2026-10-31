@@ -17,3 +17,6 @@ export const createListResponseSchema = z.object({
   key: z.string(),
 });
 export type CreateListResponse = z.infer<typeof createListResponseSchema>;
+
+export const guestKeySuggestionResponseSchema = z.object({ key: z.string() });
+export type GuestKeySuggestionResponse = z.infer<typeof guestKeySuggestionResponseSchema>;

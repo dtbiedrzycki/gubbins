@@ -22,6 +22,7 @@ import { MarkHoldPurchased } from '../application/use-cases/MarkHoldPurchased.js
 import type { Logger } from '../application/ports/Logger.js';
 import type { Clock } from '../application/ports/Clock.js';
 import type { Hasher } from '../application/ports/Hasher.js';
+import type { TokenGenerator } from '../application/ports/TokenGenerator.js';
 import { DEFAULT_HOLD_POLICY, type HoldPolicy } from '../application/HoldPolicy.js';
 import { DEFAULT_INSTANCE_CONFIG, type InstanceConfig } from './instanceConfig.js';
 
@@ -52,6 +53,7 @@ export interface AppDependencies {
   logger: Logger;
   clock: Clock;
   hasher: Hasher;
+  tokenGenerator: TokenGenerator;
   instance: InstanceConfig;
 }
 
@@ -79,6 +81,7 @@ export function buildDependencies(db: Kysely<Database>, logger: Logger = new Con
     logger,
     clock,
     hasher,
+    tokenGenerator,
     instance: options.instance ?? DEFAULT_INSTANCE_CONFIG,
   };
 }

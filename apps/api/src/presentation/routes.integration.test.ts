@@ -63,6 +63,22 @@ describe('GET /api/instance', () => {
   });
 });
 
+describe('GET /api/guest-key-suggestion', () => {
+  it('suggests a fresh key, uncached, that the create route accepts', async () => {
+    const first = await app.inject({ method: 'GET', url: '/api/guest-key-suggestion' });
+    const second = await app.inject({ method: 'GET', url: '/api/guest-key-suggestion' });
+    for (const response of [first, second]) {
+      expect(response.statusCode).toBe(200);
+      expect(response.json().key).toMatch(/^[a-z]+-[a-z]+-[a-z]+$/);
+      expect(response.headers['cache-control']).toBe('no-store');
+    }
+    const { key } = first.json();
+    const created = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', createSecret: 'test-create-secret', key } });
+    expect(created.statusCode).toBe(201);
+    expect(created.json().key).toBe(key);
+  });
+});
+
 describe('POST /api/lists', () => {
   it('creates a list and returns slug/ownerToken/key', async () => {
     const response = await app.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', createSecret: 'test-create-secret' } });

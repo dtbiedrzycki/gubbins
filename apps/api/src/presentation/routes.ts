@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import {
-  createListRequestSchema, createListResponseSchema,
+  createListRequestSchema, createListResponseSchema, guestKeySuggestionResponseSchema,
   enterGuestKeyRequestSchema, enterGuestKeyResponseSchema,
   ownerSessionRequestSchema, ownerSessionResponseSchema,
   addItemRequestSchema, addItemResponseSchema,
@@ -129,6 +129,13 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       response: { 200: json("Where this instance's source code is published, and who to contact about privacy (null when none is set).", instanceResponseSchema) },
     },
   }, async () => deps.instance);
+
+  app.get('/api/guest-key-suggestion', {
+    schema: {
+      operationId: 'suggestGuestKey',
+      response: { 200: json('A freshly generated guest key the create form can offer.', guestKeySuggestionResponseSchema) },
+    },
+  }, async (_request, reply) => reply.header('Cache-Control', 'no-store').send({ key: deps.tokenGenerator.generateGuestKey() }));
 
   app.post('/api/lists/:slug/owner-session', {
     schema: {
