@@ -155,9 +155,19 @@ export class Item {
     return this.holdsThatAre('purchased');
   }
 
+  /** Units someone holds or has bought. */
+  committedUnits(): number {
+    return this.holdsThatAre('active') + this.purchasedCount();
+  }
+
   /** Units no one holds or has bought. Never negative: quantity may drop below what is already committed (ADR-0019). */
   availableUnits(): number {
-    return Math.max(0, this.quantity - this.holdsThatAre('active') - this.purchasedCount());
+    return Math.max(0, this.quantity - this.committedUnits());
+  }
+
+  /** Whether no guest has ever acted on it: its stream has no events, even a released hold's (ADR-0017). */
+  canBeDeleted(): boolean {
+    return this._seq === 0;
   }
 
   status(): ItemStatus {

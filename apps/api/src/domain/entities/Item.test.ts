@@ -139,6 +139,19 @@ describe('Item availability and holds — from hold state, never a stored counte
     expect(item.availableUnits()).toBe(1);
   });
 
+  it('can be deleted only while no guest has acted on it, even after a hold is released', () => {
+    expect(Item.reconstitute(base).canBeDeleted()).toBe(true);
+    expect(Item.reconstitute({ ...base, seq: 2, holds: [holdOn({ releasedAt: T0 })] }).canBeDeleted()).toBe(false);
+  });
+
+  it('counts active and purchased holds as committed, not released or expired ones', () => {
+    const item = Item.reconstitute({
+      ...base, quantity: 4,
+      holds: [holdOn(), holdOn({ purchasedAt: T0 }), holdOn({ releasedAt: T0 }), holdOn({ expiresAt: new Date(T0.getTime() - 1) })],
+    });
+    expect(item.committedUnits()).toBe(2);
+  });
+
   it('rejects a loaded hold or contribution that is on another item', () => {
     const other = '44444444-4444-7444-8444-444444444444';
     expect(() => Item.reconstitute({ ...base, holds: [holdOn({ itemId: other })] })).toThrow(DomainValidationError);
