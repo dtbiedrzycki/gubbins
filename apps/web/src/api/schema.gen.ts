@@ -113,6 +113,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lists/{slug}/manage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getManageView"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lists/{slug}/items/{itemId}/hold": {
         parameters: {
             query?: never;
@@ -548,6 +564,63 @@ export interface operations {
             };
             /** @description A group gift needs a payment method on the list (no_payment_method). */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getManageView: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The list as its owner edits it, with the guest key. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        title: string;
+                        description: string | null;
+                        key: string;
+                        items: {
+                            id: string;
+                            /** @enum {string} */
+                            type: "single" | "group";
+                            title: string;
+                            quantity: number;
+                            priceMinor: number | null;
+                            url: string | null;
+                            description: string | null;
+                            deletable: boolean;
+                            committedUnits: number;
+                            pledgedMinor: number | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description The request did not match the schema, or a domain rule refused it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No such list, or no owner cookie for it. Deliberately indistinguishable. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

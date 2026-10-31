@@ -568,6 +568,26 @@ describe('POST /api/lists/:slug/items', () => {
   });
 });
 
+describe('GET /api/lists/:slug/manage', () => {
+  const manage = (slug: string, cookie?: string) => app.inject({ method: 'GET', url: `/api/lists/${slug}/manage`, headers: cookie ? { cookie } : {} });
+  const ownerOn = async (list: { slug: string; ownerToken: string }) =>
+    extractCookieHeader(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } }));
+
+  it('shows the owner their list and key', async () => {
+    const list = await createList();
+    const response = await manage(list.slug, await ownerOn(list));
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ key: guestKey, items: [{ id: list.itemId, title: 'Stroller', deletable: true }] });
+  });
+
+  it('answers a guest session without the owner cookie with the generic 404', async () => {
+    const list = await createList();
+    const response = await manage(list.slug, await guestOn(list));
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ message: 'Not found' });
+  });
+});
+
 describe('POST /api/lists/:slug/items/:itemId/contributions', () => {
   const pledge = (slug: string, itemId: string, cookie: string | undefined, payload: object = { idempotencyKey: 'idem-1', amountMinor: 2500, name: 'Ada' }) =>
     app.inject({ method: 'POST', url: `/api/lists/${slug}/items/${itemId}/contributions`, headers: cookie ? { cookie } : {}, payload });
