@@ -23,7 +23,17 @@ export function ListDetails({ slug, view, onUnauthorized }: ListDetailsProps) {
   return (
     <div className="space-y-6">
       <section aria-labelledby="list-details-heading" className="space-y-2">
-        <h2 id="list-details-heading" className="text-[0.8rem] font-bold uppercase tracking-[0.06em] text-muted">List details</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="list-details-heading" className="text-[0.8rem] font-bold uppercase tracking-[0.06em] text-muted">List details</h2>
+          {!editing && (
+            <button
+              ref={editButton} type="button" onClick={() => setEditing(true)}
+              className="min-h-11 rounded border border-gray-300 px-4 py-2"
+            >
+              Edit
+            </button>
+          )}
+        </div>
         {editing ? (
           <EditListDetailsForm
             slug={slug} title={view.title} description={view.description ?? ''} onUnauthorized={onUnauthorized}
@@ -33,12 +43,6 @@ export function ListDetails({ slug, view, onUnauthorized }: ListDetailsProps) {
           <>
             <p className="font-display text-[1.25rem] break-words">{view.title}</p>
             {view.description && <Markdown text={view.description} />}
-            <button
-              ref={editButton} type="button" onClick={() => setEditing(true)}
-              className="min-h-11 rounded border border-gray-300 px-4 py-2"
-            >
-              Edit
-            </button>
           </>
         )}
       </section>

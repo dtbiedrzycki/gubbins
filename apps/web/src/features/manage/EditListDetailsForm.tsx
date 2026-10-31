@@ -49,7 +49,7 @@ export function EditListDetailsForm({ slug, title, description, onDone, onUnauth
       </div>
       <div>
         <label htmlFor="edit-list-description" className="block text-sm font-medium">About this list (optional)</label>
-        <LimitedTextarea id="edit-list-description" rows={5} max={DESCRIPTION_MAX} value={newDescription} onChange={(e) => setNewDescription(e.target.value)} className={field} />
+        <LimitedTextarea id="edit-list-description" rows={3} max={DESCRIPTION_MAX} value={newDescription} onChange={(e) => setNewDescription(e.target.value)} className={field} />
       </div>
       <p role="alert" className="text-red-600 empty:mb-0">{error?.message}</p>
       <div className="flex gap-3">

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
+import { server } from '../../test/msw/server';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ListDetails } from './ListDetails';
 
@@ -30,5 +32,20 @@ describe('ListDetails', () => {
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.getByRole('button', { name: 'Edit' })).toHaveFocus();
+  });
+
+  it('puts focus back on Edit after a save', async () => {
+    server.use(http.put('/api/lists/:slug', () => HttpResponse.json({ ok: true })));
+    const user = userEvent.setup();
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ListDetails slug="abc123" onUnauthorized={() => {}} view={{ title: 'Baby Shower', description: null, key: 'maple-lantern-otter', items: [] }} />
+      </QueryClientProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Edit' })).toHaveFocus());
   });
 });
