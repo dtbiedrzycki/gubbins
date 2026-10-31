@@ -35,7 +35,7 @@ export default function ManagePage() {
           <>
             {/* At the top, so a failed refresh isn't hidden below a long list. */}
             {query.error && <p role="alert" className="text-red-600">{query.error.message}</p>}
-            {query.data && <ListDetails slug={slug} view={query.data} />}
+            {query.data && <ListDetails slug={slug} onUnauthorized={unauthorized} view={query.data} />}
             {/* Above the items, so adding never means scrolling past a long list. */}
             <AddItemForm slug={slug} onUnauthorized={unauthorized} />
             {query.data && <ManageItems items={query.data.items} />}
