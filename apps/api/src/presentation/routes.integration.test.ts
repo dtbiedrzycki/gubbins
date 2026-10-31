@@ -590,6 +590,38 @@ describe('PUT /api/lists/:slug', () => {
   });
 });
 
+describe('PUT /api/lists/:slug/items/:itemId', () => {
+  const edit = (slug: string, itemId: string, cookie: string | undefined, payload: object) =>
+    app.inject({ method: 'PUT', url: `/api/lists/${slug}/items/${itemId}`, headers: cookie ? { cookie } : {}, payload });
+  const details = { title: 'Travel system', quantity: 2, priceMinor: 25000 };
+
+  it('the owner edits an item, and the manage view shows it', async () => {
+    const list = await createList();
+    const cookie = await ownerOn(list);
+    const response = await edit(list.slug, list.itemId, cookie, details);
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ ok: true });
+
+    const view = await app.inject({ method: 'GET', url: `/api/lists/${list.slug}/manage`, headers: { cookie } });
+    expect(view.json()).toMatchObject({ items: [{ id: list.itemId, title: 'Travel system' }] });
+  });
+
+  it("answers another list's item with the generic 404", async () => {
+    const list = await createList();
+    const other = await createList();
+    const response = await edit(list.slug, other.itemId, await ownerOn(list), details);
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ message: 'Not found' });
+  });
+
+  it('answers a guest session without the owner cookie with the generic 404', async () => {
+    const list = await createList();
+    const response = await edit(list.slug, list.itemId, await guestOn(list), details);
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ message: 'Not found' });
+  });
+});
+
 describe('GET /api/lists/:slug/manage', () => {
   const manage = (slug: string, cookie?: string) => app.inject({ method: 'GET', url: `/api/lists/${slug}/manage`, headers: cookie ? { cookie } : {} });
 
