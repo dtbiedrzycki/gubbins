@@ -11,7 +11,7 @@ const item = (over: Partial<ManageViewResponse['items'][number]>): ManageViewRes
 describe('ManageItems', () => {
   it("shows each item's price and quantity, and a group gift's target", () => {
     render(
-      <ManageItems slug="abc123" onUnauthorized={() => {}} items={[
+      <ManageItems items={[
         item({}),
         item({ id: 'i2', title: 'Swaddles', quantity: 2, priceMinor: 3200 }),
         item({ id: 'i3', type: 'group', title: 'Stroller fund', priceMinor: 40000, pledgedMinor: 0 }),
@@ -21,5 +21,11 @@ describe('ManageItems', () => {
     expect(screen.getByText('$24.00 · quantity 1')).toBeInTheDocument();
     expect(screen.getByText('$32.00 · quantity 2')).toBeInTheDocument();
     expect(screen.getByText('$400.00 target')).toBeInTheDocument();
+  });
+
+  it('leaves the price out for a single item without one', () => {
+    render(<ManageItems items={[item({ quantity: 3, priceMinor: null })]} />);
+
+    expect(screen.getByText('quantity 3')).toBeInTheDocument();
   });
 });

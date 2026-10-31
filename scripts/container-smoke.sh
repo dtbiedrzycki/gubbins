@@ -33,7 +33,7 @@ done
 curl --max-time 5 -fsS "$base/health" >/dev/null || { docker logs "$name" >&2; echo "FAIL: /health never came up" >&2; exit 1; }
 
 code=$(curl --max-time 5 -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' \
-  -d '{"listTitle":"L","createSecret":"wrong"}' "$base/api/lists")
+  -d '{"listTitle":"L","createSecret":"wrong","key":"abacus-abdomen-able"}' "$base/api/lists")
 [ "$code" = 403 ] || { echo "FAIL: wrong create secret gave $code, expected 403" >&2; exit 1; }
 
 curl --max-time 5 -fsS "$base/" | grep -q '<div id="root">' || { echo "FAIL: SPA not served at /" >&2; exit 1; }
