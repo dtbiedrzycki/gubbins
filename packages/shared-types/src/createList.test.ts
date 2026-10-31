@@ -2,23 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { createListRequestSchema, createListResponseSchema } from './createList.js';
 
 describe('createListRequestSchema', () => {
-  it('accepts a request with only a list title', () => {
-    const result = createListRequestSchema.safeParse({ listTitle: 'Baby Shower' });
+  it('accepts a request with a list title and key', () => {
+    const result = createListRequestSchema.safeParse({ listTitle: 'Baby Shower', key: 'abacus-abdomen-able' });
     expect(result.success).toBe(true);
   });
 
   it('rejects an empty listTitle', () => {
-    const result = createListRequestSchema.safeParse({ listTitle: '' });
+    const result = createListRequestSchema.safeParse({ listTitle: '', key: 'abacus-abdomen-able' });
     expect(result.success).toBe(false);
   });
 
-  it('passes a chosen key through', () => {
-    const request = createListRequestSchema.parse({ listTitle: 'Baby Shower', key: 'abacus-abdomen-able' });
-    expect(request.key).toBe('abacus-abdomen-able');
-  });
-
   it('passes the list description through', () => {
-    const request = createListRequestSchema.parse({ listTitle: 'Baby Shower', listDescription: 'Due in May' });
+    const request = createListRequestSchema.parse({ listTitle: 'Baby Shower', listDescription: 'Due in May', key: 'abacus-abdomen-able' });
     expect(request.listDescription).toBe('Due in May');
   });
 });

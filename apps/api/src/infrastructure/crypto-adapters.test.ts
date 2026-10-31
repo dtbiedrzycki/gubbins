@@ -27,7 +27,6 @@ describe('TokenGeneratorCrypto', () => {
   });
 
   it.each([
-    [gen.generateGuestKey(), true],
     ['abacus-abdomen-able', true],
     ['Abacus-abdomen-able', false],
     ['abacus-abdomen', false],
@@ -38,6 +37,10 @@ describe('TokenGeneratorCrypto', () => {
     ['', false],
   ])('accepts only three listed words joined as the generator joins them (%j)', (candidate, expected) => {
     expect(gen.isGuestKey(candidate)).toBe(expected);
+  });
+
+  it('accepts a key it generated', () => {
+    expect(gen.isGuestKey(gen.generateGuestKey())).toBe(true);
   });
 
   it('generates a guest key of three lowercase words joined by dashes', () => {
