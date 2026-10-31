@@ -65,7 +65,7 @@ describe('CreateList', () => {
   it('stores the payment handles given at creation', async () => {
     const { useCase, wishlists } = makeUseCase();
 
-    await useCase.execute({ listTitle: 'L', createSecret: 'right', venmoHandle: 'my-venmo', zelleHandle: 'me@example.com' });
+    await useCase.execute({ listTitle: 'L', createSecret: 'right', venmoHandle: 'my-venmo', zelleHandle: 'me@example.com', key: 'guest-key-1' });
 
     const persisted = await wishlists.findBySlug('slug-1', NOW);
     expect(persisted?.paymentMethods.venmoHandle).toBe('my-venmo');
@@ -75,7 +75,7 @@ describe('CreateList', () => {
   it('stores the list description given at creation', async () => {
     const { useCase, wishlists } = makeUseCase();
 
-    await useCase.execute({ listTitle: 'L', createSecret: 'right', listDescription: 'Ship to 1 Main St' });
+    await useCase.execute({ listTitle: 'L', createSecret: 'right', listDescription: 'Ship to 1 Main St', key: 'guest-key-1' });
 
     expect((await wishlists.findBySlug('slug-1', NOW))?.description).toBe('Ship to 1 Main St');
   });
@@ -83,7 +83,7 @@ describe('CreateList', () => {
   it('persists nothing when a handle is refused', async () => {
     const { useCase, wishlists } = makeUseCase();
 
-    await expect(useCase.execute({ listTitle: 'L', createSecret: 'right', zelleHandle: 'not a handle' })).rejects.toThrow(DomainValidationError);
+    await expect(useCase.execute({ listTitle: 'L', createSecret: 'right', zelleHandle: 'not a handle', key: 'guest-key-1' })).rejects.toThrow(DomainValidationError);
     expect(await wishlists.findBySlug('slug-1', NOW)).toBeNull();
   });
 });
