@@ -20,6 +20,6 @@ describe('ManageItems', () => {
 
     expect(screen.getByText('$24.00 · quantity 1')).toBeInTheDocument();
     expect(screen.getByText('$32.00 · quantity 2')).toBeInTheDocument();
-    expect(screen.getByText('$400.00 · target')).toBeInTheDocument();
+    expect(screen.getByText('$400.00 target')).toBeInTheDocument();
   });
 });

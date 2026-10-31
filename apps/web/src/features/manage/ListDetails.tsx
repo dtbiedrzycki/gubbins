@@ -17,11 +17,11 @@ export function ListDetails({ slug, view }: ListDetailsProps) {
       </section>
       <section aria-labelledby="guest-key-heading">
         <h2 id="guest-key-heading" className="text-lg font-semibold">Guest key</h2>
-        <p className="font-mono break-words">{view.key}</p>
+        <p className="text-2xl font-bold break-words">{view.key}</p>
       </section>
       <section aria-labelledby="guest-link-heading">
         <h2 id="guest-link-heading" className="text-lg font-semibold">Guest link</h2>
-        <p className="break-words">{window.location.origin + listPath(slug)}</p>
+        <p className="text-moss break-words">{window.location.origin + listPath(slug)}</p>
       </section>
     </div>
   );

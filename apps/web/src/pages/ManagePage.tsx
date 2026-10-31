@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { OwnerTokenGate } from '../features/manage/OwnerTokenGate';
 import { AddItemForm } from '../features/manage/AddItemForm';
+import { manageViewKey } from '../features/manage/manageViewKey';
 import { ListDetails } from '../features/manage/ListDetails';
 import { ManageItems } from '../features/manage/ManageItems';
 import { api, ApiError } from '../api/client';
@@ -15,7 +16,7 @@ export default function ManagePage() {
   // The gate's submit button unmounts on success; keep keyboard focus on the page.
   useEffect(() => { if (entered) heading.current?.focus(); }, [entered]);
   const query = useQuery({
-    queryKey: ['manage', slug],
+    queryKey: manageViewKey(slug!),
     queryFn: () => api.getManageView(slug!),
     enabled: entered && Boolean(slug),
     retry: false,
@@ -46,7 +47,7 @@ export default function ManagePage() {
             slug={slug}
             onSuccess={() => {
               // Drop a failed view so the new session fetches afresh.
-              queryClient.removeQueries({ queryKey: ['manage', slug] });
+              queryClient.removeQueries({ queryKey: manageViewKey(slug!) });
               setEntered(true); setExpired(false);
             }}
             notice={expired || gone ? 'Enter your owner token again.' : undefined}

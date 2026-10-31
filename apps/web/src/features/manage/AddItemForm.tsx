@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { AddItemRequest } from '@gubbins/shared-types';
 import { api, ApiError } from '../../api/client';
+import { manageViewKey } from './manageViewKey';
 import { parseUsd } from '../../lib/parseUsd';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
 
@@ -33,6 +34,8 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
   const queryClient = useQueryClient();
   const { mutate, error, isPending, reset } = useMutation({
     mutationFn: (input: AddItemRequest) => api.addItem(slug, input),
+    // Returned, so the mutation stays pending until the list has refetched.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: manageViewKey(slug) }),
   });
 
   function handleSubmit(event: FormEvent) {
@@ -55,7 +58,6 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
       : { type, ...common, quantity: Number(quantity), ...(priceMinor !== undefined && { priceMinor }) };
     mutate(body, {
       onSuccess: () => {
-        void queryClient.invalidateQueries({ queryKey: ['manage', slug] });
         setAdded(`Added "${trimmedTitle}".`);
         setTitle(''); setQuantity('1'); setPrice(''); setUrl(''); setDescription('');
       },

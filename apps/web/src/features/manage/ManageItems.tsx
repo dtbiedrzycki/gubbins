@@ -20,10 +20,7 @@ export function ManageItems({ items }: ManageItemsProps) {
               {item.type === 'group' && <span className="ml-2 text-sm text-gray-600">group gift</span>}
             </p>
             <p className="text-sm text-gray-600">
-              {[
-                item.priceMinor !== null && formatMoney(item.priceMinor),
-                item.type === 'group' ? 'target' : `quantity ${item.quantity}`,
-              ].filter(Boolean).join(' · ')}
+              {item.type === 'group' ? `${formatMoney(item.priceMinor ?? 0)} target` : `${item.priceMinor === null ? '' : `${formatMoney(item.priceMinor)} · `}quantity ${item.quantity}`}
             </p>
           </li>
         ))}
