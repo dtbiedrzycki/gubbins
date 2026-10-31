@@ -18,7 +18,8 @@ export interface WishlistRepository {
   findBySlug(slug: string, now: Date): Promise<Wishlist | null>;
   findById(id: string, now: Date): Promise<Wishlist | null>;
   /**
-   * Stores what the domain decided on a list already inserted: items it
+   * Stores what the domain decided on a list already inserted: its title
+   * and description as the domain left them, items it
    * added, at their `seq`, and each existing item's `seq` exactly as the
    * domain left it, with no arithmetic of its own; then holds it placed,
    * and each of its holds' lifecycle as the domain left it, then

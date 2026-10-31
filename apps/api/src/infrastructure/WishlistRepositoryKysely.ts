@@ -47,8 +47,11 @@ export class WishlistRepositoryKysely implements WishlistRepository {
   }
 
   async save(wishlist: Wishlist): Promise<void> {
-    const list = await this.db.selectFrom('wishlists').select('id').where('id', '=', wishlist.id.value).executeTakeFirst();
+    const list = await this.db.selectFrom('wishlists').select(['id', 'title', 'description']).where('id', '=', wishlist.id.value).executeTakeFirst();
     if (list === undefined) throw new WishlistNotFoundError(wishlist.id.value);
+    if (list.title !== wishlist.title || list.description !== wishlist.description) {
+      await this.db.updateTable('wishlists').set({ title: wishlist.title, description: wishlist.description }).where('id', '=', wishlist.id.value).execute();
+    }
     const storedSeq = await this.items.seqsByWishlistId(wishlist.id.value);
     // Writes only items the domain added or moved on, so an untouched row keeps its updated_at.
     for (const item of wishlist.items) {

@@ -82,6 +82,23 @@ describe('Wishlist.create', () => {
     expect(item.description).toBe('a\nb');
   });
 
+  it('edits its title and description, trimmed as at creation, and a blank description is none', () => {
+    const wishlist = Wishlist.create({ ...validProps, description: 'old' });
+
+    wishlist.editDetails({ title: '  New title ', description: '\n 1 Main St\nApt 2 \n' });
+    expect([wishlist.title, wishlist.description]).toEqual(['New title', '1 Main St\nApt 2']);
+
+    wishlist.editDetails({ title: 'New title', description: '  ' });
+    expect(wishlist.description).toBeNull();
+  });
+
+  it('refuses a blank title and keeps the old details', () => {
+    const wishlist = Wishlist.create({ ...validProps, description: 'old' });
+
+    expect(() => wishlist.editDetails({ title: '  ', description: 'new' })).toThrow(DomainValidationError);
+    expect([wishlist.title, wishlist.description]).toEqual(['Baby Shower', 'old']);
+  });
+
   it('stores a blank description as none', () => {
     expect(Wishlist.create({ ...validProps, description: '  \n' }).description).toBeNull();
     expect(Wishlist.create(validProps).description).toBeNull();

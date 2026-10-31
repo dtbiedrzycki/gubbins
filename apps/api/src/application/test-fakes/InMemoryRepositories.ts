@@ -81,6 +81,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
 
   async save(wishlist: Wishlist): Promise<void> {
     if (!this.store.wishlists.has(wishlist.id.value)) throw new WishlistNotFoundError(wishlist.id.value);
+    this.store.wishlists.set(wishlist.id.value, wishlist); // hydrate reads title and description from it
     // The purchased count is derived from the holds, never stored.
     for (const item of wishlist.items) this.store.items.set(item.id.value, toRow(item));
     const holds = new InMemoryHoldRepository(this.store);
