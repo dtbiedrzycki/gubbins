@@ -23,5 +23,14 @@ export const addItemRequestSchema = z.discriminatedUnion('type', [
 ]);
 export type AddItemRequest = z.infer<typeof addItemRequestSchema>;
 
+export const editItemRequestSchema = z.object({
+  title: z.string().min(1),
+  quantity: z.number().int().min(1).max(99),
+  priceMinor: priceMinor.optional(),
+  url: httpsUrl.optional(),
+  description: z.string().optional(),
+});
+export type EditItemRequest = z.infer<typeof editItemRequestSchema>;
+
 export const addItemResponseSchema = z.object({ itemId: z.string() });
 export type AddItemResponse = z.infer<typeof addItemResponseSchema>;
