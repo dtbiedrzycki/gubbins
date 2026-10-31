@@ -1,5 +1,30 @@
 # Owner dashboard & editing rules
 
+## Editing as built
+
+The rules below are the full design. What the manage page does today:
+
+- **List details**: the owner edits the title and description, with the
+  same limits as at creation.
+- **Items**: the owner edits the title, quantity, price or target, store
+  link and description. The kind (single item or group gift) is fixed. A
+  quantity below what guests hold or bought shows a warning and saves
+  anyway (ADR-[019](../adr/0019-quantity-may-drop-below-committed-holds-purchases.md)). Lowering a group gift's target to or below
+  what's pledged asks for confirmation first.
+- **Deleting items**: only an item with no events on its stream, after an
+  in-page confirmation. It is a hard delete that keeps no record. Any other
+  item's Delete is disabled with "Guests have already picked this one, so
+  it can't be deleted.", and the API refuses it with
+  `item_has_guest_history`. Archiving is not built, so such an item stays
+  on the list.
+- **Guest key**: chosen on the create form from a server suggestion, with
+  "Regenerate" for another. It can't be changed after creation; key
+  rotation is not built.
+- Hints and warnings name guest activity plainly. The spoiler-mode wording
+  below applies once a spoiler setting exists; none is built.
+
+## Full design
+
 - **Item deletion**: items with zero events on their stream may be hard-deleted.
   Items with any history (hold, purchase, or contribution — pledged or
   confirmed) can only be **archived** (`archivedAt` set), hiding them from
