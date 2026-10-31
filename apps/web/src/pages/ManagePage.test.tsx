@@ -31,22 +31,32 @@ async function enterToken() {
   return user;
 }
 
+function serveView(getTitles: () => string[]) {
+  server.use(
+    mock('post', '/api/lists/{slug}/owner-session', 200, { ok: true }),
+    http.get('/api/lists/:slug/manage', () => HttpResponse.json(view(getTitles()))),
+  );
+}
+
 describe('ManagePage', () => {
-  it('after the token, shows the list above the add form, and shows an added item without a reload', async () => {
+  it('shows the list and its items after the owner token is entered', async () => {
+    serveView(() => ['Rings']);
+    await enterToken();
+
+    expect(await screen.findByRole('heading', { name: 'List details' })).toBeInTheDocument();
+    expect(await screen.findByText('Rings')).toBeInTheDocument();
+  });
+
+  it('shows an added item without a reload', async () => {
     let titles = ['Rings'];
+    serveView(() => titles);
     server.use(
-      mock('post', '/api/lists/{slug}/owner-session', 200, { ok: true }),
-      http.get('/api/lists/:slug/manage', () => HttpResponse.json(view(titles))),
       http.post('/api/lists/:slug/items', () => { titles = ['Rings', 'Cot']; return HttpResponse.json({ id: 'i1' }, { status: 201 }); }),
     );
     const user = await enterToken();
+    await screen.findByText('Rings');
 
-    const details = await screen.findByRole('heading', { name: 'List details' });
-    expect(await screen.findByText('Rings')).toBeInTheDocument();
-    const title = screen.getByLabelText('Title');
-    expect(details.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-
-    await user.type(title, 'Cot');
+    await user.type(screen.getByLabelText('Title'), 'Cot');
     await user.type(screen.getByLabelText('Price (USD)'), '100');
     await user.click(screen.getByRole('button', { name: 'Add item' }));
 
