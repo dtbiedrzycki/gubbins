@@ -127,14 +127,14 @@ describe('CreateListForm', () => {
     expect(screen.getByText("Save your owner token now: you'll need it to manage the list, and it isn't shown again.")).toBeInTheDocument();
   });
 
-  it('shows a suggested key and sends it with the list', async () => {
+  it('sends the suggested key with the list and shows it on the ready screen', async () => {
     let body: unknown;
     server.use(http.post('/api/lists', async ({ request }) => {
       body = await request.json();
-      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'maple-lantern-otter' } satisfies CreateListResponse, { status: 201 });
+      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: (body as { key: string }).key } satisfies CreateListResponse, { status: 201 });
     }));
     await fillAndSubmit();
-    await screen.findByTestId('guest-key');
+    expect(await screen.findByTestId('guest-key')).toHaveTextContent('maple-lantern-otter');
     expect(body).toMatchObject({ key: 'maple-lantern-otter' });
   });
 
@@ -158,7 +158,7 @@ describe('CreateListForm', () => {
     expect(body).toMatchObject({ key: 'cedar-pocket-wren' });
   });
 
-  it('keeps Create list disabled until a key is shown, and shows the error if the suggestion fails; Regenerate retries', async () => {
+  it('shows the error and keeps Create list disabled when the suggestion fails, then enables it once Regenerate retries', async () => {
     let calls = 0;
     server.use(http.get('/api/guest-key-suggestion', () => (
       ++calls === 1
