@@ -219,6 +219,18 @@ describe('Wishlist.addItem', () => {
   });
 });
 
+describe('Wishlist.editItem', () => {
+  it('replaces the item where it was', () => {
+    const second = Item.reconstitute({ id: OTHER_ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Crib', quantity: 1, seq: 0, asOf: T0 });
+    const wishlist = Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [itemOf(), second] });
+
+    const edited = wishlist.editItem(ITEM_ID, { title: 'Cot mattress', quantity: 1, priceMinor: null, url: null, description: null });
+
+    expect(wishlist.items.map((i) => i.title)).toEqual(['Cot mattress', 'Crib']);
+    expect(wishlist.getItem(ITEM_ID)).toBe(edited);
+  });
+});
+
 describe('Wishlist group gifts', () => {
   const ids = { generateEntityId: () => ITEM_ID };
   it('refuses a group gift on a list with no payment method', () => {
