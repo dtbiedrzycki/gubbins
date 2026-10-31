@@ -36,7 +36,7 @@ export default function ManagePage() {
             {query.data && (
               <>
                 <ListDetails slug={slug} onUnauthorized={unauthorized} view={query.data} />
-                <ManageItems items={query.data.items} />
+                <ManageItems slug={slug} items={query.data.items} onUnauthorized={unauthorized} />
               </>
             )}
             {query.error && <p role="alert" className="text-red-600">{query.error.message}</p>}
