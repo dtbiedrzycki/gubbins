@@ -569,6 +569,30 @@ describe('POST /api/lists/:slug/items', () => {
   });
 });
 
+describe('PUT /api/lists/:slug', () => {
+  const ownerOn = async (list: { slug: string; ownerToken: string }) =>
+    extractCookieHeader(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } }));
+  const edit = (slug: string, cookie: string | undefined, payload: object) =>
+    app.inject({ method: 'PUT', url: `/api/lists/${slug}`, headers: cookie ? { cookie } : {}, payload });
+
+  it('the owner edits the list, and guests see the new title', async () => {
+    const list = await createList();
+    const response = await edit(list.slug, await ownerOn(list), { title: 'Welcome Baby', description: 'Thank you!' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ ok: true });
+
+    const view = await app.inject({ method: 'GET', url: `/api/lists/${list.slug}`, headers: { cookie: await guestOn(list) } });
+    expect(view.json()).toMatchObject({ title: 'Welcome Baby', description: 'Thank you!' });
+  });
+
+  it('answers a guest session without the owner cookie with the generic 404', async () => {
+    const list = await createList();
+    const response = await edit(list.slug, await guestOn(list), { title: 'Welcome Baby' });
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ message: 'Not found' });
+  });
+});
+
 describe('GET /api/lists/:slug/manage', () => {
   const manage = (slug: string, cookie?: string) => app.inject({ method: 'GET', url: `/api/lists/${slug}/manage`, headers: cookie ? { cookie } : {} });
   const ownerOn = async (list: { slug: string; ownerToken: string }) =>
