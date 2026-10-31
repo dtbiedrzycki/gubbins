@@ -234,6 +234,32 @@
         }
       }
     },
+    "/api/guest-key-suggestion": {
+      "get": {
+        "operationId": "suggestGuestKey",
+        "responses": {
+          "200": {
+            "description": "A freshly generated guest key the create form can offer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "key"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/lists/{slug}/owner-session": {
       "post": {
         "operationId": "enterOwnerToken",
