@@ -89,7 +89,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getListView"];
-        put?: never;
+        put: operations["editListDetails"];
         post?: never;
         delete?: never;
         options?: never;
@@ -490,6 +490,56 @@ export interface operations {
                 };
             };
             /** @description No such list, or no valid session for it. The two are deliberately indistinguishable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    editListDetails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title: string;
+                    description?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The list's title and description were changed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            /** @description The request did not match the schema, or a domain rule refused it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No such list, or no owner cookie for it. Deliberately indistinguishable. */
             404: {
                 headers: {
                     [name: string]: unknown;
