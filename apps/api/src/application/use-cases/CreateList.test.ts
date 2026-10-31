@@ -15,7 +15,7 @@ function makeUseCase() {
 }
 
 describe('CreateList', () => {
-  it('creates an empty wishlist, returning slug/ownerToken/key', async () => {
+  it('creates an empty wishlist, returning its slug, owner token and the chosen key', async () => {
     const { useCase, wishlists } = makeUseCase();
 
     const result = await useCase.execute({ listTitle: 'Baby Shower', createSecret: 'right', key: 'guest-key-1' });
