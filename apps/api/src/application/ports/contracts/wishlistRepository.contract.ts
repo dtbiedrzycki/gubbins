@@ -248,14 +248,17 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect((await fx.wishlists.findById(LIST_A, NOW))?.items.map((i) => i.id.value)).toEqual([ITEM_A]);
     });
 
-    it('save refuses to delete an item with guest history, which is still there on the next load', async () => {
+    it('save refuses to delete an item with guest history, writing nothing: the item and title are as they were', async () => {
       const item = (seq: number) => Item.reconstitute({ id: ITEM_C1, wishlistId: LIST_C, type: 'single', title: 'Pram', quantity: 1, seq, asOf: NOW });
       const list = (items: Item[]) => Wishlist.reconstitute({ id: LIST_C, slug: 'list-c', title: 'C', ownerToken: 'o', key: 'k', keyGen: 1, asOf: NOW, items });
       await fx.wishlists.insert(list([item(1)]));
 
-      await expect(fx.wishlists.save(list([]))).rejects.toThrow(ItemHasGuestHistoryError);
+      const refused = list([]);
+      refused.editDetails({ title: 'Renamed', description: null });
+      await expect(fx.wishlists.save(refused)).rejects.toThrow(ItemHasGuestHistoryError);
 
-      expect((await fx.wishlists.findById(LIST_C, NOW))?.items.map((i) => i.id.value)).toEqual([ITEM_C1]);
+      const loaded = await fx.wishlists.findById(LIST_C, NOW);
+      expect([loaded?.title, loaded?.items.map((i) => i.id.value)]).toEqual(['C', [ITEM_C1]]);
     });
 
     it('save inserts a pledge the aggregate made, once: a second save inserts nothing', async () => {

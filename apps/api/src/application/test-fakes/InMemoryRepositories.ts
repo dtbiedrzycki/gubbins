@@ -93,10 +93,10 @@ export class InMemoryWishlistRepository implements WishlistRepository {
 
   async save(wishlist: Wishlist): Promise<void> {
     if (!this.store.wishlists.has(wishlist.id.value)) throw new WishlistNotFoundError(wishlist.id.value);
-    this.store.wishlists.set(wishlist.id.value, copyWishlist(wishlist));
     const removed = [...this.store.items.values()].filter((row) => row.wishlistId === wishlist.id.value && !wishlist.items.some((item) => item.id.value === row.id));
     const withHistory = removed.find((row) => row.seq !== 0);
     if (withHistory) throw new ItemHasGuestHistoryError(withHistory.id);
+    this.store.wishlists.set(wishlist.id.value, copyWishlist(wishlist));
     for (const row of removed) this.store.items.delete(row.id);
     // The purchased count is derived from the holds, never stored.
     for (const item of wishlist.items) this.store.items.set(item.id.value, toRow(item));
