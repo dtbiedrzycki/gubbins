@@ -70,6 +70,7 @@ test('the owner edits their list and deletes an untouched item', async ({ page, 
   await manage.getByRole('button', { name: 'Delete Bib' }).click();
   await manage.getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(manage.getByRole('button', { name: 'Delete Bib' })).toHaveCount(0);
+  await expect(manage.getByRole('heading', { name: 'Items' })).toBeFocused();
   await expect(deleteStroller).toBeVisible();
   await expectNoSeriousAxeViolations(manage);
 });
