@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import type { CreateListResponse } from '@gubbins/shared-types';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -13,10 +13,15 @@ function renderWithQueryClient(ui: ReactElement) {
   return render(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>);
 }
 
+beforeEach(() => {
+  server.use(mock('get', '/api/guest-key-suggestion', 200, { key: 'maple-lantern-otter' }));
+});
+
 async function fillAndSubmit(beforeSubmit: (user: ReturnType<typeof userEvent.setup>) => void | Promise<void> = () => {}) {
   const user = userEvent.setup();
   renderWithQueryClient(<CreateListForm />);
   await beforeSubmit(user);
+  await screen.findByText('maple-lantern-otter');
   await user.type(screen.getByLabelText('List title'), 'Baby Shower');
   await user.type(screen.getByLabelText('Create secret'), 'the-secret');
   await user.click(screen.getByRole('button', { name: 'Create list' }));
@@ -63,6 +68,7 @@ describe('CreateListForm', () => {
     }));
     const user = userEvent.setup();
     renderWithQueryClient(<CreateListForm />);
+    await screen.findByText('maple-lantern-otter');
     await user.type(screen.getByLabelText('List title'), ' Baby Shower ');
     await user.type(screen.getByLabelText('Create secret'), ' the-secret ');
     await user.type(screen.getByLabelText('Venmo username'), ' @my-venmo ');
@@ -119,5 +125,52 @@ describe('CreateListForm', () => {
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(screen.getByText("Save your owner token now: you'll need it to manage the list, and it isn't shown again.")).toBeInTheDocument();
+  });
+
+  it('sends the suggested key with the list and shows it on the ready screen', async () => {
+    let body: unknown;
+    server.use(http.post('/api/lists', async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: (body as { key: string }).key } satisfies CreateListResponse, { status: 201 });
+    }));
+    await fillAndSubmit();
+    expect(await screen.findByTestId('guest-key')).toHaveTextContent('maple-lantern-otter');
+    expect(body).toMatchObject({ key: 'maple-lantern-otter' });
+  });
+
+  it('replaces the key when Regenerate is pressed, and sends the new one', async () => {
+    const keys = ['maple-lantern-otter', 'cedar-pocket-wren'];
+    server.use(http.get('/api/guest-key-suggestion', () => HttpResponse.json({ key: keys.shift() })));
+    let body: unknown;
+    server.use(http.post('/api/lists', async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'cedar-pocket-wren' } satisfies CreateListResponse, { status: 201 });
+    }));
+    const user = userEvent.setup();
+    renderWithQueryClient(<CreateListForm />);
+    await screen.findByText('maple-lantern-otter');
+    await user.click(screen.getByRole('button', { name: 'Regenerate' }));
+    await screen.findByText('cedar-pocket-wren');
+    await user.type(screen.getByLabelText('List title'), 'Baby Shower');
+    await user.type(screen.getByLabelText('Create secret'), 'the-secret');
+    await user.click(screen.getByRole('button', { name: 'Create list' }));
+    await screen.findByTestId('guest-key');
+    expect(body).toMatchObject({ key: 'cedar-pocket-wren' });
+  });
+
+  it('shows the error and keeps Create list disabled when the suggestion fails, then enables it once Regenerate retries', async () => {
+    let calls = 0;
+    server.use(http.get('/api/guest-key-suggestion', () => (
+      ++calls === 1
+        ? HttpResponse.json({ message: 'Suggestion unavailable' }, { status: 500 })
+        : HttpResponse.json({ key: 'maple-lantern-otter' })
+    )));
+    const user = userEvent.setup();
+    renderWithQueryClient(<CreateListForm />);
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Suggestion unavailable'));
+    expect(screen.getByRole('button', { name: 'Create list' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Regenerate' }));
+    await screen.findByText('maple-lantern-otter');
+    expect(screen.getByRole('button', { name: 'Create list' })).toBeEnabled();
   });
 });

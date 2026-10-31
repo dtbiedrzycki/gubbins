@@ -1,5 +1,7 @@
 import type { FormEvent } from 'react';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../api/client';
 import { useCreateList } from './useCreateList';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
 import { listPath, managePath } from '../../lib/links';
@@ -19,12 +21,18 @@ export function CreateListForm() {
   const [zelleHandle, setZelleHandle] = useState('');
   const [description, setDescription] = useState('');
   const { mutate, data, error, isPending } = useCreateList();
+  const suggestion = useQuery({
+    queryKey: ['guest-key-suggestion'], queryFn: api.suggestGuestKey,
+    staleTime: Infinity, refetchOnWindowFocus: false, retry: false,
+  });
+  const suggestedKey = suggestion.data?.key;
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (!suggestedKey) return;
     const listDescription = description.trim();
     mutate({
-      listTitle: listTitle.trim(), createSecret: createSecret.trim(),
+      listTitle: listTitle.trim(), key: suggestedKey, createSecret: createSecret.trim(),
       venmoHandle: venmoHandle.trim(), zelleHandle: zelleHandle.trim(),
       ...(listDescription && { listDescription }),
     });
@@ -65,6 +73,22 @@ export function CreateListForm() {
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>
+      <section aria-labelledby="guest-key-heading">
+        <h2 id="guest-key-heading" className="text-sm font-medium">Guest key</h2>
+        <div className="mt-1 flex items-center gap-3">
+          <p aria-live="polite" className="grow wrap-anywhere text-2xl font-bold">{suggestedKey}</p>
+          <button
+            type="button" onClick={() => void suggestion.refetch()}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded border border-gray-300 px-3 py-2"
+          >
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 3v6h6" />
+            </svg>
+            Regenerate
+          </button>
+        </div>
+        <p className="mt-1 text-sm text-gray-600">Guests type this to open your list. You can’t change it once the list is created.</p>
+      </section>
       <div>
         <label htmlFor="list-description" className="block text-sm font-medium">About this list (optional)</label>
         <LimitedTextarea
@@ -96,9 +120,9 @@ export function CreateListForm() {
         />
       </div>
       <p id="handles-hint" className="text-sm text-gray-600">Group gifts need at least one handle. Handles can't be changed later.</p>
-      <p role="alert" className="text-red-600 empty:mb-0">{error?.message}</p>
+      <p role="alert" className="text-red-600 empty:mb-0">{error?.message ?? suggestion.error?.message}</p>
       <button
-        type="submit" disabled={isPending}
+        type="submit" disabled={isPending || !suggestedKey}
         className="rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50"
       >
         {isPending ? 'Creating…' : 'Create list'}

@@ -16,7 +16,7 @@ describe('useCreateList', () => {
     server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'tok', key: 'key' }));
     const { result } = renderHook(() => useCreateList(), { wrapper });
 
-    result.current.mutate({ listTitle: 'Baby Shower' });
+    result.current.mutate({ listTitle: 'Baby Shower', key: 'maple-lantern-otter' });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual({ slug: 'abc123', ownerToken: 'tok', key: 'key' });
