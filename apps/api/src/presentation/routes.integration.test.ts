@@ -584,7 +584,7 @@ describe('PUT /api/lists/:slug', () => {
 
   it('answers a guest session without the owner cookie with the generic 404', async () => {
     const list = await createList();
-    const response = await edit(list.slug, await guestOn(list), { title: 'Welcome Baby' });
+    const response = await edit(list.slug, await guestOn(list), { title: 'Welcome Baby', description: null });
     expect(response.statusCode).toBe(404);
     expect(response.json()).toEqual({ message: 'Not found' });
   });
@@ -593,7 +593,7 @@ describe('PUT /api/lists/:slug', () => {
 describe('PUT /api/lists/:slug/items/:itemId', () => {
   const edit = (slug: string, itemId: string, cookie: string | undefined, payload: object) =>
     app.inject({ method: 'PUT', url: `/api/lists/${slug}/items/${itemId}`, headers: cookie ? { cookie } : {}, payload });
-  const details = { title: 'Travel system', quantity: 2, priceMinor: 25000 };
+  const details = { title: 'Travel system', quantity: 2, priceMinor: 25000, url: null, description: null };
 
   it('the owner edits an item, and the manage view shows it', async () => {
     const list = await createList();

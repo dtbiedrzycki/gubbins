@@ -80,7 +80,7 @@ export class Wishlist {
   }
 
   /** Replaces the title and description, trimmed as at creation; a refused edit leaves the old details. */
-  editDetails(props: { title: string; description?: string | null }): void {
+  editDetails(props: { title: string; description: string | null }): void {
     const title = props.title.trim();
     const description = cleanDescription(props.description);
     Wishlist.checkDetails(title, description);

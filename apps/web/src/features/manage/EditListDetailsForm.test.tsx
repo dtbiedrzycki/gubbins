@@ -16,7 +16,7 @@ function renderForm(props: Partial<Parameters<typeof EditListDetailsForm>[0]> = 
 }
 
 describe('EditListDetailsForm', () => {
-  it('starts with the current details and sends them trimmed, leaving out a cleared description', async () => {
+  it('starts with the current details, sends the title trimmed, and sends null for a description cleared to blank', async () => {
     const bodies: unknown[] = [];
     server.use(http.put('/api/lists/:slug', async ({ request }) => {
       bodies.push(await request.json());
@@ -38,7 +38,7 @@ describe('EditListDetailsForm', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(onDone).toHaveBeenCalled());
-    expect(bodies).toEqual([{ title: 'Shower' }]);
+    expect(bodies).toEqual([{ title: 'Shower', description: null }]);
   });
 
   it('returns to the token gate when the save answers 404', async () => {
