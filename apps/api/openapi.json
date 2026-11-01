@@ -576,11 +576,13 @@
                     "minLength": 1
                   },
                   "description": {
+                    "nullable": true,
                     "type": "string"
                   }
                 },
                 "required": [
-                  "title"
+                  "title",
+                  "description"
                 ]
               }
             }
@@ -944,22 +946,28 @@
                     "maximum": 99
                   },
                   "priceMinor": {
+                    "nullable": true,
                     "type": "integer",
                     "minimum": 0,
                     "exclusiveMinimum": true,
                     "maximum": 1000000000000
                   },
                   "url": {
+                    "nullable": true,
                     "type": "string",
                     "format": "uri"
                   },
                   "description": {
+                    "nullable": true,
                     "type": "string"
                   }
                 },
                 "required": [
                   "title",
-                  "quantity"
+                  "quantity",
+                  "priceMinor",
+                  "url",
+                  "description"
                 ]
               }
             }

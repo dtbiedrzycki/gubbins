@@ -220,7 +220,7 @@ describe('Wishlist.addItem', () => {
 });
 
 describe('Wishlist.editItem', () => {
-  it('replaces the item where it was', () => {
+  it('puts the edited item back at its old position in the list order', () => {
     const second = Item.reconstitute({ id: OTHER_ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Crib', quantity: 1, seq: 0, asOf: T0 });
     const wishlist = Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [itemOf(), second] });
 

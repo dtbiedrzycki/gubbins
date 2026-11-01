@@ -52,14 +52,12 @@ export function EditItemForm({ slug, item, onDone, onUnauthorized }: EditItemFor
   const belowCommitted = !isGroup && quantity.trim() !== '' && Number.isInteger(newQuantity) && newQuantity < item.committedUnits;
 
   function save(priceMinor: number | undefined) {
-    const trimmedUrl = url.trim();
-    const trimmedDescription = description.trim();
     mutate({
       title: title.trim(),
       quantity: isGroup ? 1 : newQuantity,
-      ...(priceMinor !== undefined && { priceMinor }),
-      ...(trimmedUrl && { url: trimmedUrl }),
-      ...(trimmedDescription && { description: trimmedDescription }),
+      priceMinor: priceMinor ?? null,
+      url: url.trim() || null,
+      description: description.trim() || null,
     }, {
       onSuccess: onDone,
       onError: (e) => { if (e instanceof ApiError && e.status === 404) onUnauthorized(); },
