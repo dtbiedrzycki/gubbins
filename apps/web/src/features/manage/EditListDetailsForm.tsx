@@ -34,8 +34,7 @@ export function EditListDetailsForm({ slug, title, description, onDone, onUnauth
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    const trimmedDescription = newDescription.trim();
-    mutate({ title: newTitle.trim(), ...(trimmedDescription && { description: trimmedDescription }) }, {
+    mutate({ title: newTitle.trim(), description: newDescription.trim() || null }, {
       onSuccess: onDone,
       onError: (e) => { if (e instanceof ApiError && e.status === 404) onUnauthorized(); },
     });
