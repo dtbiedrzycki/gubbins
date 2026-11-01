@@ -76,6 +76,9 @@ export const api = {
   editItem: (slug: string, itemId: string, input: EditItemRequest): Promise<EditedResponse> =>
     http.PUT('/api/lists/{slug}/items/{itemId}', { params: { path: { slug, itemId } }, body: input }).then(unwrap),
 
+  deleteItem: (slug: string, itemId: string): Promise<EditedResponse> =>
+    http.DELETE('/api/lists/{slug}/items/{itemId}', { params: { path: { slug, itemId } } }).then(unwrap),
+
   editListDetails: (slug: string, input: EditListDetailsRequest): Promise<EditedResponse> =>
     http.PUT('/api/lists/{slug}', { params: { path: { slug } }, body: input }).then(unwrap),
 
