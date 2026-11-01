@@ -128,8 +128,10 @@ length CHECKs).
 | Item quantity, group | n/a | always 1, not editable | n/a | domain |
 | Guest key (create request) | yes, as every bearer secret | three words from the generator's list | required | server suggests and checks |
 
-My call: an edit request carries the full set of editable fields, and an
-absent optional field means "none". That makes "cleared" unambiguous.
+An edit request carries the full set of editable fields. Each field that
+can be cleared is required, with `null` for "none", so a client that forgets
+a field is refused (400) instead of wiping it (owner, 2026-11-01). Create
+requests still leave a blank field out.
 
 ## Phases
 
