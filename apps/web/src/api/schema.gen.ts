@@ -711,10 +711,10 @@ export interface operations {
                 "application/json": {
                     title: string;
                     quantity: number;
-                    priceMinor?: number;
+                    priceMinor: number | null;
                     /** Format: uri */
-                    url?: string;
-                    description?: string;
+                    url: string | null;
+                    description: string | null;
                 };
             };
         };

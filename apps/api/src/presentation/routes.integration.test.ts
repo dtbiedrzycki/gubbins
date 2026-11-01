@@ -593,7 +593,7 @@ describe('PUT /api/lists/:slug', () => {
 describe('PUT /api/lists/:slug/items/:itemId', () => {
   const edit = (slug: string, itemId: string, cookie: string | undefined, payload: object) =>
     app.inject({ method: 'PUT', url: `/api/lists/${slug}/items/${itemId}`, headers: cookie ? { cookie } : {}, payload });
-  const details = { title: 'Travel system', quantity: 2, priceMinor: 25000 };
+  const details = { title: 'Travel system', quantity: 2, priceMinor: 25000, url: null, description: null };
 
   it('the owner edits an item, and the manage view shows it', async () => {
     const list = await createList();
