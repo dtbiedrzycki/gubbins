@@ -54,6 +54,10 @@ export class InvalidCreateSecretError extends Error {
 export class NoPaymentMethodError extends Error {
   constructor() { super('A group gift needs at least one payment method on the list'); }
 }
+/** Deleting an item some guest has held, bought or pledged to: the stream keeps their history (ADR-0017). */
+export class ItemHasGuestHistoryError extends Error {
+  constructor(itemId: string) { super(`Item ${itemId} has guest history and cannot be deleted`); }
+}
 /** A pledge amount that is not a whole sum within the gift's bounds, or would take the item's total past the limit. */
 export class ContributionAmountError extends Error {
   constructor(itemId: string) { super(`Contribution amount out of range for item ${itemId}`); }
