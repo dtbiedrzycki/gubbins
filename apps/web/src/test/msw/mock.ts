@@ -1,7 +1,7 @@
 import { http, HttpResponse, type HttpHandler } from 'msw';
 import type { paths } from '../../api/schema.gen';
 
-type Method = 'get' | 'post';
+type Method = 'get' | 'post' | 'put';
 type Operation<P extends keyof paths, M extends Method> = NonNullable<paths[P][M]>;
 type Status<P extends keyof paths, M extends Method> =
   Operation<P, M> extends { responses: infer R } ? keyof R & number : never;

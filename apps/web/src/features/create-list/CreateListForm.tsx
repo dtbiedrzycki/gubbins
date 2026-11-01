@@ -95,7 +95,7 @@ export function CreateListForm() {
           id="list-description" describedBy={['list-description-hint']} rows={5} max={DESCRIPTION_MAX} value={description} onChange={(e) => setDescription(e.target.value)}
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
-        <p id="list-description-hint" className="mt-1 text-sm text-gray-600">Guests see this above your list. If you want gifts mailed, add your shipping address here. Supports **bold**, *italics*, lists and links. You can’t change it after the list is created.</p>
+        <p id="list-description-hint" className="mt-1 text-sm text-gray-600">Guests see this above your list. If you want gifts mailed, add your shipping address here. Supports **bold**, *italics*, lists and links.</p>
       </div>
       <div>
         <label htmlFor="create-secret" className="block text-sm font-medium">Create secret</label>

@@ -87,11 +87,11 @@ describe('CreateListForm', () => {
     expect(screen.getByLabelText('Zelle email or US phone')).toHaveAttribute('maxlength', '254');
   });
 
-  it('limits the list description to 2000 characters and explains where it shows and that it is permanent', () => {
+  it('limits the list description to 2000 characters and explains where it shows', () => {
     renderWithQueryClient(<CreateListForm />);
     const field = screen.getByLabelText('About this list (optional)');
     expect(field).toHaveAttribute('maxlength', '2000');
-    expect(field).toHaveAccessibleDescription('Guests see this above your list. If you want gifts mailed, add your shipping address here. Supports **bold**, *italics*, lists and links. You can\u2019t change it after the list is created.');
+    expect(field).toHaveAccessibleDescription('Guests see this above your list. If you want gifts mailed, add your shipping address here. Supports **bold**, *italics*, lists and links.');
   });
 
   it('sends the description trimmed, and leaves it out when blank', async () => {
