@@ -38,7 +38,7 @@ export default function ManagePage() {
             {query.data && <ListDetails slug={slug} onUnauthorized={unauthorized} view={query.data} />}
             {/* Above the items, so adding never means scrolling past a long list. */}
             <AddItemForm slug={slug} onUnauthorized={unauthorized} />
-            {query.data && <ManageItems items={query.data.items} />}
+            {query.data && <ManageItems slug={slug} items={query.data.items} onUnauthorized={unauthorized} />}
           </>
         ) : (
           <OwnerTokenGate

@@ -75,7 +75,7 @@ describe('AddItemForm', () => {
     renderForm(<AddItemForm slug="abc123" onUnauthorized={() => {}} />);
     const field = screen.getByLabelText('Description (optional)');
     expect(field).toHaveAttribute('maxlength', '1000');
-    expect(field).toHaveAccessibleDescription("Supports **bold**, *italics*, lists and links. You can\u2019t change it after adding the item.");
+    expect(field).toHaveAccessibleDescription("Supports **bold**, *italics*, lists and links.");
   });
 
   it('sends the description trimmed, clears it after adding, and leaves it out when blank', async () => {
