@@ -23,12 +23,13 @@ export const addItemRequestSchema = z.discriminatedUnion('type', [
 ]);
 export type AddItemRequest = z.infer<typeof addItemRequestSchema>;
 
+// Required and null to clear: an edit replaces every field, so a forgotten field is refused, not wiped.
 export const editItemRequestSchema = z.object({
   title: z.string().min(1),
   quantity: z.number().int().min(1).max(99),
-  priceMinor: priceMinor.optional(),
-  url: httpsUrl.optional(),
-  description: z.string().optional(),
+  priceMinor: priceMinor.nullable(),
+  url: httpsUrl.nullable(),
+  description: z.string().nullable(),
 });
 export type EditItemRequest = z.infer<typeof editItemRequestSchema>;
 
