@@ -75,7 +75,7 @@ test('the owner edits their list and deletes an untouched item', async ({ page, 
   await expectNoSeriousAxeViolations(manage);
 });
 
-test('a refused delete moves focus to the server's reason', async ({ page, context }) => {
+test("a refused delete moves focus to the server's reason", async ({ page, context }) => {
   await page.goto('/wishlists/new');
   await page.getByLabel('List title').fill('Baby Shower');
   await expect(page.getByRole('region', { name: 'Guest key' }).locator('[aria-live]')).not.toBeEmpty();
