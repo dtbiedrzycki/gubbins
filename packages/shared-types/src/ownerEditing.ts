@@ -1,0 +1,8 @@
+import { z } from 'zod';
+
+// Required and null to clear: a save replaces both details, so a forgotten field is refused, not wiped.
+export const editListDetailsRequestSchema = z.object({ title: z.string().min(1), description: z.string().nullable() });
+export type EditListDetailsRequest = z.infer<typeof editListDetailsRequestSchema>;
+
+export const editedResponseSchema = z.object({ ok: z.literal(true) });
+export type EditedResponse = z.infer<typeof editedResponseSchema>;

@@ -5,6 +5,7 @@ import {
   createListRequestSchema, createListResponseSchema, guestKeySuggestionResponseSchema,
   enterGuestKeyRequestSchema, enterGuestKeyResponseSchema,
   ownerSessionRequestSchema, ownerSessionResponseSchema,
+  editListDetailsRequestSchema, editedResponseSchema,
   addItemRequestSchema, addItemResponseSchema,
   manageViewResponseSchema,
   holdItemRequestSchema, holdItemResponseSchema, holdViewSchema, listViewResponseSchema,
@@ -176,6 +177,28 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     try {
       const view = await deps.getListView.execute({ wishlistId: guest.wishlist.id.value }, guest.access);
       return reply.code(200).send(view);
+    } catch (err) {
+      return sendDomainError(reply, err);
+    }
+  });
+
+  app.put('/api/lists/:slug', {
+    schema: {
+      operationId: 'editListDetails',
+      params: slugParams,
+      body: editListDetailsRequestSchema,
+      response: {
+        200: json("The list's title and description were changed.", editedResponseSchema),
+        400: json(INVALID_REQUEST, errorResponseSchema),
+        404: json('No such list, or no owner cookie for it. Deliberately indistinguishable.', errorResponseSchema),
+      },
+    },
+  }, async (request, reply) => {
+    const owner = await ownerAccess(request, request.params.slug);
+    if (!owner) return reply.code(404).send(NOT_FOUND);
+    try {
+      await deps.editListDetails.execute({ ...request.body, wishlistId: owner.wishlist.id.value }, owner.access);
+      return reply.code(200).send({ ok: true });
     } catch (err) {
       return sendDomainError(reply, err);
     }

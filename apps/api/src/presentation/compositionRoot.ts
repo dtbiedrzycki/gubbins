@@ -13,6 +13,7 @@ import { CreateList } from '../application/use-cases/CreateList.js';
 import { EnterGuestKey } from '../application/use-cases/EnterGuestKey.js';
 import { EnterOwnerToken } from '../application/use-cases/EnterOwnerToken.js';
 import { GetListView } from '../application/use-cases/GetListView.js';
+import { EditListDetails } from '../application/use-cases/EditListDetails.js';
 import { AddItem } from '../application/use-cases/AddItem.js';
 import { GetManageView } from '../application/use-cases/GetManageView.js';
 import { HoldItem } from '../application/use-cases/HoldItem.js';
@@ -44,6 +45,7 @@ export interface AppDependencies {
   enterOwnerToken: EnterOwnerToken;
   getListView: GetListView;
   addItem: AddItem;
+  editListDetails: EditListDetails;
   getManageView: GetManageView;
   holdItem: HoldItem;
   pledgeContribution: PledgeContribution;
@@ -74,6 +76,7 @@ export function buildDependencies(db: Kysely<Database>, logger: Logger = new Con
     enterOwnerToken: new EnterOwnerToken(wishlists, secretComparer, clock),
     getListView: new GetListView(unitOfWork, clock, holdPolicy),
     addItem: new AddItem(unitOfWork, tokenGenerator, clock),
+    editListDetails: new EditListDetails(unitOfWork, clock),
     getManageView: new GetManageView(unitOfWork, clock),
     holdItem: new HoldItem(unitOfWork, tokenGenerator, clock, hasher, holdPolicy),
     pledgeContribution: new PledgeContribution(unitOfWork, tokenGenerator, clock),
