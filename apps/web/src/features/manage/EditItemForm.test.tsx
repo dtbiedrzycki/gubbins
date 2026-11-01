@@ -29,7 +29,7 @@ function renderForm(item: Item, props: Partial<Parameters<typeof EditItemForm>[0
 }
 
 describe('EditItemForm', () => {
-  it("starts with the item's values and sends every field, leaving out cleared ones", async () => {
+  it("starts with the item's values and sends every field, with null for cleared ones", async () => {
     const onDone = vi.fn();
     const user = userEvent.setup();
     const bodies = renderForm(single, { onDone });
@@ -51,7 +51,7 @@ describe('EditItemForm', () => {
     await user.clear(screen.getByLabelText('Store link'));
     await user.clear(screen.getByLabelText('Description (optional)'));
     await user.click(screen.getByRole('button', { name: 'Save' }));
-    await waitFor(() => expect(bodies).toEqual([{ title: 'Muslin swaddles', quantity: 3 }]));
+    await waitFor(() => expect(bodies).toEqual([{ title: 'Muslin swaddles', quantity: 3, priceMinor: null, url: null, description: null }]));
   });
 
   it('warns when the quantity drops below what guests hold or bought, and saves anyway', async () => {
@@ -95,7 +95,7 @@ describe('EditItemForm', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await user.click(screen.getByRole('button', { name: 'Save new target' }));
     await waitFor(() => expect(onDone).toHaveBeenCalled());
-    expect(bodies).toEqual([{ title: 'Stroller fund', quantity: 1, priceMinor: 15000 }]);
+    expect(bodies).toEqual([{ title: 'Stroller fund', quantity: 1, priceMinor: 15000, url: null, description: null }]);
   });
 
   it.each([
@@ -111,7 +111,7 @@ describe('EditItemForm', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(onDone).toHaveBeenCalled());
-    expect(bodies).toEqual([{ title: 'Stroller fund', quantity: 1, priceMinor }]);
+    expect(bodies).toEqual([{ title: 'Stroller fund', quantity: 1, priceMinor, url: null, description: null }]);
     expect(screen.queryByText('This target is already met')).not.toBeInTheDocument();
   });
 });

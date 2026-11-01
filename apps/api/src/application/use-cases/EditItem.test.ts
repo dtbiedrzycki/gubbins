@@ -16,10 +16,10 @@ async function makeUseCase() {
   return { useCase: new EditItem(unitOfWork, new FixedClock(NOW)), wishlists };
 }
 
-const input = { wishlistId: WISHLIST_ID, itemId: ITEM_ID, title: 'Pram', quantity: 2 };
+const input = { wishlistId: WISHLIST_ID, itemId: ITEM_ID, title: 'Pram', quantity: 2, priceMinor: null, url: null, description: null };
 
 describe('EditItem', () => {
-  it('saves every field, and an absent price, link or description clears it', async () => {
+  it('saves every field, and a null price, link or description clears it', async () => {
     const { useCase, wishlists } = await makeUseCase();
     const full = { ...input, priceMinor: 4500, url: 'https://example.com/pram', description: 'Blue' };
 
