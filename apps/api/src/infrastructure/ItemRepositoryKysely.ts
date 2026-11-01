@@ -39,6 +39,11 @@ export class ItemRepositoryKysely implements ItemRepository {
       .execute();
   }
 
+  async delete(itemId: string): Promise<void> {
+    await this.db.deleteFrom('item_state').where('item_id', '=', itemId).execute();
+    await this.db.deleteFrom('items').where('id', '=', itemId).execute();
+  }
+
   /** Writes `seq` only: the purchased count is derived from holds, never stored. */
   async saveState(item: Item): Promise<void> {
     await this.db.updateTable('item_state')

@@ -1,4 +1,4 @@
-import { DomainValidationError, HoldNotFoundError, ItemNotFoundError, ItemUnavailableError, NoPaymentMethodError } from '../errors.js';
+import { DomainValidationError, HoldNotFoundError, ItemHasGuestHistoryError, ItemNotFoundError, ItemUnavailableError, NoPaymentMethodError } from '../errors.js';
 import type { ContributionPledgedEvent } from '../events/ContributionPledgedEvent.js';
 import type { HoldExtendedEvent } from '../events/HoldExtendedEvent.js';
 import type { HoldReleasedEvent } from '../events/HoldReleasedEvent.js';
@@ -151,6 +151,12 @@ export class Wishlist {
     const edited = this.getItem(itemId).edited(edit);
     this._items = this._items.map((item) => (item.id.value === itemId ? edited : item));
     return edited;
+  }
+
+  /** Drops an item no guest has acted on; one with any history is refused and kept. */
+  removeItem(itemId: string): void {
+    if (!this.getItem(itemId).canBeDeleted()) throw new ItemHasGuestHistoryError(itemId);
+    this._items = this._items.filter((item) => item.id.value !== itemId);
   }
 
   /** The items, in the order they were added. */
