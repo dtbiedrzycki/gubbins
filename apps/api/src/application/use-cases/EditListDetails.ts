@@ -6,7 +6,7 @@ import { WishlistNotFoundError } from '../../domain/errors.js';
 export interface EditListDetailsInput {
   wishlistId: string;
   title: string;
-  description?: string | null;
+  description: string | null;
 }
 
 export class EditListDetails {

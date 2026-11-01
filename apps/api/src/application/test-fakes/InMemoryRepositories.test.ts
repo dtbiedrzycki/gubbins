@@ -20,9 +20,9 @@ describe('in-memory fakes never share instances with the store', () => {
     const { wishlists } = inMemoryPersistence();
     const list = aWishlist().build();
     await wishlists.insert(list);
-    list.editDetails({ title: 'Saved' });
+    list.editDetails({ title: 'Saved', description: null });
     await wishlists.save(list);
-    list.editDetails({ title: 'Never saved' });
+    list.editDetails({ title: 'Never saved', description: null });
 
     expect((await wishlists.findBySlug('abc123', T0))?.title).toBe('Saved');
   });
