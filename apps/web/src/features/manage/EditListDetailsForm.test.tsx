@@ -16,7 +16,7 @@ function renderForm(props: Partial<Parameters<typeof EditListDetailsForm>[0]> = 
 }
 
 describe('EditListDetailsForm', () => {
-  it('starts with the current details and sends them trimmed, with null for a description cleared to blank', async () => {
+  it('starts with the current details, sends the title trimmed, and sends null for a description cleared to blank', async () => {
     const bodies: unknown[] = [];
     server.use(http.put('/api/lists/:slug', async ({ request }) => {
       bodies.push(await request.json());
