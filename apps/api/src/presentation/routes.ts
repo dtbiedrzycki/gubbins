@@ -270,6 +270,28 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     }
   });
 
+  app.delete('/api/lists/:slug/items/:itemId', {
+    schema: {
+      operationId: 'deleteItem',
+      params: slugItemParams,
+      response: {
+        200: json('The item was deleted.', editedResponseSchema),
+        400: json(INVALID_REQUEST, errorResponseSchema),
+        404: json('No such list or item, or no owner cookie for the list. Deliberately indistinguishable.', errorResponseSchema),
+        409: json('A guest has held, bought or pledged towards the item, so it stays (item_has_guest_history).', errorResponseSchema),
+      },
+    },
+  }, async (request, reply) => {
+    const owner = await ownerAccess(request, request.params.slug);
+    if (!owner) return reply.code(404).send(NOT_FOUND);
+    try {
+      await deps.deleteItem.execute({ wishlistId: owner.wishlist.id.value, itemId: request.params.itemId }, owner.access);
+      return reply.code(200).send({ ok: true });
+    } catch (err) {
+      return sendDomainError(reply, err);
+    }
+  });
+
   app.post('/api/lists/:slug/items/:itemId/hold', {
     schema: {
       operationId: 'holdItem',

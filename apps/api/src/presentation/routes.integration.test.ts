@@ -622,6 +622,38 @@ describe('PUT /api/lists/:slug/items/:itemId', () => {
   });
 });
 
+describe('DELETE /api/lists/:slug/items/:itemId', () => {
+  const remove = (slug: string, itemId: string, cookie: string | undefined) =>
+    app.inject({ method: 'DELETE', url: `/api/lists/${slug}/items/${itemId}`, headers: cookie ? { cookie } : {} });
+  const manageItems = async (slug: string, cookie: string) =>
+    ((await app.inject({ method: 'GET', url: `/api/lists/${slug}/manage`, headers: { cookie } })).json() as { items: { id: string }[] }).items;
+
+  it('the owner deletes an untouched item, and the manage view no longer lists it', async () => {
+    const list = await createList();
+    const cookie = await ownerOn(list);
+    const response = await remove(list.slug, list.itemId, cookie);
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ ok: true });
+    expect(await manageItems(list.slug, cookie)).toEqual([]);
+  });
+
+  it('answers an item a guest has held with 409 item_has_guest_history, and keeps it', async () => {
+    const { list } = await heldByGuest();
+    const cookie = await ownerOn(list);
+    const response = await remove(list.slug, list.itemId, cookie);
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({ code: 'item_has_guest_history' });
+    expect((await manageItems(list.slug, cookie)).map((i) => i.id)).toEqual([list.itemId]);
+  });
+
+  it('answers a guest session without the owner cookie with the generic 404', async () => {
+    const list = await createList();
+    const response = await remove(list.slug, list.itemId, await guestOn(list));
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ message: 'Not found' });
+  });
+});
+
 describe('GET /api/lists/:slug/manage', () => {
   const manage = (slug: string, cookie?: string) => app.inject({ method: 'GET', url: `/api/lists/${slug}/manage`, headers: cookie ? { cookie } : {} });
 
