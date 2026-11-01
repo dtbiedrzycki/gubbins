@@ -18,6 +18,7 @@ const noDependencies: AppDependencies = {
   enterOwnerToken: unusedDependency('enterOwnerToken'),
   getListView: unusedDependency('getListView'),
   addItem: unusedDependency('addItem'),
+  editItem: unusedDependency('editItem'),
   editListDetails: unusedDependency('editListDetails'),
   getManageView: unusedDependency('getManageView'),
   holdItem: unusedDependency('holdItem'),
