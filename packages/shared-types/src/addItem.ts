@@ -23,5 +23,15 @@ export const addItemRequestSchema = z.discriminatedUnion('type', [
 ]);
 export type AddItemRequest = z.infer<typeof addItemRequestSchema>;
 
+// Required and null to clear: an edit replaces every field, so a forgotten field is refused, not wiped.
+export const editItemRequestSchema = z.object({
+  title: z.string().min(1),
+  quantity: z.number().int().min(1).max(99),
+  priceMinor: priceMinor.nullable(),
+  url: httpsUrl.nullable(),
+  description: z.string().nullable(),
+});
+export type EditItemRequest = z.infer<typeof editItemRequestSchema>;
+
 export const addItemResponseSchema = z.object({ itemId: z.string() });
 export type AddItemResponse = z.infer<typeof addItemResponseSchema>;
