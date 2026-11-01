@@ -15,6 +15,8 @@ export const MAX_CONTRIBUTION_TARGET_MULTIPLE = 5; // shortcut: constant, not th
 const ITEM_DESCRIPTION_MAX = 1000; // a few paragraphs of notes (size, colour, where to buy); bounds stored input
 const MAX_URL_LENGTH = 2048; // the de facto browser/CDN limit; bounds stored input
 
+export type ItemEdit = { title: string; quantity: number; priceMinor: number | null; url: string | null; description: string | null };
+
 export type ItemStatus = 'available' | 'held' | 'purchased';
 
 const sumMinor = (contributions: readonly Contribution[]): number => contributions.reduce((sum, c) => sum + c.amount.amountMinor, 0);
@@ -129,6 +131,14 @@ export class Item {
 
   get contributions(): readonly Contribution[] {
     return this._contributions;
+  }
+
+  /** A copy with the edited details, cleaned as the factories do; its kind, stream, holds and pledges carry over, and the constructor refuses what an item may not be. */
+  edited(edit: ItemEdit): Item {
+    return new Item(
+      this.id, this.wishlistId, this.type, edit.title.trim(), edit.quantity, edit.url?.trim() || null, edit.priceMinor,
+      cleanDescription(edit.description), this._seq, this.asOf, [...this._holds], [...this._contributions],
+    );
   }
 
   /** Whether this item decides at `at`: its aggregate's instant, set when it was built or loaded. */

@@ -11,7 +11,7 @@ import { Slug } from '../value-objects/Slug.js';
 import { UuidId } from '../value-objects/UuidId.js';
 import type { Contribution } from './Contribution.js';
 import type { Hold, HoldStatus } from './Hold.js';
-import { cleanDescription, Item, type ItemStatus } from './Item.js';
+import { cleanDescription, Item, type ItemEdit, type ItemStatus } from './Item.js';
 
 const WISHLIST_DESCRIPTION_MAX = 2000; // room for an address and delivery notes; bounds stored input
 
@@ -144,6 +144,13 @@ export class Wishlist {
     }
     this._items.push(item);
     return item;
+  }
+
+  /** Replaces the item with its edited self, where it was; a refused edit leaves the list as it was. */
+  editItem(itemId: string, edit: ItemEdit): Item {
+    const edited = this.getItem(itemId).edited(edit);
+    this._items = this._items.map((item) => (item.id.value === itemId ? edited : item));
+    return edited;
   }
 
   /** The items, in the order they were added. */

@@ -32,13 +32,11 @@ export class ItemRepositoryKysely implements ItemRepository {
     }));
   }
 
-  async seqsByWishlistId(wishlistId: string): Promise<Map<string, number>> {
-    const rows = await this.db.selectFrom('item_state')
-      .innerJoin('items', 'items.id', 'item_state.item_id')
-      .select(['item_state.item_id as id', 'item_state.seq as seq'])
-      .where('items.wishlist_id', '=', wishlistId)
+  async update(item: Item): Promise<void> {
+    await this.db.updateTable('items')
+      .set({ title: item.title, quantity: item.quantity, url: item.url, price_minor: item.priceMinor, description: item.description })
+      .where('id', '=', item.id.value)
       .execute();
-    return new Map(rows.map((row) => [row.id, row.seq]));
   }
 
   /** Writes `seq` only: the purchased count is derived from holds, never stored. */

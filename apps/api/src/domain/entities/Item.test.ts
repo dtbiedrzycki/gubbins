@@ -163,6 +163,20 @@ describe('Item availability and holds — from hold state, never a stored counte
   });
 });
 
+describe('Item.edited', () => {
+  it("keeps the item's kind, stream and guests' holds, and cleans input as creation does", () => {
+    const hold = holdOn();
+    const item = Item.reconstitute({ ...base, seq: 3, holds: [hold] });
+
+    const edited = item.edited({ title: '  Big stroller ', quantity: 2, priceMinor: 5000, url: '  ', description: '  Grey\n' });
+
+    expect(edited).toMatchObject({ title: 'Big stroller', quantity: 2, priceMinor: 5000, url: null, description: 'Grey', type: 'single', seq: 3 });
+    expect(edited.id.value).toBe(ITEM_ID);
+    expect(edited.holds).toEqual([hold]);
+    expect(edited.isLoadedAt(T0)).toBe(true);
+  });
+});
+
 describe('Item.placeHold', () => {
   const at = T0;
   const GENERATED_HOLD_ID = '55555555-5555-7555-8555-555555555555';

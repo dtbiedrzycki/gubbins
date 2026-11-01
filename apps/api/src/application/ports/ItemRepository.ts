@@ -16,8 +16,8 @@ export interface ItemRepository {
   insert(item: Item): Promise<void>;
   /** The list's item rows, in the order they were added; the `WishlistRepository` assembles them into Items. */
   findAllByWishlistId(wishlistId: string): Promise<ItemRow[]>;
-  /** Each item's stored `seq`, by item id: what `save` compares against. */
-  seqsByWishlistId(wishlistId: string): Promise<Map<string, number>>;
+  /** Writes the item's editable columns: title, quantity, url, price and description. */
+  update(item: Item): Promise<void>;
   /** Writes the item's `seq`; `WishlistRepository.save` calls it for each changed item. */
   saveState(item: Item): Promise<void>;
 }

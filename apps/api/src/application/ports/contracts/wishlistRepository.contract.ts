@@ -216,6 +216,15 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect((await fx.wishlists.findById(LIST_A, NOW))?.description).toBeNull();
     });
 
+    it("save stores an edited item's fields", async () => {
+      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+      wishlist.editItem(ITEM_A, { title: 'Renamed', quantity: 3, priceMinor: 1200, url: 'https://shop.example/x', description: 'Grey' });
+      await fx.wishlists.save(wishlist);
+
+      expect((await fx.wishlists.findById(LIST_A, NOW))?.getItem(ITEM_A))
+        .toMatchObject({ title: 'Renamed', quantity: 3, priceMinor: 1200, url: 'https://shop.example/x', description: 'Grey' });
+    });
+
     it('save adds a new item to the list, with its stream at seq 0', async () => {
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
       wishlist.addItem({ type: 'single', title: 'Bib' }, { generateEntityId: () => ITEM_A2 });
