@@ -575,11 +575,13 @@
                     "minLength": 1
                   },
                   "description": {
+                    "nullable": true,
                     "type": "string"
                   }
                 },
                 "required": [
-                  "title"
+                  "title",
+                  "description"
                 ]
               }
             }

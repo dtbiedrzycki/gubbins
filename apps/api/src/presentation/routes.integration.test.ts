@@ -584,7 +584,7 @@ describe('PUT /api/lists/:slug', () => {
 
   it('answers a guest session without the owner cookie with the generic 404', async () => {
     const list = await createList();
-    const response = await edit(list.slug, await guestOn(list), { title: 'Welcome Baby' });
+    const response = await edit(list.slug, await guestOn(list), { title: 'Welcome Baby', description: null });
     expect(response.statusCode).toBe(404);
     expect(response.json()).toEqual({ message: 'Not found' });
   });

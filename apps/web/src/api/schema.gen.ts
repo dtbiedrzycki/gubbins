@@ -529,7 +529,7 @@ export interface operations {
             content: {
                 "application/json": {
                     title: string;
-                    description?: string;
+                    description: string | null;
                 };
             };
         };

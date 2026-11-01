@@ -8,9 +8,9 @@ export interface EditItemInput {
   itemId: string;
   title: string;
   quantity: number;
-  priceMinor?: number;
-  url?: string;
-  description?: string;
+  priceMinor: number | null;
+  url: string | null;
+  description: string | null;
 }
 
 export class EditItem {
@@ -29,14 +29,7 @@ export class EditItem {
     await this.unitOfWork.execute(async (ctx) => {
       const wishlist = await ctx.wishlists.findById(wishlistId, this.clock.now());
       if (!wishlist) throw new WishlistNotFoundError(wishlistId);
-      // An absent optional field clears it.
-      wishlist.editItem(itemId, {
-        title,
-        quantity,
-        priceMinor: priceMinor ?? null,
-        url: url ?? null,
-        description: description ?? null,
-      });
+      wishlist.editItem(itemId, { title, quantity, priceMinor, url, description });
       await ctx.wishlists.save(wishlist);
     });
   }
