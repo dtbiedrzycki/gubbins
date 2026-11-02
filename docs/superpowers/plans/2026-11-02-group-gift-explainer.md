@@ -51,7 +51,6 @@
   - `dismisses for this visit only where storage is blocked` (getItem/setItem throw).
   - `leaves the holding explainer's dismissal alone`: after dismiss, `localStorage.getItem('gubbins.holdingExplainerDismissed')` is `null`.
   - `says guests pay the host and the host buys the gift`: the three bold step texts are present, and the card has text `When you chip in, we’ll show you how to pay the host with Venmo or Zelle.`
-  - Clear `localStorage` in `afterEach`.
 
 - [ ] **Step 2: Run, expect FAIL** (module not found)
   `npm -w apps/web exec -- vitest run src/features/contribute/HowGroupGiftsWork.test.tsx --testTimeout=30000`
@@ -77,7 +76,6 @@
   - `shows the group-gift explainer below the holding explainer`: list with `view(false).items` plus `groupGift`; the holding region precedes the group region (`compareDocumentPosition` & `DOCUMENT_POSITION_FOLLOWING`).
   - `moves focus to the group-gift explainer when the guest dismisses the holding explainer while both show`: click Dismiss within the holding region; Dismiss within the group region has focus.
   - `moves focus to the gift filter when the guest dismisses the group-gift explainer`: list `[groupGift]`; click its Dismiss; `button` `All · 1` has focus.
-  - Add `afterEach(() => localStorage.clear())` if the file has none, so dismissals don't leak between tests.
 
 - [ ] **Step 2: Run, expect FAIL**
   `npm -w apps/web exec -- vitest run src/pages/ListPage.test.tsx --testTimeout=30000`
