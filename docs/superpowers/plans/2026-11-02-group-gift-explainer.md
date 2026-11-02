@@ -71,7 +71,7 @@
 - Consumes: `HowGroupGiftsWork` (Task 1); `filterKey` from `../features/holds/ItemFilter`.
 
 - [ ] **Step 1: Write the failing tests** in `ListPage.test.tsx`. Fixture: `const groupGift = aListItem({ id: 'item-g', title: 'Honeymoon fund', type: 'group', availableUnits: 0, priceMinor: 50000, pledgedMinor: 0 })`.
-  - `explains group gifts when the list has one still taking pledges`: list `{ ...view(false), items: [groupGift] }`; region `How group gifts work` contains `Send it straight to the host.`
+  - `explains group gifts when the list has one still taking pledges`: list `{ ...view(false), items: [groupGift] }`; region `How group gifts work` is present (its wording is the card test's job).
   - `it.each` `leaves out the group-gift explainer when the list has %s`: `only single gifts` → `view(false)`; `only fully funded group gifts` → items `[{ ...groupGift, pledgedMinor: 50000 }]`. Assert after the h1 loads that `queryByText('How group gifts work')` is null.
   - `shows the group-gift explainer below the holding explainer`: list with `view(false).items` plus `groupGift`; the holding region precedes the group region (`compareDocumentPosition` & `DOCUMENT_POSITION_FOLLOWING`).
   - `moves focus to the group-gift explainer when the guest dismisses the holding explainer while both show`: click Dismiss within the holding region; Dismiss within the group region has focus.

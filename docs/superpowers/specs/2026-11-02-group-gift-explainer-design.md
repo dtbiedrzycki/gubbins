@@ -81,7 +81,7 @@ Owner rulings (2026-11-02):
   dismissed; dismissing it leaves the holding card's dismissal alone;
   blocked storage dismisses for the visit only. Mirrors
   `HowHoldingWorks.test.tsx`.
-- `ListPage.test.tsx`: the card shows with the three steps for a list with
+- `ListPage.test.tsx`: the card shows for a list with
   an unfunded group gift; is left out for a list with only single gifts and
   for one whose group gifts are all funded; it sits below the holding card;
   focus on dismiss as above.
