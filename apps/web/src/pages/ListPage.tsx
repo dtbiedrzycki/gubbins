@@ -5,6 +5,7 @@ import { GuestKeyGate } from '../features/guest-key/GuestKeyGate';
 import { ApiError } from '../api/client';
 import { ItemView } from '../features/holds/ItemView';
 import { HowHoldingWorks } from '../features/holds/HowHoldingWorks';
+import { HowGroupGiftsWork } from '../features/contribute/HowGroupGiftsWork';
 import { ItemFilter, filterKey, type ItemFilterValue } from '../features/holds/ItemFilter';
 import { ClampedText } from '../lib/ClampedText';
 import { Markdown } from '../lib/Markdown';
@@ -63,6 +64,10 @@ export default function ListPage() {
     setFilter({ value, ids: value === 'all' ? undefined : new Set(items.filter((i) => filterKey(i) === value).map((i) => i.id)) });
   // A guest with a hold already saw the box when they held; with nothing to hold, it explains nothing.
   const canHold = items.some((item) => item.type === 'single' && item.status === 'available');
+  // Once every group gift is funded there is nothing left to chip in to.
+  const canChipIn = items.some((item) => item.type === 'group' && filterKey(item) === 'available');
+  // The card is going; the gift filter comes next.
+  const focusFilter = () => document.querySelector<HTMLButtonElement>('[aria-label="Show gifts"] button')?.focus();
   return (
     <main className="flex-1 bg-paper p-6 text-ink">
       <div className="mx-auto max-w-sm space-y-8">
@@ -78,10 +83,14 @@ export default function ListPage() {
         {canHold && (
           <HowHoldingWorks
             holdDurationDays={days}
-            // The card is going; the gift filter comes next.
-            onDismiss={() => document.querySelector<HTMLButtonElement>('[aria-label="Show gifts"] button')?.focus()}
+            // The group-gift card comes next when it shows, so keyboard users don't skip it.
+            onDismiss={() => {
+              const groupDismiss = document.querySelector<HTMLButtonElement>('[aria-labelledby="how-group-gifts-title"] button');
+              if (groupDismiss) groupDismiss.focus(); else focusFilter();
+            }}
           />
         )}
+        {canChipIn && <HowGroupGiftsWork onDismiss={focusFilter} />}
         <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn't refresh the list, so it may be out of date." : ''}</p>
         <ItemFilter items={items} value={filter.value} onChange={chooseFilter} />
         {/* explicit role: Safari/VoiceOver drops list semantics under list-style none */}
