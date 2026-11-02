@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Group Gift Card Mockup</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap">
+<style>
+  /* Layout: the guest list page at phone width, centred on a wider frame. Single light look on purpose: it mirrors the app, which is light-only. */
+  :root {
+    --paper: #F6F3FB; --ink: #2E2447; --muted: #625A78; --line: #DCD3EA;
+    --card: #FFFFFF; --gold: #D9A93A; --frame: #E9E3F2;
+    --display: "IM Fell English", Georgia, serif;
+    --body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  body { background: var(--frame); color: var(--ink); font-family: var(--body); font-size: 15px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px; }
+  .intro { max-width: 34rem; margin: 0 auto 20px; display: grid; gap: 6px; }
+  .intro h1 { font-family: var(--display); font-weight: 400; font-size: 1.6rem; margin: 0; text-wrap: balance; }
+  .intro p { margin: 0; color: var(--muted); line-height: 1.5; }
+  .legend { display: inline-flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--muted); }
+  .legend i { width: 18px; height: 12px; border: 2px dashed var(--gold); border-radius: 4px; }
+  .phone { background: var(--paper); max-width: 384px; margin: 0 auto; padding: 24px; border-radius: 28px;
+    border: 1.5px solid var(--line); display: grid; gap: 24px; }
+  .list-title { font-family: var(--display); font-weight: 400; font-size: 2.05rem; line-height: 1.15; text-align: center; margin: 0; text-wrap: balance; }
+  .card { position: relative; background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 16px; }
+  .card.new { outline: 3px dashed var(--gold); outline-offset: 5px; }
+  .card h2 { font-family: var(--display); font-weight: 400; font-size: 1.25rem; margin: 0; min-height: 44px; display: flex; align-items: center; padding-right: 48px; }
+  .x { position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; display: grid; place-items: center;
+    font-size: 1.5rem; color: var(--muted); background: none; border: 0; border-radius: 999px; }
+  .card ol { margin: 12px 0 0; padding-left: 24px; display: grid; gap: 8px; line-height: 1.45; }
+  .filter { justify-self: start; border: 1.5px solid var(--ink); border-radius: 999px; padding: 8px 14px; font-size: .9rem; }
+  .gift { border-top: 1.5px solid var(--line); padding-top: 16px; color: var(--muted); font-size: .9rem; }
+  .gift strong { color: var(--ink); display: block; font-size: 1rem; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<header class="intro">
+  <h1>How group gifts work: guest list card</h1>
+  <p>The guest list page at phone width. The top card is the existing holding card. The card below it is the new group-gift card.</p>
+  <span class="legend"><i></i> New card</span>
+</header>
+
+<main class="phone">
+  <p class="list-title">Maya&rsquo;s Birthday</p>
+
+  <section class="card" aria-labelledby="hold-t">
+    <h2 id="hold-t">How holding a gift works</h2>
+    <button class="x" type="button" aria-label="Dismiss">&times;</button>
+    <ol>
+      <li><strong>Hold it before you buy it.</strong> Other guests see it&rsquo;s taken, so nobody buys it twice.</li>
+      <li><strong>Buy it within 14 days.</strong> The hold is yours until then, and you can extend it once.</li>
+      <li><strong>Come back and mark it purchased.</strong> If you don&rsquo;t, the hold ends after 14 days and another guest can buy the same gift.</li>
+    </ol>
+  </section>
+
+  <section class="card new" aria-labelledby="group-t">
+    <h2 id="group-t">How group gifts work</h2>
+    <button class="x" type="button" aria-label="Dismiss">&times;</button>
+    <ol>
+      <li><strong>Chip in any amount.</strong> Guests pool money toward one bigger gift.</li>
+      <li><strong>Send it straight to the host.</strong> When you chip in, we&rsquo;ll show you how to pay the host with Venmo or Zelle.</li>
+      <li><strong>The host buys the gift.</strong> They use what everyone sent to buy it.</li>
+    </ol>
+  </section>
+
+  <span class="filter">Show gifts: All &#9662;</span>
+  <div class="gift"><strong>Bike trailer</strong>Group gift &middot; $140 of $400 pledged</div>
+</main>
+</body>
+</html>
