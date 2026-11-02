@@ -65,7 +65,7 @@ The shape on a 32 × 32 grid, as drawn in the mockup:
 The mockup draws the same shapes from CSS variables. The shipped file uses
 literal `fill` colours, because a favicon has no page CSS to inherit from.
 
-## Files and tags (decided)
+## Files and tags (owner ruling, 2026-11-02)
 
 Two files, both in `apps/web/public/`, which Vite copies into the build
 output as-is:
@@ -90,10 +90,10 @@ Two lines in `apps/web/index.html` inside `<head>`, in this order:
   `sizes="any"`, Chrome tends to pick the ICO over the SVG.
 - The SVG goes last because browsers use the last of several equally
   suitable icons.
-- I left `sizes="any"` off the SVG (my call). Reports say it makes no
-  difference there.
+- The SVG has no `sizes` attribute (owner ruling, 2026-11-02). Reports say
+  `sizes="any"` makes no difference there.
 
-## How it's served (decided)
+## How it's served (owner ruling, 2026-11-02)
 
 - In production, Fastify serves the built web app with `@fastify/static`
   (`apps/api/src/presentation/app.ts`), which registers a route for each file
@@ -107,8 +107,16 @@ Two lines in `apps/web/index.html` inside `<head>`, in this order:
 `favicon.svg` is the source. The ICO is exported from it once and committed
 as a binary. The exporting tool is not added to `package.json` and there is
 no build step. If the drawing changes, re-export the ICO in the same change.
-A tested recipe with ImageMagick 7 (on version 6, use `convert` in place of
-`magick`):
+
+The first ICO was made in the dev container, which has no image tool, with
+the Chromium that Playwright already installs. A throwaway script, not kept
+in the repo, screenshotted the SVG at 16, 32 and 48 pixels with a transparent
+background and packed the three PNGs into one ICO with PNG-compressed
+entries. Any method that gives the same result is fine.
+
+On a machine with ImageMagick 7, this recipe should give the same result
+(on version 6, use `convert` in place of `magick`). It was tested on a
+placeholder SVG, not run on this icon:
 
 ```sh
 for s in 16 32 48; do
@@ -126,11 +134,9 @@ replace.
 
 ## Left to the builder
 
-- **Where to run the export.** The dev container has no image tool
-  (ImageMagick, `rsvg-convert` and `icotool` are all missing). Run the recipe
-  anywhere ImageMagick is available, or use another tool that gives the same
+- **How to export.** Either method above, or another that gives the same
   result. Don't add the tool to the repo.
-- **Tests.** My call: no automated test. Nothing here makes a decision that
+- **Tests.** No automated test (owner ruling, 2026-11-02). Nothing here makes a decision that
   code owns: it's two static files and two tags. Check it by hand:
   - Open `favicon.ico` once and confirm the background is transparent at
     every size.
