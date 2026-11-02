@@ -156,6 +156,58 @@ describe('ListPage', () => {
     expect(screen.getByRole('button', { name: 'All · 1' })).toHaveFocus();
   });
 
+  const groupGift = aListItem({ id: 'item-g', title: 'Honeymoon fund', type: 'group', availableUnits: 0, priceMinor: 50000, pledgedMinor: 0 });
+  const holdingBox = () => screen.getByRole('region', { name: 'How holding a gift works' });
+  const groupBox = () => screen.getByRole('region', { name: 'How group gifts work' });
+
+  it('explains group gifts when the list has one still taking pledges', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), items: [groupGift] })));
+    renderListPage();
+
+    const box = await screen.findByRole('region', { name: 'How group gifts work' });
+    expect(within(box).getByText('Send it straight to the host.')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['only single gifts', view(false)],
+    ['only fully funded group gifts', { ...view(false), items: [{ ...groupGift, pledgedMinor: 50000 }] }],
+  ] satisfies [string, ListViewResponse][])('leaves out the group-gift explainer when the list has %s', async (_, list) => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(list)));
+    renderListPage();
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Baby Shower' })).toBeInTheDocument();
+    expect(screen.queryByText('How group gifts work')).not.toBeInTheDocument();
+  });
+
+  it('shows the group-gift explainer below the holding explainer', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), items: [...view(false).items!, groupGift] })));
+    renderListPage();
+
+    await screen.findByRole('region', { name: 'How group gifts work' });
+    expect(holdingBox().compareDocumentPosition(groupBox()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('moves focus to the group-gift explainer when the guest dismisses the holding explainer while both show', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), items: [...view(false).items!, groupGift] })));
+    const user = userEvent.setup();
+    renderListPage();
+
+    await screen.findByRole('region', { name: 'How group gifts work' });
+    await user.click(within(holdingBox()).getByRole('button', { name: 'Dismiss' }));
+
+    expect(within(groupBox()).getByRole('button', { name: 'Dismiss' })).toHaveFocus();
+  });
+
+  it('moves focus to the gift filter when the guest dismisses the group-gift explainer', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), items: [groupGift] })));
+    const user = userEvent.setup();
+    renderListPage();
+
+    await user.click(within(await screen.findByRole('region', { name: 'How group gifts work' })).getByRole('button', { name: 'Dismiss' }));
+
+    expect(screen.getByRole('button', { name: 'All · 1' })).toHaveFocus();
+  });
+
   it('says "1 day" for a one-day hold', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), capabilities: { holdDurationDays: 1 } })));
     renderListPage();

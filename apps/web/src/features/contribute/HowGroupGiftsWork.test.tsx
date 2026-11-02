@@ -8,7 +8,6 @@ const card = () => screen.queryByRole('region', { name: 'How group gifts work' }
 describe('HowGroupGiftsWork', () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    localStorage.clear();
   });
 
   it('says guests pay the host and the host buys the gift', () => {
