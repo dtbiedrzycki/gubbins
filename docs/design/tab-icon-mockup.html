@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gubbins Tab Icon</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* Fonts come from the repo's own Fontsource packages (run npm ci first); without them the Georgia and system-ui fallbacks show. */
+@font-face { font-family: "IM Fell English"; font-style: normal; font-weight: 400; src: url(../../node_modules/@fontsource/im-fell-english/files/im-fell-english-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-style: normal; font-weight: 400; src: url(../../node_modules/@fontsource/alegreya-sans/files/alegreya-sans-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-style: normal; font-weight: 700; src: url(../../node_modules/@fontsource/alegreya-sans/files/alegreya-sans-latin-700-normal.woff2) format("woff2"); }
+/* Layout: one column of three option cards, each showing the icon in real browser tab bars at true size, then enlarged. */
+:root {
+  --paper: #F6F3FB; --ink: #2E2447; --muted: #625A78; --line: #DCD3EA; --card: #FFFFFF;
+  --moss: #34603F; --gold: #D9A93A; --wax: #9E2A45;
+  --display: "IM Fell English", Georgia, serif;
+  --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #1E1830; --ink: #EDE8F6; --muted: #B3AAC8; --line: #3A3152; --card: #272038; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #1E1830; --ink: #EDE8F6; --muted: #B3AAC8; --line: #3A3152; --card: #272038; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 56px; }
+main { max-width: 760px; margin: 0 auto; display: grid; gap: 28px; }
+h1 { font: 400 2.4rem/1.1 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 400 1.6rem/1.2 var(--display); margin: 0; }
+p { margin: 0; max-width: 65ch; }
+.lede { color: var(--muted); }
+.option { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 16px; }
+.head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.tag { font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.row { display: grid; grid-template-columns: 96px 1fr; gap: 20px; align-items: center; }
+.big { width: 96px; height: 96px; display: grid; place-items: center; border-radius: 8px; border: 1px dashed var(--line); }
+.big svg { width: 64px; height: 64px; }
+.big .emoji { font-size: 58px; line-height: 1; }
+.bars { display: grid; gap: 8px; min-width: 0; }
+.notes { display: grid; gap: 6px; padding-left: 1.1em; margin: 0; }
+.notes li { max-width: 65ch; }
+
+/* Mock browser tab bars, fixed colours on purpose: they stand for the browser, not this page. */
+.tabbar { display: flex; gap: 2px; padding: 6px 6px 0; border-radius: 8px 8px 0 0; overflow: hidden; font: 12px/1 system-ui, sans-serif; }
+.tabbar.light { background: #DEE1E6; color: #3C4043; }
+.tabbar.dark  { background: #202124; color: #E8EAED; }
+.tab { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px 8px 0 0; min-width: 0; flex: 0 1 150px; white-space: nowrap; }
+.tab span.t { overflow: hidden; text-overflow: ellipsis; }
+.light .tab.on { background: #FFFFFF; } .dark .tab.on { background: #35363A; }
+.tab svg, .tab .blank { width: 16px; height: 16px; flex: none; }
+.tab .emoji { font-size: 14px; line-height: 16px; width: 16px; text-align: center; flex: none; }
+.blank { border-radius: 50%; background: currentColor; opacity: .35; }
+
+.ask { border-top: 1px solid var(--line); padding-top: 20px; }
+@media (max-width: 480px) { .row { grid-template-columns: 1fr; } h1 { font-size: 2rem; } }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="gift" viewBox="0 0 32 32">
+    <rect x="5" y="15" width="22" height="14" rx="1.5" style="fill:var(--box)"/>
+    <rect x="3" y="9" width="26" height="5" rx="1.5" style="fill:var(--box)"/>
+    <rect x="14" y="9" width="4" height="20" style="fill:var(--rib)"/>
+    <path d="M16 9C12 2.5 5.5 4 8 8.2 9.2 10 13 9.3 16 9Z" style="fill:var(--rib)"/>
+    <path d="M16 9C20 2.5 26.5 4 24 8.2 22.8 10 19 9.3 16 9Z" style="fill:var(--rib)"/>
+  </symbol>
+</svg>
+
+<main>
+  <header style="display:grid;gap:10px">
+    <h1>Gubbins tab icon</h1>
+    <p class="lede">The three gift icons considered for the browser tab. Option B was chosen. Each one is shown at its real size in a light and a dark tab bar, next to other tabs, and then enlarged.</p>
+  </header>
+
+  <section class="option" id="emoji">
+    <div class="head"><span class="tag">Option A</span><h2>The gift emoji</h2></div>
+    <div class="row">
+      <div class="big"><span class="emoji">🎁</span></div>
+      <div class="bars">
+        <div class="tabbar light"><div class="tab"><i class="blank"></i><span class="t">Inbox (3)</span></div><div class="tab on"><span class="emoji">🎁</span><span class="t">Gubbins</span></div><div class="tab"><i class="blank"></i><span class="t">Calendar</span></div></div>
+        <div class="tabbar dark"><div class="tab"><i class="blank"></i><span class="t">Inbox (3)</span></div><div class="tab on"><span class="emoji">🎁</span><span class="t">Gubbins</span></div><div class="tab"><i class="blank"></i><span class="t">Calendar</span></div></div>
+      </div>
+    </div>
+    <ul class="notes">
+      <li>The starting idea. This page shows it the way your own device draws it.</li>
+      <li>Every device draws it differently. Apple, Google and Windows each have their own gift, mostly in red, yellow and blue, not the Gubbins colours.</li>
+      <li>It stands out well in both light and dark tab bars.</li>
+    </ul>
+  </section>
+
+  <section class="option" id="moss" style="--box:#34603F;--rib:#D9A93A">
+    <div class="head"><span class="tag">Option B · chosen</span><h2>Moss box, gold ribbon</h2></div>
+    <div class="row">
+      <div class="big"><svg><use href="#gift"/></svg></div>
+      <div class="bars">
+        <div class="tabbar light"><div class="tab"><i class="blank"></i><span class="t">Inbox (3)</span></div><div class="tab on"><svg><use href="#gift"/></svg><span class="t">Gubbins</span></div><div class="tab"><i class="blank"></i><span class="t">Calendar</span></div></div>
+        <div class="tabbar dark"><div class="tab"><i class="blank"></i><span class="t">Inbox (3)</span></div><div class="tab on"><svg><use href="#gift"/></svg><span class="t">Gubbins</span></div><div class="tab"><i class="blank"></i><span class="t">Calendar</span></div></div>
+      </div>
+    </div>
+    <ul class="notes">
+      <li>A simple gift drawn in the guest-page colours: the moss green of the buttons, with the gold of the jar coins.</li>
+      <li>It looks the same on every device.</li>
+      <li>Moss is dark, so in a dark tab bar the gold ribbon is what you notice.</li>
+    </ul>
+  </section>
+
+  <section class="option" id="wax" style="--box:#9E2A45;--rib:#D9A93A">
+    <div class="head"><span class="tag">Option C</span><h2>Wax box, gold ribbon</h2></div>
+    <div class="row">
+      <div class="big"><svg><use href="#gift"/></svg></div>
+      <div class="bars">
+        <div class="tabbar light"><div class="tab"><i class="blank"></i><span class="t">Inbox (3)</span></div><div class="tab on"><svg><use href="#gift"/></svg><span class="t">Gubbins</span></div><div class="tab"><i class="blank"></i><span class="t">Calendar</span></div></div>
+        <div class="tabbar dark"><div class="tab"><i class="blank"></i><span class="t">Inbox (3)</span></div><div class="tab on"><svg><use href="#gift"/></svg><span class="t">Gubbins</span></div><div class="tab"><i class="blank"></i><span class="t">Calendar</span></div></div>
+      </div>
+    </div>
+    <ul class="notes">
+      <li>The same drawn gift in the deep red of the "held" seal, with a gold ribbon.</li>
+      <li>It looks the same on every device and is the easiest of the drawn gifts to spot in both tab bars.</li>
+      <li>The red is the "held" colour, so a few people might read it as meaning something is held.</li>
+    </ul>
+  </section>
+
+</main>
+</body>
+</html>
