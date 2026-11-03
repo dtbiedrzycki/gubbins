@@ -26,8 +26,8 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
   }, [editingId]);
   return (
     <section aria-labelledby="manage-items-heading" className="space-y-2">
-      <h2 id="manage-items-heading" tabIndex={-1} className="text-[0.8rem] font-bold uppercase tracking-[0.06em] text-muted">Items</h2>
-      <ul role="list" className="space-y-2">
+      <h2 id="manage-items-heading" tabIndex={-1} className="section-heading">Items</h2>
+      <ul role="list">
         {items.map((item) => {
           // A group gift always has a price; the type is nullable only because singles may lack one.
           const meta = item.type === 'group'
@@ -35,8 +35,8 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
             : [item.priceMinor === null ? null : formatMoney(item.priceMinor), `quantity ${item.quantity}`].filter(Boolean).join(' · ');
           if (item.id === editingId) {
             return (
-              <li key={item.id} className="grid gap-3 rounded-[10px] border border-line bg-white px-3.5 py-3">
-                <h3 className="text-lg font-semibold">Edit item</h3>
+              <li key={item.id} className="grid gap-3 border-b border-line py-3.5 first:border-t">
+                <h3 className="section-heading">Edit item</h3>
                 <EditItemForm
                   slug={slug} item={item} onUnauthorized={onUnauthorized}
                   onDone={() => { restoreFocusTo.current = item.id; setEditingId(null); }}
@@ -45,7 +45,7 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
             );
           }
           return (
-            <li key={item.id} className="grid gap-2 rounded-[10px] border border-line bg-white px-3.5 py-3">
+            <li key={item.id} className="grid gap-1 border-b border-line py-3.5 first:border-t">
               <p className="font-bold break-words">
                 {item.title}
                 {item.type === 'group' && <span className="ml-2 text-sm font-normal text-muted">group gift</span>}
@@ -54,7 +54,7 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
               <ItemActions slug={slug} item={item} onUnauthorized={onUnauthorized}>
                 <button
                   id={`edit-item-${item.id}`} type="button" aria-label={`Edit ${item.title}`} onClick={() => setEditingId(item.id)}
-                  className="min-h-11 rounded border border-gray-300 px-4 py-2"
+                  className="btn-secondary btn-sm"
                 >
                   Edit
                 </button>
@@ -114,34 +114,34 @@ function ItemActions({ slug, item, onUnauthorized, children }: ItemActionsProps)
 
   return (
     <>
-      <div className="flex gap-3">
+      <div className="mt-1.5 flex flex-wrap items-center gap-2">
         {children}
         <button
           ref={deleteButton} type="button" aria-label={`Delete ${item.title}`} disabled={!item.deletable}
           aria-describedby={describedBy} onClick={() => setConfirming(true)}
-          className="min-h-11 rounded border border-wax px-4 py-2 text-wax disabled:opacity-50"
+          className="btn-danger btn-sm"
         >
           Delete
         </button>
+        {!item.deletable && !error && <p id={hintId} className="text-[0.92rem] text-muted">Guests have already picked this one, so it can’t be deleted.</p>}
       </div>
-      {!item.deletable && !error && <p id={hintId} className="text-[0.92rem] text-muted">Guests have already picked this one, so it can’t be deleted.</p>}
       {confirming && (
-        <div role="group" aria-labelledby={`delete-confirm-${item.id}`} className="grid gap-2.5 rounded-[10px] border-[1.5px] border-wax p-3.5">
+        <div role="group" aria-labelledby={`delete-confirm-${item.id}`} className="grid gap-2.5 rounded-[14px] border-[1.5px] border-wax bg-white p-3.5">
           <p id={`delete-confirm-${item.id}`}>Delete “{item.title}”? This can’t be undone.</p>
           <div className="flex gap-3">
-            <button type="button" onClick={confirmDelete} disabled={isPending} className="min-h-11 rounded bg-wax px-4 py-2 text-white disabled:opacity-50">
+            <button type="button" onClick={confirmDelete} disabled={isPending} className="btn-delete btn-sm">
               Delete
             </button>
             <button
               ref={keepButton} type="button" disabled={isPending} onClick={() => { restoreFocus.current = true; setConfirming(false); }}
-              className="min-h-11 rounded border border-gray-300 px-4 py-2"
+              className="btn-secondary btn-sm"
             >
               Keep it
             </button>
           </div>
         </div>
       )}
-      <p ref={alert} id={alertId} role="alert" tabIndex={-1} className="text-red-600 empty:hidden">{error?.message}</p>
+      <p ref={alert} id={alertId} role="alert" tabIndex={-1} className="text-error empty:hidden">{error?.message}</p>
     </>
   );
 }
