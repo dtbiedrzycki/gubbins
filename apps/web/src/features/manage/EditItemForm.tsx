@@ -19,8 +19,6 @@ export interface EditItemFormProps {
 }
 
 const field = 'mt-1 field';
-const primary = 'btn-primary';
-const secondary = 'btn-secondary';
 
 export function EditItemForm({ slug, item, onDone, onUnauthorized }: EditItemFormProps) {
   const isGroup = item.type === 'group';
@@ -121,18 +119,18 @@ export function EditItemForm({ slug, item, onDone, onUnauthorized }: EditItemFor
           <p ref={confirmHeading} tabIndex={-1} className="font-bold">This target is already met</p>
           <p>Guests have chipped in more than {formatMoney(confirmTarget)}. Saving marks the gift as fully funded.</p>
           <div className="flex gap-3">
-            <button type="button" disabled={isPending} onClick={() => save(confirmTarget)} className={primary}>
+            <button type="button" disabled={isPending} onClick={() => save(confirmTarget)} className="btn-primary">
               {isPending ? 'Saving…' : 'Save new target'}
             </button>
-            <button type="button" disabled={isPending} onClick={() => { focusSubmit.current = true; setConfirmTarget(null); }} className={secondary}>Go back</button>
+            <button type="button" disabled={isPending} onClick={() => { focusSubmit.current = true; setConfirmTarget(null); }} className="btn-secondary">Go back</button>
           </div>
         </div>
       ) : (
         <div className="flex gap-3">
-          <button ref={submitButton} type="submit" disabled={isPending} className={primary}>
+          <button ref={submitButton} type="submit" disabled={isPending} className="btn-primary">
             {isPending ? 'Saving…' : belowCommitted ? 'Save anyway' : 'Save'}
           </button>
-          <button type="button" onClick={onDone} disabled={isPending} className={secondary}>Cancel</button>
+          <button type="button" onClick={onDone} disabled={isPending} className="btn-secondary">Cancel</button>
         </div>
       )}
     </form>

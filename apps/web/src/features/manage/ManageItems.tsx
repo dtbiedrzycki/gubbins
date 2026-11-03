@@ -25,7 +25,7 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
     }
   }, [editingId]);
   return (
-    <section aria-labelledby="manage-items-heading" className="space-y-2">
+    <section aria-labelledby="manage-items-heading" className="space-y-3">
       <h2 id="manage-items-heading" tabIndex={-1} className="section-heading">Items</h2>
       <ul role="list">
         {items.map((item) => {
