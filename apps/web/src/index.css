@@ -43,31 +43,10 @@
   &:disabled { opacity: 0.5; }
 }
 
-/* Delete in an item row: the secondary shape in wax. */
-@utility btn-danger {
-  min-height: 2.75rem;
-  padding: 0.5rem 1.25rem;
-  border-radius: 22px 22px 22px 6px;
-  box-shadow: inset 0 0 0 1.5px var(--color-wax);
-  color: var(--color-wax);
-  font-weight: 700;
-  &:disabled { opacity: 0.5; }
-}
-
-/* The confirming Delete: the primary shape in wax. */
-@utility btn-delete {
-  min-height: 2.75rem;
-  padding: 0.5rem 1.25rem;
-  border-radius: 22px 22px 22px 6px;
-  background: var(--color-wax);
-  color: white;
-  font-weight: 700;
-  &:disabled { opacity: 0.5; }
-}
-
-/* Pills inside a row (Edit, Delete, the copy buttons, Regenerate) take less room sideways. */
+/* Pills inside a row (Edit, Delete, the copy buttons, Regenerate) take less room. */
 @utility btn-sm {
   padding-inline: 0.875rem;
+  font-size: 0.95rem;
 }
 
 @utility section-heading {

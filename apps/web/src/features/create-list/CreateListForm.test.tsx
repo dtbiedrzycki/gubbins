@@ -116,7 +116,7 @@ describe('CreateListForm', () => {
     expect(screen.getByLabelText('Zelle email or US phone')).toHaveAccessibleDescription(hint);
   });
 
-  it('links to the manage page without the owner token and tells the owner to save it', async () => {
+  it('links to the manage page in a new tab without the owner token, and warns that the token is private and shown only once', async () => {
     server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'owner-secret-token', key: 'guest-key-value' }));
     await fillAndSubmit();
 
