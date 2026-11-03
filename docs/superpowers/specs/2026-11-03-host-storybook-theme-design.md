@@ -38,8 +38,8 @@ self-hosted Fontsource fonts.
   show them, so the surprise isn't spoiled. (*My call*, from the approved
   mockup.)
 - A dark ("night") version. The host screens stay light in both phone
-  themes, like the guest view. The mockup's dark mode is only for viewing
-  the mockup. (*My call*, keeping the guest view's deferral.)
+  themes, like the guest view, and so does the mockup. (Owner's ruling,
+  keeping the guest view's deferral.)
 - The guest door or wax seals on host screens. The door belongs to guests.
 - Changing the home and privacy pages.
 

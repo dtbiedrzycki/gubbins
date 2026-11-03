@@ -13,11 +13,8 @@
   --card: #FFFFFF; --brass: #8C6A4A; --frame: #E9E3F3;
   --display: "IM Fell English", Georgia, serif;
   --sans: "Alegreya Sans", system-ui, sans-serif;
+  color-scheme: light;
 }
-@media (prefers-color-scheme: dark) { :root {
-  --paper: #1E1830; --ink: #EDE7F8; --muted: #B3AACB; --line: #3E3558;
-  --moss: #7DB38A; --petal: #5A3442; --wax: #E07A92; --gold: #E6BE62;
-  --card: #2A2240; --brass: #B08A62; --frame: #15111F; color-scheme: dark } }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--frame); color: var(--ink); font: 17px/1.45 var(--sans); padding: 24px 16px 48px; }
 .wrap { max-width: 420px; margin: 0 auto; display: grid; gap: 36px; }
@@ -35,7 +32,6 @@ section { display: grid; gap: 12px; }
 button { font: 700 1rem/1 var(--sans); min-height: 44px; padding: 8px 18px; cursor: pointer;
   border-radius: 22px 22px 22px 6px; border: 0; background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
 button.primary { background: var(--moss); color: #fff; box-shadow: none; }
-@media (prefers-color-scheme: dark) { button.primary { color: #14231A; } }
 button.danger { color: var(--wax); box-shadow: inset 0 0 0 1.5px var(--wax); }
 button.small { min-height: 44px; padding: 6px 14px; font-size: .95rem; }
 button[disabled] { opacity: .45; cursor: not-allowed; }
