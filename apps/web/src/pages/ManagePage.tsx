@@ -29,12 +29,12 @@ export default function ManagePage() {
 
   return (
     <main className="flex-1 bg-paper p-6">
-      <div className="max-w-sm space-y-6">
-        <h1 ref={heading} tabIndex={-1} className="text-2xl font-semibold">Manage your list</h1>
+      <div className="max-w-sm space-y-7">
+        <h1 ref={heading} tabIndex={-1} className="font-display text-[2rem] leading-tight">Manage your list</h1>
         {entered && !gone ? (
           <>
             {/* At the top, so a failed refresh isn't hidden below a long list. */}
-            {query.error && <p role="alert" className="text-red-600">{query.error.message}</p>}
+            {query.error && <p role="alert" className="text-error">{query.error.message}</p>}
             {query.data && <ListDetails slug={slug} onUnauthorized={unauthorized} view={query.data} />}
             {/* Above the items, so adding never means scrolling past a long list. */}
             <AddItemForm slug={slug} onUnauthorized={unauthorized} />
