@@ -36,7 +36,8 @@ export function CopyButton({ text, label, copiedLabel, selectTargetId }: CopyBut
       <button type="button" onClick={copy} className={copied ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}>
         {copied ? copiedLabel : label}
       </button>
-      <span role="status" className="sr-only">{copied ? copiedLabel : ''}</span>
+      {/* No `role="status"`: forms on the same page find their own success message by that role. */}
+      <span aria-live="polite" className="sr-only">{copied ? copiedLabel : ''}</span>
     </>
   );
 }
