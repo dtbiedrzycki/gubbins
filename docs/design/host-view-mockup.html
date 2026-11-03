@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gubbins Host View</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Alegreya+Sans:wght@400;700&display=swap">
+<style>
+/* The owner's manage page in the guest view's Storybook look. The invitation card is the one decorative element. */
+:root {
+  --paper: #F6F3FB; --ink: #2E2447; --muted: #625A78; --line: #DCD3EA;
+  --moss: #34603F; --petal: #F2CBD6; --wax: #9E2A45; --gold: #D9A93A;
+  --card: #FFFFFF; --brass: #8C6A4A; --frame: #E9E3F3;
+  --display: "IM Fell English", Georgia, serif;
+  --sans: "Alegreya Sans", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --paper: #1E1830; --ink: #EDE7F8; --muted: #B3AACB; --line: #3E3558;
+  --moss: #7DB38A; --petal: #5A3442; --wax: #E07A92; --gold: #E6BE62;
+  --card: #2A2240; --brass: #B08A62; --frame: #15111F; color-scheme: dark } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--frame); color: var(--ink); font: 17px/1.45 var(--sans); padding: 24px 16px 48px; }
+.wrap { max-width: 420px; margin: 0 auto; display: grid; gap: 36px; }
+.shot { display: grid; gap: 10px; }
+.cap { font-size: .95rem; color: var(--muted); margin: 0; }
+.cap b { color: var(--ink); }
+.screen { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 24px 18px 28px; display: grid; gap: 28px; }
+h1 { font: 2rem/1.1 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 1.35rem/1.2 var(--display); margin: 0; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+section { display: grid; gap: 12px; }
+.head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+
+button { font: 700 1rem/1 var(--sans); min-height: 44px; padding: 8px 18px; cursor: pointer;
+  border-radius: 22px 22px 22px 6px; border: 0; background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+button.primary { background: var(--moss); color: #fff; box-shadow: none; }
+@media (prefers-color-scheme: dark) { button.primary { color: #14231A; } }
+button.danger { color: var(--wax); box-shadow: inset 0 0 0 1.5px var(--wax); }
+button.small { min-height: 44px; padding: 6px 14px; font-size: .95rem; }
+button[disabled] { opacity: .45; cursor: not-allowed; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.field { display: block; width: 100%; min-height: 44px; padding: 8px 12px; border: 1.5px solid var(--ink); border-radius: 14px; background: var(--card); color: var(--ink); font: inherit; }
+label { display: grid; gap: 4px; font-weight: 700; }
+
+/* The invitation: a card on a string from a brass eyelet, tilted a touch as if just handed over. */
+.invite { position: relative; margin: 18px 6px 4px; padding: 26px 20px 20px; background: var(--card);
+  border: 1.5px solid var(--ink); border-radius: 6px 6px 22px 22px; transform: rotate(-1.2deg);
+  box-shadow: 4px 5px 0 var(--petal); display: grid; gap: 14px; }
+.invite::before { content: ""; position: absolute; top: -28px; left: 50%; width: 2px; height: 30px; background: var(--brass); transform: rotate(14deg); transform-origin: bottom; }
+.invite::after { content: ""; position: absolute; top: 8px; left: 50%; width: 12px; height: 12px; margin-left: -6px;
+  border-radius: 50%; background: var(--paper); box-shadow: 0 0 0 3px var(--brass); }
+.invite .lead { font: italic 1.05rem/1.3 var(--display); color: var(--muted); text-align: center; }
+.key { font: 700 1.75rem/1.15 var(--sans); text-align: center; overflow-wrap: anywhere; letter-spacing: .01em; }
+.invite .copykey { justify-self: center; }
+.link { display: flex; gap: 10px; align-items: center; border-top: 1.5px dashed var(--line); padding-top: 14px; }
+.link span { flex: 1; min-width: 0; color: var(--moss); overflow-wrap: anywhere; font-size: .95rem; }
+
+.items { list-style: none; margin: 0; padding: 0; display: grid; }
+.items li { display: grid; gap: 4px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.items li:first-child { border-top: 1px solid var(--line); }
+.items .title { font-weight: 700; overflow-wrap: anywhere; }
+.items .tag { font-weight: 400; color: var(--muted); font-size: .9rem; margin-left: 6px; }
+.items .actions { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
+.hint { font-size: .9rem; color: var(--muted); }
+form, .stack { display: grid; gap: 18px; }
+.hint { font-weight: 400; }
+textarea.field { min-height: 88px; resize: vertical; }
+.keyrow { display: flex; gap: 10px; align-items: center; }
+.keyrow .key { flex: 1; min-width: 0; text-align: left; }
+.regen { display: inline-flex; gap: 6px; align-items: center; }
+.regen svg { width: 18px; height: 18px; }
+.token { border: 1.5px solid var(--wax); border-radius: 14px; padding: 16px; display: grid; gap: 10px; background: var(--card); }
+.token h2 { color: var(--wax); }
+.token code { font: 700 1rem/1.4 ui-monospace, Menlo, monospace; overflow-wrap: anywhere; }
+.token .row { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.next { color: var(--moss); font-weight: 700; }
+.error { color: var(--wax); }
+.add { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="shot">
+  <p class="cap"><b>Manage page.</b> The guest key and link sit on one invitation card, the thing the host hands out, each with its own copy button. Items are plain rows, and the page doesn't say what guests have held.</p>
+  <main class="screen">
+    <h1>Manage your list</h1>
+
+    <section aria-labelledby="details">
+      <div class="head"><h2 id="details">Ada's birthday</h2><button class="small">Edit</button></div>
+      <p class="muted">Turning 30 in March. Books and anything for the garden are always welcome.</p>
+    </section>
+
+    <section aria-labelledby="invite-h">
+      <h2 id="invite-h">Invite your guests</h2>
+      <div class="invite">
+        <p class="lead">Guests open the list with</p>
+        <p class="key">lantern-thimble-oak</p>
+        <button class="small copykey">Copy key</button>
+        <div class="link"><span>gubbins.example/l/ada-birthday</span><button class="small">Copy link</button></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="add-h">
+      <h2 id="add-h">Add an item</h2>
+      <div class="add">
+        <label>Title<input class="field" value=""></label>
+        <button class="primary">Add item</button>
+      </div>
+    </section>
+
+    <section aria-labelledby="items-h">
+      <h2 id="items-h">Items</h2>
+      <ul class="items" role="list">
+        <li>
+          <p class="title">Hori-hori garden knife</p>
+          <p class="muted">$34.00, quantity 1</p>
+          <div class="actions"><button class="small" aria-label="Edit Hori-hori garden knife">Edit</button><button class="small danger" aria-label="Delete Hori-hori garden knife">Delete</button></div>
+        </li>
+        <li>
+          <p class="title">Folding bench for the allotment<span class="tag">group gift</span></p>
+          <p class="muted">$180.00 target</p>
+          <div class="actions"><button class="small">Edit</button><button class="small danger" disabled>Delete</button><span class="hint">Guests have pledged, so it can't be deleted.</span></div>
+        </li>
+        <li>
+          <p class="title">Any Ursula K. Le Guin paperback</p>
+          <p class="muted">quantity 3</p>
+          <div class="actions"><button class="small">Edit</button><button class="small danger">Delete</button></div>
+        </li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+<div class="shot">
+  <p class="cap"><b>Copied.</b> The button confirms in place for two seconds, then goes back to "Copy link".</p>
+  <div class="screen">
+    <div class="invite" style="margin-top:22px">
+      <p class="lead">Guests open the list with</p>
+      <p class="key">lantern-thimble-oak</p>
+      <button class="small copykey">Copy key</button>
+      <div class="link"><span>gubbins.example/l/ada-birthday</span><button class="small primary" aria-live="polite">Link copied</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="shot">
+  <p class="cap"><b>Create a list.</b> Same fields and wording as today, in the guest page's fields and pill buttons. The suggested key reads large so the host can judge it before keeping it.</p>
+  <main class="screen">
+    <h1>Create a wishlist</h1>
+    <form onsubmit="return false">
+      <label>List title<input class="field" value="Ada's birthday"></label>
+      <section aria-labelledby="ck">
+        <h2 id="ck">Guest key</h2>
+        <div class="keyrow"><p class="key">lantern-thimble-oak</p>
+          <button type="button" class="small regen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Regenerate</button></div>
+        <p class="hint muted">Guests type this to open your list. You can't change it once the list is created.</p>
+      </section>
+      <label>About this list (optional)<textarea class="field">Turning 30 in March.</textarea>
+        <span class="hint muted">Guests see this above your list. If you want gifts mailed, add your shipping address here.</span></label>
+      <label>Create secret<input class="field" type="password" value="••••••••"></label>
+      <label>Venmo username<input class="field" value="ada-l"></label>
+      <label>Zelle email or US phone<input class="field" value=""></label>
+      <p class="hint muted">Group gifts need at least one handle. Handles can't be changed later.</p>
+      <button class="primary">Create list</button>
+    </form>
+  </main>
+</div>
+
+<div class="shot">
+  <p class="cap"><b>Your list is ready.</b> The same invitation card as the manage page. The owner token sits apart in a wax-edged box, because the card is what gets shared and the token never is.</p>
+  <main class="screen">
+    <h1>Your list is ready</h1>
+    <div class="invite">
+      <p class="lead">Guests open the list with</p>
+      <p class="key">lantern-thimble-oak</p>
+      <button class="small copykey">Copy key</button>
+      <div class="link"><span>gubbins.example/l/ada-birthday</span><button class="small">Copy link</button></div>
+    </div>
+    <section class="token" aria-labelledby="tok">
+      <h2 id="tok">Your owner token</h2>
+      <p>Keep this private. You need it to manage the list, and it isn't shown again.</p>
+      <div class="row"><code>q7Rk-2mWx-Lp9e-Vb4N-hT8s</code><button class="small">Copy token</button></div>
+    </section>
+    <a class="next" href="#">Manage your list</a>
+  </main>
+</div>
+
+<div class="shot">
+  <p class="cap"><b>Owner token.</b> A plain themed form; the door stays a guest thing. Shown with the wrong-token error.</p>
+  <main class="screen">
+    <h1>Manage your list</h1>
+    <form class="stack" onsubmit="return false">
+      <label>Owner token<input class="field" type="password" value="q7Rk-2mWx"></label>
+      <p class="error" role="alert">That isn't the owner token for this list.</p>
+      <button class="primary">Manage list</button>
+    </form>
+  </main>
+</div>
+
+<div class="shot">
+  <p class="cap"><b>Editing an item.</b> The row opens in place into the same fields as Add an item.</p>
+  <main class="screen">
+    <section aria-labelledby="ei">
+      <h2 id="ei">Edit item</h2>
+      <form class="stack" onsubmit="return false">
+        <label>Title<input class="field" value="Hori-hori garden knife"></label>
+        <label>Price (USD)<input class="field" value="34.00"></label>
+        <label>Quantity<input class="field" value="1"></label>
+        <div class="keyrow"><button class="primary">Save</button><button>Cancel</button></div>
+      </form>
+    </section>
+  </main>
+</div>
+
+</div>
+</body>
+</html>
