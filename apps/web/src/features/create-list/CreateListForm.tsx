@@ -45,7 +45,8 @@ export function CreateListForm() {
 
   if (data) {
     return (
-      <div className="max-w-sm space-y-7">
+      // A grid, not space-y: in block flow the heading's margin collapses into the card's, leaving no room for its string.
+      <div className="grid max-w-sm gap-7">
         <h1 ref={readyHeading} tabIndex={-1} className="font-display text-[2rem] leading-tight">Your list is ready</h1>
         <InvitationCard guestKey={data.key} slug={data.slug} linked />
         <section aria-labelledby="owner-token-heading" className="grid gap-2.5 rounded-[14px] border-[1.5px] border-wax bg-white p-4">
@@ -58,7 +59,7 @@ export function CreateListForm() {
           </div>
         </section>
         {/* A new tab, so one tap cannot lose the only display of the owner token and guest key. */}
-        <a className="inline-block py-2.5 font-bold text-moss underline" href={managePath(data.slug)} target="_blank" rel="noopener noreferrer">Manage your list <span className="sr-only">(opens in a new tab)</span></a>
+        <a className="justify-self-start py-2.5 font-bold text-moss underline" href={managePath(data.slug)} target="_blank" rel="noopener noreferrer">Manage your list <span className="sr-only">(opens in a new tab)</span></a>
       </div>
     );
   }
