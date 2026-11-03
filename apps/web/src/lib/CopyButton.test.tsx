@@ -6,7 +6,7 @@ const LINK = 'https://example.test/wishlists/abc123';
 
 function renderCopy(clipboard: Partial<Clipboard> | undefined) {
   Object.defineProperty(navigator, 'clipboard', { value: clipboard, configurable: true });
-  render(
+  return render(
     <>
       <p id="link">{LINK}</p>
       <CopyButton text={LINK} label="Copy link" copiedLabel="Link copied" selectTargetId="link" />
@@ -25,18 +25,19 @@ describe('CopyButton', () => {
 
   it('copies the text and shows the copied label for two seconds', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
-    renderCopy({ writeText });
+    const { container } = renderCopy({ writeText });
+    const announcement = container.querySelector('[aria-live="polite"]');
 
     await press('Copy link');
 
     expect(writeText).toHaveBeenCalledWith(LINK);
     expect(screen.getByRole('button', { name: 'Link copied' })).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('Link copied');
+    expect(announcement).toHaveTextContent('Link copied');
     act(() => { vi.advanceTimersByTime(1999); });
     expect(screen.getByRole('button', { name: 'Link copied' })).toBeInTheDocument();
     act(() => { vi.advanceTimersByTime(1); });
     expect(screen.getByRole('button', { name: 'Copy link' })).toBeInTheDocument();
-    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    expect(announcement).toBeEmptyDOMElement();
   });
 
   it('a second press restarts the two seconds', async () => {
