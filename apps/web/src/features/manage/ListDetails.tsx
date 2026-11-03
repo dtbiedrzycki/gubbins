@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ManageViewResponse } from '@gubbins/shared-types';
 import { EditListDetailsForm } from './EditListDetailsForm';
 import { Markdown } from '../../lib/Markdown';
-import { listPath } from '../../lib/links';
+import { InvitationCard } from '../../lib/InvitationCard';
 
 export interface ListDetailsProps {
   slug: string;
@@ -21,15 +21,13 @@ export function ListDetails({ slug, view, onUnauthorized }: ListDetailsProps) {
   }, [editing]);
 
   return (
-    <div className="space-y-6">
-      <section aria-labelledby="list-details-heading" className="space-y-2">
-        <div className="flex items-center justify-between gap-3">
-          <h2 id="list-details-heading" className="text-[0.8rem] font-bold uppercase tracking-[0.06em] text-muted">List details</h2>
+    <div className="space-y-7">
+      <section aria-labelledby="list-details-heading" className="space-y-3">
+        <div className="flex items-baseline justify-between gap-3">
+          {/* The saved title stays the heading while the form below edits it. */}
+          <h2 id="list-details-heading" className="section-heading min-w-0 wrap-anywhere">{view.title}</h2>
           {!editing && (
-            <button
-              ref={editButton} type="button" onClick={() => setEditing(true)}
-              className="min-h-11 rounded border border-gray-300 px-4 py-2"
-            >
+            <button ref={editButton} type="button" onClick={() => setEditing(true)} className="btn-secondary btn-sm shrink-0">
               Edit
             </button>
           )}
@@ -40,19 +38,12 @@ export function ListDetails({ slug, view, onUnauthorized }: ListDetailsProps) {
             onDone={() => { restoreFocus.current = true; setEditing(false); }}
           />
         ) : (
-          <>
-            <p className="font-display text-[1.25rem] break-words">{view.title}</p>
-            {view.description && <Markdown text={view.description} />}
-          </>
+          view.description && <div className="text-muted"><Markdown text={view.description} /></div>
         )}
       </section>
-      <section aria-labelledby="guest-key-heading" className="space-y-1">
-        <h2 id="guest-key-heading" className="text-[0.8rem] font-bold uppercase tracking-[0.06em] text-muted">Guest key</h2>
-        <p className="text-2xl font-bold break-words">{view.key}</p>
-      </section>
-      <section aria-labelledby="guest-link-heading" className="space-y-1">
-        <h2 id="guest-link-heading" className="text-[0.8rem] font-bold uppercase tracking-[0.06em] text-muted">Guest link</h2>
-        <p className="text-moss break-words">{window.location.origin + listPath(slug)}</p>
+      <section aria-labelledby="invite-heading" className="space-y-3">
+        <h2 id="invite-heading" className="section-heading">Invite your guests</h2>
+        <InvitationCard guestKey={view.key} slug={slug} />
       </section>
     </div>
   );

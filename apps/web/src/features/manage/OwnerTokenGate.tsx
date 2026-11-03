@@ -29,19 +29,19 @@ export function OwnerTokenGate({ slug, onSuccess, notice }: OwnerTokenGateProps)
     ? (error instanceof ApiError && error.status === 404 ? "That isn't the owner token for this list." : error.message)
     : '';
   return (
-    <form onSubmit={handleSubmit} className="max-w-sm space-y-4">
+    <form onSubmit={handleSubmit} className="max-w-sm space-y-5">
       <div>
-        <label htmlFor="owner-token" className="block text-sm font-medium">Owner token</label>
+        <label htmlFor="owner-token" className="block font-bold">Owner token</label>
         <input
           ref={input} id="owner-token" type="password" required autoComplete="off" aria-describedby="owner-token-message" value={ownerToken}
           onChange={(e) => setOwnerToken(e.target.value)}
-          className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
+          className="mt-1 field"
         />
       </div>
-      <p id="owner-token-message" role="alert" className="text-red-600 empty:mb-0">{message || notice}</p>
+      <p id="owner-token-message" role="alert" className="text-error empty:mb-0">{message || notice}</p>
       <button
         type="submit" disabled={isPending}
-        className="min-h-11 rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50"
+        className="btn-primary w-full"
       >
         {isPending ? 'Checking…' : 'Manage list'}
       </button>
