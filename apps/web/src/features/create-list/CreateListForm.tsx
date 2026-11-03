@@ -76,7 +76,7 @@ export function CreateListForm() {
       <section aria-labelledby="guest-key-heading">
         <h2 id="guest-key-heading" className="section-heading">Guest key</h2>
         <div className="mt-1 flex items-center gap-3">
-          <p aria-live="polite" className="grow wrap-anywhere text-2xl font-bold">{suggestedKey}</p>
+          <p aria-live="polite" className="grow wrap-anywhere text-[1.75rem] leading-tight font-bold">{suggestedKey}</p>
           <button
             type="button" onClick={() => void suggestion.refetch()}
             className="btn-secondary btn-sm inline-flex items-center gap-1.5"

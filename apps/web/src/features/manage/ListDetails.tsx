@@ -41,7 +41,7 @@ export function ListDetails({ slug, view, onUnauthorized }: ListDetailsProps) {
           view.description && <div className="text-muted"><Markdown text={view.description} /></div>
         )}
       </section>
-      {/* A grid, not space-y: space-y would replace the card margin that leaves room for its string. */}
+      {/* A grid, not space-y: in block flow the heading's margin collapses into the card's, leaving no room for its string. */}
       <section aria-labelledby="invite-heading" className="grid gap-3">
         <h2 id="invite-heading" className="section-heading">Invite your guests</h2>
         <InvitationCard guestKey={view.key} slug={slug} />

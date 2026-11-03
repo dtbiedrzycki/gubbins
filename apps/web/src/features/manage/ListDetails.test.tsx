@@ -28,6 +28,7 @@ describe('ListDetails', () => {
 
     await user.click(screen.getByRole('button', { name: 'Edit' }));
     expect(screen.getByLabelText('List title')).toHaveFocus();
+    await user.type(screen.getByLabelText('List title'), ' 2026');
     expect(screen.getByRole('heading', { name: 'Baby Shower' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
 
