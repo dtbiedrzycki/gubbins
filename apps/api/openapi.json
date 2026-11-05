@@ -1288,7 +1288,7 @@
             }
           },
           "409": {
-            "description": "No unit of the item is free (item_unavailable), or a concurrent change won (no code).",
+            "description": "Fewer units of the item are free than asked (item_unavailable), or a concurrent change won (no code).",
             "content": {
               "application/json": {
                 "schema": {
@@ -1560,7 +1560,7 @@
             }
           },
           "409": {
-            "description": "The hold was already released or purchased (hold_not_active); it expired and no unit is free (hold_lapsed); or fewer units are free than asked (item_unavailable).",
+            "description": "The hold was already released or purchased (hold_not_active); or it lapsed and no unit is free, or fewer units are free than asked (item_unavailable).",
             "content": {
               "application/json": {
                 "schema": {
@@ -1732,7 +1732,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The hold was released; its unit is free for others.",
+            "description": "The hold was released; its units are free for others.",
             "content": {
               "application/json": {
                 "schema": {
