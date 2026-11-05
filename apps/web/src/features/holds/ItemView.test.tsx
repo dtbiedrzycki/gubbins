@@ -11,7 +11,7 @@ import { aListItem } from '../../test/listItem';
 
 const heldView: HoldView = {
   holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: '2026-01-04T00:00:00.000Z',
-  extendedAt: null, actions: { extend: true, release: true, purchase: true },
+  extendedAt: null, units: 1, purchasedUnits: null, purchasableUnits: 1, actions: { extend: true, release: true, purchase: true },
 };
 
 const payment: ListViewResponse['payment'] = { venmoHandle: 'my-venmo', zelleHandle: null };

@@ -13,7 +13,7 @@ import { aListItem } from '../../test/listItem';
 
 const EXPIRES = '2026-01-04T00:00:00.000Z';
 const EXTENDED_EXPIRES = '2026-01-07T00:00:00.000Z';
-const active: HoldView = { holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: EXPIRES, extendedAt: null, actions: { extend: true, release: true, purchase: true } };
+const active: HoldView = { holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: EXPIRES, extendedAt: null, units: 1, purchasedUnits: null, purchasableUnits: 1, actions: { extend: true, release: true, purchase: true } };
 const extended: HoldView = { ...active, expiresAt: EXTENDED_EXPIRES, extendedAt: '2026-01-02T00:00:00.000Z', actions: { extend: false, release: true, purchase: true } };
 const expiredBuyable: HoldView = { ...active, status: 'expired', actions: { extend: false, release: false, purchase: true } };
 const purchased: HoldView = { ...active, status: 'purchased', actions: { extend: false, release: false, purchase: false } };
