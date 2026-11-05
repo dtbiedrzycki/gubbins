@@ -19,12 +19,12 @@ const GUEST: AccessContext = { guestSession: { sessionHash: 'a'.repeat(64) } };
 
 async function makeUseCase(policy: HoldPolicy = DEFAULT_HOLD_POLICY) {
   const persistence = inMemoryPersistence();
-  await persistence.wishlists.insert(aWishlist().withId(WISHLIST_ID).withItem({ id: ITEM_ID, title: 'Stroller' }).build());
+  await persistence.wishlists.insert(aWishlist().withId(WISHLIST_ID).withItem({ id: ITEM_ID, title: 'Stroller', quantity: 3 }).build());
   const useCase = new HoldItem(persistence.unitOfWork, new SequentialTokenGenerator(), new FixedClock(NOW), new FakeHasher(), policy);
   return { useCase, ...persistence };
 }
 
-const input = (idempotencyKey = 'idem-1') => ({ wishlistId: WISHLIST_ID, itemId: ITEM_ID, idempotencyKey, name: 'Ada' });
+const input = (idempotencyKey = 'idem-1') => ({ wishlistId: WISHLIST_ID, itemId: ITEM_ID, idempotencyKey, name: 'Ada', units: 1 });
 
 describe('HoldItem', () => {
   it('holds an available item for the configured duration and returns its view', async () => {
@@ -75,6 +75,18 @@ describe('HoldItem', () => {
     const first = await useCase.execute(input(), GUEST);
     expect(await useCase.execute(input(), GUEST)).toEqual(first);
     expect(eventStore.recorded(ITEM_ID)).toHaveLength(1);
+  });
+
+  it('holds 2 units and records 2 in ItemHeld', async () => {
+    const { useCase, eventStore } = await makeUseCase();
+    expect(await useCase.execute({ ...input(), units: 2 }, GUEST)).toMatchObject({ units: 2 });
+    expect(eventStore.recorded(ITEM_ID)[0]!.event).toMatchObject({ type: 'ItemHeld', units: 2 });
+  });
+
+  it("replays a key with the first hold's units, whatever units the retry sends", async () => {
+    const { useCase } = await makeUseCase();
+    const first = await useCase.execute({ ...input(), units: 2 }, GUEST);
+    expect(await useCase.execute({ ...input(), units: 1 }, GUEST)).toEqual(first);
   });
 
   it('throws ItemNotFoundError without a guest session, for an unknown wishlist, or an item not on it', async () => {

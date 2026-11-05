@@ -1149,6 +1149,11 @@
                     "type": "string",
                     "minLength": 1
                   },
+                  "units": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
                   "message": {
                     "type": "string"
                   }
