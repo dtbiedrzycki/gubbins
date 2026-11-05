@@ -60,7 +60,7 @@ async function newList() {
   const wishlist = await deps.wishlists.findBySlug(slug, clock.now());
   const wishlistId = wishlist!.id.value;
   const { itemId } = await deps.addItem.execute({ wishlistId, type: 'single', title: 'I', quantity: 1 }, { guestSession: null, owner: true });
-  const hold = (access: AccessContext, idempotencyKey: string) => deps.holdItem.execute({ wishlistId, itemId, idempotencyKey, name: 'Ada' }, access);
+  const hold = (access: AccessContext, idempotencyKey: string) => deps.holdItem.execute({ wishlistId, itemId, idempotencyKey, name: 'Ada', units: 1 }, access);
   const command = { wishlistId };
   return { hold, command };
 }
@@ -96,10 +96,10 @@ async function aBusyLedger(): Promise<void> {
   await releasedThenReheld.hold(OTHER_GUEST, 'b2');
 
   clock.advance(DAY);
-  await deps.markHoldPurchased.execute({ ...extendedThenBought.command, holdId: a.holdId }, GUEST);
+  await deps.markHoldPurchased.execute({ ...extendedThenBought.command, holdId: a.holdId, units: 1 }, GUEST);
 
   clock.advance(2 * DAY);
-  await deps.markHoldPurchased.execute({ ...lapsedThenBought.command, holdId: c.holdId }, GUEST);
+  await deps.markHoldPurchased.execute({ ...lapsedThenBought.command, holdId: c.holdId, units: 1 }, GUEST);
 }
 
 describe('rebuildProjections', () => {
@@ -155,7 +155,7 @@ describe('rebuildProjections', () => {
   it('re-folds units and purchased units from ItemHeld and ItemPurchased', async () => {
     const { hold, command } = await newList();
     const placed = await hold(GUEST, 'k');
-    await deps.markHoldPurchased.execute({ ...command, holdId: placed.holdId }, GUEST);
+    await deps.markHoldPurchased.execute({ ...command, holdId: placed.holdId, units: 1 }, GUEST);
     const rows = await db.selectFrom('event_log').select(['id', 'event_type', 'payload']).execute();
     const units = { ItemHeld: 3, ItemPurchased: 2 } as Record<string, number>;
     for (const row of rows.filter((r) => r.event_type in units)) {
