@@ -392,8 +392,23 @@ describe('YourHolds', () => {
 
     const sheet = screen.getByRole('dialog', { name: 'How many did you buy?' });
     await waitFor(() => expect(within(sheet).getByRole('button', { name: 'Mark 1 as purchased' })).toBeEnabled());
-    expect(within(sheet).getByRole('alert')).toHaveTextContent('This item is no longer available.');
+    expect(within(sheet).getByRole('alert')).toHaveTextContent('Only 1 is still free to mark as purchased.');
     expect(sheet).toContainElement(document.activeElement as HTMLElement);
+  });
+
+  it('closes the purchase sheet on a refusal for a hold the refetch removes, and shows why beside "Your holds"', async () => {
+    // Released in another tab while the sheet was open, so the refetch drops it.
+    listViews(list([{ ...active, units: 2, purchasableUnits: 2 }]), list([]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/purchase', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+
+    await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
+    await user.click(screen.getByRole('button', { name: 'Mark 2 as purchased' }));
+
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent('This hold is no longer active.'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(within(region).getByRole('heading', { name: 'Your holds' })).toHaveFocus();
   });
 
   it('closes the purchase sheet when the refusal leaves nothing to buy, and shows why beside "Your holds"', async () => {
