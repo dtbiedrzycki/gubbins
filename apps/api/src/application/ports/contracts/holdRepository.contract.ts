@@ -16,6 +16,20 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
       expect(await fx.holds.findForWishlist(LIST_A)).toEqual([hold]);
     });
 
+    it('saves and reloads a hold of 3 units with 2 purchased', async () => {
+      const inserted = holdFixture({ units: 3 });
+      await fx.holds.insert(inserted);
+      const atNow = (await fx.wishlists.findById(LIST_A, NOW))!;
+      const hold = atNow.findHold(inserted.id.value)!;
+      atNow.purchaseHold(hold, 2);
+      await fx.holds.save(hold);
+
+      const [reloaded] = await fx.holds.findForWishlist(LIST_A);
+      expect(reloaded?.units).toBe(3);
+      expect(reloaded?.purchasedUnits).toBe(2);
+      expect(reloaded).toEqual(hold);
+    });
+
     it("round-trips a hold's piiRef", async () => {
       const piiRef = '00000000-0000-7000-8000-00000000aaaa';
       await fx.seedGuestPii(piiRef);

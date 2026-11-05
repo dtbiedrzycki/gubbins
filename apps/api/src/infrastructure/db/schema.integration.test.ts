@@ -25,7 +25,7 @@ afterEach(async () => {
 function holdRow(overrides: Partial<Insertable<HoldsTable>> = {}): Insertable<HoldsTable> {
   return {
     id: '55555555-5555-7555-8555-555555555555', item_id: I1, secret: 's', session_hash: 'a'.repeat(64),
-    idempotency_key: 'idem-1', expires_at: NOW, created_at: NOW, ...overrides,
+    idempotency_key: 'idem-1', units: 1, expires_at: NOW, created_at: NOW, ...overrides,
   };
 }
 
@@ -33,14 +33,23 @@ describe('0001_init schema', () => {
   it("stores a hold's lifecycle timestamps, each null until set", async () => {
     await db.insertInto('holds').values(holdRow()).execute();
 
-    const row = await db.selectFrom('holds').select(['extended_at', 'released_at', 'purchased_at']).executeTakeFirstOrThrow();
+    const row = await db.selectFrom('holds').select(['extended_at', 'released_at', 'purchased_at', 'purchased_units']).executeTakeFirstOrThrow();
 
-    expect(row).toEqual({ extended_at: null, released_at: null, purchased_at: null });
+    expect(row).toEqual({ extended_at: null, released_at: null, purchased_at: null, purchased_units: null });
   });
 
   it('refuses a hold that is both released and purchased', async () => {
-    await expect(db.insertInto('holds').values(holdRow({ released_at: NOW, purchased_at: NOW })).execute())
+    await expect(db.insertInto('holds').values(holdRow({ released_at: NOW, purchased_at: NOW, purchased_units: 1 })).execute())
       .rejects.toThrow(/CHECK constraint failed/);
+  });
+
+  it.each([
+    ['a hold of 0 units', { units: 0 }],
+    ['purchased units above the units held', { units: 2, purchased_at: NOW, purchased_units: 3 }],
+    ['purchased units on a hold that is not purchased', { units: 2, purchased_units: 1 }],
+    ['a purchase without purchased units', { purchased_at: NOW }],
+  ])('rejects %s', async (_case, overrides) => {
+    await expect(db.insertInto('holds').values(holdRow(overrides)).execute()).rejects.toThrow(/CHECK constraint failed/);
   });
 
   it.each([
