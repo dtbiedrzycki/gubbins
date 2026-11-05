@@ -146,7 +146,7 @@ async function ownerOn(list: { slug: string; ownerToken: string }, on: FastifyIn
 
 function holdAction(slug: string, holdId: string, action: 'extend' | 'release' | 'purchase', cookie?: string, on: FastifyInstance = app) {
   // Purchase takes a body (units may be left out); extend and release take none.
-  return on.inject({ method: 'POST', url: `/api/lists/${slug}/holds/${holdId}/${action}`, headers: cookie ? { cookie } : {}, ...(action === 'purchase' ? { payload: {} } : {}) });
+  return on.inject({ method: 'POST', url: `/api/lists/${slug}/holds/${holdId}/${action}`, headers: cookie ? { cookie } : {}, ...(action === 'purchase' ? { payload: { units: 1 } } : {}) });
 }
 
 async function heldByGuest(on: FastifyInstance = app) {
@@ -466,6 +466,14 @@ describe('hold lifecycle over HTTP', () => {
     const { list, cookie, holdId } = await heldByGuest();
 
     const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/holds/${holdId}/purchase`, headers: { cookie }, payload: { units } });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('rejects a purchase without units', async () => {
+    const { list, cookie, holdId } = await heldByGuest();
+
+    const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/holds/${holdId}/purchase`, headers: { cookie }, payload: {} });
 
     expect(response.statusCode).toBe(400);
   });
