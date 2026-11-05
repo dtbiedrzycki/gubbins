@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { HoldView } from '@gubbins/shared-types';
 import { useHoldAction, type HoldAction } from './useHoldAction';
 import { formatExpiry } from './formatExpiry';
+import { PurchaseDialog } from './PurchaseDialog';
 import { ApiError } from '../../api/client';
 
 export interface HoldActionsProps {
@@ -47,8 +49,16 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
     onSuccess: () => onOutcome({ action: 'release', ok: true, message: `Your hold on ${itemTitle} is released.` }),
     onError: failed('release'),
   });
+  const [purchaseSheetOpen, setPurchaseSheetOpen] = useState(false);
+  const purchaseButton = useRef<HTMLButtonElement>(null);
   const purchase = useHoldAction(slug, 'purchase', {
-    onSuccess: () => onOutcome({ action: 'purchase', ok: true, message: `${itemTitle} is marked as purchased. Thank you!` }),
+    onSuccess: (view) => {
+      // The modal makes the page inert, so it must be gone before the outcome moves focus.
+      flushSync(() => setPurchaseSheetOpen(false));
+      onOutcome({ action: 'purchase', ok: true, message: hold.units > 1 ? `${itemTitle}: ${view.purchasedUnits} marked as purchased. Thank you!` : `${itemTitle} is marked as purchased. Thank you!` });
+    },
+    // The sheet stays open to retry with the refetched limit; the outcome
+    // still goes up, in case the refetch shows nothing is left to buy.
     onError: failed('purchase'),
   });
   const [confirmingRelease, setConfirmingRelease] = useState(false);
@@ -72,19 +82,29 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
   const mutations = [extend, release, purchase];
   const pending = mutations.some((m) => m.isPending);
 
-  function run(mutation: typeof extend) {
+  const { holdId } = hold;
+
+  function buy(units: number) {
     onStart();
-    mutation.mutate(hold.holdId);
+    purchase.mutate({ holdId, units });
+  }
+
+  // Unmounting the dialog skips the browser's own focus return, so it is done here.
+  function closePurchaseSheet() {
+    flushSync(() => setPurchaseSheetOpen(false));
+    // The next opening starts clean: no stale error from this one.
+    purchase.reset();
+    purchaseButton.current?.focus();
   }
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {hold.actions.purchase && (
-          <button type="button" disabled={pending} onClick={() => run(purchase)} className={primary}>Mark as purchased</button>
+          <button ref={purchaseButton} type="button" disabled={pending} onClick={() => (hold.units > 1 ? setPurchaseSheetOpen(true) : buy(1))} className={primary}>Mark as purchased</button>
         )}
         {hold.actions.extend && (
-          <button type="button" disabled={pending} onClick={() => run(extend)} className={secondary}>Extend hold</button>
+          <button type="button" disabled={pending} onClick={() => { onStart(); extend.mutate({ holdId }); }} className={secondary}>Extend hold</button>
         )}
         {hold.actions.release && !confirmingRelease && (
           <button ref={releaseButton} type="button" disabled={pending} onClick={() => toggleConfirmRelease(true)} className={secondary}>Release hold</button>
@@ -98,13 +118,25 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
               // The question stays up, its buttons disabled, until the outcome
               // moves focus on; the question is what can hold focus till then.
               releaseQuestion.current?.focus();
-              run(release);
+              onStart();
+              release.mutate({ holdId });
             }} className={primary}>
               Yes, release it
             </button>
             <button ref={keepButton} type="button" disabled={pending} onClick={() => toggleConfirmRelease(false)} className={secondary}>Keep my hold</button>
           </div>
         </div>
+      )}
+      {purchaseSheetOpen && hold.actions.purchase && (
+        <PurchaseDialog
+          status={hold.status}
+          units={hold.units}
+          purchasableUnits={hold.purchasableUnits}
+          isPending={purchase.isPending}
+          error={purchase.error && failureMessage(purchase.error)}
+          onConfirm={buy}
+          onClose={closePurchaseSheet}
+        />
       )}
     </div>
   );

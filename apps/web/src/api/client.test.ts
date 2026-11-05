@@ -91,16 +91,16 @@ describe('hold actions', () => {
     expect(contentType).toBeNull();
   });
 
-  it('markHoldPurchased posts an empty JSON body to the purchase route and returns the hold view', async () => {
+  it('markHoldPurchased posts the units bought to the purchase route and returns the hold view', async () => {
     let body = 'unset';
     server.use(http.post('/api/lists/:slug/holds/:holdId/purchase', async ({ request }) => {
       body = await request.text();
       return HttpResponse.json(view);
     }));
 
-    await expect(api.markHoldPurchased('abc123', 'hold-1')).resolves.toEqual(view);
+    await expect(api.markHoldPurchased('abc123', 'hold-1', 2)).resolves.toEqual(view);
 
-    expect(body).toBe('{}');
+    expect(body).toBe('{"units":2}');
   });
 
   it('carries the 409 code on ApiError, beside the message', async () => {
