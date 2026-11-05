@@ -19,7 +19,7 @@ describe('PurchaseDialog', () => {
     const stepper = screen.getByRole('group', { name: 'How many did you buy?' });
     expect(stepper).toHaveTextContent('2');
     expect(stepper).toHaveAccessibleDescription('of 2 held');
-    expect(screen.getByRole('button', { name: 'One more' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'One more' })).toHaveAttribute('aria-disabled', 'true');
 
     await user.click(screen.getByRole('button', { name: 'Mark 2 as purchased' }));
 
@@ -52,7 +52,7 @@ describe('PurchaseDialog', () => {
     renderDialog({ status: 'expired', purchasableUnits: 1 });
 
     expect(screen.getByRole('group', { name: 'How many did you buy?' })).toHaveTextContent('1');
-    expect(screen.getByRole('button', { name: 'One more' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'One more' })).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByText('Only 1 is still free to mark as purchased.')).toBeInTheDocument();
     expect(screen.queryByText(/will be released/)).not.toBeInTheDocument();
   });
