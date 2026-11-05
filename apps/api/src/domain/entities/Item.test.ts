@@ -399,7 +399,7 @@ describe('Item.purchasableUnits', () => {
     expect(holding([hold], { quantity: 5 }).purchasableUnits(hold)).toBe(2);
   });
 
-  it('limits purchasable units on an expired hold of 3 to the units still free: 1, or 0 once another hold takes it', () => {
+  it('limits purchasable units on an expired hold of 3 to the units still free: 1 of 3, or 0 once quantity drops to 2', () => {
     const expired = holdOn({ units: 3, expiresAt: at(-1) });
     const other = holdOn({ sessionHash: OTHER_SESSION, units: 2 });
     expect(holding([expired, other], { quantity: 3 }).purchasableUnits(expired)).toBe(1);
