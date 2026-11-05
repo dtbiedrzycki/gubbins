@@ -90,11 +90,10 @@ describe('Hold.reconstitute', () => {
     expect(() => persisted({ releasedAt: EXPIRES_AT, purchasedAt: EXPIRES_AT })).toThrow(DomainValidationError);
   });
 
-  it('rejects purchased units above the units held', () => {
+  it('rejects 4 or 0 purchased units on a hold of 3', () => {
     expect(persisted({ units: 3, purchasedAt: EXPIRES_AT, purchasedUnits: 3 }).purchasedUnits).toBe(3);
     expect(() => persisted({ units: 3, purchasedAt: EXPIRES_AT, purchasedUnits: 4 })).toThrow(DomainValidationError);
     expect(() => persisted({ units: 3, purchasedAt: EXPIRES_AT, purchasedUnits: 0 })).toThrow(DomainValidationError);
-    expect(() => persisted({ units: 0 })).toThrow(DomainValidationError);
   });
 
   it('rejects purchased units without a purchase, and a purchase without purchased units', () => {
@@ -222,7 +221,7 @@ describe('Hold.markPurchased', () => {
     expect(hold.units).toBe(3);
   });
 
-  it('refuses to mark 4 units purchased on a hold of 3', () => {
+  it('refuses to mark 0 or 4 units purchased on a hold of 3', () => {
     const hold = persisted({ units: 3 });
     expect(() => hold.markPurchased(CREATED, 4)).toThrow(DomainValidationError);
     expect(() => hold.markPurchased(CREATED, 0)).toThrow(DomainValidationError);

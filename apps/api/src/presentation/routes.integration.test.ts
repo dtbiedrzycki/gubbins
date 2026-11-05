@@ -126,11 +126,11 @@ describe('POST /api/lists', () => {
 });
 
 /** A list holding one single item, Stroller, added by its owner. */
-async function createList(on: FastifyInstance = app) {
+async function createList(on: FastifyInstance = app, quantity = 1) {
   const list = (await on.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', createSecret: 'test-create-secret', key: guestKey } }))
     .json() as { slug: string; ownerToken: string; key: string };
   const owner = extractCookieHeader(await on.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } }));
-  const added = await on.inject({ method: 'POST', url: `/api/lists/${list.slug}/items`, headers: { cookie: owner }, payload: { type: 'single', title: 'Stroller' } });
+  const added = await on.inject({ method: 'POST', url: `/api/lists/${list.slug}/items`, headers: { cookie: owner }, payload: { type: 'single', title: 'Stroller', quantity } });
   return { ...list, itemId: (added.json() as { itemId: string }).itemId };
 }
 
@@ -258,16 +258,17 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
     expect(viewResponse.json()).toMatchObject({ items: [{ status: 'held' }] });
   });
 
-  it('passes the name and message from the body to the hold', async () => {
-    const list = await createList();
+  it('passes the name, message and units from the body to the hold', async () => {
+    const list = await createList(app, 3);
     const cookie = extractCookieHeader(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } }));
 
-    await app.inject({
+    const response = await app.inject({
       method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`,
-      headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', message: 'Congrats' },
+      headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', message: 'Congrats', units: 2 },
     });
 
     expect(await db.selectFrom('guest_pii').select(['name', 'message']).execute()).toEqual([{ name: 'Ada', message: 'Congrats' }]);
+    expect(response.json()).toMatchObject({ units: 2 });
   });
 
   it('returns 409 for a second hold attempt on an already-held item', async () => {
@@ -442,13 +443,24 @@ describe('hold lifecycle over HTTP', () => {
     expect(release.json()).toMatchObject({ code: 'hold_not_active' });
   });
 
-  it('marks purchased with the units bought', async () => {
-    const { list, cookie, holdId } = await heldByGuest();
+  it('marks purchased with the units bought: 1 of a hold of 2', async () => {
+    const list = await createList(app, 2);
+    const cookie = await guestOn(list);
+    const { holdId } = (await app.inject({
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', units: 2 },
+    })).json() as { holdId: string };
 
     const purchased = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/holds/${holdId}/purchase`, headers: { cookie }, payload: { units: 1 } });
 
     expect(purchased.statusCode).toBe(200);
-    expect(purchased.json()).toMatchObject({ status: 'purchased', purchasedUnits: 1 });
+    expect(purchased.json()).toMatchObject({ status: 'purchased', units: 2, purchasedUnits: 1 });
+  });
+
+  it('rejects a purchase with no body', async () => {
+    const { list, cookie, holdId } = await heldByGuest();
+
+    const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/holds/${holdId}/purchase`, headers: { cookie } });
+    expect(response.statusCode).toBe(400);
   });
 
   it.each([['0 units', 0], ['1.5 units', 1.5]])('rejects a purchase with %s', async (_label, units) => {

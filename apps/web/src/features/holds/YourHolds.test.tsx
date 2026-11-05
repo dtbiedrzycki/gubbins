@@ -10,13 +10,14 @@ import { listViewKey, useListView } from './useListView';
 import { YourHolds } from './YourHolds';
 import { formatExpiry } from './formatExpiry';
 import { aListItem } from '../../test/listItem';
+import { aHoldView } from '../../test/holdView';
 
 const EXPIRES = '2026-01-04T00:00:00.000Z';
 const EXTENDED_EXPIRES = '2026-01-07T00:00:00.000Z';
-const active: HoldView = { holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: EXPIRES, extendedAt: null, units: 1, purchasedUnits: null, purchasableUnits: 1, actions: { extend: true, release: true, purchase: true } };
+const active = aHoldView({ expiresAt: EXPIRES });
 const extended: HoldView = { ...active, expiresAt: EXTENDED_EXPIRES, extendedAt: '2026-01-02T00:00:00.000Z', actions: { extend: false, release: true, purchase: true } };
 const expiredBuyable: HoldView = { ...active, status: 'expired', actions: { extend: false, release: false, purchase: true } };
-const purchased: HoldView = { ...active, status: 'purchased', actions: { extend: false, release: false, purchase: false } };
+const purchased: HoldView = { ...active, status: 'purchased', purchasedUnits: 1, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false } };
 
 const list = (myHolds: HoldView[]): ListViewResponse => ({
   title: 'Baby Shower', description: null,

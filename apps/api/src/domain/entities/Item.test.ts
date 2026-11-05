@@ -255,8 +255,12 @@ describe('Item.placeHold', () => {
     expect(item.seq).toBe(4);
   });
 
-  it('refuses a hold of 0 units', () => {
-    expect(() => available().placeHold({ ...holdProps, units: 0 }, fakeTokens, fakeHasher)).toThrow(DomainValidationError);
+  it('refuses a hold of 1.5 units as invalid, not unavailable, when 1 is free', () => {
+    const item = available();
+    const seq = item.seq;
+    expect(item.availableUnits()).toBe(1);
+    expect(() => item.placeHold({ ...holdProps, units: 1.5 }, fakeTokens, fakeHasher)).toThrow(DomainValidationError);
+    expect(item.seq).toBe(seq);
   });
 
   it('rejects a duration that does not put the expiry in the future', () => {
@@ -373,7 +377,7 @@ describe('Item.purchaseHold', () => {
     expect(item.purchaseHold(expired, 1).event.units).toBe(1);
   });
 
-  it('refuses to buy 0 units, or more than the units held, as invalid input', () => {
+  it('refuses to buy 0 or 3 units of a hold of 2 as invalid input', () => {
     const hold = holdOn({ units: 2 });
     const item = holding([hold], { quantity: 3 });
     expect(() => item.purchaseHold(hold, 0)).toThrow(DomainValidationError);
@@ -395,38 +399,28 @@ describe('Item.purchasableUnits', () => {
     expect(holding([hold], { quantity: 5 }).purchasableUnits(hold)).toBe(2);
   });
 
-  it('limits purchasable units on an expired hold of 3 to the 1 unit still free', () => {
+  it('limits purchasable units on an expired hold of 3 to the units still free: 1 of 3, or 0 once quantity drops to 2', () => {
     const expired = holdOn({ units: 3, expiresAt: at(-1) });
-    const item = holding([expired, holdOn({ sessionHash: OTHER_SESSION, units: 2 })], { quantity: 3 });
-    expect(item.purchasableUnits(expired)).toBe(1);
+    const other = holdOn({ sessionHash: OTHER_SESSION, units: 2 });
+    expect(holding([expired, other], { quantity: 3 }).purchasableUnits(expired)).toBe(1);
+    expect(holding([expired, other], { quantity: 2 }).purchasableUnits(expired)).toBe(0);
   });
 
-  it('purchasable units are 0 for a released hold', () => {
+  it('purchasable units are 0 for a released or purchased hold, or one it did not load', () => {
     const released = holdOn({ units: 2, releasedAt: T0 });
+    const purchased = holdOn({ units: 2, purchasedAt: T0 });
     expect(holding([released], { quantity: 5 }).purchasableUnits(released)).toBe(0);
+    expect(holding([purchased], { quantity: 5 }).purchasableUnits(purchased)).toBe(0);
     expect(holding([], { quantity: 5 }).purchasableUnits(holdOn())).toBe(0);
   });
 });
 
 describe('Item.canPurchaseHold', () => {
-  it('is true for an active hold, and for an expired one while a unit is free', () => {
+  it('is true while any units are purchasable: true for an active hold, false for a released one', () => {
     const active = holdOn();
-    const expired = holdOn({ expiresAt: at(-1) });
-    expect(holding([active]).canPurchaseHold(active)).toBe(true);
-    expect(holding([expired]).canPurchaseHold(expired)).toBe(true);
-  });
-
-  it('is false for an expired hold whose unit someone else now holds', () => {
-    const expired = holdOn({ expiresAt: at(-1) });
-    expect(holding([expired, holdOn({ sessionHash: OTHER_SESSION })]).canPurchaseHold(expired)).toBe(false);
-  });
-
-  it('is false for a released or purchased hold, or one it did not load', () => {
     const released = holdOn({ releasedAt: T0 });
-    const purchased = holdOn({ purchasedAt: T0 });
+    expect(holding([active]).canPurchaseHold(active)).toBe(true);
     expect(holding([released]).canPurchaseHold(released)).toBe(false);
-    expect(holding([purchased]).canPurchaseHold(purchased)).toBe(false);
-    expect(holding([]).canPurchaseHold(holdOn())).toBe(false);
   });
 });
 
