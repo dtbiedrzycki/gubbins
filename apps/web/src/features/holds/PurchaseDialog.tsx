@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import type { HoldView } from '@gubbins/shared-types';
 import { Stepper } from '../../lib/Stepper';
+import { ApiError } from '../../api/client';
 
 export interface PurchaseDialogProps {
   status: HoldView['status'];
@@ -8,7 +9,7 @@ export interface PurchaseDialogProps {
   /** Units that can still be marked as purchased; the count starts here and is capped here. */
   purchasableUnits: number;
   isPending: boolean;
-  error: string | null;
+  error: Error | null;
   onConfirm: (units: number) => void;
   onClose: () => void;
 }
@@ -25,6 +26,9 @@ export function PurchaseDialog({ status, units, purchasableUnits, isPending, err
   // The list refetches after a refused purchase, so fewer may be free than were picked.
   if (count > purchasableUnits && purchasableUnits >= 1) setCount(purchasableUnits);
   const released = units - count;
+  const capNote = `Only ${purchasableUnits} ${purchasableUnits === 1 ? 'is' : 'are'} still free to mark as purchased.`;
+  // A 409 that re-capped the sheet is told as the new cap, not as "no longer available" beside an offer to buy.
+  const recapped = error instanceof ApiError && error.code === 'item_unavailable' && purchasableUnits >= 1;
 
   function show() {
     const dialog = dialogRef.current;
@@ -59,14 +63,12 @@ export function PurchaseDialog({ status, units, purchasableUnits, isPending, err
       </div>
       {/* An expired hold's other units were freed when it lapsed, so only an active hold releases any. */}
       {status === 'active' && released > 0 && (
-        <p className="mb-4 rounded-[18px] border-[1.5px] border-line bg-white p-4 font-bold">
+        <p className="mb-4 rounded-[18px] border-[1.5px] border-line bg-white p-4 text-sm font-bold">
           The other {released} will be released, so another guest can hold {released > 1 ? 'them' : 'it'}.
         </p>
       )}
-      {status === 'expired' && purchasableUnits < units && (
-        <p className="mb-4">Only {purchasableUnits} {purchasableUnits === 1 ? 'is' : 'are'} still free to mark as purchased.</p>
-      )}
-      <p role="alert" className="mb-4 text-error empty:mb-0">{error}</p>
+      {status === 'expired' && purchasableUnits < units && !recapped && <p className="mb-4">{capNote}</p>}
+      <p role="alert" className="mb-4 text-error empty:mb-0">{recapped ? capNote : error?.message}</p>
       <div className="flex gap-2">
         <button type="button" onClick={() => onConfirm(count)} disabled={isPending} className="btn-primary">
           Mark {count} as purchased

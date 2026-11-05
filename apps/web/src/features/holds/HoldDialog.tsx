@@ -36,11 +36,12 @@ export function HoldDialog({ itemTitle, holdDurationDays, availableUnits, isPend
   const [message, setMessage] = useState('');
   const [units, setUnits] = useState(1);
   const [sent, setSent] = useState(false);
-  // The list refetches after a failed hold, so fewer may be free than were picked.
-  if (units > availableUnits && availableUnits >= 1) setUnits(availableUnits);
-  // A 409 records nothing, so the same key can be sent again with new details.
-  const tooFew = error instanceof ApiError && error.status === 409 && availableUnits >= 1;
+  // A refused hold records nothing, so the same key can be sent again with new details.
+  const tooFew = error instanceof ApiError && error.code === 'item_unavailable' && availableUnits >= 1;
   const locked = sent && !tooFew;
+  // The list refetches after a failed hold, so fewer may be free than were picked;
+  // a locked count stays as sent, so a retry carries it.
+  if (!locked && units > availableUnits && availableUnits >= 1) setUnits(availableUnits);
 
   function show() {
     const dialog = dialogRef.current;

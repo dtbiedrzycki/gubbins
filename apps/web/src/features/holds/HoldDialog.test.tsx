@@ -173,13 +173,14 @@ describe('HoldDialog', () => {
     expect(screen.getByRole('button', { name: 'Yes, hold it' })).toBeInTheDocument();
   });
 
-  it('holds 2 units and says "Yes, hold 2"', async () => {
+  it('holds 2 of 2 units, no more, and says "Yes, hold 2"', async () => {
     const user = userEvent.setup();
-    const { props } = renderDialog({ availableUnits: 5 });
-    expect(screen.getByRole('group', { name: 'How many?' })).toHaveAccessibleDescription('of 5 left');
+    const { props } = renderDialog({ availableUnits: 2 });
+    expect(screen.getByRole('group', { name: 'How many?' })).toHaveAccessibleDescription('of 2 left');
 
     await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'One more' }));
+    expect(screen.getByRole('button', { name: 'One more' })).toHaveAttribute('aria-disabled', 'true');
     await user.click(screen.getByRole('button', { name: 'Yes, hold 2' }));
 
     expect(screen.getByText('Other guests will see they\u2019re taken while you buy them.')).toBeInTheDocument();
@@ -188,16 +189,34 @@ describe('HoldDialog', () => {
     expect(props.onConfirm).toHaveBeenCalledWith(expect.anything(), { name: 'Amara', message: '', units: 2 });
   });
 
-  it('locks the count once the hold is sent', async () => {
+  it('locks the count once the hold is sent, even when fewer are free by the retry', async () => {
     const user = userEvent.setup();
-    renderDialog({ availableUnits: 5 });
+    const { props, rerender } = renderDialog({ availableUnits: 5 });
 
     await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'One more' }));
-    await user.click(screen.getByRole('button', { name: 'Yes, hold 2' }));
+    await user.click(screen.getByRole('button', { name: 'One more' }));
+    await user.click(screen.getByRole('button', { name: 'Yes, hold 3' }));
 
     expect(screen.getByRole('button', { name: 'One fewer' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'One more' })).toBeDisabled();
+
+    rerender(<HoldDialog {...props} availableUnits={2} error={new Error('Network error')} />);
+    await user.click(screen.getByRole('button', { name: 'Yes, hold 3' }));
+
+    expect(vi.mocked(props.onConfirm).mock.calls[1][1]).toEqual({ name: 'Amara', message: '', units: 3 });
+  });
+
+  it('after a 409 that is not about units, shows the server\u2019s message and keeps the details locked', async () => {
+    const user = userEvent.setup();
+    const { props, rerender } = renderDialog({ availableUnits: 5 });
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+    rerender(<HoldDialog {...props} error={new ApiError(409, 'Someone else changed this at the same moment. Please try again.')} />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Someone else changed this at the same moment. Please try again.');
+    expect(screen.getByLabelText('Gifter name(s)')).toHaveAttribute('readonly');
   });
 
   it('after a 409 with 1 left, says "Only 1 left now." and lets the guest confirm again', async () => {

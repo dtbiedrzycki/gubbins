@@ -10,25 +10,29 @@ function Counter() {
 }
 
 describe('Stepper', () => {
-  it('steps between 1 and 3 and disables the buttons at each end', async () => {
+  it('steps between 1 and 3 and marks the buttons disabled at each end, keeping focus', async () => {
     const user = userEvent.setup();
     render(<Counter />);
     const group = screen.getByRole('group', { name: 'How many?' });
     const fewer = screen.getByRole('button', { name: 'One fewer' });
     const more = screen.getByRole('button', { name: 'One more' });
     expect(group).toHaveTextContent('1');
-    expect(fewer).toBeDisabled();
+    expect(fewer).toHaveAttribute('aria-disabled', 'true');
 
+    await user.click(more);
     await user.click(more);
     await user.click(more);
 
     expect(group).toHaveTextContent('3');
-    expect(more).toBeDisabled();
-    expect(fewer).toBeEnabled();
+    expect(more).toHaveAttribute('aria-disabled', 'true');
+    // A disabled attribute would drop focus to <body> under a keyboard user.
+    expect(more).not.toBeDisabled();
+    expect(more).toHaveFocus();
+    expect(fewer).toHaveAttribute('aria-disabled', 'false');
 
     await user.click(fewer);
 
     expect(group).toHaveTextContent('2');
-    expect(more).toBeEnabled();
+    expect(more).toHaveAttribute('aria-disabled', 'false');
   });
 });
