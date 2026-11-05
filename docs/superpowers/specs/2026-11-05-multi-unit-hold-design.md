@@ -145,14 +145,16 @@ Item decides, Hold records.
   guest may buy:
   - On an active hold: up to its units.
   - On an expired hold: up to the smaller of its units and the units free.
-    `hold_lapsed` (`HoldLapsedError`) applies when no unit is free, as today.
+    `HoldLapsedError` applies when no unit is free, as today (409
+    `item_unavailable`, with the "Your hold expired…" message).
   - Fewer than 1, or more than the units held: `DomainValidationError`
     (400), because that's bad input.
   - On an expired hold, within the units held but more than the units free:
     `ItemUnavailableError` (409 `item_unavailable`). This is a race with
     another guest, like `placeHold`'s refusal. *(My call.)* Correct the
-    purchase route's 409 description in `routes.ts` to name `hold_lapsed`
-    and `item_unavailable` as each actually occurs.
+    purchase route's 409 description in `routes.ts` to name each case
+    accurately (`hold_not_active`; `item_unavailable` when the hold lapsed
+    with no unit free or when fewer units are free than asked).
 - **One private rule backs both the command and the view.** It computes the
   most a guest may buy and feeds `purchaseHold` and the view's purchase
   limit, following the existing `purchaseRefusal`/`canPurchaseHold` pattern.
@@ -167,7 +169,7 @@ Item decides, Hold records.
 |---|---|---|---|
 | Units to hold | Whole number, 1 to the units free | Domain (`Item.placeHold`); the stepper caps it too | 409 `item_unavailable`; the sheet shows the new count; nothing is held |
 | Units bought (hold of more than 1 unit) | Whole number, 1 to the units held | Domain (`Item.purchaseHold`); the stepper caps it too | 400 validation error |
-| Units bought on an expired hold | Whole number, 1 to the smaller of the units held and the units free | Domain | 409 `hold_lapsed` when none are free (as today); 409 `item_unavailable` when some are free but fewer than asked; the stepper caps at the limit |
+| Units bought on an expired hold | Whole number, 1 to the smaller of the units held and the units free | Domain | 409 `item_unavailable` with the "Your hold expired…" message when none are free (as today); 409 `item_unavailable` when some are free but fewer than asked; the stepper caps at the limit |
 
 Both are integers, so there's no trimming and no text length. Request
 schemas type them as integers ≥ 1 and leave the ranges to the domain.

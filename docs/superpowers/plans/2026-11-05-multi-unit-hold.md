@@ -14,7 +14,7 @@
 
 - Every PR changes at most 10 files, generated files included (skill small-prs). Each task below is one PR; if a task comes to more than 10, stop and report rather than exceed it.
 - Wishlist authorizes, Item decides, Hold records (ADR-0078). Invariants live in constructors. Counts are derived, never stored, except `purchased_units`, which records a decision.
-- Domain error mapping is unchanged: `DomainValidationError` → 400, `ItemUnavailableError` → 409 `item_unavailable`, `HoldLapsedError` → 409 `hold_lapsed`, `HoldNotActiveError` → 409 `hold_not_active`.
+- Domain error mapping is unchanged: `DomainValidationError` → 400, `ItemUnavailableError` → 409 `item_unavailable`, `HoldLapsedError` → 409 `item_unavailable` (its own "Your hold expired…" message), `HoldNotActiveError` → 409 `hold_not_active`.
 - Hold events stay at `v: 1`; migrations are edited in place (`0001_init.ts`). No production holds exist.
 - DB CHECKs back up structural invariants only (ADR-0083).
 - No plan identifiers (task numbers, "stack", §) in code, comments or test names. Domain instants are `at`, not `now`.
@@ -134,7 +134,7 @@ The wire schema strips the new fields until Task 4; the PR body says so.
 **Files:**
 - Create: `packages/shared-types/src/markHoldPurchased.ts` (`markHoldPurchasedRequestSchema = z.object({ units: z.number().int().min(1) })`, type `MarkHoldPurchasedRequest`); Modify: `packages/shared-types/src/index.ts`
 - Modify: `apps/api/src/application/use-cases/MarkHoldPurchased.ts` (input `HoldCommandInput & { units: number }`, passed to `wishlist.purchaseHold`), `MarkHoldPurchased.test.ts`
-- Modify: `apps/api/src/presentation/routes.ts`: register purchase on its own with `body: markHoldPurchasedRequestSchema`; extend and release stay in the shared loop. Correct the purchase 409 description: "The hold was already released or purchased (hold_not_active); it expired and no unit is free (hold_lapsed); or fewer units are free than asked (item_unavailable)." `routes.integration.test.ts`.
+- Modify: `apps/api/src/presentation/routes.ts`: register purchase on its own with `body: markHoldPurchasedRequestSchema`; extend and release stay in the shared loop. Correct the purchase 409 description: "The hold was already released or purchased (hold_not_active); or it expired and no unit is free, or fewer units are free than asked (item_unavailable)." `routes.integration.test.ts`.
 - Regenerate: `apps/api/openapi.json`, `apps/web/src/api/schema.gen.ts`
 - Modify: `apps/web/src/api/client.ts`: `markHoldPurchased(slug, holdId, units = 1)` sends `{ units }`. The default is removed in Task 8.
 
