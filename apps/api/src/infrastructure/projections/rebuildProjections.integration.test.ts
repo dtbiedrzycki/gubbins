@@ -55,12 +55,12 @@ async function projections() {
   };
 }
 
-async function newList() {
+async function newList(quantity = 1) {
   const { slug } = await deps.createList.execute({ listTitle: 'L', createSecret: 'test-create-secret', key: guestKey });
   const wishlist = await deps.wishlists.findBySlug(slug, clock.now());
   const wishlistId = wishlist!.id.value;
-  const { itemId } = await deps.addItem.execute({ wishlistId, type: 'single', title: 'I', quantity: 1 }, { guestSession: null, owner: true });
-  const hold = (access: AccessContext, idempotencyKey: string) => deps.holdItem.execute({ wishlistId, itemId, idempotencyKey, name: 'Ada', units: 1 }, access);
+  const { itemId } = await deps.addItem.execute({ wishlistId, type: 'single', title: 'I', quantity }, { guestSession: null, owner: true });
+  const hold = (access: AccessContext, idempotencyKey: string, units = 1) => deps.holdItem.execute({ wishlistId, itemId, idempotencyKey, name: 'Ada', units }, access);
   const command = { wishlistId };
   return { hold, command };
 }
@@ -153,14 +153,9 @@ describe('rebuildProjections', () => {
   });
 
   it('re-folds units and purchased units from ItemHeld and ItemPurchased', async () => {
-    const { hold, command } = await newList();
-    const placed = await hold(GUEST, 'k');
-    await deps.markHoldPurchased.execute({ ...command, holdId: placed.holdId, units: 1 }, GUEST);
-    const rows = await db.selectFrom('event_log').select(['id', 'event_type', 'payload']).execute();
-    const units = { ItemHeld: 3, ItemPurchased: 2 } as Record<string, number>;
-    for (const row of rows.filter((r) => r.event_type in units)) {
-      await db.updateTable('event_log').set({ payload: JSON.stringify({ ...JSON.parse(row.payload), units: units[row.event_type] }) }).where('id', '=', row.id).execute();
-    }
+    const { hold, command } = await newList(3);
+    const placed = await hold(GUEST, 'k', 3);
+    await deps.markHoldPurchased.execute({ ...command, holdId: placed.holdId, units: 2 }, GUEST);
 
     await rebuildProjections(db);
 

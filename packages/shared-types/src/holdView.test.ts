@@ -17,8 +17,8 @@ describe('holdViewSchema', () => {
     expect(holdViewSchema.safeParse({ ...view, status: 'reserved' }).success).toBe(false);
   });
 
-  it('rejects a hold view without units', () => {
-    expect(holdViewSchema.safeParse({ ...view, units: undefined }).success).toBe(false);
+  it.each(['units', 'purchasedUnits', 'purchasableUnits'])('rejects a hold view without %s', (key) => {
+    expect(holdViewSchema.safeParse({ ...view, [key]: undefined }).success).toBe(false);
   });
 
   it('requires every action flag', () => {

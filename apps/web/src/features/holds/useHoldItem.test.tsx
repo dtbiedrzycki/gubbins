@@ -9,6 +9,7 @@ import { mock } from '../../test/msw/mock';
 import { useHoldItem } from './useHoldItem';
 import { useListView } from './useListView';
 import { aListItem } from '../../test/listItem';
+import { aHoldView } from '../../test/holdView';
 
 function wrapper({ children }: { children: ReactNode }) {
   // useListView's own retry wins over these defaults; retryDelay: 0 keeps its one retry instant.
@@ -64,7 +65,7 @@ describe('useHoldItem', () => {
       }),
       http.post('/api/lists/abc123/items/item-1/hold', () => {
         holdRequested = true;
-        return HttpResponse.json({ holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: '2026-01-04T00:00:00.000Z', extendedAt: null, units: 1, purchasedUnits: null, purchasableUnits: 1, actions: { extend: true, release: true, purchase: true } }, { status: 201 });
+        return HttpResponse.json(aHoldView(), { status: 201 });
       }),
     );
     const { result } = renderListAndHold();

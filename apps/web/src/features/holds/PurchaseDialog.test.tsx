@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PurchaseDialog, type PurchaseDialogProps } from './PurchaseDialog';
+import { ApiError } from '../../api/client';
 
 function renderDialog(overrides: Partial<PurchaseDialogProps> = {}) {
   const props: PurchaseDialogProps = {
@@ -18,7 +19,7 @@ describe('PurchaseDialog', () => {
     const stepper = screen.getByRole('group', { name: 'How many did you buy?' });
     expect(stepper).toHaveTextContent('2');
     expect(stepper).toHaveAccessibleDescription('of 2 held');
-    expect(screen.getByRole('button', { name: 'One more' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'One more' })).toHaveAttribute('aria-disabled', 'true');
 
     await user.click(screen.getByRole('button', { name: 'Mark 2 as purchased' }));
 
@@ -51,18 +52,19 @@ describe('PurchaseDialog', () => {
     renderDialog({ status: 'expired', purchasableUnits: 1 });
 
     expect(screen.getByRole('group', { name: 'How many did you buy?' })).toHaveTextContent('1');
-    expect(screen.getByRole('button', { name: 'One more' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'One more' })).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByText('Only 1 is still free to mark as purchased.')).toBeInTheDocument();
     expect(screen.queryByText(/will be released/)).not.toBeInTheDocument();
   });
 
-  it('lowers the count to the new cap when fewer become free while it is open', () => {
+  it('after a 409 with 1 still free, lowers the count to 1 and says so once, in the alert', () => {
     const { props, rerender } = renderDialog({ status: 'expired', units: 3, purchasableUnits: 3 });
 
-    rerender(<PurchaseDialog {...props} purchasableUnits={1} error="This item is no longer available." />);
+    rerender(<PurchaseDialog {...props} purchasableUnits={1} error={new ApiError(409, 'This item is no longer available.', 'item_unavailable')} />);
 
     expect(screen.getByRole('group', { name: 'How many did you buy?' })).toHaveTextContent('1');
-    expect(screen.getByRole('alert')).toHaveTextContent('This item is no longer available.');
+    expect(screen.getByRole('alert')).toHaveTextContent('Only 1 is still free to mark as purchased.');
+    expect(screen.getAllByText('Only 1 is still free to mark as purchased.')).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Mark 1 as purchased' })).toBeEnabled();
   });
 

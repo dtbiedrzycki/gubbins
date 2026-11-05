@@ -36,5 +36,7 @@ describe('toHoldView', () => {
       units: 2, purchasedUnits: null, purchasableUnits: 2,
       actions: { extend: false, release: true, purchase: true },
     });
+    const bought = holdOn({ units: 2, purchasedAt: at(DAY), purchasedUnits: 1 });
+    expect(toHoldView(wishlistAt(at(DAY), [bought]), bought).purchasedUnits).toBe(1);
   });
 });
