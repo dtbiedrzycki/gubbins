@@ -8,6 +8,12 @@ export interface HoldView {
   status: HoldStatus;
   expiresAt: string;
   extendedAt: string | null;
+  /** Units the hold covers. */
+  units: number;
+  /** Units bought; null until purchased. */
+  purchasedUnits: number | null;
+  /** The most units a purchase would accept now. */
+  purchasableUnits: number;
   /**
    * What the guest may do next, decided by the domain so the UI never
    * re-derives a rule: extend once while active, release while active,
@@ -24,6 +30,9 @@ export function toHoldView(wishlist: Wishlist, hold: Hold): HoldView {
     status: wishlist.holdStatus(hold),
     expiresAt: hold.expiresAt.toISOString(),
     extendedAt: hold.extendedAt?.toISOString() ?? null,
+    units: hold.units,
+    purchasedUnits: hold.purchasedUnits,
+    purchasableUnits: wishlist.purchasableUnits(hold),
     actions: {
       extend: wishlist.canExtendHold(hold),
       release: wishlist.canReleaseHold(hold),
