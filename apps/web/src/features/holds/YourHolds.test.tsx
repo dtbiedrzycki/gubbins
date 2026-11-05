@@ -6,17 +6,18 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { HoldView, ListViewResponse } from '@gubbins/shared-types';
 import { server } from '../../test/msw/server';
 import { mock } from '../../test/msw/mock';
-import { useListView } from './useListView';
+import { listViewKey, useListView } from './useListView';
 import { YourHolds } from './YourHolds';
 import { formatExpiry } from './formatExpiry';
 import { aListItem } from '../../test/listItem';
+import { aHoldView } from '../../test/holdView';
 
 const EXPIRES = '2026-01-04T00:00:00.000Z';
 const EXTENDED_EXPIRES = '2026-01-07T00:00:00.000Z';
-const active: HoldView = { holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: EXPIRES, extendedAt: null, units: 1, purchasedUnits: null, purchasableUnits: 1, actions: { extend: true, release: true, purchase: true } };
+const active = aHoldView({ expiresAt: EXPIRES });
 const extended: HoldView = { ...active, expiresAt: EXTENDED_EXPIRES, extendedAt: '2026-01-02T00:00:00.000Z', actions: { extend: false, release: true, purchase: true } };
 const expiredBuyable: HoldView = { ...active, status: 'expired', actions: { extend: false, release: false, purchase: true } };
-const purchased: HoldView = { ...active, status: 'purchased', actions: { extend: false, release: false, purchase: false } };
+const purchased: HoldView = { ...active, status: 'purchased', purchasedUnits: 1, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false } };
 
 const list = (myHolds: HoldView[]): ListViewResponse => ({
   title: 'Baby Shower', description: null,
@@ -392,7 +393,48 @@ describe('YourHolds', () => {
 
     const sheet = screen.getByRole('dialog', { name: 'How many did you buy?' });
     await waitFor(() => expect(within(sheet).getByRole('button', { name: 'Mark 1 as purchased' })).toBeEnabled());
-    expect(within(sheet).getByRole('alert')).toHaveTextContent('This item is no longer available.');
-    expect(within(sheet).getByText('Only 1 is still free to mark as purchased.')).toBeInTheDocument();
+    expect(within(sheet).getByRole('alert')).toHaveTextContent('Only 1 is still free to mark as purchased.');
+    expect(sheet).toContainElement(document.activeElement as HTMLElement);
+  });
+
+  it('closes the purchase sheet on a refusal for a hold the refetch removes, and shows why beside "Your holds"', async () => {
+    // Released in another tab while the sheet was open, so the refetch drops it.
+    listViews(list([{ ...active, units: 2, purchasableUnits: 2 }]), list([]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/purchase', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+
+    await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
+    await user.click(screen.getByRole('button', { name: 'Mark 2 as purchased' }));
+
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent('This hold is no longer active.'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(within(region).getByRole('heading', { name: 'Your holds' })).toHaveFocus();
+  });
+
+  it('closes the purchase sheet when the refusal leaves nothing to buy, and shows why beside "Your holds"', async () => {
+    const expired: HoldView = { ...expiredBuyable, units: 3, purchasableUnits: 3 };
+    const lapsed: HoldView = { ...expired, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false } };
+    // Another guest then releases a unit, so the hold can be bought again.
+    listViews(list([expired]), list([lapsed]), list([{ ...expired, purchasableUnits: 1 }]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/purchase', 409, { message: 'Your hold expired and this gift has since been held or bought by someone else.', code: 'item_unavailable' }));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+
+    await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
+    await user.click(screen.getByRole('button', { name: 'Mark 3 as purchased' }));
+
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent('Your hold expired and this gift has since been held or bought by someone else.'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(within(region).getByRole('heading', { name: 'Your holds' })).toHaveFocus();
+
+    await client.invalidateQueries({ queryKey: listViewKey('abc123') });
+
+    const markAsPurchased = await within(region).findByRole('button', { name: 'Mark as purchased' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await user.click(markAsPurchased);
+
+    expect(within(screen.getByRole('dialog', { name: 'How many did you buy?' })).getByRole('alert')).toBeEmptyDOMElement();
   });
 });

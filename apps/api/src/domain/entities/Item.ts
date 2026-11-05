@@ -5,7 +5,7 @@ import type { HoldReleasedEvent } from '../events/HoldReleasedEvent.js';
 import type { ItemHeldEvent } from '../events/ItemHeldEvent.js';
 import type { ItemPurchasedEvent } from '../events/ItemPurchasedEvent.js';
 import { Contribution } from './Contribution.js';
-import { Hold, isUnitCountWithin, type HoldStatus } from './Hold.js';
+import { Hold, type HoldStatus } from './Hold.js';
 import { MAX_MONEY_MINOR, Money } from '../value-objects/Money.js';
 import { IdempotencyKey } from '../value-objects/IdempotencyKey.js';
 import { UuidId } from '../value-objects/UuidId.js';
@@ -336,7 +336,7 @@ export class Item {
     const status = own.statusAt(this.asOf);
     if (status === 'released' || status === 'purchased') throw new HoldNotActiveError(own.id.value);
     if (limit === 0) throw new HoldLapsedError(this.id.value);
-    if (!isUnitCountWithin(units, own.units)) throw new DomainValidationError('Purchased units must be a whole number from 1 to the units held');
+    own.assertCovers(units);
     // Within the units held but beyond the units free: another guest took them since this hold lapsed.
     if (units > limit) throw new ItemUnavailableError(this.id.value);
     const event = own.markPurchased(this.asOf, units);

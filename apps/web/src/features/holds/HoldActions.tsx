@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { HoldView } from '@gubbins/shared-types';
 import { useHoldAction, type HoldAction } from './useHoldAction';
@@ -57,9 +57,14 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
       flushSync(() => setPurchaseSheetOpen(false));
       onOutcome({ action: 'purchase', ok: true, message: hold.units > 1 ? `${itemTitle}: ${view.purchasedUnits} marked as purchased. Thank you!` : `${itemTitle} is marked as purchased. Thank you!` });
     },
-    // The sheet stays open to retry with the refetched limit; the outcome
-    // still goes up, in case the refetch shows nothing is left to buy.
-    onError: failed('purchase'),
+    // The sheet keeps a refusal it can retry: a network failure, or fewer units
+    // free (re-capped by the refetch). Any other can come with a refetch that
+    // removes this hold and the sheet with it, so it closes the sheet and goes up now.
+    onError: (error) => {
+      if (purchaseSheetOpen && (!(error instanceof ApiError) || error.code === 'item_unavailable')) return;
+      flushSync(() => setPurchaseSheetOpen(false));
+      failed('purchase')(error);
+    },
   });
   const [confirmingRelease, setConfirmingRelease] = useState(false);
   const releaseButton = useRef<HTMLButtonElement>(null);
@@ -79,6 +84,21 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
     setConfirmingRelease(next);
   }
 
+  // The refetch after a refusal can leave nothing to buy, which unmounts the
+  // sheet: close it for good, so it cannot reopen on its own, and send its
+  // error up once the page is no longer inert.
+  const [lostPurchaseError, setLostPurchaseError] = useState<Error | null>(null);
+  if (purchaseSheetOpen && !hold.actions.purchase && !purchase.isPending) {
+    setPurchaseSheetOpen(false);
+    setLostPurchaseError(purchase.error);
+  }
+  const reportLostPurchase = useEffectEvent((error: Error) => {
+    onOutcome({ action: 'purchase', ok: false, message: failureMessage(error) });
+  });
+  useEffect(() => {
+    if (lostPurchaseError) reportLostPurchase(lostPurchaseError);
+  }, [lostPurchaseError]);
+
   const mutations = [extend, release, purchase];
   const pending = mutations.some((m) => m.isPending);
 
@@ -92,16 +112,20 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
   // Unmounting the dialog skips the browser's own focus return, so it is done here.
   function closePurchaseSheet() {
     flushSync(() => setPurchaseSheetOpen(false));
-    // The next opening starts clean: no stale error from this one.
-    purchase.reset();
     purchaseButton.current?.focus();
+  }
+
+  function openPurchaseSheet() {
+    // A sheet starts clean: no stale error from an earlier purchase.
+    purchase.reset();
+    setPurchaseSheetOpen(true);
   }
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {hold.actions.purchase && (
-          <button ref={purchaseButton} type="button" disabled={pending} onClick={() => (hold.units > 1 ? setPurchaseSheetOpen(true) : buy(1))} className={primary}>Mark as purchased</button>
+          <button ref={purchaseButton} type="button" disabled={pending} onClick={() => (hold.units > 1 ? openPurchaseSheet() : buy(1))} className={primary}>Mark as purchased</button>
         )}
         {hold.actions.extend && (
           <button type="button" disabled={pending} onClick={() => { onStart(); extend.mutate({ holdId }); }} className={secondary}>Extend hold</button>
@@ -133,7 +157,7 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
           units={hold.units}
           purchasableUnits={hold.purchasableUnits}
           isPending={purchase.isPending}
-          error={purchase.error && failureMessage(purchase.error)}
+          error={purchase.error}
           onConfirm={buy}
           onClose={closePurchaseSheet}
         />

@@ -62,7 +62,10 @@ test('a guest holds 2 of 5, buys 1, and another guest sees 4 left', async ({ pag
   await expect(yourHolds.getByText('× 2')).toHaveCount(0);
 
   const otherContext = await browser.newContext({ baseURL });
-  const other = await guestKeyedIn(otherContext, list);
-  await expect(other.getByText('4 left')).toBeVisible();
-  await otherContext.close();
+  try {
+    const other = await guestKeyedIn(otherContext, list);
+    await expect(other.getByText('4 left')).toBeVisible();
+  } finally {
+    await otherContext.close();
+  }
 });
