@@ -301,7 +301,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
         201: json('The item is now held for this session; a replayed idempotency key returns the same hold.', holdItemResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
         404: json('No such list or item, or no valid session for the list. These are deliberately indistinguishable.', errorResponseSchema),
-        409: json('No unit of the item is free (item_unavailable), or a concurrent change won (no code).', errorResponseSchema),
+        409: json('Fewer units of the item are free than asked (item_unavailable), or a concurrent change won (no code).', errorResponseSchema),
       },
     },
   }, async (request, reply) => {
@@ -350,7 +350,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     },
     {
       action: 'release', operationId: 'releaseHold', command: deps.releaseHold,
-      done: 'The hold was released; its unit is free for others.',
+      done: 'The hold was released; its units are free for others.',
       conflict: 'The hold is not active (hold_not_active).',
     },
   ];

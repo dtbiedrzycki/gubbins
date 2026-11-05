@@ -258,16 +258,17 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
     expect(viewResponse.json()).toMatchObject({ items: [{ status: 'held' }] });
   });
 
-  it('passes the name and message from the body to the hold', async () => {
-    const list = await createList();
+  it('passes the name, message and units from the body to the hold', async () => {
+    const list = await createList(app, 3);
     const cookie = extractCookieHeader(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } }));
 
-    await app.inject({
+    const response = await app.inject({
       method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`,
-      headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', message: 'Congrats' },
+      headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', message: 'Congrats', units: 2 },
     });
 
     expect(await db.selectFrom('guest_pii').select(['name', 'message']).execute()).toEqual([{ name: 'Ada', message: 'Congrats' }]);
+    expect(response.json()).toMatchObject({ units: 2 });
   });
 
   it('returns 409 for a second hold attempt on an already-held item', async () => {
