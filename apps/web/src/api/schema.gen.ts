@@ -870,7 +870,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description No unit of the item is free (item_unavailable), or a concurrent change won (no code). */
+            /** @description Fewer units of the item are free than asked (item_unavailable), or a concurrent change won (no code). */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1004,7 +1004,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description The hold was already released or purchased (hold_not_active); it expired and no unit is free (hold_lapsed); or fewer units are free than asked (item_unavailable). */
+            /** @description The hold was already released or purchased (hold_not_active); or it lapsed and no unit is free, or fewer units are free than asked (item_unavailable). */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1092,7 +1092,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The hold was released; its unit is free for others. */
+            /** @description The hold was released; its units are free for others. */
             200: {
                 headers: {
                     [name: string]: unknown;

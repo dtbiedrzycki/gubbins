@@ -7,11 +7,6 @@ import { IdempotencyKey } from '../value-objects/IdempotencyKey.js';
 import { SessionHash } from '../value-objects/SessionHash.js';
 import { UuidId } from '../value-objects/UuidId.js';
 
-/** Whether `units` is a whole number from 1 to `max`. */
-export function isUnitCountWithin(units: number, max: number): boolean {
-  return Number.isInteger(units) && units >= 1 && units <= max;
-}
-
 /**
  * A hold's state at some instant. Never stored: `statusAt` derives it from
  * the timestamps, so nothing has to be written when a hold expires
@@ -57,9 +52,7 @@ export class Hold {
     if ((_purchasedAt === null) !== (_purchasedUnits === null)) {
       throw new DomainValidationError('A hold records purchased units exactly when it is purchased');
     }
-    if (_purchasedUnits !== null && !isUnitCountWithin(_purchasedUnits, units)) {
-      throw new DomainValidationError('Purchased units must be a whole number from 1 to the units held');
-    }
+    if (_purchasedUnits !== null) this.assertCovers(_purchasedUnits);
   }
 
   static create(props: {
@@ -107,6 +100,13 @@ export class Hold {
   get purchasedAt(): Date | null { return this._purchasedAt; }
   /** Units bought, from 1 to `units`; null until purchased. The rest went back to other guests. */
   get purchasedUnits(): number | null { return this._purchasedUnits; }
+
+  /** Refuses `units` unless it is a whole number from 1 to the units this hold covers: the most a guest can buy of it. */
+  assertCovers(units: number): void {
+    if (!Number.isInteger(units) || units < 1 || units > this.units) {
+      throw new DomainValidationError('Purchased units must be a whole number from 1 to the units held');
+    }
+  }
 
   /**
    * The one definition of hold state. Strictly after: at the very instant
@@ -172,7 +172,7 @@ export class Hold {
    */
   markPurchased(at: Date, units: number): ItemPurchasedEvent {
     if (this._purchasedAt !== null || this._releasedAt !== null) throw new HoldNotActiveError(this.id.value);
-    if (!isUnitCountWithin(units, this.units)) throw new DomainValidationError('Purchased units must be a whole number from 1 to the units held');
+    this.assertCovers(units);
     this._purchasedAt = at;
     this._purchasedUnits = units;
     return { type: 'ItemPurchased', v: 1, holdId: this.id.value, units, occurredAt: at.toISOString() };
