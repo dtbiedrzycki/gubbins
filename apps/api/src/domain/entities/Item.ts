@@ -186,7 +186,7 @@ export class Item {
   }
 
   /**
-   * Decides whether `units` (1 unless given) are free, mints the Hold — its id and secret
+   * Decides whether `units` are free, mints the Hold — its id and secret
    * belong to a hold that does not exist yet, so they are not the caller's
    * to supply — and the event recording it, then advances this item's
    * stream, adding the hold to its own. It decides at the item's `asOf`.
@@ -198,7 +198,7 @@ export class Item {
    * Hasher already satisfy these shapes.
    */
   placeHold(
-    props: { sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string; units?: number },
+    props: { sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string; units: number },
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): { hold: Hold; event: ItemHeldEvent; expectedSeq: number } {
@@ -213,7 +213,7 @@ export class Item {
       sessionHash: props.sessionHash,
       idempotencyKey: props.idempotencyKey,
       piiRef: props.piiRef,
-      units: props.units ?? 1,
+      units: props.units,
       expiresAt: new Date(this.asOf.getTime() + props.durationMs),
       at: this.asOf,
     });
@@ -326,21 +326,20 @@ export class Item {
   }
 
   /**
-   * Buys `units` of the hold (all it holds unless given); units not bought
+   * Buys `units` of the hold; units not bought
    * go back to other guests. Reach it through `Wishlist.purchaseHold`,
    * which authorizes the hold.
    */
-  purchaseHold(hold: Hold, units?: number): { hold: Hold; event: ItemPurchasedEvent; expectedSeq: number } {
+  purchaseHold(hold: Hold, units: number): { hold: Hold; event: ItemPurchasedEvent; expectedSeq: number } {
     const own = this.ownHold(hold);
-    const bought = units ?? own.units;
     const limit = this.purchaseLimit(own);
     const status = own.statusAt(this.asOf);
     if (status === 'released' || status === 'purchased') throw new HoldNotActiveError(own.id.value);
     if (limit === 0) throw new HoldLapsedError(this.id.value);
-    if (!isUnitCountWithin(bought, own.units)) throw new DomainValidationError('Purchased units must be a whole number from 1 to the units held');
+    if (!isUnitCountWithin(units, own.units)) throw new DomainValidationError('Purchased units must be a whole number from 1 to the units held');
     // Within the units held but beyond the units free: another guest took them since this hold lapsed.
-    if (bought > limit) throw new ItemUnavailableError(this.id.value);
-    const event = own.markPurchased(this.asOf, bought);
+    if (units > limit) throw new ItemUnavailableError(this.id.value);
+    const event = own.markPurchased(this.asOf, units);
     return { hold: own, event, expectedSeq: this.recordEvent() };
   }
 

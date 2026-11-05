@@ -98,7 +98,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       const hold = holdFixture();
       await fx.holds.insert(hold);
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
-      wishlist.purchaseHold(wishlist.findHold(hold.id.value)!);
+      wishlist.purchaseHold(wishlist.findHold(hold.id.value)!, 1);
 
       await fx.wishlists.save(wishlist);
 
@@ -112,7 +112,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       const hold = holdFixture({ expiresAt: later(-1) });
       await fx.holds.insert(hold);
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
-      wishlist.purchaseHold(wishlist.findHold(hold.id.value)!);
+      wishlist.purchaseHold(wishlist.findHold(hold.id.value)!, 1);
 
       await fx.wishlists.save(wishlist);
 
@@ -150,7 +150,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       await fx.seedGuestPii(piiRef);
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
       const { hold } = wishlist.holdItem(
-        { itemId: ITEM_A, sessionHash: SESSION, idempotencyKey: 'idem-placed', durationMs: 60_000, piiRef },
+        { itemId: ITEM_A, sessionHash: SESSION, idempotencyKey: 'idem-placed', durationMs: 60_000, piiRef, units: 1 },
         { generateEntityId: () => '00000000-0000-7000-8000-777777777777', generateHoldSecret: () => 'secret-placed' },
         { hash: (value) => `hashed-${value}` },
       );

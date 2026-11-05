@@ -56,7 +56,7 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
 
       const aMomentLater = (await fx.wishlists.findById(LIST_A, later(1)))!;
       const hold = aMomentLater.findHold(inserted.id.value)!;
-      aMomentLater.purchaseHold(hold);
+      aMomentLater.purchaseHold(hold, 1);
       await fx.holds.save(hold);
 
       const [reloaded] = await fx.holds.findForWishlist(LIST_A);

@@ -188,7 +188,7 @@ describe('Item.placeHold', () => {
   const at = T0;
   const GENERATED_HOLD_ID = '55555555-5555-7555-8555-555555555555';
   const GENERATED_SECRET = 'hold-secret';
-  const holdProps = { sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', durationMs: 3 * DAY, piiRef: '66666666-6666-7666-8666-666666666666' };
+  const holdProps = { sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', durationMs: 3 * DAY, piiRef: '66666666-6666-7666-8666-666666666666', units: 1 };
   const available = () => Item.reconstitute({ ...base, seq: 4 });
   const fakeTokens = { generateEntityId: () => GENERATED_HOLD_ID, generateHoldSecret: () => GENERATED_SECRET };
   const fakeHasher = { hash: (value: string) => (value === GENERATED_SECRET ? 'f'.repeat(64) : 'e'.repeat(64)) };
@@ -291,7 +291,7 @@ describe('Item hold commands', () => {
   it('refuses a command on a hold it did not load, with HoldNotFoundError', () => {
     expect(() => holding([]).releaseHold(holdOn())).toThrow(HoldNotFoundError);
     expect(() => holding([]).extendHold(holdOn(), DAY)).toThrow(HoldNotFoundError);
-    expect(() => holding([]).purchaseHold(holdOn())).toThrow(HoldNotFoundError);
+    expect(() => holding([]).purchaseHold(holdOn(), 1)).toThrow(HoldNotFoundError);
   });
 
   it('does not advance seq when the hold refuses the command', () => {
@@ -306,7 +306,7 @@ describe('Item.purchaseHold', () => {
   it('purchases an active hold; the unit is gone for good', () => {
     const hold = holdOn();
     const item = holding([hold], { asOf: at(DAY) });
-    const { event, expectedSeq } = item.purchaseHold(hold);
+    const { event, expectedSeq } = item.purchaseHold(hold, 1);
     expect(event.type).toBe('ItemPurchased');
     expect(hold.purchasedAt).toEqual(at(DAY));
     expect([expectedSeq, item.seq]).toEqual([0, 1]);
@@ -319,9 +319,9 @@ describe('Item.purchaseHold', () => {
     const lapsed = holdOn({ expiresAt: at(-1) });
     const alsoLapsed = holdOn({ expiresAt: at(-1) });
     const item = holding([first, lapsed, alsoLapsed], { quantity: 2 });
-    item.purchaseHold(first);
+    item.purchaseHold(first, 1);
     expect(item.canPurchaseHold(lapsed)).toBe(true);
-    item.purchaseHold(lapsed);
+    item.purchaseHold(lapsed, 1);
     expect(item.purchasedCount()).toBe(2);
     expect(item.canPurchaseHold(alsoLapsed)).toBe(false);
   });
@@ -334,7 +334,7 @@ describe('Item.purchaseHold', () => {
       expiresAt: expired.expiresAt, extendedAt: null, releasedAt: null, purchasedAt: null,
     });
 
-    const { hold } = item.purchaseHold(copy);
+    const { hold } = item.purchaseHold(copy, 1);
 
     expect(hold).toBe(expired);
     expect(item.purchasedCount()).toBe(1);
@@ -342,14 +342,14 @@ describe('Item.purchaseHold', () => {
 
   it('purchases an expired hold while a unit is still free', () => {
     const expired = holdOn({ expiresAt: at(-1) });
-    expect(holding([expired]).purchaseHold(expired).event.type).toBe('ItemPurchased');
+    expect(holding([expired]).purchaseHold(expired, 1).event.type).toBe('ItemPurchased');
   });
 
   it('refuses an expired hold once someone else holds the last unit, and records nothing', () => {
     const expired = holdOn({ expiresAt: at(-1) });
     const item = holding([expired, holdOn({ sessionHash: OTHER_SESSION })]);
-    expect(() => item.purchaseHold(expired)).toThrow(HoldLapsedError);
-    expect(() => item.purchaseHold(expired)).toThrow(ItemUnavailableError); // same 409 code, a clearer message
+    expect(() => item.purchaseHold(expired, 1)).toThrow(HoldLapsedError);
+    expect(() => item.purchaseHold(expired, 1)).toThrow(ItemUnavailableError); // same 409 code, a clearer message
     expect(expired.purchasedAt).toBeNull();
     expect(item.seq).toBe(0);
   });
@@ -384,8 +384,8 @@ describe('Item.purchaseHold', () => {
   it('refuses a released hold, or one already purchased', () => {
     const released = holdOn({ releasedAt: T0 });
     const purchased = holdOn({ purchasedAt: T0 });
-    expect(() => holding([released]).purchaseHold(released)).toThrow(HoldNotActiveError);
-    expect(() => holding([purchased], { quantity: 2 }).purchaseHold(purchased)).toThrow(HoldNotActiveError);
+    expect(() => holding([released]).purchaseHold(released, 1)).toThrow(HoldNotActiveError);
+    expect(() => holding([purchased], { quantity: 2 }).purchaseHold(purchased, 1)).toThrow(HoldNotActiveError);
   });
 });
 

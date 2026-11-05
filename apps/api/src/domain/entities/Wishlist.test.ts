@@ -280,7 +280,7 @@ describe('Wishlist.availableUnitsOf', () => {
 });
 
 describe('Wishlist.holdItem', () => {
-  const props = { itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', durationMs: 3 * DAY, piiRef: '66666666-6666-7666-8666-666666666666' };
+  const props = { itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', durationMs: 3 * DAY, piiRef: '66666666-6666-7666-8666-666666666666', units: 1 };
 
   it('has the item place the hold on a free item, and returns that item with what it decided', () => {
     const wishlist = loaded({ seq: 4 });
@@ -333,7 +333,7 @@ describe('Wishlist hold commands', () => {
   it('purchaseHold has the item decide, and returns that item', () => {
     const hold = holdOn(ITEM_ID);
     const wishlist = loaded({ holds: [hold] });
-    const { event, item } = wishlist.purchaseHold(hold);
+    const { event, item } = wishlist.purchaseHold(hold, 1);
     expect(event.type).toBe('ItemPurchased');
     expect(item).toBe(wishlist.getItem(ITEM_ID));
   });
@@ -351,7 +351,7 @@ describe('Wishlist hold commands', () => {
   it("refuses a hold on another list's item with HoldNotFoundError", () => {
     expect(() => loaded().extendHold(holdOn(OTHER_ITEM_ID), DAY)).toThrow(HoldNotFoundError);
     expect(() => loaded().releaseHold(holdOn(OTHER_ITEM_ID))).toThrow(HoldNotFoundError);
-    expect(() => loaded().purchaseHold(holdOn(OTHER_ITEM_ID))).toThrow(HoldNotFoundError);
+    expect(() => loaded().purchaseHold(holdOn(OTHER_ITEM_ID), 1)).toThrow(HoldNotFoundError);
   });
 });
 

@@ -57,7 +57,7 @@ export class HoldItem {
         idempotencyKey: input.idempotencyKey,
         durationMs: holdDurationMs(this.policy),
         piiRef,
-        units: input.units,
+        units: input.units ?? 1, // shortcut: default lives here until requests require units
       }, this.tokenGenerator, this.hasher);
 
       // Placing a hold is guest-only (ADR-0075), so the actor is fixed.
