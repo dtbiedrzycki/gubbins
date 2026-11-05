@@ -1004,7 +1004,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description The hold was already released or purchased (hold_not_active); it expired and no unit is free (hold_lapsed); or fewer units are free than asked (item_unavailable). */
+            /** @description The hold was already released or purchased (hold_not_active); or it lapsed and no unit is free, or fewer units are free than asked (item_unavailable). */
             409: {
                 headers: {
                     [name: string]: unknown;

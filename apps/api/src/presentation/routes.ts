@@ -364,7 +364,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
         200: json('The hold was marked purchased; units not bought are released.', holdViewSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
         404: json(HOLD_NOT_FOUND, errorResponseSchema),
-        409: json('The hold was already released or purchased (hold_not_active); it expired and no unit is free (hold_lapsed); or fewer units are free than asked (item_unavailable).', errorResponseSchema),
+        409: json('The hold was already released or purchased (hold_not_active); or it lapsed and no unit is free, or fewer units are free than asked (item_unavailable).', errorResponseSchema),
       },
     },
   }, async (request, reply) => {
