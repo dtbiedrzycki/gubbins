@@ -8,7 +8,7 @@ import {
   editListDetailsRequestSchema, editedResponseSchema,
   addItemRequestSchema, addItemResponseSchema, editItemRequestSchema,
   manageViewResponseSchema,
-  holdItemRequestSchema, holdItemResponseSchema, holdViewSchema, listViewResponseSchema,
+  holdItemRequestSchema, holdItemResponseSchema, holdViewSchema, markHoldPurchasedRequestSchema, listViewResponseSchema,
   pledgeRequestSchema, pledgeResponseSchema,
   errorResponseSchema,
 } from '@gubbins/shared-types';
@@ -342,7 +342,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     }
   });
 
-  const holdCommands: { action: 'extend' | 'release' | 'purchase'; operationId: string; command: HoldCommand; done: string; conflict: string }[] = [
+  const holdCommands: { action: 'extend' | 'release'; operationId: string; command: HoldCommand; done: string; conflict: string }[] = [
     {
       action: 'extend', operationId: 'extendHold', command: deps.extendHold,
       done: 'The hold was extended once, by the configured duration, from its current expiry.',
@@ -353,12 +353,30 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       done: 'The hold was released; its unit is free for others.',
       conflict: 'The hold is not active (hold_not_active).',
     },
-    {
-      action: 'purchase', operationId: 'markHoldPurchased', command: deps.markHoldPurchased,
-      done: 'The hold was marked purchased.',
-      conflict: 'The hold was already released or purchased (hold_not_active), or it expired and no unit is free any more (item_unavailable).',
-    },
   ];
+
+  app.post('/api/lists/:slug/holds/:holdId/purchase', {
+    schema: {
+      operationId: 'markHoldPurchased',
+      params: slugHoldParams,
+      body: markHoldPurchasedRequestSchema,
+      response: {
+        200: json('The hold was marked purchased; units not bought are released.', holdViewSchema),
+        400: json(INVALID_REQUEST, errorResponseSchema),
+        404: json(HOLD_NOT_FOUND, errorResponseSchema),
+        409: json('The hold was already released or purchased (hold_not_active); it expired and no unit is free (hold_lapsed); or fewer units are free than asked (item_unavailable).', errorResponseSchema),
+      },
+    },
+  }, async (request, reply) => {
+    const guest = await guestAccess(request, request.params.slug);
+    if (!guest) return reply.code(404).send(NOT_FOUND);
+    try {
+      const view = await deps.markHoldPurchased.execute({ wishlistId: guest.wishlist.id.value, holdId: request.params.holdId, units: request.body.units }, guest.access);
+      return reply.code(200).send(view);
+    } catch (err) {
+      return sendDomainError(reply, err);
+    }
+  });
 
   // No request body: the session cookie is the only credential for now.
   for (const { action, operationId, command, done, conflict } of holdCommands) {

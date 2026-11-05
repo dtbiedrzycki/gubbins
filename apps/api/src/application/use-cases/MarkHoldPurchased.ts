@@ -11,11 +11,11 @@ export class MarkHoldPurchased implements HoldCommand {
     private clock: Clock,
   ) {}
 
-  async execute(input: HoldCommandInput, access: AccessContext): Promise<HoldView> {
+  async execute(input: HoldCommandInput & { units?: number }, access: AccessContext): Promise<HoldView> {
     return this.unitOfWork.execute((ctx) => {
       const now = this.clock.now();
       // Guest row only; the owner's direct purchase is sub-project 4.
-      return runHoldCommand(ctx, input, access, now, HoldPermissions.mayPurchase, (wishlist, hold) => wishlist.purchaseHold(hold));
+      return runHoldCommand(ctx, input, access, now, HoldPermissions.mayPurchase, (wishlist, hold) => wishlist.purchaseHold(hold, input.units));
     });
   }
 }

@@ -71,7 +71,6 @@ describe('hold actions', () => {
   it.each([
     ['extendHold', 'extend'],
     ['releaseHold', 'release'],
-    ['markHoldPurchased', 'purchase'],
   ] as const)('%s posts to the %s route with no body and returns the hold view', async (method, action) => {
     let path = '';
     let body = 'unset';
@@ -90,6 +89,18 @@ describe('hold actions', () => {
     // A JSON content type on an empty body is a 400 from Fastify
     // (FST_ERR_CTP_EMPTY_JSON_BODY), so none may be sent.
     expect(contentType).toBeNull();
+  });
+
+  it('markHoldPurchased posts an empty JSON body to the purchase route and returns the hold view', async () => {
+    let body = 'unset';
+    server.use(http.post('/api/lists/:slug/holds/:holdId/purchase', async ({ request }) => {
+      body = await request.text();
+      return HttpResponse.json(view);
+    }));
+
+    await expect(api.markHoldPurchased('abc123', 'hold-1')).resolves.toEqual(view);
+
+    expect(body).toBe('{}');
   });
 
   it('carries the 409 code on ApiError, beside the message', async () => {
