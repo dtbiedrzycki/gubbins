@@ -8,6 +8,8 @@ import { buildDependencies, type AppDependencies } from '../../presentation/comp
 import { FixedClock } from '../../application/test-fakes/FixedClock.js';
 import type { AccessContext } from '../../application/AccessContext.js';
 import type { Logger } from '../../application/ports/Logger.js';
+import { UnitOfWorkKysely } from '../UnitOfWorkKysely.js';
+import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const GUEST: AccessContext = { guestSession: { sessionHash: 'a'.repeat(64) } };
@@ -55,14 +57,14 @@ async function projections() {
   };
 }
 
-async function newList() {
+async function newList(quantity = 1) {
   const { slug } = await deps.createList.execute({ listTitle: 'L', createSecret: 'test-create-secret', key: guestKey });
   const wishlist = await deps.wishlists.findBySlug(slug, clock.now());
   const wishlistId = wishlist!.id.value;
-  const { itemId } = await deps.addItem.execute({ wishlistId, type: 'single', title: 'I', quantity: 1 }, { guestSession: null, owner: true });
+  const { itemId } = await deps.addItem.execute({ wishlistId, type: 'single', title: 'I', quantity }, { guestSession: null, owner: true });
   const hold = (access: AccessContext, idempotencyKey: string) => deps.holdItem.execute({ wishlistId, itemId, idempotencyKey, name: 'Ada' }, access);
   const command = { wishlistId };
-  return { hold, command };
+  return { hold, command, itemId };
 }
 
 async function aGroupGift() {
@@ -153,14 +155,21 @@ describe('rebuildProjections', () => {
   });
 
   it('re-folds units and purchased units from ItemHeld and ItemPurchased', async () => {
-    const { hold, command } = await newList();
-    const placed = await hold(GUEST, 'k');
-    await deps.markHoldPurchased.execute({ ...command, holdId: placed.holdId }, GUEST);
-    const rows = await db.selectFrom('event_log').select(['id', 'event_type', 'payload']).execute();
-    const units = { ItemHeld: 3, ItemPurchased: 2 } as Record<string, number>;
-    for (const row of rows.filter((r) => r.event_type in units)) {
-      await db.updateTable('event_log').set({ payload: JSON.stringify({ ...JSON.parse(row.payload), units: units[row.event_type] }) }).where('id', '=', row.id).execute();
-    }
+    const { command: { wishlistId }, itemId } = await newList(3);
+    // The hold and purchase use cases take no unit count here, so the events come from the domain, written as those use cases write them.
+    await new UnitOfWorkKysely(db).execute(async (ctx) => {
+      const wishlist = (await ctx.wishlists.findById(wishlistId, clock.now()))!;
+      const piiRef = deps.tokenGenerator.generateEntityId();
+      const held = wishlist.holdItem(
+        { itemId, sessionHash: GUEST.guestSession!.sessionHash, idempotencyKey: 'k', durationMs: DAY, piiRef, units: 3 },
+        deps.tokenGenerator, deps.hasher,
+      );
+      await ctx.eventStore.append(itemId, held.expectedSeq, [held.event], 'guest');
+      await ctx.guestPii.insert(piiRef, GuestDetails.from({ name: 'Ada' }));
+      const bought = wishlist.purchaseHold(held.hold, 2);
+      await ctx.eventStore.append(itemId, bought.expectedSeq, [bought.event], 'guest');
+      await ctx.wishlists.save(wishlist);
+    });
 
     await rebuildProjections(db);
 
