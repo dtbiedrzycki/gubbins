@@ -822,7 +822,7 @@ export interface operations {
                 "application/json": {
                     idempotencyKey: string;
                     name: string;
-                    units?: number;
+                    units: number;
                     message?: string;
                 };
             };

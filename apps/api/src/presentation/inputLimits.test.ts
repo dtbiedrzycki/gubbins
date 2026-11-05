@@ -68,7 +68,7 @@ const nonBlank: { field: string; schema: (t: string) => boolean; domain: (t: str
   },
   {
     field: 'hold name',
-    schema: (t) => holdItemRequestSchema.safeParse({ idempotencyKey: 'k', name: t }).success,
+    schema: (t) => holdItemRequestSchema.safeParse({ idempotencyKey: 'k', name: t, units: 1 }).success,
     domain: (t) => accepts(guest({ name: t })),
   },
   {
