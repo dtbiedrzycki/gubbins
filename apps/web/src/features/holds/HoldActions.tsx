@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { HoldView } from '@gubbins/shared-types';
 import { useHoldAction, type HoldAction } from './useHoldAction';
@@ -57,9 +57,9 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
       flushSync(() => setPurchaseSheetOpen(false));
       onOutcome({ action: 'purchase', ok: true, message: hold.units > 1 ? `${itemTitle}: ${view.purchasedUnits} marked as purchased. Thank you!` : `${itemTitle} is marked as purchased. Thank you!` });
     },
-    // The sheet stays open to retry with the refetched limit; the outcome
-    // still goes up, in case the refetch shows nothing is left to buy.
-    onError: failed('purchase'),
+    // A refusal from the sheet shows in the sheet, to retry with the refetched
+    // limit; the page behind it is inert, so the outcome waits for it to close.
+    onError: (error) => { if (!purchaseSheetOpen) failed('purchase')(error); },
   });
   const [confirmingRelease, setConfirmingRelease] = useState(false);
   const releaseButton = useRef<HTMLButtonElement>(null);
@@ -78,6 +78,22 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
     confirmToggled.current = true;
     setConfirmingRelease(next);
   }
+
+  // The refetch after a refusal can leave nothing to buy, which unmounts the
+  // sheet: close it for good, so it cannot reopen on its own, and send its
+  // error up once the page is no longer inert.
+  const [lostPurchaseError, setLostPurchaseError] = useState<Error | null>(null);
+  if (purchaseSheetOpen && !hold.actions.purchase && !purchase.isPending) {
+    setPurchaseSheetOpen(false);
+    setLostPurchaseError(purchase.error);
+  }
+  const reportLostPurchase = useEffectEvent((error: Error) => {
+    onOutcome({ action: 'purchase', ok: false, message: failureMessage(error) });
+    purchase.reset();
+  });
+  useEffect(() => {
+    if (lostPurchaseError) reportLostPurchase(lostPurchaseError);
+  }, [lostPurchaseError]);
 
   const mutations = [extend, release, purchase];
   const pending = mutations.some((m) => m.isPending);

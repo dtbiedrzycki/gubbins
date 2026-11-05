@@ -59,7 +59,7 @@ export function PurchaseDialog({ status, units, purchasableUnits, isPending, err
       </div>
       {/* An expired hold's other units were freed when it lapsed, so only an active hold releases any. */}
       {status === 'active' && released > 0 && (
-        <p className="mb-4 rounded-[18px] border-[1.5px] border-line bg-white p-4 font-bold">
+        <p className="mb-4 rounded-[18px] border-[1.5px] border-line bg-white p-4 text-sm font-bold">
           The other {released} will be released, so another guest can hold {released > 1 ? 'them' : 'it'}.
         </p>
       )}
