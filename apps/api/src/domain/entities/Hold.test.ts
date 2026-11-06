@@ -95,10 +95,13 @@ describe('Hold.reconstitute', () => {
     expect(() => persisted({ units: 2, purchasedAt: EXPIRES_AT, purchasedUnits: null })).toThrow(DomainValidationError);
   });
 
-  it('reads a stored hold without units as 1 unit, all bought once purchased', () => {
+  it('reads a stored hold without units as 1 unit, with none bought', () => {
     expect(persisted().units).toBe(1);
     expect(persisted().purchasedUnits).toBeNull();
-    expect(persisted({ purchasedAt: EXPIRES_AT }).purchasedUnits).toBe(1);
+  });
+
+  it('reads a purchase stored without purchased units as every unit bought: 2 of 2', () => {
+    expect(persisted({ units: 2, purchasedAt: EXPIRES_AT }).purchasedUnits).toBe(2);
   });
 
   it('enforces the value-object invariants on persisted rows too', () => {
