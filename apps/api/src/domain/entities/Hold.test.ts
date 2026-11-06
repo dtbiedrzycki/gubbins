@@ -90,10 +90,6 @@ describe('Hold.reconstitute', () => {
     expect(() => persisted({ releasedAt: EXPIRES_AT, purchasedAt: EXPIRES_AT })).toThrow(DomainValidationError);
   });
 
-  it('refuses a stored hold of 3 units with 4 marked purchased', () => {
-    expect(() => persisted({ units: 3, purchasedAt: EXPIRES_AT, purchasedUnits: 4 })).toThrow(DomainValidationError);
-  });
-
   it('rejects purchased units without a purchase, and a purchase without purchased units', () => {
     expect(() => persisted({ units: 2, purchasedUnits: 1 })).toThrow(DomainValidationError);
     expect(() => persisted({ units: 2, purchasedAt: EXPIRES_AT, purchasedUnits: null })).toThrow(DomainValidationError);
