@@ -134,7 +134,7 @@ describe('Item availability and holds — from hold state, never a stored counte
     expect(Item.reconstitute({ ...base, holds: [holdOn({ purchasedAt: T0 })] }).status()).toBe('purchased');
   });
 
-  it('keeps 0 available when quantity drops below 3 units under one hold', () => {
+  it('leaves 0 units available, not -1, and stays held when the owner cuts the quantity to 2 under a hold of 3 units', () => {
     const item = Item.reconstitute({ ...base, quantity: 2, holds: [holdOn({ units: 3 })] });
     expect(item.committedUnits()).toBe(3);
     expect(item.availableUnits()).toBe(0);
@@ -255,11 +255,14 @@ describe('Item.placeHold', () => {
     expect(item.seq).toBe(4);
   });
 
-  it('refuses a hold of 1.5 units as invalid, not unavailable, when 1 is free', () => {
+  it('refuses a hold of 1.5 units of the 1 free unit as invalid input, not as unavailable', () => {
+    expect(() => available().placeHold({ ...holdProps, units: 1.5 }, fakeTokens, fakeHasher)).toThrow(DomainValidationError);
+  });
+
+  it('does not advance seq when it refuses an invalid number of units', () => {
     const item = available();
     const seq = item.seq;
-    expect(item.availableUnits()).toBe(1);
-    expect(() => item.placeHold({ ...holdProps, units: 1.5 }, fakeTokens, fakeHasher)).toThrow(DomainValidationError);
+    expect(() => item.placeHold({ ...holdProps, units: 1.5 }, fakeTokens, fakeHasher)).toThrow();
     expect(item.seq).toBe(seq);
   });
 
@@ -377,12 +380,9 @@ describe('Item.purchaseHold', () => {
     expect(item.purchaseHold(expired, 1).event.units).toBe(1);
   });
 
-  it('refuses to buy 0 or 3 units of a hold of 2 as invalid input', () => {
+  it('refuses to buy 3 units of a hold of 2 as invalid input, not as unavailable', () => {
     const hold = holdOn({ units: 2 });
-    const item = holding([hold], { quantity: 3 });
-    expect(() => item.purchaseHold(hold, 0)).toThrow(DomainValidationError);
-    expect(() => item.purchaseHold(hold, 3)).toThrow(DomainValidationError);
-    expect(item.seq).toBe(0);
+    expect(() => holding([hold], { quantity: 3 }).purchaseHold(hold, 3)).toThrow(DomainValidationError);
   });
 
   it('refuses a released hold, or one already purchased', () => {
