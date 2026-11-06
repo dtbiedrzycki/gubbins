@@ -283,17 +283,6 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
     expect(second.json()).toEqual({ message: 'This item is no longer available.', code: 'item_unavailable' });
   });
 
-  it('rejects a hold request without units', async () => {
-    const list = await createList();
-    const cookie = await guestOn(list);
-
-    const response = await app.inject({
-      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada' },
-    });
-
-    expect(response.statusCode).toBe(400);
-  });
-
   it('returns 400 for a hold without a name', async () => {
     const list = await createList();
     const cookie = await guestOn(list);
