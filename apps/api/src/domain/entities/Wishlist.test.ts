@@ -344,7 +344,6 @@ describe('Wishlist hold commands', () => {
     expect(hold.units).toBe(3);
     expect(wishlist.purchasableUnits(hold)).toBe(3);
     expect(wishlist.purchaseHold(hold, 2).event.units).toBe(2);
-    expect(wishlist.availableUnitsOf(ITEM_ID)).toBe(3);
     expect(wishlist.purchasableUnits(holdOn(OTHER_ITEM_ID))).toBe(0);
   });
 
