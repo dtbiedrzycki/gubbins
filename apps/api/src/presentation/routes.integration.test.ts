@@ -288,7 +288,7 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
     const cookie = await guestOn(list);
 
     const response = await app.inject({
-      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1' },
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1', units: 1 },
     });
 
     expect(response.statusCode).toBe(400);
