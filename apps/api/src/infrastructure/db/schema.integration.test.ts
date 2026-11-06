@@ -46,6 +46,7 @@ describe('0001_init schema', () => {
   it.each([
     ['a hold of 0 units', { units: 0 }],
     ['purchased units above the units held', { units: 2, purchased_at: NOW, purchased_units: 3 }],
+    ['a purchase of 0 units', { units: 2, purchased_at: NOW, purchased_units: 0 }],
     ['purchased units on a hold that is not purchased', { units: 2, purchased_units: 1 }],
     ['a purchase without purchased units', { purchased_at: NOW }],
   ])('rejects %s', async (_case, overrides) => {
