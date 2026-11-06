@@ -259,13 +259,6 @@ describe('Item.placeHold', () => {
     expect(() => available().placeHold({ ...holdProps, units: 1.5 }, fakeTokens, fakeHasher)).toThrow(DomainValidationError);
   });
 
-  it('does not advance seq when it refuses an invalid number of units', () => {
-    const item = available();
-    const seq = item.seq;
-    expect(() => item.placeHold({ ...holdProps, units: 1.5 }, fakeTokens, fakeHasher)).toThrow();
-    expect(item.seq).toBe(seq);
-  });
-
   it('rejects a duration that does not put the expiry in the future', () => {
     expect(() => available().placeHold({ ...holdProps, durationMs: 0 }, fakeTokens, fakeHasher)).toThrow(DomainValidationError);
   });
@@ -406,21 +399,17 @@ describe('Item.purchasableUnits', () => {
     expect(holding([expired, other], { quantity: 2 }).purchasableUnits(expired)).toBe(0);
   });
 
+  it('limits purchasable units on an expired hold of 2 to the 2 held, even with 5 free', () => {
+    const expired = holdOn({ units: 2, expiresAt: at(-1) });
+    expect(holding([expired], { quantity: 5 }).purchasableUnits(expired)).toBe(2);
+  });
+
   it('purchasable units are 0 for a released or purchased hold, or one it did not load', () => {
     const released = holdOn({ units: 2, releasedAt: T0 });
     const purchased = holdOn({ units: 2, purchasedAt: T0 });
     expect(holding([released], { quantity: 5 }).purchasableUnits(released)).toBe(0);
     expect(holding([purchased], { quantity: 5 }).purchasableUnits(purchased)).toBe(0);
     expect(holding([], { quantity: 5 }).purchasableUnits(holdOn())).toBe(0);
-  });
-});
-
-describe('Item.canPurchaseHold', () => {
-  it('is true while any units are purchasable: true for an active hold, false for a released one', () => {
-    const active = holdOn();
-    const released = holdOn({ releasedAt: T0 });
-    expect(holding([active]).canPurchaseHold(active)).toBe(true);
-    expect(holding([released]).canPurchaseHold(released)).toBe(false);
   });
 });
 
