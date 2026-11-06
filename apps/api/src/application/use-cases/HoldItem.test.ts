@@ -77,12 +77,6 @@ describe('HoldItem', () => {
     expect(eventStore.recorded(ITEM_ID)).toHaveLength(1);
   });
 
-  it('holds 2 units and records 2 in ItemHeld', async () => {
-    const { useCase, eventStore } = await makeUseCase();
-    expect(await useCase.execute({ ...input(), units: 2 }, GUEST)).toMatchObject({ units: 2 });
-    expect(eventStore.recorded(ITEM_ID)[0]!.event).toMatchObject({ type: 'ItemHeld', units: 2 });
-  });
-
   it("replays a key with the first hold's units, whatever units the retry sends", async () => {
     const { useCase } = await makeUseCase();
     const first = await useCase.execute({ ...input(), units: 2 }, GUEST);

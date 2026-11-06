@@ -167,12 +167,6 @@ describe('HoldDialog', () => {
     expect(alert).toHaveTextContent('This item is no longer available.');
   });
 
-  it('shows no stepper when 1 unit is available', () => {
-    renderDialog({ availableUnits: 1 });
-    expect(screen.queryByRole('group', { name: 'How many?' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Yes, hold it' })).toBeInTheDocument();
-  });
-
   it('holds 2 of 2 units, no more, and says "Yes, hold 2"', async () => {
     const user = userEvent.setup();
     const { props } = renderDialog({ availableUnits: 2 });

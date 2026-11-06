@@ -443,17 +443,17 @@ describe('hold lifecycle over HTTP', () => {
     expect(release.json()).toMatchObject({ code: 'hold_not_active' });
   });
 
-  it('marks purchased with the units bought: 1 of a hold of 2', async () => {
-    const list = await createList(app, 2);
+  it('marks purchased with the units bought: 2 of a hold of 3', async () => {
+    const list = await createList(app, 3);
     const cookie = await guestOn(list);
     const { holdId } = (await app.inject({
-      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', units: 2 },
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', units: 3 },
     })).json() as { holdId: string };
 
-    const purchased = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/holds/${holdId}/purchase`, headers: { cookie }, payload: { units: 1 } });
+    const purchased = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/holds/${holdId}/purchase`, headers: { cookie }, payload: { units: 2 } });
 
     expect(purchased.statusCode).toBe(200);
-    expect(purchased.json()).toMatchObject({ status: 'purchased', units: 2, purchasedUnits: 1 });
+    expect(purchased.json()).toMatchObject({ status: 'purchased', units: 3, purchasedUnits: 2 });
   });
 
   it('rejects a purchase with no body', async () => {

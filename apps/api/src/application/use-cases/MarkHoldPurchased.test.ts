@@ -36,15 +36,15 @@ describe('MarkHoldPurchased', () => {
     await expect(purchase(holdId)).resolves.toMatchObject({ status: 'purchased' });
   });
 
-  it('marks 1 of 2 units purchased', async () => {
+  it('marks 2 of 3 units purchased', async () => {
     const { unitOfWork, wishlists, clock } = await twoListsWithOneItemEach();
     await wishlists.insert(aWishlist().withId('55555555-5555-7555-8555-555555555555').withSlug('ghi789').withItem({ id: '66666666-6666-7666-8666-666666666666', title: 'Pram', quantity: 3 }).build());
     const wishlistId = '55555555-5555-7555-8555-555555555555';
     const { holdId } = await new HoldItem(unitOfWork, new SequentialTokenGenerator(), clock, new FakeHasher(), DEFAULT_HOLD_POLICY)
-      .execute({ wishlistId, itemId: '66666666-6666-7666-8666-666666666666', idempotencyKey: 'k', name: 'Ada', units: 2 }, GUEST);
+      .execute({ wishlistId, itemId: '66666666-6666-7666-8666-666666666666', idempotencyKey: 'k', name: 'Ada', units: 3 }, GUEST);
 
-    const view = await new MarkHoldPurchased(unitOfWork, clock).execute({ wishlistId, holdId, units: 1 }, GUEST);
+    const view = await new MarkHoldPurchased(unitOfWork, clock).execute({ wishlistId, holdId, units: 2 }, GUEST);
 
-    expect(view).toMatchObject({ status: 'purchased', units: 2, purchasedUnits: 1 });
+    expect(view).toMatchObject({ status: 'purchased', units: 3, purchasedUnits: 2 });
   });
 });
