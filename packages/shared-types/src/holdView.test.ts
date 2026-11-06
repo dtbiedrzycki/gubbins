@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { holdViewSchema } from './holdView.js';
+import { holdViewSchema, markHoldPurchasedRequestSchema } from './holdView.js';
 import { listViewResponseSchema } from './listView.js';
 
 const view = {
@@ -7,6 +7,12 @@ const view = {
   units: 1, purchasedUnits: null, purchasableUnits: 1,
   actions: { extend: true, release: true, purchase: true },
 };
+
+describe('markHoldPurchasedRequestSchema', () => {
+  it('rejects a purchase without units, rather than assuming every unit held was bought', () => {
+    expect(markHoldPurchasedRequestSchema.safeParse({}).success).toBe(false);
+  });
+});
 
 describe('holdViewSchema', () => {
   it.each(['active', 'expired', 'released', 'purchased'])('accepts a %s hold', (status) => {
