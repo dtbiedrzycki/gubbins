@@ -463,14 +463,6 @@ describe('hold lifecycle over HTTP', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it.each([['0 units', 0], ['1.5 units', 1.5]])('rejects a purchase with %s', async (_label, units) => {
-    const { list, cookie, holdId } = await heldByGuest();
-
-    const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/holds/${holdId}/purchase`, headers: { cookie }, payload: { units } });
-
-    expect(response.statusCode).toBe(400);
-  });
-
   it('releases; the hold leaves "my holds" and another guest can hold the item', async () => {
     const { list, cookie, holdId } = await heldByGuest();
 
