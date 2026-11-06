@@ -31,7 +31,7 @@ const pledgeRow = {
 };
 const holdRow = {
   id: ID, itemId: ID, secret: 's', sessionHash: 'a'.repeat(64), idempotencyKey: 'k',
-  expiresAt: T0, extendedAt: null, releasedAt: null, units: 1,
+  expiresAt: T0, extendedAt: null, releasedAt: null, purchasedAt: null, units: 1,
 };
 const guest = (props: { name?: string; message?: string }) => () => GuestDetails.from({ name: 'Ann', ...props });
 
@@ -51,6 +51,11 @@ const minimums: { field: string; schema: (n: number) => boolean; domain: (n: num
     field: 'pledge amount',
     schema: (n) => pledgeRequestSchema.safeParse({ idempotencyKey: 'k', amountMinor: n, name: 'Ann' }).success,
     domain: (n) => accepts(() => Contribution.reconstitute({ ...pledgeRow, amountMinor: n })),
+  },
+  {
+    field: 'held units',
+    schema: (n) => holdItemRequestSchema.safeParse({ idempotencyKey: 'k', name: 'Ann', units: n }).success,
+    domain: (n) => accepts(() => Hold.reconstitute({ ...holdRow, units: n })),
   },
   {
     field: 'purchased units',
