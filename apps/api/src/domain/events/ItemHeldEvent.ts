@@ -23,6 +23,7 @@ export interface ItemHeldEvent {
    * live there, never in this immutable log, so they can be erased.
    */
   piiRef: string | null;
+  units: number; // units held, 1 or more
   expiresAt: string; // ISO 8601
   occurredAt: string; // ISO 8601
 }

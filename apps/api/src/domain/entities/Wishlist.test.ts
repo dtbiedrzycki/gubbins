@@ -338,6 +338,15 @@ describe('Wishlist hold commands', () => {
     expect(item).toBe(wishlist.getItem(ITEM_ID));
   });
 
+  it('passes the units of a hold through to the item', () => {
+    const wishlist = loaded({ quantity: 5 });
+    const { hold } = wishlist.holdItem({ itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', durationMs: 3 * DAY, piiRef: '66666666-6666-7666-8666-666666666666', units: 3 }, tokens(), hasher);
+    expect(hold.units).toBe(3);
+    expect(wishlist.purchasableUnits(hold)).toBe(3);
+    expect(wishlist.purchaseHold(hold, 2).event.units).toBe(2);
+    expect(wishlist.purchasableUnits(holdOn(OTHER_ITEM_ID))).toBe(0);
+  });
+
   it("refuses a hold on another list's item with HoldNotFoundError", () => {
     expect(() => loaded().extendHold(holdOn(OTHER_ITEM_ID), DAY)).toThrow(HoldNotFoundError);
     expect(() => loaded().releaseHold(holdOn(OTHER_ITEM_ID))).toThrow(HoldNotFoundError);

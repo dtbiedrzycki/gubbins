@@ -160,14 +160,14 @@ export class Item {
     return this._contributions.find((c) => c.idempotencyKey.value === key) ?? null;
   }
 
-  /** Units bought: its holds marked purchased. Derived, never stored. */
+  /** Units bought on its purchased holds. Derived, never stored. */
   purchasedCount(): number {
-    return this.holdsThatAre('purchased');
+    return this.unitsOfHoldsThatAre('purchased', (hold) => hold.purchasedUnits ?? 0);
   }
 
-  /** Units someone holds or has bought. */
+  /** Units someone holds or has bought: a purchased hold's unbought units are free again. */
   committedUnits(): number {
-    return this.holdsThatAre('active') + this.purchasedCount();
+    return this.unitsOfHoldsThatAre('active', (hold) => hold.units) + this.purchasedCount();
   }
 
   /** Units no one holds or has bought. Never negative: quantity may drop below what is already committed (ADR-0019). */
@@ -186,7 +186,7 @@ export class Item {
   }
 
   /**
-   * Decides whether a unit is free, mints the Hold — its id and secret
+   * Decides whether `units` (1 unless given) are free, mints the Hold — its id and secret
    * belong to a hold that does not exist yet, so they are not the caller's
    * to supply — and the event recording it, then advances this item's
    * stream, adding the hold to its own. It decides at the item's `asOf`.
@@ -198,14 +198,14 @@ export class Item {
    * Hasher already satisfy these shapes.
    */
   placeHold(
-    props: { sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string },
+    props: { sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string; units?: number },
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): { hold: Hold; event: ItemHeldEvent; expectedSeq: number } {
     // Group gifts take pledges, never holds; the UI never offers one.
     if (this.type === 'group') throw new ItemUnavailableError(this.id.value);
-    if (this.availableUnits() === 0) throw new ItemUnavailableError(this.id.value);
 
+    // Built before the availability check so the Hold's own constructor refuses a units value that is not a positive whole number.
     const hold = Hold.create({
       id: tokens.generateEntityId(),
       itemId: this.id.value,
@@ -213,9 +213,11 @@ export class Item {
       sessionHash: props.sessionHash,
       idempotencyKey: props.idempotencyKey,
       piiRef: props.piiRef,
+      units: props.units ?? 1,
       expiresAt: new Date(this.asOf.getTime() + props.durationMs),
       at: this.asOf,
     });
+    if (hold.units > this.availableUnits()) throw new ItemUnavailableError(this.id.value);
     const event: ItemHeldEvent = {
       type: 'ItemHeld',
       v: 1,
@@ -225,6 +227,7 @@ export class Item {
       sessionHash: hold.sessionHash.value,
       idempotencyKey: hold.idempotencyKey.value,
       piiRef: hold.piiRef?.value ?? null,
+      units: hold.units,
       expiresAt: hold.expiresAt.toISOString(),
       occurredAt: this.asOf.toISOString(),
     };
@@ -295,10 +298,15 @@ export class Item {
     return this.findHold(hold.id.value)?.canReleaseAt(this.asOf) ?? false;
   }
 
+  /** The most units `purchaseHold` would accept for `hold`, for views that cap what they offer; 0 for a hold it did not load. */
+  purchasableUnits(hold: Hold): number {
+    const own = this.findHold(hold.id.value);
+    return own === null ? 0 : this.purchaseLimit(own);
+  }
+
   /** `purchaseHold`'s rule as a question, for views that offer the action only when it would succeed; false for a hold it did not load. */
   canPurchaseHold(hold: Hold): boolean {
-    const own = this.findHold(hold.id.value);
-    return own !== null && this.purchaseRefusal(own) === null;
+    return this.purchasableUnits(hold) > 0;
   }
 
   // Each hold command acts on the item's own instance of `hold`, at the item's `asOf`, and advances its stream.
@@ -318,27 +326,36 @@ export class Item {
   }
 
   /**
-   * An active hold may always be purchased — its unit is already its own.
-   * An expired one may be too, so a guest who bought the gift after their
-   * hold lapsed need not re-hold it — but only while a unit is still
-   * free, or they would be buying one someone else now holds. Reach it
-   * through `Wishlist.purchaseHold`, which authorizes the hold.
+   * Buys `units` of the hold (all it holds unless given); units not bought
+   * go back to other guests. Reach it through `Wishlist.purchaseHold`,
+   * which authorizes the hold.
    */
-  purchaseHold(hold: Hold): { hold: Hold; event: ItemPurchasedEvent; expectedSeq: number } {
+  purchaseHold(hold: Hold, units?: number): { hold: Hold; event: ItemPurchasedEvent; expectedSeq: number } {
     const own = this.ownHold(hold);
-    const refusal = this.purchaseRefusal(own);
-    if (refusal === 'closed') throw new HoldNotActiveError(own.id.value);
-    if (refusal === 'lapsed') throw new HoldLapsedError(this.id.value);
-    const event = own.markPurchased(this.asOf);
+    const bought = units ?? own.units;
+    const limit = this.purchaseLimit(own);
+    const status = own.statusAt(this.asOf);
+    if (status === 'released' || status === 'purchased') throw new HoldNotActiveError(own.id.value);
+    if (limit === 0) throw new HoldLapsedError(this.id.value);
+    own.assertCovers(bought);
+    // Within the units held but beyond the units free: another guest took them since this hold lapsed.
+    if (bought > limit) throw new ItemUnavailableError(this.id.value);
+    const event = own.markPurchased(this.asOf, bought);
     return { hold: own, event, expectedSeq: this.recordEvent() };
   }
 
-  /** Why `purchaseHold` would refuse `hold`, or null when it would succeed. Takes the item's own instance. */
-  private purchaseRefusal(hold: Hold): 'closed' | 'lapsed' | null {
-    const status = hold.statusAt(this.asOf);
-    if (status === 'active') return null;
-    if (status !== 'expired') return 'closed';
-    return this.availableUnits() === 0 ? 'lapsed' : null;
+  /**
+   * The most units `purchaseHold` accepts for its own instance of `hold`.
+   * An active hold's units are already its own. An expired one may still be
+   * bought, so a guest who bought the gift after their hold lapsed need not
+   * re-hold it — but only up to the units still free, or they would be
+   * buying units someone else now holds.
+   */
+  private purchaseLimit(own: Hold): number {
+    const status = own.statusAt(this.asOf);
+    if (status === 'active') return own.units;
+    if (status === 'expired') return Math.min(own.units, this.availableUnits());
+    return 0;
   }
 
   /** Its own instance of `hold`; HoldNotFoundError when it did not load it. */
@@ -360,7 +377,7 @@ export class Item {
   }
 
   /** Re-checked at `asOf` rather than trusted from the load: only `statusAt` defines a hold's state. */
-  private holdsThatAre(status: 'active' | 'purchased'): number {
-    return this._holds.filter((hold) => hold.statusAt(this.asOf) === status).length;
+  private unitsOfHoldsThatAre(status: 'active' | 'purchased', unitsOf: (hold: Hold) => number): number {
+    return this._holds.filter((hold) => hold.statusAt(this.asOf) === status).reduce((sum, hold) => sum + unitsOf(hold), 0);
   }
 }
