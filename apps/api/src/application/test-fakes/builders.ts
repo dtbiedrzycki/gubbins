@@ -10,7 +10,7 @@ const DEFAULT_AS_OF = new Date('2026-01-01T00:00:00.000Z');
 
 export class WishlistBuilder {
   private props = { id: DEFAULT_WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' };
-  private itemProps: { id: string; title: string }[] = [];
+  private itemProps: { id: string; title: string; quantity?: number }[] = [];
   private paymentMethods = PaymentMethods.none;
   private purchased = 0;
   private instant = DEFAULT_AS_OF;
@@ -28,7 +28,7 @@ export class WishlistBuilder {
    * id, so only `id`/`title` are needed here. Call again for more items;
    * omit to build an itemless wishlist.
    */
-  withItem(props: { id: string; title: string }): this { this.itemProps.push(props); return this; }
+  withItem(props: { id: string; title: string; quantity?: number }): this { this.itemProps.push(props); return this; }
 
   /** Loads the aggregate with this many purchased holds on the first item; needs `withItem`. */
   withPurchasedCount(purchasedCount: number): this { this.purchased = purchasedCount; return this; }
@@ -36,7 +36,7 @@ export class WishlistBuilder {
   build(): Wishlist {
     if (this.itemProps.length === 0 && this.purchased !== 0) throw new Error('withPurchasedCount needs withItem');
     const wishlist = Wishlist.create({ ...this.props, asOf: this.instant, paymentMethods: this.paymentMethods });
-    const items = this.itemProps.map(({ id, title }) => wishlist.addItem({ type: 'single', title }, { generateEntityId: () => id }));
+    const items = this.itemProps.map(({ id, title, quantity }) => wishlist.addItem({ type: 'single', title, quantity }, { generateEntityId: () => id }));
     if (this.purchased === 0) return wishlist;
     const id = items[0].id.value;
     const holds = Array.from({ length: this.purchased }, (_, i) => Hold.reconstitute({
