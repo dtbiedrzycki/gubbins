@@ -29,7 +29,7 @@ test('the owner adds a single item and a group gift, and a guest sees both', asy
   await manage.getByRole('button', { name: 'Manage list' }).click();
 
   await manage.getByLabel('Title').fill('Crib');
-  await manage.getByRole('button', { name: 'One more' }).click();
+  await manage.getByLabel('Quantity').fill('2');
   await manage.getByLabel('Price (USD)').fill('199.99');
   await manage.getByLabel('Store link').fill('https://shop.example/crib');
   await manage.getByRole('button', { name: 'Add item' }).click();

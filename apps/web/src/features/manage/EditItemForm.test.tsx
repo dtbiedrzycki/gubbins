@@ -37,7 +37,7 @@ describe('EditItemForm', () => {
     expect(screen.getByText('Single item')).toBeInTheDocument();
     expect(screen.getByLabelText('Title')).toHaveValue('Muslin swaddles');
     expect(screen.getByLabelText('Title')).toHaveAttribute('maxlength', '120');
-    expect(screen.getByRole('group', { name: 'Quantity' })).toHaveTextContent('3');
+    expect(screen.getByLabelText('Quantity')).toHaveValue('3');
     expect(screen.getByLabelText('Price (USD)')).toHaveValue('32.00');
     expect(screen.getByLabelText('Store link')).toHaveValue('https://example.com/s');
     expect(screen.getByLabelText('Description (optional)')).toHaveValue('Any neutral colour.');
@@ -60,12 +60,12 @@ describe('EditItemForm', () => {
     const bodies = renderForm(single, { onDone });
     expect(screen.queryByText(/More may already be held/)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'One fewer' }));
+    await user.clear(screen.getByLabelText('Quantity'));
     expect(screen.queryByText(/More may already be held/)).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'One fewer' }));
+    await user.type(screen.getByLabelText('Quantity'), '1');
 
     const warning = screen.getByText('More may already be held or bought than this new quantity. Those stay as they are; guests can’t pick this item again until the count drops below 1.');
-    expect(screen.getByRole('group', { name: 'Quantity' })).toHaveAccessibleDescription(warning.textContent!);
+    expect(screen.getByLabelText('Quantity')).toHaveAccessibleDescription(warning.textContent!);
     expect(warning).toHaveAttribute('aria-live', 'polite');
     await user.click(screen.getByRole('button', { name: 'Save anyway' }));
     await waitFor(() => expect(onDone).toHaveBeenCalled());

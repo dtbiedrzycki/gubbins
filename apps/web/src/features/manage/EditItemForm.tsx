@@ -85,7 +85,7 @@ export function EditItemForm({ slug, item, onDone, onUnauthorized }: EditItemFor
         <LimitedInput autoFocus id="edit-item-title" required max={TITLE_MAX} value={title} onChange={(e) => setTitle(e.target.value)} className={field} />
       </div>
       {!isGroup && (
-        <Stepper id="edit-item-quantity" label="Quantity" labelClassName="mb-1 font-bold" value={quantity} min={1} max={QUANTITY_MAX} onChange={setQuantity} describedBy="edit-item-quantity-warning" />
+        <Stepper typeable id="edit-item-quantity" label="Quantity" labelClassName="mb-1 font-bold" value={quantity} min={1} max={QUANTITY_MAX} onChange={setQuantity} describedBy="edit-item-quantity-warning" />
       )}
       <div id="edit-item-quantity-warning" aria-live="polite" className="text-sm text-amber-800 empty:hidden">
         {belowCommitted && `More may already be held or bought than this new quantity. Those stay as they are; guests can’t pick this item again until the count drops below ${quantity}.`}

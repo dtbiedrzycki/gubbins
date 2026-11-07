@@ -88,7 +88,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
           <LimitedInput id="item-title" required max={TITLE_MAX} value={title} onChange={(e) => setTitle(e.target.value)} className={field} />
         </div>
         {type === 'single' && (
-          <Stepper id="item-quantity" label="Quantity" labelClassName="mb-1 font-bold" value={quantity} min={1} max={QUANTITY_MAX} onChange={setQuantity} />
+          <Stepper typeable id="item-quantity" label="Quantity" labelClassName="mb-1 font-bold" value={quantity} min={1} max={QUANTITY_MAX} onChange={setQuantity} />
         )}
         <div>
           <label htmlFor="item-price" className="block font-bold">Price (USD)</label>
