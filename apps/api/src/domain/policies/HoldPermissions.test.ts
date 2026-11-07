@@ -6,7 +6,7 @@ const SESSION = 'a'.repeat(64);
 const hold = Hold.reconstitute({
   id: '55555555-5555-7555-8555-555555555555', itemId: '33333333-3333-7333-8333-333333333333',
   secret: 'hold-secret', sessionHash: SESSION, idempotencyKey: 'idem-1',
-  expiresAt: new Date('2026-01-04T00:00:00.000Z'), extendedAt: null, releasedAt: null, purchasedAt: null,
+  expiresAt: new Date('2026-01-04T00:00:00.000Z'), extendedAt: null, releasedAt: null, purchasedAt: null, units: 1, purchasedUnits: null,
 });
 const commands = ['mayExtend', 'mayRelease', 'mayPurchase'] as const;
 

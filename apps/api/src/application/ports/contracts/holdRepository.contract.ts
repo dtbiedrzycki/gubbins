@@ -69,7 +69,7 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
       // Ids rise in creation order. The expiry order matches neither the id order, the insertion order nor
       // either reversed, and the two holds expiring together go in larger id first, so only expires_at then id passes.
       const active = holdFixture();
-      const purchased = holdFixture({ expiresAt: later(-2), purchasedAt: later(-5) });
+      const purchased = holdFixture({ expiresAt: later(-2), purchasedAt: later(-5), purchasedUnits: 1 });
       const released = holdFixture({ expiresAt: later(120_000), releasedAt: later(-5) });
       const expired = holdFixture({ expiresAt: later(-1) });
       const tiedFirst = holdFixture({ expiresAt: later(90_000) });

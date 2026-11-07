@@ -32,7 +32,7 @@ function holdOn(itemId: string, overrides: Partial<Parameters<typeof Hold.recons
   holdCount += 1;
   return Hold.reconstitute({
     id: `00000000-0000-7000-8000-${String(holdCount).padStart(12, '0')}`, itemId, secret: 'hold-secret', sessionHash: SESSION,
-    idempotencyKey: `idem-${holdCount}`, expiresAt: at(3 * DAY), extendedAt: null, releasedAt: null, purchasedAt: null,
+    idempotencyKey: `idem-${holdCount}`, expiresAt: at(3 * DAY), extendedAt: null, releasedAt: null, purchasedAt: null, units: 1, purchasedUnits: null,
     ...overrides,
   });
 }
@@ -305,7 +305,7 @@ describe('Wishlist.holdItem', () => {
 
 describe('Wishlist.findHold', () => {
   it('findHold returns its own instance of a hold it loaded, whatever its state, and null for an id it did not load', () => {
-    const holds = [holdOn(ITEM_ID), holdOn(ITEM_ID, { expiresAt: at(-1) }), holdOn(ITEM_ID, { releasedAt: T0 }), holdOn(ITEM_ID, { purchasedAt: T0 })];
+    const holds = [holdOn(ITEM_ID), holdOn(ITEM_ID, { expiresAt: at(-1) }), holdOn(ITEM_ID, { releasedAt: T0 }), holdOn(ITEM_ID, { purchasedAt: T0, purchasedUnits: 1 })];
     const wishlist = loaded({ quantity: 2, holds });
     for (const hold of holds) expect(wishlist.findHold(hold.id.value)).toBe(hold);
     expect(wishlist.findHold(holdOn(ITEM_ID).id.value)).toBeNull();
