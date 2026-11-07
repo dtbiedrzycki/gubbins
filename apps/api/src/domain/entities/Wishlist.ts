@@ -253,8 +253,13 @@ export class Wishlist {
     return this.lookup(hold)?.canPurchaseHold(hold) ?? false;
   }
 
+  /** The most units `purchaseHold` would accept for `hold`; 0 when the hold is not on this list. */
+  purchasableUnits(hold: Hold): number {
+    return this.lookup(hold)?.purchasableUnits(hold) ?? 0;
+  }
+
   holdItem(
-    props: { itemId: string; sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string },
+    props: { itemId: string; sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string; units: number },
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): HoldCommandResult<ItemHeldEvent> {
@@ -280,9 +285,9 @@ export class Wishlist {
     return { item, ...item.releaseHold(hold) };
   }
 
-  purchaseHold(hold: Hold): HoldCommandResult<ItemPurchasedEvent> {
+  purchaseHold(hold: Hold, units: number): HoldCommandResult<ItemPurchasedEvent> {
     const item = this.memberOf(hold);
-    return { item, ...item.purchaseHold(hold) };
+    return { item, ...item.purchaseHold(hold, units) };
   }
 
   /** Units of the item neither under an active hold nor bought. */

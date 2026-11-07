@@ -6,17 +6,18 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { HoldView, ListViewResponse } from '@gubbins/shared-types';
 import { server } from '../../test/msw/server';
 import { mock } from '../../test/msw/mock';
-import { useListView } from './useListView';
+import { listViewKey, useListView } from './useListView';
 import { YourHolds } from './YourHolds';
 import { formatExpiry } from './formatExpiry';
 import { aListItem } from '../../test/listItem';
+import { aHoldView } from '../../test/holdView';
 
 const EXPIRES = '2026-01-04T00:00:00.000Z';
 const EXTENDED_EXPIRES = '2026-01-07T00:00:00.000Z';
-const active: HoldView = { holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: EXPIRES, extendedAt: null, actions: { extend: true, release: true, purchase: true } };
+const active = aHoldView({ expiresAt: EXPIRES });
 const extended: HoldView = { ...active, expiresAt: EXTENDED_EXPIRES, extendedAt: '2026-01-02T00:00:00.000Z', actions: { extend: false, release: true, purchase: true } };
 const expiredBuyable: HoldView = { ...active, status: 'expired', actions: { extend: false, release: false, purchase: true } };
-const purchased: HoldView = { ...active, status: 'purchased', actions: { extend: false, release: false, purchase: false } };
+const purchased: HoldView = { ...active, status: 'purchased', purchasedUnits: 1, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false } };
 
 const list = (myHolds: HoldView[]): ListViewResponse => ({
   title: 'Baby Shower', description: null,
@@ -32,17 +33,17 @@ function listViews(...views: ListViewResponse[]) {
 }
 
 /** YourHolds fed by a live list-view query, as ListPage feeds it. */
-function Harness() {
+function Harness({ itemTitle }: { itemTitle: string }) {
   const query = useListView('abc123');
-  return query.data ? <YourHolds slug="abc123" holds={query.data.myHolds} itemTitles={{ 'item-1': 'Stroller' }} /> : null;
+  return query.data ? <YourHolds slug="abc123" holds={query.data.myHolds} itemTitles={{ 'item-1': itemTitle }} /> : null;
 }
 
 let client: QueryClient;
 
-async function renderYourHolds() {
+async function renderYourHolds(itemTitle = 'Stroller') {
   // useListView's own retry wins over these defaults; retryDelay: 0 keeps its one retry instant.
   client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 }, mutations: { retry: false } } });
-  render(<QueryClientProvider client={client}><Harness /></QueryClientProvider>);
+  render(<QueryClientProvider client={client}><Harness itemTitle={itemTitle} /></QueryClientProvider>);
   return screen.findByRole('region', { name: 'Your holds' });
 }
 
@@ -317,5 +318,123 @@ describe('YourHolds', () => {
     // Let the one request finish inside the test, so nothing settles after teardown.
     respond();
     await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Stroller is marked as purchased. Thank you!'));
+  });
+
+  it('shows "× 2" for a hold of 2 units', async () => {
+    listViews(list([{ ...active, units: 2, purchasableUnits: 2 }, { ...active, holdId: 'hold-2' }]));
+    const region = await renderYourHolds();
+
+    expect(within(region).getAllByText(/^× /).map((count) => count.textContent)).toEqual(['× 2']);
+  });
+
+  it('shows "× 2" for 2 units bought, and none for 1 bought', async () => {
+    listViews(list([{ ...purchased, units: 3, purchasedUnits: 2 }, { ...purchased, holdId: 'hold-2', units: 2, purchasedUnits: 1 }]));
+    const region = await renderYourHolds();
+
+    expect(within(region).getAllByText(/^× /).map((count) => count.textContent)).toEqual(['× 2']);
+  });
+
+  it('opens the purchase sheet only for a hold of more than 1 unit', async () => {
+    const two: HoldView = { ...active, holdId: 'hold-2', units: 2, purchasableUnits: 2 };
+    listViews(list([active, two]));
+    let units: unknown;
+    server.use(http.post('/api/lists/abc123/holds/hold-1/purchase', async ({ request }) => {
+      ({ units } = await request.json() as { units: number });
+      return HttpResponse.json(purchased);
+    }));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+    const [one, several] = within(region).getAllByRole('button', { name: 'Mark as purchased' });
+
+    await user.click(several);
+    expect(screen.getByRole('dialog', { name: 'How many did you buy?' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(several).toHaveFocus();
+
+    await user.click(one);
+
+    await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Stroller is marked as purchased. Thank you!'));
+    expect(units).toBe(1);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('says "Baby onesies: 1 marked as purchased. Thank you!"', async () => {
+    const two: HoldView = { ...active, units: 2, purchasableUnits: 2 };
+    const bought: HoldView = { ...purchased, units: 2, purchasedUnits: 1, purchasableUnits: 0 };
+    listViews(list([two]), list([bought]));
+    let units: unknown;
+    server.use(http.post('/api/lists/abc123/holds/hold-1/purchase', async ({ request }) => {
+      ({ units } = await request.json() as { units: number });
+      return HttpResponse.json(bought);
+    }));
+    const user = userEvent.setup();
+    const region = await renderYourHolds('Baby onesies');
+
+    await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
+    await user.click(screen.getByRole('button', { name: 'One fewer' }));
+    await user.click(screen.getByRole('button', { name: 'Mark 1 as purchased' }));
+
+    await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Baby onesies: 1 marked as purchased. Thank you!'));
+    expect(units).toBe(1);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(within(region).getByRole('heading', { name: 'Baby onesies' })).toHaveFocus();
+  });
+
+  it('after a refusal, keeps the purchase sheet open and caps it at the units still free', async () => {
+    const expired: HoldView = { ...expiredBuyable, units: 3, purchasableUnits: 3 };
+    listViews(list([expired]), list([{ ...expired, purchasableUnits: 1 }]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/purchase', 409, { message: 'This item is no longer available.', code: 'item_unavailable' }));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+
+    await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
+    await user.click(screen.getByRole('button', { name: 'Mark 3 as purchased' }));
+
+    const sheet = screen.getByRole('dialog', { name: 'How many did you buy?' });
+    await waitFor(() => expect(within(sheet).getByRole('button', { name: 'Mark 1 as purchased' })).toBeEnabled());
+    expect(within(sheet).getByRole('alert')).toHaveTextContent('Only 1 is still free to mark as purchased.');
+    expect(sheet).toContainElement(document.activeElement as HTMLElement);
+  });
+
+  it('closes the purchase sheet on a refusal for a hold the refetch removes, and shows why beside "Your holds"', async () => {
+    // Released in another tab while the sheet was open, so the refetch drops it.
+    listViews(list([{ ...active, units: 2, purchasableUnits: 2 }]), list([]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/purchase', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+
+    await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
+    await user.click(screen.getByRole('button', { name: 'Mark 2 as purchased' }));
+
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent('This hold is no longer active.'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(within(region).getByRole('heading', { name: 'Your holds' })).toHaveFocus();
+  });
+
+  it('closes the purchase sheet when the refusal leaves nothing to buy, and shows why beside "Your holds"', async () => {
+    const expired: HoldView = { ...expiredBuyable, units: 3, purchasableUnits: 3 };
+    const lapsed: HoldView = { ...expired, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false } };
+    // Another guest then releases a unit, so the hold can be bought again.
+    listViews(list([expired]), list([lapsed]), list([{ ...expired, purchasableUnits: 1 }]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/purchase', 409, { message: 'Your hold expired and this gift has since been held or bought by someone else.', code: 'item_unavailable' }));
+    const user = userEvent.setup();
+    const region = await renderYourHolds();
+
+    await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
+    await user.click(screen.getByRole('button', { name: 'Mark 3 as purchased' }));
+
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent('Your hold expired and this gift has since been held or bought by someone else.'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(within(region).getByRole('heading', { name: 'Your holds' })).toHaveFocus();
+
+    await client.invalidateQueries({ queryKey: listViewKey('abc123') });
+
+    const markAsPurchased = await within(region).findByRole('button', { name: 'Mark as purchased' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await user.click(markAsPurchased);
+
+    expect(within(screen.getByRole('dialog', { name: 'How many did you buy?' })).getByRole('alert')).toBeEmptyDOMElement();
   });
 });

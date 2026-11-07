@@ -6,7 +6,7 @@ import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
 const ITEM_ID = '33333333-3333-7333-8333-333333333333';
 const T0 = new Date('2026-01-01T00:00:00.000Z');
-const holdProps = { itemId: ITEM_ID, sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', durationMs: 60_000, piiRef: '66666666-6666-7666-8666-666666666666' };
+const holdProps = { itemId: ITEM_ID, sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', durationMs: 60_000, piiRef: '66666666-6666-7666-8666-666666666666', units: 1 };
 const tokens = { generateEntityId: () => '44444444-4444-7444-8444-444444444444', generateHoldSecret: () => 'hold-secret-1' };
 const hasher = { hash: (value: string) => value };
 

@@ -120,6 +120,7 @@ one-time renumbering documented in the restructuring history.
 | [081](0081-owner-session-keyed-by-slug-and-owner-token.md) | Owner session is keyed by slug and owner token | Accepted |
 | [082](0082-payment-handles-set-at-list-creation.md) | Payment handles are set at list creation | Accepted |
 | [083](0083-database-checks-back-up-structural-invariants-only.md) | Database CHECKs back up structural invariants only | Accepted |
+| [084](0084-a-hold-covers-one-or-more-units.md) | A hold covers one or more units; buying fewer releases the rest | Accepted |
 
 ## Imported ADRs (0001–0070)
 

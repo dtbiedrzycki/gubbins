@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { holdViewSchema } from './holdView.js';
+import { holdViewSchema, markHoldPurchasedRequestSchema } from './holdView.js';
 import { listViewResponseSchema } from './listView.js';
 
 const view = {
   holdId: 'h', itemId: 'i', status: 'active', expiresAt: '2026-01-04T00:00:00.000Z', extendedAt: null,
+  units: 1, purchasedUnits: null, purchasableUnits: 1,
   actions: { extend: true, release: true, purchase: true },
 };
+
+describe('markHoldPurchasedRequestSchema', () => {
+  it('rejects a purchase without units, rather than assuming every unit held was bought', () => {
+    expect(markHoldPurchasedRequestSchema.safeParse({}).success).toBe(false);
+  });
+});
 
 describe('holdViewSchema', () => {
   it.each(['active', 'expired', 'released', 'purchased'])('accepts a %s hold', (status) => {
@@ -14,6 +21,10 @@ describe('holdViewSchema', () => {
 
   it('rejects an unknown status', () => {
     expect(holdViewSchema.safeParse({ ...view, status: 'reserved' }).success).toBe(false);
+  });
+
+  it.each(['units', 'purchasedUnits', 'purchasableUnits'])('rejects a hold view without %s', (key) => {
+    expect(holdViewSchema.safeParse({ ...view, [key]: undefined }).success).toBe(false);
   });
 
   it('requires every action flag', () => {

@@ -38,6 +38,8 @@ export interface HoldsTable {
   secret: string;
   session_hash: string;
   idempotency_key: string;
+  units: number;
+  purchased_units: number | null;
   expires_at: string;
   extended_at: string | null;
   released_at: string | null;

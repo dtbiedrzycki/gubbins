@@ -4,15 +4,13 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import type { HoldView, ListViewResponse } from '@gubbins/shared-types';
+import type { ListViewResponse } from '@gubbins/shared-types';
 import { server } from '../test/msw/server';
 import ListPage from './ListPage';
 import { aListItem } from '../test/listItem';
+import { aHoldView } from '../test/holdView';
 
-const hold: HoldView = {
-  holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: '2026-01-04T00:00:00.000Z',
-  extendedAt: null, actions: { extend: true, release: true, purchase: true },
-};
+const hold = aHoldView();
 const view = (held: boolean): ListViewResponse => ({
   title: 'Baby Shower', description: null,
   items: [aListItem({ status: held ? 'held' : 'available', availableUnits: held ? 0 : 1 })],

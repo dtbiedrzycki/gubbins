@@ -23,7 +23,7 @@ async function setup() {
   await persistence.wishlists.insert(wishlist);
   const tokens = new SequentialTokenGenerator();
   await new HoldItem(persistence.unitOfWork, tokens, clock, new FakeHasher(), { durationDays: 3 })
-    .execute({ wishlistId: WISHLIST_ID, itemId: OTHER_ITEM_ID, idempotencyKey: 'tap-1', name: 'Ada' }, GUEST);
+    .execute({ wishlistId: WISHLIST_ID, itemId: OTHER_ITEM_ID, idempotencyKey: 'tap-1', name: 'Ada', units: 1 }, GUEST);
   await new PledgeContribution(persistence.unitOfWork, tokens, clock)
     .execute({ wishlistId: WISHLIST_ID, itemId: GROUP_ITEM_ID, idempotencyKey: 'pledge-1', amountMinor: 2_500, name: 'Ada' }, GUEST);
   return new GetManageView(persistence.unitOfWork, clock);

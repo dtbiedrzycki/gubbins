@@ -18,7 +18,7 @@ async function setup(policy?: HoldPolicy) {
   const useCase = new GetListView(world.unitOfWork, world.clock, world.policy);
   const view = (access: AccessContext = GUEST) => useCase.execute({ wishlistId: WISHLIST_ID }, access);
   const release = (holdId: string) => new ReleaseHold(world.unitOfWork, world.clock).execute({ wishlistId: WISHLIST_ID, holdId }, GUEST);
-  const purchase = (holdId: string) => new MarkHoldPurchased(world.unitOfWork, world.clock).execute({ wishlistId: WISHLIST_ID, holdId }, GUEST);
+  const purchase = (holdId: string) => new MarkHoldPurchased(world.unitOfWork, world.clock).execute({ wishlistId: WISHLIST_ID, holdId, units: 1 }, GUEST);
   return { ...world, view, release, purchase };
 }
 
