@@ -61,7 +61,7 @@ async function holdOnNewList() {
   const { holdId } = (await app.inject({
     method: 'POST', url: `/api/lists/${slug}/items/${itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'k', name: 'Ada', units: 1 },
   })).json() as { holdId: string };
-  const act = (action: string) => app.inject({ method: 'POST', url: `/api/lists/${slug}/holds/${holdId}/${action}`, headers: { cookie }, payload: action === 'purchase' ? {} : undefined });
+  const act = (action: string) => app.inject({ method: 'POST', url: `/api/lists/${slug}/holds/${holdId}/${action}`, headers: { cookie }, payload: action === 'purchase' ? { units: 1 } : undefined });
   return { act };
 }
 

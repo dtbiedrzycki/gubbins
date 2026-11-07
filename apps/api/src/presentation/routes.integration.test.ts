@@ -146,7 +146,7 @@ async function ownerOn(list: { slug: string; ownerToken: string }, on: FastifyIn
 
 function holdAction(slug: string, holdId: string, action: 'extend' | 'release' | 'purchase', cookie?: string, on: FastifyInstance = app) {
   // Purchase takes a body (units may be left out); extend and release take none.
-  return on.inject({ method: 'POST', url: `/api/lists/${slug}/holds/${holdId}/${action}`, headers: cookie ? { cookie } : {}, ...(action === 'purchase' ? { payload: {} } : {}) });
+  return on.inject({ method: 'POST', url: `/api/lists/${slug}/holds/${holdId}/${action}`, headers: cookie ? { cookie } : {}, ...(action === 'purchase' ? { payload: { units: 1 } } : {}) });
 }
 
 async function heldByGuest(on: FastifyInstance = app) {
