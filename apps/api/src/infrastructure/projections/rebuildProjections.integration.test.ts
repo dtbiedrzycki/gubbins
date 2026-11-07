@@ -8,8 +8,6 @@ import { buildDependencies, type AppDependencies } from '../../presentation/comp
 import { FixedClock } from '../../application/test-fakes/FixedClock.js';
 import type { AccessContext } from '../../application/AccessContext.js';
 import type { Logger } from '../../application/ports/Logger.js';
-import { UnitOfWorkKysely } from '../UnitOfWorkKysely.js';
-import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const GUEST: AccessContext = { guestSession: { sessionHash: 'a'.repeat(64) } };
@@ -62,9 +60,9 @@ async function newList(quantity = 1) {
   const wishlist = await deps.wishlists.findBySlug(slug, clock.now());
   const wishlistId = wishlist!.id.value;
   const { itemId } = await deps.addItem.execute({ wishlistId, type: 'single', title: 'I', quantity }, { guestSession: null, owner: true });
-  const hold = (access: AccessContext, idempotencyKey: string) => deps.holdItem.execute({ wishlistId, itemId, idempotencyKey, name: 'Ada' }, access);
+  const hold = (access: AccessContext, idempotencyKey: string, units = 1) => deps.holdItem.execute({ wishlistId, itemId, idempotencyKey, name: 'Ada', units }, access);
   const command = { wishlistId };
-  return { hold, command, itemId };
+  return { hold, command };
 }
 
 async function aGroupGift() {
@@ -98,10 +96,10 @@ async function aBusyLedger(): Promise<void> {
   await releasedThenReheld.hold(OTHER_GUEST, 'b2');
 
   clock.advance(DAY);
-  await deps.markHoldPurchased.execute({ ...extendedThenBought.command, holdId: a.holdId }, GUEST);
+  await deps.markHoldPurchased.execute({ ...extendedThenBought.command, holdId: a.holdId, units: 1 }, GUEST);
 
   clock.advance(2 * DAY);
-  await deps.markHoldPurchased.execute({ ...lapsedThenBought.command, holdId: c.holdId }, GUEST);
+  await deps.markHoldPurchased.execute({ ...lapsedThenBought.command, holdId: c.holdId, units: 1 }, GUEST);
 }
 
 describe('rebuildProjections', () => {
@@ -155,21 +153,9 @@ describe('rebuildProjections', () => {
   });
 
   it('re-folds units and purchased units from ItemHeld and ItemPurchased', async () => {
-    const { command: { wishlistId }, itemId } = await newList(3);
-    // The hold and purchase use cases take no unit count here, so the events come from the domain, written as those use cases write them.
-    await new UnitOfWorkKysely(db).execute(async (ctx) => {
-      const wishlist = (await ctx.wishlists.findById(wishlistId, clock.now()))!;
-      const piiRef = deps.tokenGenerator.generateEntityId();
-      const held = wishlist.holdItem(
-        { itemId, sessionHash: GUEST.guestSession!.sessionHash, idempotencyKey: 'k', durationMs: DAY, piiRef, units: 3 },
-        deps.tokenGenerator, deps.hasher,
-      );
-      await ctx.eventStore.append(itemId, held.expectedSeq, [held.event], 'guest');
-      await ctx.guestPii.insert(piiRef, GuestDetails.from({ name: 'Ada' }));
-      const bought = wishlist.purchaseHold(held.hold, 2);
-      await ctx.eventStore.append(itemId, bought.expectedSeq, [bought.event], 'guest');
-      await ctx.wishlists.save(wishlist);
-    });
+    const { hold, command } = await newList(3);
+    const placed = await hold(GUEST, 'k', 3);
+    await deps.markHoldPurchased.execute({ ...command, holdId: placed.holdId, units: 2 }, GUEST);
 
     await rebuildProjections(db);
 
