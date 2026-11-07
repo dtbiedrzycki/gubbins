@@ -24,7 +24,7 @@ function renderItem(over: Partial<Item> = {}): void {
 
 /** Records the body of every hold request; answers each with the next status given. */
 function holdEndpoint(...statuses: number[]) {
-  const bodies: { idempotencyKey: string; name?: string; message?: string }[] = [];
+  const bodies: { idempotencyKey: string; name?: string; message?: string; units?: number }[] = [];
   server.use(http.post('/api/lists/abc123/items/item-1/hold', async ({ request }) => {
     bodies.push((await request.json()) as (typeof bodies)[number]);
     const status = statuses[bodies.length - 1] ?? 201;
@@ -46,7 +46,7 @@ describe('ItemView', () => {
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     await vi.waitFor(() => expect(screen.queryByRole('dialog', { hidden: true })).not.toBeInTheDocument());
-    expect(bodies).toEqual([{ idempotencyKey: expect.any(String), name: 'Amara', message: 'Collecting Friday' }]);
+    expect(bodies).toEqual([{ idempotencyKey: expect.any(String), name: 'Amara', message: 'Collecting Friday', units: 1 }]);
   });
 
   it('sends the key minted at opening on every retry — not a fresh one per tap (ADR-0048)', async () => {
@@ -81,6 +81,20 @@ describe('ItemView', () => {
 
     await vi.waitFor(() => expect(bodies).toHaveLength(2));
     expect(bodies[1].idempotencyKey).not.toBe(bodies[0].idempotencyKey);
+  });
+
+  it('sends the units chosen in the hold sheet', async () => {
+    const bodies = holdEndpoint(201);
+    const user = userEvent.setup();
+    renderItem({ availableUnits: 3 });
+
+    await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: 'One more' }));
+    await user.click(screen.getByRole('button', { name: 'Yes, hold 2' }));
+
+    await vi.waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0].units).toBe(2);
   });
 
   it('returns focus to the Hold button when the dialog is cancelled', async () => {
