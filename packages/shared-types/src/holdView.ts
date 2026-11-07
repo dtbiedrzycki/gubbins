@@ -13,6 +13,9 @@ export const holdViewSchema = z.object({
   status: holdStatusSchema,
   expiresAt: z.string(),
   extendedAt: z.string().nullable(),
+  units: z.number().int().min(1),
+  purchasedUnits: z.number().int().min(1).nullable(),
+  purchasableUnits: z.number().int().min(0),
   actions: z.object({ extend: z.boolean(), release: z.boolean(), purchase: z.boolean() }),
 });
 export type HoldView = z.infer<typeof holdViewSchema>;

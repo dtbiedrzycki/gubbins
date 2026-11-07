@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../test/msw/server';
 import { mock } from '../test/msw/mock';
 import { api, ApiError } from './client';
-import type { HoldView } from '@gubbins/shared-types';
+import { aHoldView } from '../test/holdView';
 
 describe('api.createList', () => {
   it('returns the response body on success', async () => {
@@ -63,10 +63,10 @@ describe('path parameters', () => {
 });
 
 describe('hold actions', () => {
-  const view: HoldView = {
-    holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: '2026-01-07T00:00:00.000Z',
-    extendedAt: '2026-01-02T00:00:00.000Z', actions: { extend: false, release: true, purchase: true },
-  };
+  const view = aHoldView({
+    expiresAt: '2026-01-07T00:00:00.000Z', extendedAt: '2026-01-02T00:00:00.000Z',
+    actions: { extend: false, release: true, purchase: true },
+  });
 
   it.each([
     ['extendHold', 'extend'],
