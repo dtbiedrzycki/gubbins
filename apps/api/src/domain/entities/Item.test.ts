@@ -19,7 +19,7 @@ function holdOn(overrides: Partial<Parameters<typeof Hold.reconstitute>[0]> = {}
   holdCount += 1;
   return Hold.reconstitute({
     id: `00000000-0000-7000-8000-${String(holdCount).padStart(12, '0')}`, itemId: ITEM_ID, secret: 'hold-secret', sessionHash: 'a'.repeat(64),
-    idempotencyKey: `idem-${holdCount}`, expiresAt: new Date(T0.getTime() + 3 * DAY), extendedAt: null, releasedAt: null, purchasedAt: null,
+    idempotencyKey: `idem-${holdCount}`, expiresAt: new Date(T0.getTime() + 3 * DAY), extendedAt: null, releasedAt: null, purchasedAt: null, units: 1, purchasedUnits: null,
     ...overrides,
   });
 }
@@ -110,11 +110,11 @@ describe('Item availability and holds — from hold state, never a stored counte
   });
 
   it('never reports negative availability when quantity is below what is committed (ADR-0019)', () => {
-    expect(Item.reconstitute({ ...base, holds: [holdOn(), holdOn({ purchasedAt: T0 })] }).availableUnits()).toBe(0);
+    expect(Item.reconstitute({ ...base, holds: [holdOn(), holdOn({ purchasedAt: T0, purchasedUnits: 1 })] }).availableUnits()).toBe(0);
   });
 
   it('is available while the quantity exceeds active and purchased holds', () => {
-    const item = Item.reconstitute({ ...base, quantity: 3, holds: [holdOn(), holdOn({ purchasedAt: T0 })] });
+    const item = Item.reconstitute({ ...base, quantity: 3, holds: [holdOn(), holdOn({ purchasedAt: T0, purchasedUnits: 1 })] });
     expect(item.availableUnits()).toBe(1);
     expect(item.status()).toBe('available');
   });
@@ -126,12 +126,12 @@ describe('Item availability and holds — from hold state, never a stored counte
   });
 
   it('counts its purchased holds, zero when there are none', () => {
-    expect(Item.reconstitute({ ...base, quantity: 2, holds: [holdOn({ purchasedAt: T0 }), holdOn({ purchasedAt: T0 })] }).purchasedCount()).toBe(2);
+    expect(Item.reconstitute({ ...base, quantity: 2, holds: [holdOn({ purchasedAt: T0, purchasedUnits: 1 }), holdOn({ purchasedAt: T0, purchasedUnits: 1 })] }).purchasedCount()).toBe(2);
     expect(Item.reconstitute(base).purchasedCount()).toBe(0);
   });
 
   it('is purchased once purchased holds cover the quantity', () => {
-    expect(Item.reconstitute({ ...base, holds: [holdOn({ purchasedAt: T0 })] }).status()).toBe('purchased');
+    expect(Item.reconstitute({ ...base, holds: [holdOn({ purchasedAt: T0, purchasedUnits: 1 })] }).status()).toBe('purchased');
   });
 
   it('leaves 0 units available, not -1, and stays held when the owner cuts the quantity to 2 under a hold of 3 units', () => {
@@ -154,7 +154,7 @@ describe('Item availability and holds — from hold state, never a stored counte
   it('counts active and purchased holds as committed, not released or expired ones', () => {
     const item = Item.reconstitute({
       ...base, quantity: 4,
-      holds: [holdOn(), holdOn({ purchasedAt: T0 }), holdOn({ releasedAt: T0 }), holdOn({ expiresAt: new Date(T0.getTime() - 1) })],
+      holds: [holdOn(), holdOn({ purchasedAt: T0, purchasedUnits: 1 }), holdOn({ releasedAt: T0 }), holdOn({ expiresAt: new Date(T0.getTime() - 1) })],
     });
     expect(item.committedUnits()).toBe(2);
   });
@@ -231,7 +231,7 @@ describe('Item.placeHold', () => {
   });
 
   it('throws ItemUnavailableError when purchases cover the quantity', () => {
-    const item = Item.reconstitute({ ...base, holds: [holdOn({ purchasedAt: T0 })] });
+    const item = Item.reconstitute({ ...base, holds: [holdOn({ purchasedAt: T0, purchasedUnits: 1 })] });
     expect(() => item.placeHold(holdProps, fakeTokens, fakeHasher)).toThrow(ItemUnavailableError);
   });
 
@@ -331,7 +331,7 @@ describe('Item.purchaseHold', () => {
     const item = holding([expired], { quantity: 2 });
     const copy = Hold.reconstitute({
       id: expired.id.value, itemId: ITEM_ID, secret: 'hold-secret', sessionHash: 'a'.repeat(64), idempotencyKey: expired.idempotencyKey.value,
-      expiresAt: expired.expiresAt, extendedAt: null, releasedAt: null, purchasedAt: null,
+      expiresAt: expired.expiresAt, extendedAt: null, releasedAt: null, purchasedAt: null, units: 1, purchasedUnits: null,
     });
 
     const { hold } = item.purchaseHold(copy, 1);
@@ -380,7 +380,7 @@ describe('Item.purchaseHold', () => {
 
   it('refuses a released hold, or one already purchased', () => {
     const released = holdOn({ releasedAt: T0 });
-    const purchased = holdOn({ purchasedAt: T0 });
+    const purchased = holdOn({ purchasedAt: T0, purchasedUnits: 1 });
     expect(() => holding([released]).purchaseHold(released, 1)).toThrow(HoldNotActiveError);
     expect(() => holding([purchased], { quantity: 2 }).purchaseHold(purchased, 1)).toThrow(HoldNotActiveError);
   });
@@ -406,7 +406,7 @@ describe('Item.purchasableUnits', () => {
 
   it('purchasable units are 0 for a released or purchased hold, or one it did not load', () => {
     const released = holdOn({ units: 2, releasedAt: T0 });
-    const purchased = holdOn({ units: 2, purchasedAt: T0 });
+    const purchased = holdOn({ units: 2, purchasedAt: T0, purchasedUnits: 2 });
     expect(holding([released], { quantity: 5 }).purchasableUnits(released)).toBe(0);
     expect(holding([purchased], { quantity: 5 }).purchasableUnits(purchased)).toBe(0);
     expect(holding([], { quantity: 5 }).purchasableUnits(holdOn())).toBe(0);
@@ -435,7 +435,7 @@ describe('Item.holdStatus, canExtendHold and canReleaseHold', () => {
 
   it('canReleaseHold: active, extended or not, and loaded', () => {
     const extended = holdOn({ extendedAt: T0 });
-    const purchased = holdOn({ purchasedAt: T0 });
+    const purchased = holdOn({ purchasedAt: T0, purchasedUnits: 1 });
     expect(holding([extended]).canReleaseHold(extended)).toBe(true);
     expect(holding([purchased]).canReleaseHold(purchased)).toBe(false);
     expect(holding([extended], { asOf: at(3 * DAY + 1) }).canReleaseHold(extended)).toBe(false);

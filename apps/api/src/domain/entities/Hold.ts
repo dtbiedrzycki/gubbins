@@ -75,22 +75,18 @@ export class Hold {
   /**
    * Reconstructs a Hold from persisted fields. Unlike `create`, an
    * `expiresAt` in the past is fine: a stored hold may well have expired
-   * since, and expiry is computed, not recorded. Absent `units` is 1 and
-   * absent `purchasedUnits` is all of them once purchased: a hold covered
-   * one unit before holds could cover more.
+   * since, and expiry is computed, not recorded.
    */
   static reconstitute(props: {
     id: string; itemId: string; secret: string; sessionHash: string; idempotencyKey: string;
     expiresAt: Date; extendedAt: Date | null; releasedAt: Date | null; purchasedAt: Date | null;
-    piiRef?: string | null; units?: number; purchasedUnits?: number | null;
+    piiRef?: string | null; units: number; purchasedUnits: number | null;
   }): Hold {
-    const units = props.units ?? 1;
-    const purchasedUnits = props.purchasedUnits !== undefined ? props.purchasedUnits : props.purchasedAt === null ? null : units;
     return new Hold(
       UuidId.from(props.id), UuidId.from(props.itemId), HoldSecret.from(props.secret),
       SessionHash.from(props.sessionHash), IdempotencyKey.from(props.idempotencyKey),
-      props.piiRef == null ? null : UuidId.from(props.piiRef), units,
-      props.expiresAt, props.extendedAt, props.releasedAt, props.purchasedAt, purchasedUnits,
+      props.piiRef == null ? null : UuidId.from(props.piiRef), props.units,
+      props.expiresAt, props.extendedAt, props.releasedAt, props.purchasedAt, props.purchasedUnits,
     );
   }
 
