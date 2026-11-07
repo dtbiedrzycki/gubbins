@@ -15,7 +15,7 @@ function holdOn(overrides: Partial<Parameters<typeof Hold.reconstitute>[0]> = {}
   count += 1;
   return Hold.reconstitute({
     id: `00000000-0000-7000-8000-${String(count).padStart(12, '0')}`, itemId: ITEM_ID, secret: 's', sessionHash: 'a'.repeat(64),
-    idempotencyKey: `idem-${count}`, expiresAt: at(3 * DAY), extendedAt: null, releasedAt: null, purchasedAt: null, ...overrides,
+    idempotencyKey: `idem-${count}`, expiresAt: at(3 * DAY), extendedAt: null, releasedAt: null, purchasedAt: null, units: 1, purchasedUnits: null, ...overrides,
   });
 }
 

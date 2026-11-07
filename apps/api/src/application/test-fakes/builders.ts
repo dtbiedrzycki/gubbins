@@ -42,7 +42,7 @@ export class WishlistBuilder {
     const holds = Array.from({ length: this.purchased }, (_, i) => Hold.reconstitute({
       id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, itemId: id, secret: `secret-${i + 1}`,
       sessionHash: 'a'.repeat(64), idempotencyKey: `purchased-${i + 1}`,
-      expiresAt: new Date(this.instant.getTime() + 60_000), extendedAt: null, releasedAt: null, purchasedAt: this.instant,
+      expiresAt: new Date(this.instant.getTime() + 60_000), extendedAt: null, releasedAt: null, purchasedAt: this.instant, units: 1, purchasedUnits: 1,
     }));
     const rebuilt = Item.reconstitute({
       id, wishlistId: this.props.id, type: 'single', title: this.itemProps[0].title, quantity: 1, seq: 0, asOf: this.instant, holds,
