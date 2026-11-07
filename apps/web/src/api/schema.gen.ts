@@ -484,6 +484,9 @@ export interface operations {
                             status: "active" | "expired" | "released" | "purchased";
                             expiresAt: string;
                             extendedAt: string | null;
+                            units: number;
+                            purchasedUnits: number | null;
+                            purchasableUnits: number;
                             actions: {
                                 extend: boolean;
                                 release: boolean;
@@ -837,6 +840,9 @@ export interface operations {
                         status: "active" | "expired" | "released" | "purchased";
                         expiresAt: string;
                         extendedAt: string | null;
+                        units: number;
+                        purchasedUnits: number | null;
+                        purchasableUnits: number;
                         actions: {
                             extend: boolean;
                             release: boolean;
@@ -962,6 +968,9 @@ export interface operations {
                         status: "active" | "expired" | "released" | "purchased";
                         expiresAt: string;
                         extendedAt: string | null;
+                        units: number;
+                        purchasedUnits: number | null;
+                        purchasableUnits: number;
                         actions: {
                             extend: boolean;
                             release: boolean;
@@ -1024,6 +1033,9 @@ export interface operations {
                         status: "active" | "expired" | "released" | "purchased";
                         expiresAt: string;
                         extendedAt: string | null;
+                        units: number;
+                        purchasedUnits: number | null;
+                        purchasableUnits: number;
                         actions: {
                             extend: boolean;
                             release: boolean;
@@ -1086,6 +1098,9 @@ export interface operations {
                         status: "active" | "expired" | "released" | "purchased";
                         expiresAt: string;
                         extendedAt: string | null;
+                        units: number;
+                        purchasedUnits: number | null;
+                        purchasableUnits: number;
                         actions: {
                             extend: boolean;
                             release: boolean;

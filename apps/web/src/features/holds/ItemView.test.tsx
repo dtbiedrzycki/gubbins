@@ -3,16 +3,14 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { HoldView, ListViewResponse } from '@gubbins/shared-types';
+import type { ListViewResponse } from '@gubbins/shared-types';
 import { server } from '../../test/msw/server';
 import { mock } from '../../test/msw/mock';
 import { ItemView } from './ItemView';
 import { aListItem } from '../../test/listItem';
+import { aHoldView } from '../../test/holdView';
 
-const heldView: HoldView = {
-  holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: '2026-01-04T00:00:00.000Z',
-  extendedAt: null, actions: { extend: true, release: true, purchase: true },
-};
+const heldView = aHoldView();
 
 const payment: ListViewResponse['payment'] = { venmoHandle: 'my-venmo', zelleHandle: null };
 
