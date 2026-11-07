@@ -145,7 +145,8 @@ async function ownerOn(list: { slug: string; ownerToken: string }, on: FastifyIn
 }
 
 function holdAction(slug: string, holdId: string, action: 'extend' | 'release' | 'purchase', cookie?: string, on: FastifyInstance = app) {
-  return on.inject({ method: 'POST', url: `/api/lists/${slug}/holds/${holdId}/${action}`, headers: cookie ? { cookie } : {} });
+  // Purchase takes a body (units may be left out); extend and release take none.
+  return on.inject({ method: 'POST', url: `/api/lists/${slug}/holds/${holdId}/${action}`, headers: cookie ? { cookie } : {}, ...(action === 'purchase' ? { payload: {} } : {}) });
 }
 
 async function heldByGuest(on: FastifyInstance = app) {
@@ -429,6 +430,26 @@ describe('hold lifecycle over HTTP', () => {
     expect(view.myHolds).toMatchObject([{ holdId, status: 'purchased', actions: { extend: false, release: false, purchase: false } }]);
     expect(release.statusCode).toBe(409);
     expect(release.json()).toMatchObject({ code: 'hold_not_active' });
+  });
+
+  it('marks purchased with the units bought: 2 of a hold of 3', async () => {
+    const list = await createList(app, 3);
+    const cookie = await guestOn(list);
+    const { holdId } = (await app.inject({
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', units: 3 },
+    })).json() as { holdId: string };
+
+    const purchased = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/holds/${holdId}/purchase`, headers: { cookie }, payload: { units: 2 } });
+
+    expect(purchased.statusCode).toBe(200);
+    expect(purchased.json()).toMatchObject({ status: 'purchased', units: 3, purchasedUnits: 2 });
+  });
+
+  it('rejects a purchase with no body', async () => {
+    const { list, cookie, holdId } = await heldByGuest();
+
+    const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/holds/${holdId}/purchase`, headers: { cookie } });
+    expect(response.statusCode).toBe(400);
   });
 
   it('releases; the hold leaves "my holds" and another guest can hold the item', async () => {
