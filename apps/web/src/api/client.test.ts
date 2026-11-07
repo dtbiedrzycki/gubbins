@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../test/msw/server';
 import { mock } from '../test/msw/mock';
 import { api, ApiError } from './client';
-import type { HoldView } from '@gubbins/shared-types';
+import { aHoldView } from '../test/holdView';
 
 describe('api.createList', () => {
   it('returns the response body on success', async () => {
@@ -56,22 +56,21 @@ describe('path parameters', () => {
       return HttpResponse.json({ holdId: 'h', itemId: 'item-1', expiresAt: '2026-01-04T00:00:00.000Z' }, { status: 201 });
     }));
 
-    await api.holdItem('abc123', 'item-1', { idempotencyKey: 'k', name: 'Ada' });
+    await api.holdItem('abc123', 'item-1', { idempotencyKey: 'k', name: 'Ada', units: 1 });
 
     expect(requested).toBe('/api/lists/abc123/items/item-1/hold');
   });
 });
 
 describe('hold actions', () => {
-  const view: HoldView = {
-    holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: '2026-01-07T00:00:00.000Z',
-    extendedAt: '2026-01-02T00:00:00.000Z', actions: { extend: false, release: true, purchase: true },
-  };
+  const view = aHoldView({
+    expiresAt: '2026-01-07T00:00:00.000Z', extendedAt: '2026-01-02T00:00:00.000Z',
+    actions: { extend: false, release: true, purchase: true },
+  });
 
   it.each([
     ['extendHold', 'extend'],
     ['releaseHold', 'release'],
-    ['markHoldPurchased', 'purchase'],
   ] as const)('%s posts to the %s route with no body and returns the hold view', async (method, action) => {
     let path = '';
     let body = 'unset';
@@ -90,6 +89,18 @@ describe('hold actions', () => {
     // A JSON content type on an empty body is a 400 from Fastify
     // (FST_ERR_CTP_EMPTY_JSON_BODY), so none may be sent.
     expect(contentType).toBeNull();
+  });
+
+  it('markHoldPurchased posts the units bought to the purchase route and returns the hold view', async () => {
+    let body = 'unset';
+    server.use(http.post('/api/lists/:slug/holds/:holdId/purchase', async ({ request }) => {
+      body = await request.text();
+      return HttpResponse.json(view);
+    }));
+
+    await expect(api.markHoldPurchased('abc123', 'hold-1', 2)).resolves.toEqual(view);
+
+    expect(body).toBe('{"units":2}');
   });
 
   it('carries the 409 code on ApiError, beside the message', async () => {

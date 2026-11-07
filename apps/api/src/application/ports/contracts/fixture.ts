@@ -54,7 +54,7 @@ export function holdFixture(overrides: Partial<Parameters<typeof Hold.reconstitu
   const n = String(holdCount).padStart(12, '0');
   return Hold.reconstitute({
     id: `00000000-0000-7000-8000-${n}`, itemId: ITEM_A, secret: `secret-${n}`, sessionHash: SESSION,
-    idempotencyKey: `idem-${n}`, expiresAt: later(60_000), extendedAt: null, releasedAt: null, purchasedAt: null,
+    idempotencyKey: `idem-${n}`, expiresAt: later(60_000), extendedAt: null, releasedAt: null, purchasedAt: null, units: 1, purchasedUnits: null,
     ...overrides,
   });
 }

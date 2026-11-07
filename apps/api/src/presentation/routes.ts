@@ -8,7 +8,7 @@ import {
   editListDetailsRequestSchema, editedResponseSchema,
   addItemRequestSchema, addItemResponseSchema, editItemRequestSchema,
   manageViewResponseSchema,
-  holdItemRequestSchema, holdItemResponseSchema, holdViewSchema, listViewResponseSchema,
+  holdItemRequestSchema, holdItemResponseSchema, holdViewSchema, markHoldPurchasedRequestSchema, listViewResponseSchema,
   pledgeRequestSchema, pledgeResponseSchema,
   errorResponseSchema,
 } from '@gubbins/shared-types';
@@ -301,7 +301,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
         201: json('The item is now held for this session; a replayed idempotency key returns the same hold.', holdItemResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
         404: json('No such list or item, or no valid session for the list. These are deliberately indistinguishable.', errorResponseSchema),
-        409: json('No unit of the item is free (item_unavailable), or a concurrent change won (no code).', errorResponseSchema),
+        409: json('Fewer units of the item are free than asked (item_unavailable), or a concurrent change won (no code).', errorResponseSchema),
       },
     },
   }, async (request, reply) => {
@@ -311,7 +311,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     try {
       // The use case loads the wishlist this slug resolved to and asks it for
       // the item, so another list's item id is ItemNotFoundError — a 404.
-      const view = await deps.holdItem.execute({ wishlistId: guest.wishlist.id.value, itemId, idempotencyKey: request.body.idempotencyKey, name: request.body.name, message: request.body.message }, guest.access);
+      const view = await deps.holdItem.execute({ wishlistId: guest.wishlist.id.value, itemId, idempotencyKey: request.body.idempotencyKey, name: request.body.name, units: request.body.units, message: request.body.message }, guest.access);
       return reply.code(201).send(view);
     } catch (err) {
       return sendDomainError(reply, err);
@@ -342,7 +342,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     }
   });
 
-  const holdCommands: { action: 'extend' | 'release' | 'purchase'; operationId: string; command: HoldCommand; done: string; conflict: string }[] = [
+  const holdCommands: { action: 'extend' | 'release'; operationId: string; command: HoldCommand; done: string; conflict: string }[] = [
     {
       action: 'extend', operationId: 'extendHold', command: deps.extendHold,
       done: 'The hold was extended once, by the configured duration, from its current expiry.',
@@ -350,15 +350,33 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     },
     {
       action: 'release', operationId: 'releaseHold', command: deps.releaseHold,
-      done: 'The hold was released; its unit is free for others.',
+      done: 'The hold was released; its units are free for others.',
       conflict: 'The hold is not active (hold_not_active).',
     },
-    {
-      action: 'purchase', operationId: 'markHoldPurchased', command: deps.markHoldPurchased,
-      done: 'The hold was marked purchased.',
-      conflict: 'The hold was already released or purchased (hold_not_active), or it expired and no unit is free any more (item_unavailable).',
-    },
   ];
+
+  app.post('/api/lists/:slug/holds/:holdId/purchase', {
+    schema: {
+      operationId: 'markHoldPurchased',
+      params: slugHoldParams,
+      body: markHoldPurchasedRequestSchema,
+      response: {
+        200: json('The hold was marked purchased; units not bought are released.', holdViewSchema),
+        400: json(INVALID_REQUEST, errorResponseSchema),
+        404: json(HOLD_NOT_FOUND, errorResponseSchema),
+        409: json('The hold was already released or purchased (hold_not_active); or it lapsed and no unit is free, or fewer units are free than asked (item_unavailable).', errorResponseSchema),
+      },
+    },
+  }, async (request, reply) => {
+    const guest = await guestAccess(request, request.params.slug);
+    if (!guest) return reply.code(404).send(NOT_FOUND);
+    try {
+      const view = await deps.markHoldPurchased.execute({ wishlistId: guest.wishlist.id.value, holdId: request.params.holdId, units: request.body.units }, guest.access);
+      return reply.code(200).send(view);
+    } catch (err) {
+      return sendDomainError(reply, err);
+    }
+  });
 
   // No request body: the session cookie is the only credential for now.
   for (const { action, operationId, command, done, conflict } of holdCommands) {

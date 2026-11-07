@@ -16,6 +16,20 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
       expect(await fx.holds.findForWishlist(LIST_A)).toEqual([hold]);
     });
 
+    it('saves and reloads a hold of 3 units with 2 purchased', async () => {
+      const inserted = holdFixture({ units: 3 });
+      await fx.holds.insert(inserted);
+      const atNow = (await fx.wishlists.findById(LIST_A, NOW))!;
+      const hold = atNow.findHold(inserted.id.value)!;
+      atNow.purchaseHold(hold, 2);
+      await fx.holds.save(hold);
+
+      const [reloaded] = await fx.holds.findForWishlist(LIST_A);
+      expect(reloaded?.units).toBe(3);
+      expect(reloaded?.purchasedUnits).toBe(2);
+      expect(reloaded).toEqual(hold);
+    });
+
     it("round-trips a hold's piiRef", async () => {
       const piiRef = '00000000-0000-7000-8000-00000000aaaa';
       await fx.seedGuestPii(piiRef);
@@ -42,7 +56,7 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
 
       const aMomentLater = (await fx.wishlists.findById(LIST_A, later(1)))!;
       const hold = aMomentLater.findHold(inserted.id.value)!;
-      aMomentLater.purchaseHold(hold);
+      aMomentLater.purchaseHold(hold, 1);
       await fx.holds.save(hold);
 
       const [reloaded] = await fx.holds.findForWishlist(LIST_A);
@@ -55,7 +69,7 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
       // Ids rise in creation order. The expiry order matches neither the id order, the insertion order nor
       // either reversed, and the two holds expiring together go in larger id first, so only expires_at then id passes.
       const active = holdFixture();
-      const purchased = holdFixture({ expiresAt: later(-2), purchasedAt: later(-5) });
+      const purchased = holdFixture({ expiresAt: later(-2), purchasedAt: later(-5), purchasedUnits: 1 });
       const released = holdFixture({ expiresAt: later(120_000), releasedAt: later(-5) });
       const expired = holdFixture({ expiresAt: later(-1) });
       const tiedFirst = holdFixture({ expiresAt: later(90_000) });

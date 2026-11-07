@@ -479,6 +479,22 @@
                             "nullable": true,
                             "type": "string"
                           },
+                          "units": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "purchasedUnits": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "purchasableUnits": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
                           "actions": {
                             "type": "object",
                             "properties": {
@@ -506,6 +522,9 @@
                           "status",
                           "expiresAt",
                           "extendedAt",
+                          "units",
+                          "purchasedUnits",
+                          "purchasableUnits",
                           "actions"
                         ],
                         "additionalProperties": false
@@ -1130,13 +1149,19 @@
                     "type": "string",
                     "minLength": 1
                   },
+                  "units": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
                   "message": {
                     "type": "string"
                   }
                 },
                 "required": [
                   "idempotencyKey",
-                  "name"
+                  "name",
+                  "units"
                 ]
               }
             }
@@ -1190,6 +1215,22 @@
                       "nullable": true,
                       "type": "string"
                     },
+                    "units": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    },
+                    "purchasedUnits": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    },
+                    "purchasableUnits": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
                     "actions": {
                       "type": "object",
                       "properties": {
@@ -1217,6 +1258,9 @@
                     "status",
                     "expiresAt",
                     "extendedAt",
+                    "units",
+                    "purchasedUnits",
+                    "purchasableUnits",
                     "actions"
                   ],
                   "additionalProperties": false
@@ -1245,7 +1289,7 @@
             }
           },
           "409": {
-            "description": "No unit of the item is free (item_unavailable), or a concurrent change won (no code).",
+            "description": "Fewer units of the item are free than asked (item_unavailable), or a concurrent change won (no code).",
             "content": {
               "application/json": {
                 "schema": {
@@ -1375,6 +1419,163 @@
         }
       }
     },
+    "/api/lists/{slug}/holds/{holdId}/purchase": {
+      "post": {
+        "operationId": "markHoldPurchased",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "units": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "units"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "slug",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "holdId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The hold was marked purchased; units not bought are released.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "holdId": {
+                      "type": "string"
+                    },
+                    "itemId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "expired",
+                        "released",
+                        "purchased"
+                      ]
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    },
+                    "extendedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "units": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    },
+                    "purchasedUnits": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    },
+                    "purchasableUnits": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "actions": {
+                      "type": "object",
+                      "properties": {
+                        "extend": {
+                          "type": "boolean"
+                        },
+                        "release": {
+                          "type": "boolean"
+                        },
+                        "purchase": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "extend",
+                        "release",
+                        "purchase"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "holdId",
+                    "itemId",
+                    "status",
+                    "expiresAt",
+                    "extendedAt",
+                    "units",
+                    "purchasedUnits",
+                    "purchasableUnits",
+                    "actions"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the schema, or a domain rule refused it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The hold was already released or purchased (hold_not_active); or it lapsed and no unit is free, or fewer units are free than asked (item_unavailable).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/lists/{slug}/holds/{holdId}/extend": {
       "post": {
         "operationId": "extendHold",
@@ -1426,6 +1627,22 @@
                       "nullable": true,
                       "type": "string"
                     },
+                    "units": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    },
+                    "purchasedUnits": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    },
+                    "purchasableUnits": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
                     "actions": {
                       "type": "object",
                       "properties": {
@@ -1453,6 +1670,9 @@
                     "status",
                     "expiresAt",
                     "extendedAt",
+                    "units",
+                    "purchasedUnits",
+                    "purchasableUnits",
                     "actions"
                   ],
                   "additionalProperties": false
@@ -1516,7 +1736,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The hold was released; its unit is free for others.",
+            "description": "The hold was released; its units are free for others.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1543,6 +1763,22 @@
                     "extendedAt": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "units": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    },
+                    "purchasedUnits": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    },
+                    "purchasableUnits": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
                     },
                     "actions": {
                       "type": "object",
@@ -1571,6 +1807,9 @@
                     "status",
                     "expiresAt",
                     "extendedAt",
+                    "units",
+                    "purchasedUnits",
+                    "purchasableUnits",
                     "actions"
                   ],
                   "additionalProperties": false
@@ -1600,124 +1839,6 @@
           },
           "409": {
             "description": "The hold is not active (hold_not_active).",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/lists/{slug}/holds/{holdId}/purchase": {
-      "post": {
-        "operationId": "markHoldPurchased",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "slug",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "holdId",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The hold was marked purchased.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "holdId": {
-                      "type": "string"
-                    },
-                    "itemId": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "active",
-                        "expired",
-                        "released",
-                        "purchased"
-                      ]
-                    },
-                    "expiresAt": {
-                      "type": "string"
-                    },
-                    "extendedAt": {
-                      "nullable": true,
-                      "type": "string"
-                    },
-                    "actions": {
-                      "type": "object",
-                      "properties": {
-                        "extend": {
-                          "type": "boolean"
-                        },
-                        "release": {
-                          "type": "boolean"
-                        },
-                        "purchase": {
-                          "type": "boolean"
-                        }
-                      },
-                      "required": [
-                        "extend",
-                        "release",
-                        "purchase"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "holdId",
-                    "itemId",
-                    "status",
-                    "expiresAt",
-                    "extendedAt",
-                    "actions"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The request did not match the schema, or a domain rule refused it.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The hold was already released or purchased (hold_not_active), or it expired and no unit is free any more (item_unavailable).",
             "content": {
               "application/json": {
                 "schema": {

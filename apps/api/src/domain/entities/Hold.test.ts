@@ -7,7 +7,7 @@ describe('Hold.create', () => {
   const validProps = {
     id: '55555555-5555-7555-8555-555555555555', itemId: '33333333-3333-7333-8333-333333333333',
     secret: 'hold-secret', sessionHash: 'a'.repeat(64),
-    idempotencyKey: 'idem-1', expiresAt: new Date('2026-01-04T00:00:00Z'), at, piiRef: '66666666-6666-7666-8666-666666666666',
+    idempotencyKey: 'idem-1', expiresAt: new Date('2026-01-04T00:00:00Z'), at, piiRef: '66666666-6666-7666-8666-666666666666', units: 1,
   };
 
   it('creates a hold', () => {
@@ -52,6 +52,12 @@ describe('Hold.create', () => {
   it('rejects an id that is not a valid UUID', () => {
     expect(() => Hold.create({ ...validProps, id: 'h1' })).toThrow(DomainValidationError);
   });
+
+  it('rejects a hold of 0 units or a fraction of a unit', () => {
+    expect(Hold.create({ ...validProps, units: 3 }).units).toBe(3);
+    expect(() => Hold.create({ ...validProps, units: 0 })).toThrow(DomainValidationError);
+    expect(() => Hold.create({ ...validProps, units: 1.5 })).toThrow(DomainValidationError);
+  });
 });
 
 const HOLD_ID = '55555555-5555-7555-8555-555555555555';
@@ -62,7 +68,7 @@ const msFromExpiry = (ms: number) => new Date(EXPIRES_AT.getTime() + ms);
 function persisted(overrides: Partial<Parameters<typeof Hold.reconstitute>[0]> = {}) {
   return Hold.reconstitute({
     id: HOLD_ID, itemId: ITEM_ID, secret: 'hold-secret', sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1',
-    expiresAt: EXPIRES_AT, extendedAt: null, releasedAt: null, purchasedAt: null, ...overrides,
+    expiresAt: EXPIRES_AT, extendedAt: null, releasedAt: null, purchasedAt: null, units: 1, purchasedUnits: null, ...overrides,
   });
 }
 
@@ -81,7 +87,12 @@ describe('Hold.reconstitute', () => {
   });
 
   it('refuses a hold that is both released and purchased', () => {
-    expect(() => persisted({ releasedAt: EXPIRES_AT, purchasedAt: EXPIRES_AT })).toThrow(DomainValidationError);
+    expect(() => persisted({ releasedAt: EXPIRES_AT, purchasedAt: EXPIRES_AT, purchasedUnits: 1 })).toThrow(DomainValidationError);
+  });
+
+  it('rejects purchased units without a purchase, and a purchase without purchased units', () => {
+    expect(() => persisted({ units: 2, purchasedUnits: 1 })).toThrow(DomainValidationError);
+    expect(() => persisted({ units: 2, purchasedAt: EXPIRES_AT, purchasedUnits: null })).toThrow(DomainValidationError);
   });
 
   it('enforces the value-object invariants on persisted rows too', () => {
@@ -105,14 +116,14 @@ describe('Hold.statusAt — the one definition of hold state', () => {
   });
 
   it('is purchased once purchasedAt is set, even long after expiry', () => {
-    expect(persisted({ purchasedAt: msFromExpiry(5) }).statusAt(msFromExpiry(86_400_000))).toBe('purchased');
+    expect(persisted({ purchasedAt: msFromExpiry(5), purchasedUnits: 1 }).statusAt(msFromExpiry(86_400_000))).toBe('purchased');
   });
 
   it('starts a newly created hold active, with no lifecycle timestamps', () => {
     const at = new Date('2026-01-01T00:00:00.000Z');
     const hold = Hold.create({
       id: HOLD_ID, itemId: ITEM_ID, secret: 'hold-secret', sessionHash: 'a'.repeat(64),
-      idempotencyKey: 'idem-1', expiresAt: EXPIRES_AT, at, piiRef: '66666666-6666-7666-8666-666666666666',
+      idempotencyKey: 'idem-1', expiresAt: EXPIRES_AT, at, piiRef: '66666666-6666-7666-8666-666666666666', units: 1,
     });
     expect(hold.statusAt(at)).toBe('active');
     expect([hold.extendedAt, hold.releasedAt, hold.purchasedAt]).toEqual([null, null, null]);
@@ -157,7 +168,7 @@ describe('Hold.extend', () => {
   it.each([
     ['expired', persisted, msFromExpiry(1)],
     ['released', () => persisted({ releasedAt: CREATED }), CREATED],
-    ['purchased', () => persisted({ purchasedAt: CREATED }), CREATED],
+    ['purchased', () => persisted({ purchasedAt: CREATED, purchasedUnits: 1 }), CREATED],
   ] as const)('refuses a %s hold', (_state, make, at) => {
     expect(() => make().extend(at, DAY)).toThrow(HoldNotActiveError);
   });
@@ -178,7 +189,7 @@ describe('Hold.release', () => {
   it.each([
     ['expired', persisted, msFromExpiry(1)],
     ['released', () => persisted({ releasedAt: CREATED }), CREATED],
-    ['purchased', () => persisted({ purchasedAt: CREATED }), CREATED],
+    ['purchased', () => persisted({ purchasedAt: CREATED, purchasedUnits: 1 }), CREATED],
   ] as const)('refuses a %s hold', (_state, make, at) => {
     expect(() => make().release(at)).toThrow(HoldNotActiveError);
   });
@@ -187,19 +198,33 @@ describe('Hold.release', () => {
 describe('Hold.markPurchased', () => {
   it('stamps purchasedAt and returns ItemPurchased', () => {
     const hold = persisted();
-    expect(hold.markPurchased(CREATED)).toEqual({ type: 'ItemPurchased', v: 1, holdId: HOLD_ID, occurredAt: CREATED.toISOString() });
+    expect(hold.markPurchased(CREATED, 1)).toEqual({ type: 'ItemPurchased', v: 1, holdId: HOLD_ID, units: 1, occurredAt: CREATED.toISOString() });
     expect(hold.statusAt(CREATED)).toBe('purchased');
   });
 
+  it('marks 2 of 3 units purchased and records 2 in the event', () => {
+    const hold = persisted({ units: 3 });
+    expect(hold.markPurchased(CREATED, 2).units).toBe(2);
+    expect(hold.purchasedUnits).toBe(2);
+    expect(hold.units).toBe(3);
+  });
+
+  it('refuses to mark 0 or 4 units purchased on a hold of 3', () => {
+    const hold = persisted({ units: 3 });
+    expect(() => hold.markPurchased(CREATED, 4)).toThrow(DomainValidationError);
+    expect(() => hold.markPurchased(CREATED, 0)).toThrow(DomainValidationError);
+    expect(hold.purchasedAt).toBeNull();
+  });
+
   it('accepts an expired hold — whether a unit is still free is the wishlist\'s call', () => {
-    expect(() => persisted().markPurchased(msFromExpiry(1))).not.toThrow();
+    expect(() => persisted().markPurchased(msFromExpiry(1), 1)).not.toThrow();
   });
 
   it.each([
     ['released', () => persisted({ releasedAt: CREATED })],
-    ['purchased', () => persisted({ purchasedAt: CREATED })],
+    ['purchased', () => persisted({ purchasedAt: CREATED, purchasedUnits: 1 })],
   ] as const)('refuses a %s hold — both are terminal', (_state, make) => {
-    expect(() => make().markPurchased(CREATED)).toThrow(HoldNotActiveError);
+    expect(() => make().markPurchased(CREATED, 1)).toThrow(HoldNotActiveError);
   });
 });
 
@@ -217,7 +242,7 @@ describe('Hold predicates', () => {
 
   it('canReleaseAt: active, extended or not', () => {
     expect(persisted({ extendedAt: CREATED }).canReleaseAt(CREATED)).toBe(true);
-    expect(persisted({ purchasedAt: CREATED }).canReleaseAt(CREATED)).toBe(false);
+    expect(persisted({ purchasedAt: CREATED, purchasedUnits: 1 }).canReleaseAt(CREATED)).toBe(false);
     expect(persisted().canReleaseAt(msFromExpiry(1))).toBe(false);
   });
 });

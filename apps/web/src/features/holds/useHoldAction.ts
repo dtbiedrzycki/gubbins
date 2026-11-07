@@ -5,10 +5,17 @@ import { listViewKey } from './useListView';
 
 export type HoldAction = 'extend' | 'release' | 'purchase';
 
-const call: Record<HoldAction, (slug: string, holdId: string) => Promise<HoldView>> = {
-  extend: api.extendHold,
-  release: api.releaseHold,
-  purchase: api.markHoldPurchased,
+/** What each action is sent: a purchase also says how many units were bought. */
+interface HoldActionInputs {
+  extend: { holdId: string };
+  release: { holdId: string };
+  purchase: { holdId: string; units: number };
+}
+
+const call: { [A in HoldAction]: (slug: string, input: HoldActionInputs[A]) => Promise<HoldView> } = {
+  extend: (slug, { holdId }) => api.extendHold(slug, holdId),
+  release: (slug, { holdId }) => api.releaseHold(slug, holdId),
+  purchase: (slug, { holdId, units }) => api.markHoldPurchased(slug, holdId, units),
 };
 
 /**
@@ -23,14 +30,14 @@ const call: Record<HoldAction, (slug: string, holdId: string) => Promise<HoldVie
  * its component unmounts, and TanStack skips `mutate` callbacks for an
  * unmounted component — the outcome would never be shown.
  */
-export function useHoldAction(
+export function useHoldAction<A extends HoldAction>(
   slug: string,
-  action: HoldAction,
+  action: A,
   { onSuccess, onError }: { onSuccess?: (view: HoldView) => void; onError?: (error: Error) => void } = {},
 ) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (holdId: string) => call[action](slug, holdId),
+    mutationFn: (input: HoldActionInputs[A]) => call[action](slug, input),
     onSuccess,
     onError,
     onSettled: () => queryClient.invalidateQueries({ queryKey: listViewKey(slug) }),

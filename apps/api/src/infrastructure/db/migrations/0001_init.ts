@@ -44,6 +44,9 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn('secret', 'text', (col) => col.notNull())
     .addColumn('session_hash', 'text', (col) => col.notNull())
     .addColumn('idempotency_key', 'text', (col) => col.notNull())
+    // How many units the hold covers, and how many were bought: null until purchased.
+    .addColumn('units', 'integer', (col) => col.notNull())
+    .addColumn('purchased_units', 'integer')
     // Every instant below is written with toISOString(), so text comparison
     // is time order.
     .addColumn('expires_at', 'text', (col) => col.notNull())
@@ -60,6 +63,9 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     // A hold ends one way or the other, never both. A backstop: the domain
     // already refuses it.
     .addCheckConstraint('holds_released_or_purchased', sql`released_at IS NULL OR purchased_at IS NULL`)
+    .addCheckConstraint('holds_units_positive', sql`units >= 1`)
+    .addCheckConstraint('holds_purchased_units_with_purchase', sql`(purchased_at IS NULL) = (purchased_units IS NULL)`)
+    .addCheckConstraint('holds_purchased_units_within_units', sql`purchased_units IS NULL OR purchased_units BETWEEN 1 AND units`)
     .execute();
 
   await schema.createTable('event_log').ifNotExists()

@@ -2,10 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HoldDialog, type HoldDialogProps } from './HoldDialog';
+import { ApiError } from '../../api/client';
 
 function renderDialog(overrides: Partial<HoldDialogProps> = {}) {
   const props: HoldDialogProps = {
-    itemTitle: 'Stroller', holdDurationDays: 3, isPending: false, error: null,
+    itemTitle: 'Stroller', holdDurationDays: 3, availableUnits: 1, isPending: false, error: null,
     onConfirm: vi.fn(), onClose: vi.fn(), ...overrides,
   };
   return { props, ...render(<HoldDialog {...props} />) };
@@ -94,7 +95,7 @@ describe('HoldDialog', () => {
     await user.type(screen.getByLabelText('Message to the owner (optional)'), ' Happy to collect Friday ');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
-    expect(props.onConfirm).toHaveBeenCalledWith(expect.anything(), { name: 'Amara', message: 'Happy to collect Friday' });
+    expect(props.onConfirm).toHaveBeenCalledWith(expect.anything(), { name: 'Amara', message: 'Happy to collect Friday', units: 1 });
   });
 
   it('locks the name and message once sent, so a retry sends what was sent', async () => {
@@ -107,7 +108,7 @@ describe('HoldDialog', () => {
     await user.type(screen.getByLabelText('Message to the owner (optional)'), 'Hi');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
-    expect(vi.mocked(props.onConfirm).mock.calls[1][1]).toEqual({ name: 'Amra', message: '' });
+    expect(vi.mocked(props.onConfirm).mock.calls[1][1]).toEqual({ name: 'Amra', message: '', units: 1 });
     expect(screen.getByLabelText('Gifter name(s)')).toHaveAccessibleDescription('Include everyone the gift is from, e.g. Sam & Alex Smith. Names are only shared with the list owner. To change your details, cancel and start again.');
     expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAccessibleDescription('To change your details, cancel and start again.');
   });
@@ -164,5 +165,69 @@ describe('HoldDialog', () => {
 
     expect(screen.getByRole('alert')).toBe(alert);
     expect(alert).toHaveTextContent('This item is no longer available.');
+  });
+
+  it('holds 2 of 2 units, no more, and says "Yes, hold 2"', async () => {
+    const user = userEvent.setup();
+    const { props } = renderDialog({ availableUnits: 2 });
+    expect(screen.getByRole('group', { name: 'How many?' })).toHaveAccessibleDescription('of 2 left');
+
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: 'One more' }));
+    expect(screen.getByRole('button', { name: 'One more' })).toHaveAttribute('aria-disabled', 'true');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold 2' }));
+
+    expect(screen.getByText('Other guests will see they\u2019re taken while you buy them.')).toBeInTheDocument();
+    expect(screen.getByText('After you buy them, come back and tap \u201cMark as purchased\u201d.')).toBeInTheDocument();
+    expect(screen.getByText('If you don\u2019t, the hold ends after 3 days and another guest could buy them too.')).toBeInTheDocument();
+    expect(props.onConfirm).toHaveBeenCalledWith(expect.anything(), { name: 'Amara', message: '', units: 2 });
+  });
+
+  it('locks the count once the hold is sent, even when fewer are free by the retry', async () => {
+    const user = userEvent.setup();
+    const { props, rerender } = renderDialog({ availableUnits: 5 });
+
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: 'One more' }));
+    await user.click(screen.getByRole('button', { name: 'One more' }));
+    await user.click(screen.getByRole('button', { name: 'Yes, hold 3' }));
+
+    expect(screen.getByRole('button', { name: 'One fewer' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'One more' })).toBeDisabled();
+
+    rerender(<HoldDialog {...props} availableUnits={2} error={new Error('Network error')} />);
+    await user.click(screen.getByRole('button', { name: 'Yes, hold 3' }));
+
+    expect(vi.mocked(props.onConfirm).mock.calls[1][1]).toEqual({ name: 'Amara', message: '', units: 3 });
+  });
+
+  it('after a 409 that is not about units, shows the server\u2019s message and keeps the details locked', async () => {
+    const user = userEvent.setup();
+    const { props, rerender } = renderDialog({ availableUnits: 5 });
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+    rerender(<HoldDialog {...props} error={new ApiError(409, 'Someone else changed this at the same moment. Please try again.')} />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Someone else changed this at the same moment. Please try again.');
+    expect(screen.getByLabelText('Gifter name(s)')).toHaveAttribute('readonly');
+  });
+
+  it('after a 409 with 1 left, says "Only 1 left now." and lets the guest confirm again', async () => {
+    const user = userEvent.setup();
+    const { props, rerender } = renderDialog({ availableUnits: 3 });
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: 'One more' }));
+    await user.click(screen.getByRole('button', { name: 'Yes, hold 2' }));
+
+    rerender(<HoldDialog {...props} availableUnits={1} error={new ApiError(409, 'This item is no longer available.', 'item_unavailable')} />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Only 1 left now.');
+    expect(screen.queryByRole('group', { name: 'How many?' })).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText('Gifter name(s)'), ' Okafor');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+    const [[first], [credential, details]] = vi.mocked(props.onConfirm).mock.calls;
+    expect(credential.idempotencyKey).toBe(first.idempotencyKey);
+    expect(details).toEqual({ name: 'Amara Okafor', message: '', units: 1 });
   });
 });

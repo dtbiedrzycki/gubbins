@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { addItemRequestSchema, createListRequestSchema, holdItemRequestSchema, pledgeRequestSchema } from '@gubbins/shared-types';
+import { addItemRequestSchema, createListRequestSchema, holdItemRequestSchema, markHoldPurchasedRequestSchema, pledgeRequestSchema } from '@gubbins/shared-types';
 import { Item } from '../domain/entities/Item.js';
 import { Wishlist } from '../domain/entities/Wishlist.js';
 import { Contribution } from '../domain/entities/Contribution.js';
+import { Hold } from '../domain/entities/Hold.js';
 import { DomainValidationError } from '../domain/errors.js';
 import { GuestDetails } from '../domain/value-objects/GuestDetails.js';
 
@@ -28,6 +29,10 @@ const single = (props: { title?: string; quantity?: number; url?: string; priceM
 const pledgeRow = {
   id: ID, itemId: ID, sessionHash: 'a'.repeat(64), idempotencyKey: 'k', piiRef: ID, pledgedAt: T0,
 };
+const holdRow = {
+  id: ID, itemId: ID, secret: 's', sessionHash: 'a'.repeat(64), idempotencyKey: 'k',
+  expiresAt: T0, extendedAt: null, releasedAt: null, purchasedAt: null, units: 1, purchasedUnits: null,
+};
 const guest = (props: { name?: string; message?: string }) => () => GuestDetails.from({ name: 'Ann', ...props });
 
 /** Per field whose least value is 1: whether the schema, and the domain, accept `n`. */
@@ -46,6 +51,16 @@ const minimums: { field: string; schema: (n: number) => boolean; domain: (n: num
     field: 'pledge amount',
     schema: (n) => pledgeRequestSchema.safeParse({ idempotencyKey: 'k', amountMinor: n, name: 'Ann' }).success,
     domain: (n) => accepts(() => Contribution.reconstitute({ ...pledgeRow, amountMinor: n })),
+  },
+  {
+    field: 'held units',
+    schema: (n) => holdItemRequestSchema.safeParse({ idempotencyKey: 'k', name: 'Ann', units: n }).success,
+    domain: (n) => accepts(() => Hold.reconstitute({ ...holdRow, units: n })),
+  },
+  {
+    field: 'purchased units',
+    schema: (n) => markHoldPurchasedRequestSchema.safeParse({ units: n }).success,
+    domain: (n) => accepts(() => Hold.reconstitute({ ...holdRow, purchasedAt: T0, purchasedUnits: n })),
   },
 ];
 
@@ -68,7 +83,7 @@ const nonBlank: { field: string; schema: (t: string) => boolean; domain: (t: str
   },
   {
     field: 'hold name',
-    schema: (t) => holdItemRequestSchema.safeParse({ idempotencyKey: 'k', name: t }).success,
+    schema: (t) => holdItemRequestSchema.safeParse({ idempotencyKey: 'k', name: t, units: 1 }).success,
     domain: (t) => accepts(guest({ name: t })),
   },
   {
