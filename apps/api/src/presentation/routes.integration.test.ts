@@ -126,11 +126,11 @@ describe('POST /api/lists', () => {
 });
 
 /** A list holding one single item, Stroller, added by its owner. */
-async function createList(on: FastifyInstance = app) {
+async function createList(on: FastifyInstance = app, quantity = 1) {
   const list = (await on.inject({ method: 'POST', url: '/api/lists', payload: { listTitle: 'Baby Shower', createSecret: 'test-create-secret', key: guestKey } }))
     .json() as { slug: string; ownerToken: string; key: string };
   const owner = extractCookieHeader(await on.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } }));
-  const added = await on.inject({ method: 'POST', url: `/api/lists/${list.slug}/items`, headers: { cookie: owner }, payload: { type: 'single', title: 'Stroller' } });
+  const added = await on.inject({ method: 'POST', url: `/api/lists/${list.slug}/items`, headers: { cookie: owner }, payload: { type: 'single', title: 'Stroller', quantity } });
   return { ...list, itemId: (added.json() as { itemId: string }).itemId };
 }
 
@@ -145,14 +145,15 @@ async function ownerOn(list: { slug: string; ownerToken: string }, on: FastifyIn
 }
 
 function holdAction(slug: string, holdId: string, action: 'extend' | 'release' | 'purchase', cookie?: string, on: FastifyInstance = app) {
-  return on.inject({ method: 'POST', url: `/api/lists/${slug}/holds/${holdId}/${action}`, headers: cookie ? { cookie } : {} });
+  // Purchase takes a body (units may be left out); extend and release take none.
+  return on.inject({ method: 'POST', url: `/api/lists/${slug}/holds/${holdId}/${action}`, headers: cookie ? { cookie } : {}, ...(action === 'purchase' ? { payload: { units: 1 } } : {}) });
 }
 
 async function heldByGuest(on: FastifyInstance = app) {
   const list = await createList(on);
   const cookie = await guestOn(list, on);
   const response = await on.inject({
-    method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada' },
+    method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', units: 1 },
   });
   return { list, cookie, response, holdId: (response.json() as { holdId: string }).holdId };
 }
@@ -248,7 +249,7 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
 
     const holdResponse = await app.inject({
       method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`,
-      headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada' },
+      headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', units: 1 },
     });
     expect(holdResponse.statusCode).toBe(201);
     expect(holdResponse.json()).toMatchObject({ itemId: list.itemId });
@@ -257,25 +258,26 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
     expect(viewResponse.json()).toMatchObject({ items: [{ status: 'held' }] });
   });
 
-  it('passes the name and message from the body to the hold', async () => {
-    const list = await createList();
+  it('passes the name, message and units from the body to the hold', async () => {
+    const list = await createList(app, 3);
     const cookie = extractCookieHeader(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } }));
 
-    await app.inject({
+    const response = await app.inject({
       method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`,
-      headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', message: 'Congrats' },
+      headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', message: 'Congrats', units: 2 },
     });
 
     expect(await db.selectFrom('guest_pii').select(['name', 'message']).execute()).toEqual([{ name: 'Ada', message: 'Congrats' }]);
+    expect(response.json()).toMatchObject({ units: 2 });
   });
 
   it('returns 409 for a second hold attempt on an already-held item', async () => {
     const list = await createList();
     const sessionResponse = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } });
     const cookie = extractCookieHeader(sessionResponse);
-    await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada' } });
+    await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', units: 1 } });
 
-    const second = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-2', name: 'Ada' } });
+    const second = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-2', name: 'Ada', units: 1 } });
 
     expect(second.statusCode).toBe(409);
     expect(second.json()).toEqual({ message: 'This item is no longer available.', code: 'item_unavailable' });
@@ -286,7 +288,7 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
     const cookie = await guestOn(list);
 
     const response = await app.inject({
-      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1' },
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1', units: 1 },
     });
 
     expect(response.statusCode).toBe(400);
@@ -396,7 +398,7 @@ describe('hold lifecycle over HTTP', () => {
     const cookie = await guestOn(list);
 
     const response = await app.inject({
-      method: 'POST', url: `/api/lists/${list.slug}/items/${other.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-x', name: 'Ada' },
+      method: 'POST', url: `/api/lists/${list.slug}/items/${other.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-x', name: 'Ada', units: 1 },
     });
 
     expect(response.statusCode).toBe(404);
@@ -430,6 +432,26 @@ describe('hold lifecycle over HTTP', () => {
     expect(release.json()).toMatchObject({ code: 'hold_not_active' });
   });
 
+  it('marks purchased with the units bought: 2 of a hold of 3', async () => {
+    const list = await createList(app, 3);
+    const cookie = await guestOn(list);
+    const { holdId } = (await app.inject({
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', units: 3 },
+    })).json() as { holdId: string };
+
+    const purchased = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/holds/${holdId}/purchase`, headers: { cookie }, payload: { units: 2 } });
+
+    expect(purchased.statusCode).toBe(200);
+    expect(purchased.json()).toMatchObject({ status: 'purchased', units: 3, purchasedUnits: 2 });
+  });
+
+  it('rejects a purchase with no body', async () => {
+    const { list, cookie, holdId } = await heldByGuest();
+
+    const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/holds/${holdId}/purchase`, headers: { cookie } });
+    expect(response.statusCode).toBe(400);
+  });
+
   it('releases; the hold leaves "my holds" and another guest can hold the item', async () => {
     const { list, cookie, holdId } = await heldByGuest();
 
@@ -437,7 +459,7 @@ describe('hold lifecycle over HTTP', () => {
     const view = (await app.inject({ method: 'GET', url: `/api/lists/${list.slug}`, headers: { cookie } })).json();
     const other = await guestOn(list);
     const retry = await app.inject({
-      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie: other }, payload: { idempotencyKey: 'idem-2', name: 'Ada' },
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: { cookie: other }, payload: { idempotencyKey: 'idem-2', name: 'Ada', units: 1 },
     });
 
     expect(released.json()).toMatchObject({ status: 'released' });
@@ -519,7 +541,7 @@ describe('guest access is checked before any list is loaded', () => {
       { method: 'GET', url: `/api/lists/${list.slug}`, headers: forged },
       { method: 'GET', url: '/api/lists/no-such-list' },
       { method: 'POST', url: `/api/lists/${list.slug}/holds/some-hold/extend`, headers: forged },
-      { method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: forged, payload: { idempotencyKey: 'k', name: 'Ada' } },
+      { method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: forged, payload: { idempotencyKey: 'k', name: 'Ada', units: 1 } },
     ] as const;
     const responses = await Promise.all(requests.map((request) => guarded.inject(request)));
 

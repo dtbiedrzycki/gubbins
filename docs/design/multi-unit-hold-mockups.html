@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi-Unit Hold Mockups</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Alegreya+Sans:wght@400;700&display=swap">
+<style>
+:root {
+  --paper: #F6F3FB; --ink: #2E2447; --muted: #625A78; --line: #DCD3EA;
+  --moss: #34603F; --wax: #9E2A45; --gold: #D9A93A; --card: #FFFFFF; --frame: #E9E3F3; --note: #FBF4E2;
+  --display: "IM Fell English", Georgia, serif; --sans: "Alegreya Sans", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #1E1830; --ink: #EDE7F8; --muted: #B3AACB; --line: #3E3558;
+  --moss: #7DB38A; --wax: #E07A92; --gold: #E6BE62; --card: #2A2240; --frame: #15111F; --note: #3A3220; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #1E1830; --ink: #EDE7F8; --muted: #B3AACB; --line: #3E3558;
+  --moss: #7DB38A; --wax: #E07A92; --gold: #E6BE62; --card: #2A2240; --frame: #15111F; --note: #3A3220; color-scheme: dark }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--frame); color: var(--ink); font: 17px/1.45 var(--sans); padding: 24px 16px 56px; }
+.wrap { max-width: 900px; margin: 0 auto; display: grid; gap: 40px; }
+header { max-width: 620px; }
+header h1 { font: 2.1rem/1.1 var(--display); margin: 0 0 8px; }
+header p { margin: 0 0 6px; color: var(--muted); }
+.step { display: grid; gap: 14px; }
+.step > h2 { font: 700 .8rem/1 var(--sans); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; align-items: start; }
+.shot { display: grid; gap: 10px; }
+.cap { font-size: .95rem; color: var(--muted); }
+.cap b { color: var(--ink); }
+.guess { display: inline-block; font: 700 .72rem/1 var(--sans); letter-spacing: .05em; text-transform: uppercase; background: var(--note); color: var(--ink); padding: 3px 6px; border-radius: 4px; margin-right: 4px; }
+.screen { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 20px 18px; display: grid; gap: 14px; }
+.title { font: 1.3rem/1.15 var(--display); margin: 0; }
+.price { font-weight: 700; margin: 0; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: .9rem; }
+.btn { font: 700 1rem var(--sans); min-height: 44px; padding: 8px 20px; border-radius: 22px 22px 22px 6px; border: 0; background: var(--moss); color: #fff; justify-self: start; }
+.btn.sec { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.dialog { background: var(--paper); border-radius: 22px; padding: 24px; display: grid; gap: 12px; box-shadow: 0 0 0 999px rgba(46,36,71,.5) inset, 0 0 0 1px var(--line); }
+.dim { background: rgba(46,36,71,.45); border-radius: 18px; padding: 26px 14px; }
+.box { background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 14px; display: grid; gap: 6px; }
+.field { width: 100%; min-height: 44px; padding: 8px 12px; border: 1.5px solid var(--ink); border-radius: 14px; background: var(--card); color: var(--ink); font: inherit; }
+label { display: block; }
+.stepper { display: inline-flex; align-items: center; border: 1.5px solid var(--ink); border-radius: 14px; overflow: hidden; background: var(--card); }
+.stepper button { width: 48px; height: 44px; border: 0; background: transparent; color: var(--ink); font: 700 1.3rem var(--sans); }
+.stepper button[disabled] { opacity: .35; }
+.stepper output { min-width: 44px; text-align: center; font: 700 1.15rem var(--sans); border-inline: 1.5px solid var(--line); line-height: 44px; }
+select.field { width: auto; min-width: 96px; appearance: auto; }
+.seal { width: 26px; height: 26px; border-radius: 50%; background: var(--wax); box-shadow: inset -3px -3px 0 rgba(0,0,0,.2); flex: none; }
+.seal.gold { background: var(--gold); }
+.holds { background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 16px; display: grid; gap: 10px; }
+.holds h3 { font: 1.5rem var(--display); margin: 0; }
+.qty { font-weight: 700; color: var(--moss); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Holding more than one</h1>
+    <p>A guest picks a quantity in the hold sheet. One hold covers all of them, and the quantity starts at 1.</p>
+    <p class="small">Example: the owner lists 5 onesies and a guest holds 2.</p>
+  </header>
+
+  <section class="step">
+    <h2>1 · The item on the list</h2>
+    <div class="pair">
+      <div class="shot">
+        <div class="screen">
+          <p class="title">Baby onesies, 0–3 months</p>
+          <p class="price">$12.00</p>
+          <p>5 left</p>
+          <button class="btn">Hold this item</button>
+        </div>
+        <p class="cap">No change. The button stays "Hold this item". The "5 left" line already exists.</p>
+      </div>
+      <div class="shot">
+        <div class="screen">
+          <p class="title">Baby onesies, 0–3 months</p>
+          <p class="price">$12.00</p>
+          <p>5 left</p>
+          <button class="btn">Hold some</button>
+        </div>
+        <p class="cap">Not chosen: changing the button wording when there's more than one. The picker in the sheet says enough.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="step">
+    <h2>2 · The hold sheet</h2>
+    <div class="pair">
+      <div class="shot">
+        <div class="dim"><div class="dialog">
+          <p class="title">Hold &ldquo;Baby onesies, 0–3 months&rdquo; for yourself?</p>
+          <p class="muted">Other guests will see they&rsquo;re taken while you buy them.</p>
+          <div>
+            <label class="small" style="margin-bottom:4px">How many?</label>
+            <div class="row">
+              <div class="stepper" role="group" aria-label="How many"><button disabled aria-label="One fewer">−</button><output>1</output><button aria-label="One more">+</button></div>
+              <span class="muted small">of 5 left</span>
+            </div>
+          </div>
+          <div class="box small">
+            <p><b>After you buy them, come back and tap &ldquo;Mark as purchased&rdquo;.</b></p>
+            <p>If you don&rsquo;t, the hold ends after 3 days and another guest could buy them too.</p>
+          </div>
+          <label class="small">Gifter name(s)</label>
+          <input class="field" value="Sam &amp; Alex Smith">
+          <div class="row"><button class="btn">Yes, hold 1</button><button class="btn sec">Cancel</button></div>
+        </div></div>
+        <p class="cap"><b>Stepper.</b> Starts at 1; "−" is off at 1 and "+" is off at the number left. The button repeats the count ("Yes, hold 2"). Easiest to tap on a phone.</p>
+      </div>
+    </div>
+    <div class="pair">
+      <div class="shot">
+        <div class="dim"><div class="dialog">
+          <p class="title">Hold &ldquo;Board book: Goodnight Owl&rdquo; for yourself?</p>
+          <p class="muted">Other guests will see it&rsquo;s taken while you buy it.</p>
+          <div class="box small"><p><b>After you buy it, come back and tap &ldquo;Mark as purchased&rdquo;.</b></p></div>
+          <div class="row"><button class="btn">Yes, hold it</button><button class="btn sec">Cancel</button></div>
+        </div></div>
+        <p class="cap">With only one left (or a quantity of 1) there's no picker, and the sheet reads exactly as it does today.</p>
+      </div>
+      <div class="shot">
+        <div class="dim"><div class="dialog">
+          <p class="title">Hold &ldquo;Baby onesies, 0–3 months&rdquo; for yourself?</p>
+          <p style="color:var(--wax)">Only 1 left now. Someone held the others while you were choosing.</p>
+          <label class="small">Gifter name(s)</label>
+          <input class="field" value="Sam &amp; Alex Smith">
+          <div class="row"><button class="btn">Yes, hold it</button><button class="btn sec">Cancel</button></div>
+        </div></div>
+        <p class="cap">When someone else holds some first, nothing is held. The sheet shows the new count, lowers yours to fit (the stepper goes away at 1 left), and you can confirm again without retyping. It never quietly holds fewer than you picked.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="step">
+    <h2>3 · Your holds, and buying fewer</h2>
+    <div class="pair">
+      <div class="shot">
+        <div class="holds">
+          <h3>Your holds</h3>
+          <div class="row"><span class="seal"></span><b>Baby onesies, 0–3 months</b> <span class="qty">× 2</span></div>
+          <p>Held until Sat 8 Nov, 6:00 pm.</p>
+          <div class="row"><button class="btn">Mark as purchased</button><button class="btn sec">Extend</button><button class="btn sec">Release</button></div>
+        </div>
+        <p class="cap">One card with "× 2". Extend and Release act on the whole hold. Mark as purchased opens the sheet beside it; a hold of one unit marks it straight away, as today.</p>
+      </div>
+      <div class="shot">
+        <div class="dim"><div class="dialog">
+          <p class="title">How many did you buy?</p>
+          <div class="row"><div class="stepper" role="group" aria-label="How many did you buy"><button aria-label="One fewer">−</button><output>2</output><button disabled aria-label="One more">+</button></div><span class="muted small">of 2 held</span></div>
+          <div class="row"><button class="btn">Mark 2 as purchased</button><button class="btn sec">Cancel</button></div>
+        </div></div>
+        <p class="cap">Starts at the full number held, so "I bought both" is one confirm.</p>
+      </div>
+    </div>
+    <div class="pair">
+      <div class="shot">
+        <div class="dim"><div class="dialog">
+          <p class="title">How many did you buy?</p>
+          <div class="row"><div class="stepper" role="group" aria-label="How many did you buy"><button disabled aria-label="One fewer">−</button><output>1</output><button aria-label="One more">+</button></div><span class="muted small">of 2 held</span></div>
+          <div class="box small"><p><b>The other 1 will be released, so another guest can hold it.</b></p></div>
+          <div class="row"><button class="btn">Mark 1 as purchased</button><button class="btn sec">Cancel</button></div>
+        </div></div>
+        <p class="cap">Lowered below the number held: the sheet says, before the guest confirms, that the rest will be released.</p>
+      </div>
+      <div class="shot">
+        <div class="holds">
+          <h3>Your holds</h3>
+          <p style="font-weight:700;color:var(--moss)">Baby onesies, 0–3 months: 1 marked as purchased. Thank you!</p>
+          <div class="row"><span class="seal gold"></span><b>Baby onesies, 0–3 months</b></div>
+          <p>Marked as purchased.</p>
+        </div>
+        <div class="screen">
+          <p class="title">Baby onesies, 0–3 months</p>
+          <p class="price">$12.00</p>
+          <p>4 left</p>
+          <button class="btn">Hold this item</button>
+        </div>
+        <p class="cap">Afterwards: the card shows the units bought. Other guests see the released unit back in "left" (here 5 − 1 bought = 4).</p>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

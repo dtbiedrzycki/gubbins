@@ -72,7 +72,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     // After the items, so a new hold's item row already exists.
     const holdIds = wishlist.holds.map((hold) => hold.id.value);
     const storedRows = holdIds.length === 0 ? [] : await this.db.selectFrom('holds')
-      .select(['id', 'expires_at', 'extended_at', 'released_at', 'purchased_at']).where('id', 'in', holdIds).execute();
+      .select(['id', 'expires_at', 'extended_at', 'released_at', 'purchased_at', 'purchased_units']).where('id', 'in', holdIds).execute();
     const storedHolds = new Map(storedRows.map(({ id, ...lifecycle }) => [id, lifecycle]));
     // Likewise only holds the domain placed or changed; every column save writes is compared.
     for (const hold of wishlist.holds) {
