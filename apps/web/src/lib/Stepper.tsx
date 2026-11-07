@@ -12,7 +12,7 @@ export interface StepperProps {
   disabled?: boolean;
   /** Id of text that describes the count, such as how many are left. */
   describedBy?: string;
-  /** The count is also a text box; a typed number snaps to the nearest allowed value. */
+  /** The count is also a text box that takes only digits; a typed number snaps to the nearest allowed value. */
   typeable?: boolean;
 }
 
@@ -30,7 +30,8 @@ export function Stepper({ id, label, labelClassName = 'mb-1', value, min, max, o
   const named = { 'aria-labelledby': labelId, 'aria-describedby': describedBy };
 
   function type(text: string) {
-    const next = /^\d+$/.test(text) ? Math.min(max, Math.max(min, Number(text))) : value;
+    if (!/^\d*$/.test(text)) return;
+    const next = text === '' ? value : Math.min(max, Math.max(min, Number(text)));
     setDraft({ text, value: next });
     if (next !== value) onChange(next);
   }

@@ -43,7 +43,7 @@ describe('a typeable Stepper', () => {
     return <><Stepper typeable id="count" label="Quantity" value={value} min={1} max={99} onChange={setValue} /><p>Value {value}</p></>;
   }
 
-  it.each([['150', '99'], ['0', '1'], ['abc', '2'], ['', '2'], ['7', '7']])('turns a typed "%s" into %s when the owner leaves the box', async (typed, shown) => {
+  it.each([['150', '99'], ['0', '1'], ['', '2'], ['7', '7']])('turns a typed "%s" into %s when the owner leaves the box', async (typed, shown) => {
     const user = userEvent.setup();
     render(<TypeableCounter />);
     const box = screen.getByLabelText('Quantity');
@@ -54,6 +54,15 @@ describe('a typeable Stepper', () => {
 
     expect(box).toHaveValue(shown);
     expect(screen.getByText(`Value ${shown}`)).toBeInTheDocument();
+  });
+
+  it('ignores anything but digits', async () => {
+    const user = userEvent.setup();
+    render(<TypeableCounter />);
+    const box = screen.getByLabelText('Quantity');
+    await user.clear(box);
+    await user.type(box, '1a-2.');
+    expect(box).toHaveValue('12');
   });
 
   it('steps from a typed number', async () => {
