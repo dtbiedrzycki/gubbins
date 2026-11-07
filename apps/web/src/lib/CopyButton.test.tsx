@@ -3,13 +3,14 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { CopyButton } from './CopyButton';
 
 const LINK = 'https://example.test/wishlists/abc123';
+const FAILED = 'Couldn’t copy to the clipboard; the link is highlighted so you can copy it.';
 
 function renderCopy(clipboard: Partial<Clipboard> | undefined) {
   Object.defineProperty(navigator, 'clipboard', { value: clipboard, configurable: true });
   return render(
     <>
       <p id="link">{LINK}</p>
-      <CopyButton text={LINK} label="Copy link" copiedLabel="Link copied" selectTargetId="link" />
+      <CopyButton text={LINK} label="Copy link" copiedLabel="Link copied" selectTargetId="link" failedMessage={FAILED} />
     </>,
   );
 }
@@ -51,13 +52,18 @@ describe('CopyButton', () => {
     expect(screen.getByRole('button', { name: 'Link copied' })).toBeInTheDocument();
   });
 
-  it('selects the text, and keeps its label, when the clipboard refuses', async () => {
-    renderCopy({ writeText: vi.fn().mockRejectedValue(new Error('denied')) });
+  it('selects the text, keeps its label, and says why for two seconds when the clipboard refuses', async () => {
+    const { container } = renderCopy({ writeText: vi.fn().mockRejectedValue(new Error('denied')) });
+    const announcement = container.querySelector('[aria-live="polite"]');
 
     await press('Copy link');
 
     expect(window.getSelection()?.toString()).toBe(LINK);
     expect(screen.getByRole('button', { name: 'Copy link' })).toBeInTheDocument();
+    expect(announcement).toHaveTextContent(FAILED);
+    expect(announcement).not.toHaveClass('sr-only');
+    act(() => { vi.advanceTimersByTime(2000); });
+    expect(announcement).toBeEmptyDOMElement();
   });
 
   it('selects the text when the browser has no clipboard, as over plain http', async () => {
