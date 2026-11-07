@@ -177,6 +177,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lists/{slug}/holds/{holdId}/purchase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["markHoldPurchased"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lists/{slug}/holds/{holdId}/extend": {
         parameters: {
             query?: never;
@@ -203,22 +219,6 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["releaseHold"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/lists/{slug}/holds/{holdId}/purchase": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["markHoldPurchased"];
         delete?: never;
         options?: never;
         head?: never;
@@ -944,6 +944,77 @@ export interface operations {
             };
         };
     };
+    markHoldPurchased: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                holdId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    units?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description The hold was marked purchased; units not bought are released. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        holdId: string;
+                        itemId: string;
+                        /** @enum {string} */
+                        status: "active" | "expired" | "released" | "purchased";
+                        expiresAt: string;
+                        extendedAt: string | null;
+                        units: number;
+                        purchasedUnits: number | null;
+                        purchasableUnits: number;
+                        actions: {
+                            extend: boolean;
+                            release: boolean;
+                            purchase: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description The request did not match the schema, or a domain rule refused it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description The hold was already released or purchased (hold_not_active); or it lapsed and no unit is free, or fewer units are free than asked (item_unavailable). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     extendHold: {
         parameters: {
             query?: never;
@@ -1064,71 +1135,6 @@ export interface operations {
                 };
             };
             /** @description The hold is not active (hold_not_active). */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    markHoldPurchased: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-                holdId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The hold was marked purchased. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        holdId: string;
-                        itemId: string;
-                        /** @enum {string} */
-                        status: "active" | "expired" | "released" | "purchased";
-                        expiresAt: string;
-                        extendedAt: string | null;
-                        units: number;
-                        purchasedUnits: number | null;
-                        purchasableUnits: number;
-                        actions: {
-                            extend: boolean;
-                            release: boolean;
-                            purchase: boolean;
-                        };
-                    };
-                };
-            };
-            /** @description The request did not match the schema, or a domain rule refused it. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description The hold was already released or purchased (hold_not_active), or it expired and no unit is free any more (item_unavailable). */
             409: {
                 headers: {
                     [name: string]: unknown;

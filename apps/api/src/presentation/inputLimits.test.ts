@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addItemRequestSchema, createListRequestSchema, holdItemRequestSchema, pledgeRequestSchema } from '@gubbins/shared-types';
+import { addItemRequestSchema, createListRequestSchema, holdItemRequestSchema, markHoldPurchasedRequestSchema, pledgeRequestSchema } from '@gubbins/shared-types';
 import { Item } from '../domain/entities/Item.js';
 import { Wishlist } from '../domain/entities/Wishlist.js';
 import { Contribution } from '../domain/entities/Contribution.js';
@@ -56,6 +56,11 @@ const minimums: { field: string; schema: (n: number) => boolean; domain: (n: num
     field: 'held units',
     schema: (n) => holdItemRequestSchema.safeParse({ idempotencyKey: 'k', name: 'Ann', units: n }).success,
     domain: (n) => accepts(() => Hold.reconstitute({ ...holdRow, units: n })),
+  },
+  {
+    field: 'purchased units',
+    schema: (n) => markHoldPurchasedRequestSchema.safeParse({ units: n }).success,
+    domain: (n) => accepts(() => Hold.reconstitute({ ...holdRow, purchasedAt: T0, purchasedUnits: n })),
   },
 ];
 

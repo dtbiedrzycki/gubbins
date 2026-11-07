@@ -19,3 +19,7 @@ export const holdViewSchema = z.object({
   actions: z.object({ extend: z.boolean(), release: z.boolean(), purchase: z.boolean() }),
 });
 export type HoldView = z.infer<typeof holdViewSchema>;
+
+/** How many of the held units were bought; omitted means the domain default (every unit held). */
+export const markHoldPurchasedRequestSchema = z.object({ units: z.number().int().min(1).optional() });
+export type MarkHoldPurchasedRequest = z.infer<typeof markHoldPurchasedRequestSchema>;
