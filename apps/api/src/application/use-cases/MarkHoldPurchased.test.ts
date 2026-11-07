@@ -11,7 +11,7 @@ import { DAY, GUEST, ITEM_ID, WISHLIST_ID, twoListsWithOneItemEach } from '../te
 async function setup() {
   const world = await twoListsWithOneItemEach();
   const purchaseUseCase = new MarkHoldPurchased(world.unitOfWork, world.clock);
-  const purchase = (holdId: string, access: AccessContext = GUEST) => purchaseUseCase.execute({ wishlistId: WISHLIST_ID, holdId }, access);
+  const purchase = (holdId: string, access: AccessContext = GUEST) => purchaseUseCase.execute({ wishlistId: WISHLIST_ID, holdId, units: 1 }, access);
   return { ...world, purchase };
 }
 
