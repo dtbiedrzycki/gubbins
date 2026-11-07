@@ -8,6 +8,8 @@ import { buildDependencies, type AppDependencies } from '../../presentation/comp
 import { FixedClock } from '../../application/test-fakes/FixedClock.js';
 import type { AccessContext } from '../../application/AccessContext.js';
 import type { Logger } from '../../application/ports/Logger.js';
+import { UnitOfWorkKysely } from '../UnitOfWorkKysely.js';
+import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const GUEST: AccessContext = { guestSession: { sessionHash: 'a'.repeat(64) } };
@@ -40,7 +42,7 @@ async function projections() {
   const wishlistIds = await db.selectFrom('wishlists').select('id').orderBy('id').execute();
   return {
     holds: await db.selectFrom('holds')
-      .select(['id', 'item_id', 'secret', 'session_hash', 'idempotency_key', 'expires_at', 'extended_at', 'released_at', 'purchased_at'])
+      .select(['id', 'item_id', 'secret', 'session_hash', 'idempotency_key', 'expires_at', 'extended_at', 'released_at', 'purchased_at', 'units', 'purchased_units'])
       .orderBy('id').execute(),
     contributions: await db.selectFrom('contributions')
       .select(['id', 'item_id', 'amount_minor', 'session_hash', 'idempotency_key', 'pii_ref', 'pledged_at'])
@@ -55,14 +57,14 @@ async function projections() {
   };
 }
 
-async function newList() {
+async function newList(quantity = 1) {
   const { slug } = await deps.createList.execute({ listTitle: 'L', createSecret: 'test-create-secret', key: guestKey });
   const wishlist = await deps.wishlists.findBySlug(slug, clock.now());
   const wishlistId = wishlist!.id.value;
-  const { itemId } = await deps.addItem.execute({ wishlistId, type: 'single', title: 'I', quantity: 1 }, { guestSession: null, owner: true });
+  const { itemId } = await deps.addItem.execute({ wishlistId, type: 'single', title: 'I', quantity }, { guestSession: null, owner: true });
   const hold = (access: AccessContext, idempotencyKey: string) => deps.holdItem.execute({ wishlistId, itemId, idempotencyKey, name: 'Ada' }, access);
   const command = { wishlistId };
-  return { hold, command };
+  return { hold, command, itemId };
 }
 
 async function aGroupGift() {
@@ -117,7 +119,7 @@ describe('rebuildProjections', () => {
     await aBusyLedger();
     const incremental = await projections();
     await db.updateTable('item_state').set({ seq: 99 }).execute();
-    await db.updateTable('holds').set({ released_at: null, purchased_at: null, extended_at: '2000-01-01T00:00:00.000Z' }).execute();
+    await db.updateTable('holds').set({ released_at: null, purchased_at: null, purchased_units: null, extended_at: '2000-01-01T00:00:00.000Z' }).execute();
     await db.deleteFrom('contributions').execute();
 
     await rebuildProjections(db);
@@ -150,6 +152,28 @@ describe('rebuildProjections', () => {
 
     expect(await db.selectFrom('holds').select('pii_ref').where('id', '=', placed.holdId).executeTakeFirstOrThrow()).toEqual({ pii_ref: piiRef });
     expect(await db.selectFrom('guest_pii').selectAll().execute()).toEqual(piiBefore);
+  });
+
+  it('re-folds units and purchased units from ItemHeld and ItemPurchased', async () => {
+    const { command: { wishlistId }, itemId } = await newList(3);
+    // The hold and purchase use cases take no unit count here, so the events come from the domain, written as those use cases write them.
+    await new UnitOfWorkKysely(db).execute(async (ctx) => {
+      const wishlist = (await ctx.wishlists.findById(wishlistId, clock.now()))!;
+      const piiRef = deps.tokenGenerator.generateEntityId();
+      const held = wishlist.holdItem(
+        { itemId, sessionHash: GUEST.guestSession!.sessionHash, idempotencyKey: 'k', durationMs: DAY, piiRef, units: 3 },
+        deps.tokenGenerator, deps.hasher,
+      );
+      await ctx.eventStore.append(itemId, held.expectedSeq, [held.event], 'guest');
+      await ctx.guestPii.insert(piiRef, GuestDetails.from({ name: 'Ada' }));
+      const bought = wishlist.purchaseHold(held.hold, 2);
+      await ctx.eventStore.append(itemId, bought.expectedSeq, [bought.event], 'guest');
+      await ctx.wishlists.save(wishlist);
+    });
+
+    await rebuildProjections(db);
+
+    expect(await db.selectFrom('holds').select(['units', 'purchased_units']).executeTakeFirstOrThrow()).toEqual({ units: 3, purchased_units: 2 });
   });
 
   it('refuses a payload version it does not know', async () => {
