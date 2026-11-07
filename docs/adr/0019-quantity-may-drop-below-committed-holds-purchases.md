@@ -3,10 +3,11 @@
 - **Status:** Accepted
 - **Date:** 2026-09-09
 - **Deciders:** dtbiedrzycki
+- **Amended:** 2026-11-05 — committed is counted in units, since one hold can cover several (ADR-[084](./0084-a-hold-covers-one-or-more-units.md)).
 
 ## Context
 
-Single items enforce `activeHolds + purchased ≤ quantity` ([domain
+Single items enforce `units under active holds + units bought ≤ quantity` ([domain
 model](../spec/domain-model.md)). An owner can reduce an item's `quantity`
 at any time, including below the count of holds/purchases already
 committed against it ([owner dashboard & editing rules](../spec/owner-dashboard.md)).
