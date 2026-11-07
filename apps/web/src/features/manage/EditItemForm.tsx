@@ -7,7 +7,8 @@ import { manageViewKey } from './manageViewKey';
 import { parseUsd } from '../../lib/parseUsd';
 import { formatMoney } from '../../lib/formatMoney';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
-import { DESCRIPTION_MAX, TITLE_MAX, URL_MAX } from './AddItemForm';
+import { Stepper } from '../../lib/Stepper';
+import { DESCRIPTION_MAX, QUANTITY_MAX, TITLE_MAX, URL_MAX } from './AddItemForm';
 
 export interface EditItemFormProps {
   slug: string;
@@ -23,7 +24,7 @@ const field = 'mt-1 field';
 export function EditItemForm({ slug, item, onDone, onUnauthorized }: EditItemFormProps) {
   const isGroup = item.type === 'group';
   const [title, setTitle] = useState(item.title);
-  const [quantity, setQuantity] = useState(String(item.quantity));
+  const [quantity, setQuantity] = useState(item.quantity);
   const [price, setPrice] = useState(item.priceMinor === null ? '' : (item.priceMinor / 100).toFixed(2));
   const [url, setUrl] = useState(item.url ?? '');
   const [description, setDescription] = useState(item.description ?? '');
@@ -45,14 +46,12 @@ export function EditItemForm({ slug, item, onDone, onUnauthorized }: EditItemFor
     onSettled: () => queryClient.invalidateQueries({ queryKey: manageViewKey(slug) }),
   });
 
-  const newQuantity = Number(quantity);
-  // An empty or fractional count is left to the field's own validation.
-  const belowCommitted = !isGroup && quantity.trim() !== '' && Number.isInteger(newQuantity) && newQuantity < item.committedUnits;
+  const belowCommitted = !isGroup && quantity < item.committedUnits;
 
   function save(priceMinor: number | undefined) {
     mutate({
       title: title.trim(),
-      quantity: isGroup ? 1 : newQuantity,
+      quantity: isGroup ? 1 : quantity,
       priceMinor: priceMinor ?? null,
       url: url.trim() || null,
       description: description.trim() || null,
@@ -86,16 +85,10 @@ export function EditItemForm({ slug, item, onDone, onUnauthorized }: EditItemFor
         <LimitedInput autoFocus id="edit-item-title" required max={TITLE_MAX} value={title} onChange={(e) => setTitle(e.target.value)} className={field} />
       </div>
       {!isGroup && (
-        <div>
-          <label htmlFor="edit-item-quantity" className="block font-bold">Quantity</label>
-          <input
-            id="edit-item-quantity" aria-describedby="edit-item-quantity-warning" type="number" inputMode="numeric" min={1} max={99} required value={quantity}
-            onChange={(e) => setQuantity(e.target.value)} className={field}
-          />
-        </div>
+        <Stepper id="edit-item-quantity" label="Quantity" labelClassName="mb-1 font-bold" value={quantity} min={1} max={QUANTITY_MAX} onChange={setQuantity} describedBy="edit-item-quantity-warning" />
       )}
       <div id="edit-item-quantity-warning" aria-live="polite" className="text-sm text-amber-800 empty:hidden">
-        {belowCommitted && `More may already be held or bought than this new quantity. Those stay as they are; guests can’t pick this item again until the count drops below ${newQuantity}.`}
+        {belowCommitted && `More may already be held or bought than this new quantity. Those stay as they are; guests can’t pick this item again until the count drops below ${quantity}.`}
       </div>
       <div>
         <label htmlFor="edit-item-price" className="block font-bold">{isGroup ? 'Target (USD)' : 'Price (USD)'}</label>

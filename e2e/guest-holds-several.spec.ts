@@ -15,7 +15,7 @@ async function listOfFiveOnesies(page: Page): Promise<{ guestLink: string; guest
   await manage.getByLabel('Owner token').fill(ownerToken!);
   await manage.getByRole('button', { name: 'Manage list' }).click();
   await manage.getByLabel('Title').fill('Baby onesies');
-  await manage.getByLabel('Quantity').fill('5');
+  for (let i = 1; i < 5; i++) await manage.getByRole('button', { name: 'One more' }).click();
   await manage.getByRole('button', { name: 'Add item' }).click();
   await expect(manage.getByRole('status')).toHaveText('Added "Baby onesies".');
   return { guestLink: guestLink!, guestKey: guestKey! };

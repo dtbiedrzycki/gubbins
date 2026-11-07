@@ -6,6 +6,7 @@ import { api, ApiError } from '../../api/client';
 import { manageViewKey } from './manageViewKey';
 import { parseUsd } from '../../lib/parseUsd';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
+import { Stepper } from '../../lib/Stepper';
 
 export interface AddItemFormProps {
   slug: string;
@@ -16,6 +17,8 @@ export interface AddItemFormProps {
 const field = 'mt-1 field';
 
 export const TITLE_MAX = 120;
+/** The most of one item the API takes. */
+export const QUANTITY_MAX = 99;
 /** The longest store link the API takes. */
 export const URL_MAX = 2048;
 /** Room for an item's size, colour and store notes; the domain enforces the same cap. */
@@ -24,7 +27,7 @@ export const DESCRIPTION_MAX = 1000;
 export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
   const [type, setType] = useState<'single' | 'group'>('single');
   const [title, setTitle] = useState('');
-  const [quantity, setQuantity] = useState('1');
+  const [quantity, setQuantity] = useState(1);
   const [price, setPrice] = useState('');
   const [url, setUrl] = useState('');
   const [description, setDescription] = useState('');
@@ -55,11 +58,11 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
     const common = { title: trimmedTitle, ...(trimmedUrl && { url: trimmedUrl }), ...(trimmedDescription && { description: trimmedDescription }) };
     const body: AddItemRequest = type === 'group'
       ? { type, ...common, priceMinor: priceMinor! }
-      : { type, ...common, quantity: Number(quantity), ...(priceMinor !== undefined && { priceMinor }) };
+      : { type, ...common, quantity, ...(priceMinor !== undefined && { priceMinor }) };
     mutate(body, {
       onSuccess: () => {
         setAdded(`Added "${trimmedTitle}".`);
-        setTitle(''); setQuantity('1'); setPrice(''); setUrl(''); setDescription('');
+        setTitle(''); setQuantity(1); setPrice(''); setUrl(''); setDescription('');
       },
       onError: (e) => { if (e instanceof ApiError && e.status === 404) onUnauthorized(); },
     });
@@ -85,13 +88,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
           <LimitedInput id="item-title" required max={TITLE_MAX} value={title} onChange={(e) => setTitle(e.target.value)} className={field} />
         </div>
         {type === 'single' && (
-          <div>
-            <label htmlFor="item-quantity" className="block font-bold">Quantity</label>
-            <input
-              id="item-quantity" type="number" inputMode="numeric" min={1} max={99} required value={quantity}
-              onChange={(e) => setQuantity(e.target.value)} className={field}
-            />
-          </div>
+          <Stepper id="item-quantity" label="Quantity" labelClassName="mb-1 font-bold" value={quantity} min={1} max={QUANTITY_MAX} onChange={setQuantity} />
         )}
         <div>
           <label htmlFor="item-price" className="block font-bold">Price (USD)</label>

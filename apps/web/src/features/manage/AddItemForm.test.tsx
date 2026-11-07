@@ -37,8 +37,7 @@ describe('AddItemForm', () => {
     renderForm(<AddItemForm slug="abc123" onUnauthorized={() => {}} />);
 
     await user.type(screen.getByLabelText('Title'), 'Crib');
-    await user.clear(screen.getByLabelText('Quantity'));
-    await user.type(screen.getByLabelText('Quantity'), '2');
+    await user.click(screen.getByRole('button', { name: 'One more' }));
     await user.type(screen.getByLabelText('Price (USD)'), '$199.99');
     await user.type(screen.getByLabelText('Store link'), 'https://shop.example/crib');
     await user.click(screen.getByRole('button', { name: 'Add item' }));
@@ -46,6 +45,7 @@ describe('AddItemForm', () => {
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Added "Crib".'));
     expect(body).toEqual({ type: 'single', title: 'Crib', quantity: 2, priceMinor: 19999, url: 'https://shop.example/crib' });
     expect(screen.getByLabelText('Title')).toHaveValue('');
+    expect(screen.getByRole('group', { name: 'Quantity' })).toHaveTextContent('1');
     expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
   });
 
