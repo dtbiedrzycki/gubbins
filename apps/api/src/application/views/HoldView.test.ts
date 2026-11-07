@@ -21,7 +21,7 @@ function holdOn(overrides: Partial<Parameters<typeof Hold.reconstitute>[0]> = {}
 
 /** The list as loaded at `asOf`, carrying `holds`. */
 function wishlistAt(asOf: Date, holds: Hold[] = []): Wishlist {
-  const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 1, seq: 0, asOf, holds });
+  const item = Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Stroller', quantity: 3, seq: 0, asOf, holds });
   return Wishlist.reconstitute({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'o', key: 'k', keyGen: 1, asOf, items: [item] });
 }
 
@@ -29,11 +29,14 @@ function wishlistAt(asOf: Date, holds: Hold[] = []): Wishlist {
 // this only checks that the view carries what the wishlist answers.
 describe('toHoldView', () => {
   it("maps the hold's fields and the wishlist's answers into the view", () => {
-    const hold = holdOn({ extendedAt: at(DAY) });
+    const hold = holdOn({ extendedAt: at(DAY), units: 2 });
     expect(toHoldView(wishlistAt(at(DAY), [hold]), hold)).toEqual({
       holdId: hold.id.value, itemId: ITEM_ID, status: 'active',
       expiresAt: at(3 * DAY).toISOString(), extendedAt: at(DAY).toISOString(),
+      units: 2, purchasedUnits: null, purchasableUnits: 2,
       actions: { extend: false, release: true, purchase: true },
     });
+    const bought = holdOn({ units: 2, purchasedAt: at(DAY), purchasedUnits: 1 });
+    expect(toHoldView(wishlistAt(at(DAY), [bought]), bought).purchasedUnits).toBe(1);
   });
 });
