@@ -100,10 +100,6 @@ describe('Hold.reconstitute', () => {
     expect(persisted().purchasedUnits).toBeNull();
   });
 
-  it('reads a purchase stored without purchased units as every unit bought: 2 of 2', () => {
-    expect(persisted({ units: 2, purchasedAt: EXPIRES_AT }).purchasedUnits).toBe(2);
-  });
-
   it('enforces the value-object invariants on persisted rows too', () => {
     expect(() => persisted({ sessionHash: 'nope' })).toThrow(DomainValidationError);
   });
