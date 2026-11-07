@@ -48,7 +48,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
     });
 
     it('loads every hold on the list, whatever its state, and none from another list', async () => {
-      const mine = [holdFixture(), holdFixture({ purchasedAt: later(-5), expiresAt: later(-1) }), holdFixture({ expiresAt: later(-1) }), holdFixture({ releasedAt: later(-5) })];
+      const mine = [holdFixture(), holdFixture({ purchasedAt: later(-5), purchasedUnits: 1, expiresAt: later(-1) }), holdFixture({ expiresAt: later(-1) }), holdFixture({ releasedAt: later(-5) })];
       const elsewhere = holdFixture({ itemId: ITEM_B });
       for (const hold of [...mine, elsewhere]) await fx.holds.insert(hold);
 
@@ -98,7 +98,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       const hold = holdFixture();
       await fx.holds.insert(hold);
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
-      wishlist.purchaseHold(wishlist.findHold(hold.id.value)!);
+      wishlist.purchaseHold(wishlist.findHold(hold.id.value)!, 1);
 
       await fx.wishlists.save(wishlist);
 
@@ -112,7 +112,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       const hold = holdFixture({ expiresAt: later(-1) });
       await fx.holds.insert(hold);
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
-      wishlist.purchaseHold(wishlist.findHold(hold.id.value)!);
+      wishlist.purchaseHold(wishlist.findHold(hold.id.value)!, 1);
 
       await fx.wishlists.save(wishlist);
 
@@ -150,7 +150,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       await fx.seedGuestPii(piiRef);
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
       const { hold } = wishlist.holdItem(
-        { itemId: ITEM_A, sessionHash: SESSION, idempotencyKey: 'idem-placed', durationMs: 60_000, piiRef },
+        { itemId: ITEM_A, sessionHash: SESSION, idempotencyKey: 'idem-placed', durationMs: 60_000, piiRef, units: 1 },
         { generateEntityId: () => '00000000-0000-7000-8000-777777777777', generateHoldSecret: () => 'secret-placed' },
         { hash: (value) => `hashed-${value}` },
       );
@@ -166,7 +166,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       for (const hold of [
         holdFixture({ releasedAt: later(-5) }),
         holdFixture({ expiresAt: later(-1) }),
-        holdFixture({ itemId: ITEM_B, purchasedAt: later(-5) }),
+        holdFixture({ itemId: ITEM_B, purchasedAt: later(-5), purchasedUnits: 1 }),
       ]) await fx.holds.insert(hold);
 
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);

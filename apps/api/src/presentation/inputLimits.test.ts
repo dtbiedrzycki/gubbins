@@ -31,7 +31,7 @@ const pledgeRow = {
 };
 const holdRow = {
   id: ID, itemId: ID, secret: 's', sessionHash: 'a'.repeat(64), idempotencyKey: 'k',
-  expiresAt: T0, extendedAt: null, releasedAt: null, purchasedAt: null, units: 1,
+  expiresAt: T0, extendedAt: null, releasedAt: null, purchasedAt: null, units: 1, purchasedUnits: null,
 };
 const guest = (props: { name?: string; message?: string }) => () => GuestDetails.from({ name: 'Ann', ...props });
 
