@@ -259,7 +259,7 @@ export class Wishlist {
   }
 
   holdItem(
-    props: { itemId: string; sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string; units?: number },
+    props: { itemId: string; sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string; units: number },
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): HoldCommandResult<ItemHeldEvent> {
@@ -285,7 +285,7 @@ export class Wishlist {
     return { item, ...item.releaseHold(hold) };
   }
 
-  purchaseHold(hold: Hold, units?: number): HoldCommandResult<ItemPurchasedEvent> {
+  purchaseHold(hold: Hold, units: number): HoldCommandResult<ItemPurchasedEvent> {
     const item = this.memberOf(hold);
     return { item, ...item.purchaseHold(hold, units) };
   }
