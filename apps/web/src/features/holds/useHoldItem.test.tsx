@@ -9,6 +9,7 @@ import { mock } from '../../test/msw/mock';
 import { useHoldItem } from './useHoldItem';
 import { useListView } from './useListView';
 import { aListItem } from '../../test/listItem';
+import { aHoldView } from '../../test/holdView';
 
 function wrapper({ children }: { children: ReactNode }) {
   // useListView's own retry wins over these defaults; retryDelay: 0 keeps its one retry instant.
@@ -44,7 +45,7 @@ describe('useHoldItem', () => {
     const { result } = renderListAndHold();
     await waitFor(() => expect(result.current.view.data?.items[0].status).toBe('available'));
 
-    result.current.hold.mutate({ idempotencyKey: 'key-1', name: 'Ada' });
+    result.current.hold.mutate({ idempotencyKey: 'key-1', name: 'Ada', units: 1 });
 
     await waitFor(() => expect(result.current.hold.isError).toBe(true));
     expect(result.current.view.data?.items[0].status).toBe('held');
@@ -64,13 +65,13 @@ describe('useHoldItem', () => {
       }),
       http.post('/api/lists/abc123/items/item-1/hold', () => {
         holdRequested = true;
-        return HttpResponse.json({ holdId: 'hold-1', itemId: 'item-1', status: 'active', expiresAt: '2026-01-04T00:00:00.000Z', extendedAt: null, actions: { extend: true, release: true, purchase: true } }, { status: 201 });
+        return HttpResponse.json(aHoldView(), { status: 201 });
       }),
     );
     const { result } = renderListAndHold();
     await waitFor(() => expect(result.current.view.data?.items[0].status).toBe('available'));
 
-    result.current.hold.mutate({ idempotencyKey: 'key-1', name: 'Ada' });
+    result.current.hold.mutate({ idempotencyKey: 'key-1', name: 'Ada', units: 1 });
 
     await waitFor(() => expect(listViewRequests).toBe(2));
     expect(holdRequested).toBe(true);

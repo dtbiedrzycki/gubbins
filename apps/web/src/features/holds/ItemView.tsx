@@ -115,6 +115,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
         <HoldDialog
           itemTitle={item.title}
           holdDurationDays={holdDurationDays}
+          availableUnits={item.availableUnits}
           isPending={isPending}
           error={error}
           onConfirm={(credential, details) => mutate({ idempotencyKey: credential.idempotencyKey, ...details }, { onSuccess: () => { closedBy.current = 'hold'; setDialogOpen(false); } })}

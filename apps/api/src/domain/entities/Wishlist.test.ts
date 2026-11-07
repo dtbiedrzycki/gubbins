@@ -32,7 +32,7 @@ function holdOn(itemId: string, overrides: Partial<Parameters<typeof Hold.recons
   holdCount += 1;
   return Hold.reconstitute({
     id: `00000000-0000-7000-8000-${String(holdCount).padStart(12, '0')}`, itemId, secret: 'hold-secret', sessionHash: SESSION,
-    idempotencyKey: `idem-${holdCount}`, expiresAt: at(3 * DAY), extendedAt: null, releasedAt: null, purchasedAt: null,
+    idempotencyKey: `idem-${holdCount}`, expiresAt: at(3 * DAY), extendedAt: null, releasedAt: null, purchasedAt: null, units: 1, purchasedUnits: null,
     ...overrides,
   });
 }
@@ -280,7 +280,7 @@ describe('Wishlist.availableUnitsOf', () => {
 });
 
 describe('Wishlist.holdItem', () => {
-  const props = { itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', durationMs: 3 * DAY, piiRef: '66666666-6666-7666-8666-666666666666' };
+  const props = { itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', durationMs: 3 * DAY, piiRef: '66666666-6666-7666-8666-666666666666', units: 1 };
 
   it('has the item place the hold on a free item, and returns that item with what it decided', () => {
     const wishlist = loaded({ seq: 4 });
@@ -305,7 +305,7 @@ describe('Wishlist.holdItem', () => {
 
 describe('Wishlist.findHold', () => {
   it('findHold returns its own instance of a hold it loaded, whatever its state, and null for an id it did not load', () => {
-    const holds = [holdOn(ITEM_ID), holdOn(ITEM_ID, { expiresAt: at(-1) }), holdOn(ITEM_ID, { releasedAt: T0 }), holdOn(ITEM_ID, { purchasedAt: T0 })];
+    const holds = [holdOn(ITEM_ID), holdOn(ITEM_ID, { expiresAt: at(-1) }), holdOn(ITEM_ID, { releasedAt: T0 }), holdOn(ITEM_ID, { purchasedAt: T0, purchasedUnits: 1 })];
     const wishlist = loaded({ quantity: 2, holds });
     for (const hold of holds) expect(wishlist.findHold(hold.id.value)).toBe(hold);
     expect(wishlist.findHold(holdOn(ITEM_ID).id.value)).toBeNull();
@@ -333,15 +333,24 @@ describe('Wishlist hold commands', () => {
   it('purchaseHold has the item decide, and returns that item', () => {
     const hold = holdOn(ITEM_ID);
     const wishlist = loaded({ holds: [hold] });
-    const { event, item } = wishlist.purchaseHold(hold);
+    const { event, item } = wishlist.purchaseHold(hold, 1);
     expect(event.type).toBe('ItemPurchased');
     expect(item).toBe(wishlist.getItem(ITEM_ID));
+  });
+
+  it('passes the units of a hold through to the item', () => {
+    const wishlist = loaded({ quantity: 5 });
+    const { hold } = wishlist.holdItem({ itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', durationMs: 3 * DAY, piiRef: '66666666-6666-7666-8666-666666666666', units: 3 }, tokens(), hasher);
+    expect(hold.units).toBe(3);
+    expect(wishlist.purchasableUnits(hold)).toBe(3);
+    expect(wishlist.purchaseHold(hold, 2).event.units).toBe(2);
+    expect(wishlist.purchasableUnits(holdOn(OTHER_ITEM_ID))).toBe(0);
   });
 
   it("refuses a hold on another list's item with HoldNotFoundError", () => {
     expect(() => loaded().extendHold(holdOn(OTHER_ITEM_ID), DAY)).toThrow(HoldNotFoundError);
     expect(() => loaded().releaseHold(holdOn(OTHER_ITEM_ID))).toThrow(HoldNotFoundError);
-    expect(() => loaded().purchaseHold(holdOn(OTHER_ITEM_ID))).toThrow(HoldNotFoundError);
+    expect(() => loaded().purchaseHold(holdOn(OTHER_ITEM_ID), 1)).toThrow(HoldNotFoundError);
   });
 });
 
