@@ -67,6 +67,8 @@ export function YourHolds({ slug, holds, itemTitles }: YourHoldsProps) {
         <ul className="space-y-3">
           {holds.map((hold) => {
             const itemTitle = itemTitles[hold.itemId] ?? 'This item';
+            // A purchased hold counts what was bought; the rest were released.
+            const count = hold.status === 'purchased' ? hold.purchasedUnits : hold.units;
             return (
               <li key={hold.holdId} className="space-y-2 border-t border-line pt-3 first:border-t-0 first:pt-0">
                 <div className="flex items-center gap-2.5">
@@ -81,6 +83,7 @@ export function YourHolds({ slug, holds, itemTitles }: YourHoldsProps) {
                   >
                     {itemTitle}
                   </h3>
+                  {count !== null && count > 1 && <span className="shrink-0 font-bold text-moss">× {count}</span>}
                 </div>
                 <p>{statusLine(hold)}</p>
                 <HoldActions slug={slug} hold={hold} itemTitle={itemTitle} onStart={() => setOutcome(null)} onOutcome={(next) => showOutcome(hold.holdId, next)} />
