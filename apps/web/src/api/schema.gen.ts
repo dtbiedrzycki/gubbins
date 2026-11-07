@@ -822,6 +822,7 @@ export interface operations {
                 "application/json": {
                     idempotencyKey: string;
                     name: string;
+                    units?: number;
                     message?: string;
                 };
             };
@@ -869,7 +870,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description No unit of the item is free (item_unavailable), or a concurrent change won (no code). */
+            /** @description Fewer units of the item are free than asked (item_unavailable), or a concurrent change won (no code). */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1020,7 +1021,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The hold was released; its unit is free for others. */
+            /** @description The hold was released; its units are free for others. */
             200: {
                 headers: {
                     [name: string]: unknown;
