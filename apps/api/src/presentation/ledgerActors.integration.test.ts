@@ -59,7 +59,7 @@ async function itemOnNewList(list: object, item: object) {
 async function holdOnNewList() {
   const { slug, itemId, cookie } = await itemOnNewList({ listTitle: 'L' }, { type: 'single', title: 'I' });
   const { holdId } = (await app.inject({
-    method: 'POST', url: `/api/lists/${slug}/items/${itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'k', name: 'Ada' },
+    method: 'POST', url: `/api/lists/${slug}/items/${itemId}/hold`, headers: { cookie }, payload: { idempotencyKey: 'k', name: 'Ada', units: 1 },
   })).json() as { holdId: string };
   const act = (action: string) => app.inject({ method: 'POST', url: `/api/lists/${slug}/holds/${holdId}/${action}`, headers: { cookie }, payload: action === 'purchase' ? {} : undefined });
   return { act };
