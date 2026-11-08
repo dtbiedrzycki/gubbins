@@ -2,18 +2,19 @@ import { useEffect, useRef, useState } from 'react';
 
 export interface CopyButtonProps {
   text: string;
-  label: string;
-  /** Shown on the button, and announced, for two seconds after a copy. */
-  copiedLabel: string;
+  /** What is copied, in lower case ("key"): it names the button, "Key copied" and the failure note. */
+  noun: string;
   /** The element holding the text, selected instead when the clipboard is unavailable (e.g. over plain http). */
   selectTargetId: string;
-  /** Shown under the row, and announced, for two seconds when the copy fails and the text is selected instead. */
-  failedMessage: string;
 }
 
 const COPIED_MS = 2000;
 
-export function CopyButton({ text, label, copiedLabel, selectTargetId, failedMessage }: CopyButtonProps) {
+/** "Key copied" shows on the button, and the failure note under the row; each is announced and lasts two seconds. */
+export function CopyButton({ text, noun, selectTargetId }: CopyButtonProps) {
+  const label = `Copy ${noun}`;
+  const copiedLabel = `${noun[0].toUpperCase()}${noun.slice(1)} copied`;
+  const failedMessage = `Couldn’t copy to the clipboard; the ${noun} is highlighted so you can copy it.`;
   const [outcome, setOutcome] = useState<'copied' | 'failed' | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);

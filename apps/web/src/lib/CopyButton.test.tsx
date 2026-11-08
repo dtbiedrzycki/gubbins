@@ -10,7 +10,7 @@ function renderCopy(clipboard: Partial<Clipboard> | undefined) {
   return render(
     <>
       <p id="link">{LINK}</p>
-      <CopyButton text={LINK} label="Copy link" copiedLabel="Link copied" selectTargetId="link" failedMessage={FAILED} />
+      <CopyButton text={LINK} noun="link" selectTargetId="link" />
     </>,
   );
 }

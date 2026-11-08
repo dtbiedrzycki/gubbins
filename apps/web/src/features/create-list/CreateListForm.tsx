@@ -55,7 +55,7 @@ export function CreateListForm() {
           <div className="flex flex-wrap items-center justify-between gap-2.5">
             {/* Never rendered inside a link — ADR-062: the owner token must never travel in a URL. */}
             <p id="owner-token" data-testid="owner-token" className="min-w-0 font-mono font-bold wrap-anywhere">{data.ownerToken}</p>
-            <CopyButton text={data.ownerToken} label="Copy token" copiedLabel="Token copied" selectTargetId="owner-token" failedMessage="Couldn’t copy to the clipboard; the token is highlighted so you can copy it." />
+            <CopyButton text={data.ownerToken} noun="token" selectTargetId="owner-token" />
           </div>
         </section>
         {/* A new tab, so one tap cannot lose the only display of the owner token and guest key. */}
