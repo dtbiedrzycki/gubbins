@@ -128,7 +128,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
   app.get('/api/instance', {
     schema: {
       operationId: 'getInstance',
-      response: { 200: json("Where this instance's source code is published, and who to contact about privacy (null when none is set).", instanceResponseSchema) },
+      response: { 200: json("Where this instance's source code is published, who to contact about privacy (null when none is set), and which release is running.", instanceResponseSchema) },
     },
   }, async () => deps.instance);
 

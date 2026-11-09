@@ -12,7 +12,7 @@ function renderPage() {
 
 describe('PrivacyPage', () => {
   it('names the contact from the server when one is set', async () => {
-    server.use(mock('get', '/api/instance', 200, { sourceUrl: 'https://git.example.org/fork', privacyContact: 'privacy@example.org' }));
+    server.use(mock('get', '/api/instance', 200, { sourceUrl: 'https://git.example.org/fork', privacyContact: 'privacy@example.org', version: '0.1.0' }));
     renderPage();
 
     expect(await screen.findByText('privacy@example.org')).toBeInTheDocument();
@@ -20,7 +20,7 @@ describe('PrivacyPage', () => {
   });
 
   it('tells guests to contact whoever runs the site when no contact is set', async () => {
-    server.use(mock('get', '/api/instance', 200, { sourceUrl: 'https://git.example.org/fork', privacyContact: null }));
+    server.use(mock('get', '/api/instance', 200, { sourceUrl: 'https://git.example.org/fork', privacyContact: null, version: '0.1.0' }));
     renderPage();
 
     expect(await screen.findByText(/contact whoever runs this site/)).toBeInTheDocument();

@@ -15,7 +15,7 @@ function renderFooter() {
 
 describe('Footer', () => {
   it('links the license and the source URL the server gives', async () => {
-    server.use(mock('get', '/api/instance', 200, { sourceUrl: 'https://git.example.org/fork', privacyContact: null }));
+    server.use(mock('get', '/api/instance', 200, { sourceUrl: 'https://git.example.org/fork', privacyContact: null, version: '0.1.0' }));
     renderFooter();
 
     await waitFor(() => expect(screen.getByRole('link', { name: 'Source on GitHub' })).toHaveAttribute('href', 'https://git.example.org/fork'));
@@ -28,6 +28,14 @@ describe('Footer', () => {
 
     await waitFor(() => expect(client.getQueryState(['instance'])?.status).toBe('error'));
     expect(screen.getByRole('link', { name: 'Source on GitHub' })).toHaveAttribute('href', UPSTREAM_SOURCE_URL);
+    expect(screen.queryByText(/^v\d/)).toBeNull();
+  });
+
+  it('shows the version the server is running', async () => {
+    server.use(mock('get', '/api/instance', 200, { sourceUrl: 'https://git.example.org/fork', privacyContact: null, version: '0.2.0' }));
+    renderFooter();
+
+    expect(await screen.findByText('v0.2.0')).toBeInTheDocument();
   });
 
   it('links to the privacy page', async () => {

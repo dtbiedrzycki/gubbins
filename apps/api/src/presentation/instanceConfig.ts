@@ -1,19 +1,24 @@
 import { z } from 'zod';
+import { appVersion } from './appVersion.js';
 
 export const instanceResponseSchema = z.object({
   sourceUrl: z.string(),
   privacyContact: z.string().nullable(),
+  version: z.string(),
 });
 
 export interface InstanceConfig {
   sourceUrl: string;
   privacyContact: string | null;
+  /** The running release, shown in the footer. */
+  version: string;
 }
 
 /** Where an instance points at its source (AGPL-3.0, ADR-0043), with no privacy contact, until configured otherwise. */
 export const DEFAULT_INSTANCE_CONFIG: InstanceConfig = {
   sourceUrl: 'https://github.com/dtbiedrzycki/gubbins',
   privacyContact: null,
+  version: appVersion,
 };
 
 /**
@@ -28,7 +33,7 @@ export function parseInstanceConfig(env: Record<string, string | undefined>): In
   if (!isHttpUrl(sourceUrl)) {
     throw new Error(`SOURCE_URL must be an http(s) URL (got ${JSON.stringify(sourceUrl)})`);
   }
-  return { sourceUrl, privacyContact: env.PRIVACY_CONTACT?.trim() || DEFAULT_INSTANCE_CONFIG.privacyContact };
+  return { sourceUrl, privacyContact: env.PRIVACY_CONTACT?.trim() || DEFAULT_INSTANCE_CONFIG.privacyContact, version: appVersion };
 }
 
 function isHttpUrl(value: string): boolean {

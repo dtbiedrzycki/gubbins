@@ -355,7 +355,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Where this instance's source code is published, and who to contact about privacy (null when none is set). */
+            /** @description Where this instance's source code is published, who to contact about privacy (null when none is set), and which release is running. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -364,6 +364,7 @@ export interface operations {
                     "application/json": {
                         sourceUrl: string;
                         privacyContact: string | null;
+                        version: string;
                     };
                 };
             };
