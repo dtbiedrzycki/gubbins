@@ -57,3 +57,13 @@ release() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"0001_init.ts"* ]]
 }
+
+@test "passes when a new migration is listed in the shipped index" {
+  echo "export const migrations = { a };" > "$DIR/index.ts"
+  git add -A && git commit -q -m "add index"
+  release
+  echo "create table b" > "$DIR/0002_b.ts"
+  echo "export const migrations = { a, b };" > "$DIR/index.ts"
+  run "$GUARD"
+  [ "$status" -eq 0 ]
+}

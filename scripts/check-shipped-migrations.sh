@@ -7,7 +7,8 @@ set -euo pipefail
 dir=apps/api/src/infrastructure/db/migrations
 tag=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null) || exit 0
 
-mapfile -t shipped < <(git ls-tree -r --name-only "$tag" -- "$dir")
+# Only numbered migrations: index.ts gains a line with every new one.
+mapfile -t shipped < <(git ls-tree -r --name-only "$tag" -- "$dir" | grep -E '/[0-9]{4}_[^/]+\.ts$' || true)
 [ "${#shipped[@]}" -eq 0 ] && exit 0
 
 if ! changed=$(git diff --name-status --exit-code "$tag" -- "${shipped[@]}"); then
