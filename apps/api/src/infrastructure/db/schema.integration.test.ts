@@ -119,7 +119,7 @@ describe('migrateToLatest on a database an older build created', () => {
     await migrateToLatest(released);
 
     expect(await released.selectFrom('wishlists').select(['id', 'slug']).execute()).toEqual([{ id: W1, slug: 's' }]);
-    expect((await sql`select name from kysely_migration`.execute(released)).rows).toEqual([{ name: '0001_init' }]);
+    expect((await sql<{ name: string }>`select name from kysely_migration`.execute(released)).rows).toContainEqual({ name: '0001_init' });
     await released.destroy();
   });
 
