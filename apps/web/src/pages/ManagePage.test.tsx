@@ -43,7 +43,7 @@ describe('ManagePage', () => {
     serveView(() => ['Rings']);
     await enterToken();
 
-    expect(await screen.findByRole('heading', { name: 'List details' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Baby Shower' })).toBeInTheDocument();
     expect(await screen.findByText('Rings')).toBeInTheDocument();
   });
 

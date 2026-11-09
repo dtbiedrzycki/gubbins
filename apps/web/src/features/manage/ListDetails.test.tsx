@@ -12,13 +12,13 @@ describe('ListDetails', () => {
       <ListDetails slug="abc123" onUnauthorized={() => {}} view={{ title: 'Baby Shower', description: 'Ship to **Elm Row**', key: 'maple-lantern-otter', items: [] }} />,
     );
 
-    expect(screen.getByText('Baby Shower')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Baby Shower' })).toBeInTheDocument();
     expect(screen.getByText('Elm Row').tagName).toBe('STRONG');
     expect(screen.getByText('maple-lantern-otter')).toBeInTheDocument();
     expect(screen.getByText(`${window.location.origin}/wishlists/abc123`)).toBeInTheDocument();
   });
 
-  it('opens the edit form on the title, and Cancel puts focus back on Edit', async () => {
+  it('opens the edit form under the saved title, and Cancel puts focus back on Edit', async () => {
     const user = userEvent.setup();
     render(
       <QueryClientProvider client={new QueryClient()}>
@@ -28,6 +28,8 @@ describe('ListDetails', () => {
 
     await user.click(screen.getByRole('button', { name: 'Edit' }));
     expect(screen.getByLabelText('List title')).toHaveFocus();
+    await user.type(screen.getByLabelText('List title'), ' 2026');
+    expect(screen.getByRole('heading', { name: 'Baby Shower' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
