@@ -23,7 +23,7 @@
 ## Review Focus
 
 1. A browser on the previous build sends `message` with a hold: the hold succeeds (201) and stores no message. Test in Task 5.
-2. A whitespace-only message at purchase is stored as `null`, not `"   "`. Test in Task 2.
+2. A purchase whose request reaches the server but whose response is lost: the retry gets 409 `hold_not_active`, the sheet closes and the message given on the first try is kept. No new test: today's close rule and Task 2's single transaction cover it.
 3. A 301-character message at purchase: 400, and the hold is still active (nothing purchased). Test in Task 2.
 4. A hold with no `guest_pii` row (`piiRef` null) is purchased with a message: the purchase succeeds and the message is dropped. Test in Task 2.
 5. A purchase refused with 409 `item_unavailable`: the sheet stays open and the typed message is still in the box. Test in Task 3.
@@ -64,11 +64,10 @@
 - Produces: `markHoldPurchasedRequestSchema = z.object({ units: z.number().int().min(1), message: z.string().optional() })`. `MarkHoldPurchased.execute(input: HoldCommandInput & { units: number; message?: string }, access)`.
 
 - [ ] **Step 1: Write failing use-case tests** in `MarkHoldPurchased.test.ts`:
-  - `it('stores the message on the hold\'s guest details')`: hold as `Ada`, purchase with `message: '  Congratulations!  '`, expect the store's guest_pii row `{ name: 'Ada', message: 'Congratulations!' }`.
-  - `it('stores no message when the message is blank')`: `message: '   '` → row message `null`.
+  - `it('stores the message on the hold\'s guest details')`: hold as `Ada`, purchase with `message: 'Congratulations!'`, expect the store's guest_pii row `{ name: 'Ada', message: 'Congratulations!' }`. (Trim and blank are `GuestDetails`' rules, already tested there; not repeated here.)
   - `it('purchases nothing when the message is over 300 characters')`: `message: 'x'.repeat(301)` → rejects with `DomainValidationError`; the hold's status is still `active` and no `ItemPurchased` event is stored.
   - `it('purchases a hold with no guest details and drops the message')`: hold seeded with `piiRef: null`, purchase with a message → resolves with `status: 'purchased'`; guest_pii store stays empty.
-- [ ] **Step 2: Run** `npm test --workspace=apps/api -- MarkHoldPurchased`; expect the four to fail.
+- [ ] **Step 2: Run** `npm test --workspace=apps/api -- MarkHoldPurchased`; expect the three to fail.
 - [ ] **Step 3: Implement.** In the unit of work, after `runHoldCommand` succeeds, when `hold.piiRef` is set: `findById`, then `update(piiRef, GuestDetails.from({ name: existing.name, message: input.message }))`. Validate (build the `GuestDetails`) before the purchase is persisted so an over-long message purchases nothing; the hold is reachable via `ctx.wishlists.findById(...).findHold(holdId)` or by building the details inside the `decide` callback — implementer's choice, as long as one transaction covers both.
 - [ ] **Step 4: Route test** in `routes.integration.test.ts`: `it('passes the message from the purchase body to the hold\'s guest details')` — hold as `Ada`, POST purchase `{ units: 1, message: 'Congrats' }`, expect 200 and guest_pii `[{ name: 'Ada', message: 'Congrats' }]`. Wire `message: request.body.message` in the route.
 - [ ] **Step 5: Run** `npm run gen:api`, then `npm test --workspace=apps/api`; expect PASS.
@@ -85,11 +84,11 @@
 
 **Interfaces:**
 - Consumes: the regenerated client types from Task 2.
-- Produces: `PurchaseDialogProps` gains `itemTitle: string`; `onConfirm: (units: number, message: string) => void` (message trimmed by the dialog, as `HoldDialog` trims today).
+- Produces: `PurchaseDialogProps` gains `itemTitle: string`; `onConfirm: (units: number, message: string) => void` (sent as typed; the server trims).
 
 - [ ] **Step 1: Failing `PurchaseDialog` tests:**
   - `it('for one unit held, asks "Mark “Stroller” as purchased?" with no stepper or release note')`: `units: 1, purchasableUnits: 1` → heading text as given, no `spinbutton`/stepper, button `Mark as purchased`.
-  - `it('sends the trimmed message with the count')`: type `'  Congrats  '` into `Message to the owner (optional)`, confirm → `onConfirm(1, 'Congrats')`.
+  - `it('sends the message with the count')`: type `Congrats` into `Message to the owner (optional)`, confirm → `onConfirm(1, 'Congrats')`.
   - `it('locks the message box while the purchase is in flight')`: `isPending: true` → textbox disabled.
   - Existing multi-unit tests keep passing; the box sits under the count.
 - [ ] **Step 2: Failing `HoldActions` tests:**
