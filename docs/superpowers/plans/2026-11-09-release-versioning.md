@@ -1,6 +1,6 @@
 # Release Versioning and Tracked Migrations Implementation Plan
 
-> **As built:** PRs #206–#210 supersede this plan where they differ: pending migrations and their records run in one transaction through an adapter flag, not a wrapper per migration; the schema error says to deploy the release that last ran against the database; the guard checks only numbered `NNNN_*.ts` files (7 bats tests); the bump also regenerates `apps/api/openapi.json` (7 files); the release steps add `npm run gen:api` and a manual database copy before a minor release; and #210 is stacked on #205.
+> **As built:** PRs #206–#210 supersede this plan where they differ: pending migrations and their records run in one transaction through an adapter flag, not a wrapper per migration; the schema error says to deploy the release that last ran against the database; the guard checks only numbered `NNNN_*.ts` files (7 bats tests); the bump also regenerates `apps/api/openapi.json` (7 files); the release steps add `npm run gen:api` and a manual database copy before a minor release; #210 is stacked on #205; and the ADR is 0085, renamed from 0086 after the "I'm buying this" ADR that held 0085 was dropped.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
