@@ -5,17 +5,17 @@ import { listViewKey } from './useListView';
 
 export type HoldAction = 'extend' | 'release' | 'purchase';
 
-/** What each action is sent: a purchase also says how many units were bought. */
+/** What each action is sent: a purchase also says how many units were bought, and any message to the owner. */
 interface HoldActionInputs {
   extend: { holdId: string };
   release: { holdId: string };
-  purchase: { holdId: string; units: number };
+  purchase: { holdId: string; units: number; message: string };
 }
 
 const call: { [A in HoldAction]: (slug: string, input: HoldActionInputs[A]) => Promise<HoldView> } = {
   extend: (slug, { holdId }) => api.extendHold(slug, holdId),
   release: (slug, { holdId }) => api.releaseHold(slug, holdId),
-  purchase: (slug, { holdId, units }) => api.markHoldPurchased(slug, holdId, units),
+  purchase: (slug, { holdId, units, message }) => api.markHoldPurchased(slug, holdId, units, message),
 };
 
 /**

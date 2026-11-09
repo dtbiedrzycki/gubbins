@@ -102,6 +102,6 @@ export const api = {
   releaseHold: (slug: string, holdId: string): Promise<HoldView> =>
     http.POST('/api/lists/{slug}/holds/{holdId}/release', { params: { path: { slug, holdId } } }).then(unwrap),
 
-  markHoldPurchased: (slug: string, holdId: string, units: number): Promise<HoldView> =>
-    http.POST('/api/lists/{slug}/holds/{holdId}/purchase', { params: { path: { slug, holdId } }, body: { units } }).then(unwrap),
+  markHoldPurchased: (slug: string, holdId: string, units: number, message: string): Promise<HoldView> =>
+    http.POST('/api/lists/{slug}/holds/{holdId}/purchase', { params: { path: { slug, holdId } }, body: { units, message } }).then(unwrap),
 };

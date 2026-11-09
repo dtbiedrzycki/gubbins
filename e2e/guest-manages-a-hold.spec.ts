@@ -57,6 +57,10 @@ test('a guest holds the item, extends the hold once, and marks it purchased', as
   await expectNoSeriousAxeViolations(guest);
 
   await yourHolds.getByRole('button', { name: 'Mark as purchased' }).click();
+  const sheet = guest.getByRole('dialog');
+  await sheet.getByLabel('Message to the owner (optional)').fill('Congratulations!');
+  await expectNoSeriousAxeViolations(guest);
+  await sheet.getByRole('button', { name: 'Mark as purchased' }).click();
   await expect(yourHolds.getByRole('status')).toHaveText('Stroller is marked as purchased. Thank you!');
   await expect(yourHolds.getByText('Marked as purchased.', { exact: true })).toBeVisible();
   await expect(guest.getByText('Stroller has been purchased.')).toBeVisible();
