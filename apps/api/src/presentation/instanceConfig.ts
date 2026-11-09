@@ -26,7 +26,8 @@ export const DEFAULT_INSTANCE_CONFIG: InstanceConfig = {
  * built once and configured by env. The source link is how an AGPL-3.0 instance
  * offers its users the code it runs (ADR-0043). A malformed SOURCE_URL stops
  * startup naming the variable; unset or blank means the default, since compose
- * files commonly pass an unset variable through as ''.
+ * files commonly pass an unset variable through as ''. The version is the
+ * release's, from package.json (appVersion), never from env.
  */
 export function parseInstanceConfig(env: Record<string, string | undefined>): InstanceConfig {
   const sourceUrl = env.SOURCE_URL?.trim() || DEFAULT_INSTANCE_CONFIG.sourceUrl;

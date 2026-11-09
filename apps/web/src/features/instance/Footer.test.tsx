@@ -28,7 +28,14 @@ describe('Footer', () => {
 
     await waitFor(() => expect(client.getQueryState(['instance'])?.status).toBe('error'));
     expect(screen.getByRole('link', { name: 'Source on GitHub' })).toHaveAttribute('href', UPSTREAM_SOURCE_URL);
-    expect(screen.queryByText(/^v\d/)).toBeNull();
+  });
+
+  it("shows no version when the server can't be reached", async () => {
+    server.use(http.get('/api/instance', () => HttpResponse.json({ message: 'boom' }, { status: 500 })));
+    const client = renderFooter();
+
+    await waitFor(() => expect(client.getQueryState(['instance'])?.status).toBe('error'));
+    expect(screen.getByRole('contentinfo')).toHaveTextContent(/Privacy$/);
   });
 
   it('shows the version the server is running', async () => {
