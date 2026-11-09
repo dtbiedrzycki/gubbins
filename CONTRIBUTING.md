@@ -64,6 +64,32 @@ an edit to an existing one
    not an in-place edit.
 4. A release that includes a migration bumps the minor version.
 
+### What a migration can do
+
+A release's pending migrations and their records run in one transaction,
+so they apply together or not at all: if `0003` fails, `0002` rolls back
+with it. Being inside a transaction limits what a migration can do in
+SQLite:
+
+- No `VACUUM` and no `PRAGMA journal_mode`. Both fail inside a
+  transaction.
+- `PRAGMA foreign_keys = OFF` silently does nothing. To change a column's
+  type or a constraint, rebuild the table
+  ([SQLite's procedure](https://www.sqlite.org/lang_altertable.html#otheralter))
+  this way instead:
+  1. `PRAGMA defer_foreign_keys = ON`.
+  2. Create the new table, copy the rows, drop the old table, rename the
+     new one, and recreate its indexes, triggers and views.
+  3. Run `PRAGMA foreign_key_check` and throw if it returns any rows.
+     This is the only check: the next step lets the commit through.
+  4. `PRAGMA defer_foreign_keys = OFF`. Without it the commit fails with
+     `FOREIGN KEY constraint failed` even when nothing is wrong.
+- Don't rebuild a table that another table references with
+  `ON DELETE CASCADE`, `SET NULL` or `SET DEFAULT`: dropping it fires
+  those actions and deletes or blanks the child rows. No such reference
+  exists today. If one is added, its rebuild needs a migration that runs
+  outside the shared transaction.
+
 ## Cutting a release
 
 Versions are `0.x`. Bump the **minor** number for a migration or a new
