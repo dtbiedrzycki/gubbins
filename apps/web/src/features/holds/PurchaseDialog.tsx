@@ -4,6 +4,9 @@ import { LimitedTextarea } from '../../lib/LimitedField';
 import { Stepper } from '../../lib/Stepper';
 import { ApiError } from '../../api/client';
 
+/** The longest message the API takes. */
+const MESSAGE_MAX = 300;
+
 export interface PurchaseDialogProps {
   itemTitle: string;
   status: HoldView['status'];
@@ -18,12 +21,11 @@ export interface PurchaseDialogProps {
 }
 
 /**
- * "How many did you buy?" for a hold of more than one unit, or a plain
- * "Mark it as purchased?" for one, each with the optional message to the
- * owner. A real <dialog>
- * (ADR-0024), mounted only while open, and like HoldDialog it cannot be
- * dismissed while the purchase is in flight, so the outcome lands where the
- * guest is looking.
+ * "How many did you buy?" for a hold of more than one unit, or
+ * "Mark “{item}” as purchased?" for one, each with the optional message to
+ * the owner. A real <dialog> (ADR-0024), mounted only while open, and like
+ * HoldDialog it cannot be dismissed while the purchase is in flight, so the
+ * outcome lands where the guest is looking.
  */
 export function PurchaseDialog({ itemTitle, status, units, purchasableUnits, isPending, error, onConfirm, onClose }: PurchaseDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -64,12 +66,12 @@ export function PurchaseDialog({ itemTitle, status, units, purchasableUnits, isP
   return (
     <dialog ref={dialogRef} onCancel={handleCancel} onClose={handleClose} aria-labelledby="purchase-units-label" className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-[22px] bg-paper p-6 text-ink backdrop:bg-ink/50">
       {units > 1 ? (
-      <div className="mb-4 flex items-end gap-2">
-        <Stepper id="purchase-units" label="How many did you buy?" labelClassName="mb-3 font-display text-[1.3rem] leading-tight" value={count} min={1} max={purchasableUnits} onChange={setCount} disabled={isPending} describedBy="purchase-units-held" />
-        <p id="purchase-units-held" className="pb-2.5 text-sm text-muted">of {units} held</p>
-      </div>
+        <div className="mb-4 flex items-end gap-2">
+          <Stepper id="purchase-units" label="How many did you buy?" labelClassName="mb-3 font-display text-[1.3rem] leading-tight" value={count} min={1} max={purchasableUnits} onChange={setCount} disabled={isPending} describedBy="purchase-units-held" />
+          <p id="purchase-units-held" className="pb-2.5 text-sm text-muted">of {units} held</p>
+        </div>
       ) : (
-        <p id="purchase-units-label" className="mb-4 font-display text-[1.3rem] leading-tight">Mark {'\u201c'}{itemTitle}{'\u201d'} as purchased?</p>
+        <p id="purchase-units-label" className="mb-4 break-words font-display text-[1.3rem] leading-tight">Mark {'\u201c'}{itemTitle}{'\u201d'} as purchased?</p>
       )}
       {/* An expired hold's other units were freed when it lapsed, so only an active hold releases any. */}
       {status === 'active' && released > 0 && (
@@ -79,7 +81,7 @@ export function PurchaseDialog({ itemTitle, status, units, purchasableUnits, isP
       )}
       {status === 'expired' && purchasableUnits < units && !recapped && <p className="mb-4">{capNote}</p>}
       <label className="mb-1 block" htmlFor="purchase-message">Message to the owner (optional)</label>
-      <LimitedTextarea id="purchase-message" value={message} onChange={(e) => setMessage(e.target.value)} max={300} disabled={isPending} className="field mb-4" />
+      <LimitedTextarea id="purchase-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} className="field mb-4" />
       <p role="alert" className="mb-4 text-error empty:mb-0">{recapped ? capNote : error?.message}</p>
       <div className="flex gap-2">
         <button type="button" onClick={() => onConfirm(count, message)} disabled={isPending} className="btn-primary">
