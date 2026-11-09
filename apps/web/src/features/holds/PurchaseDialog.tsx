@@ -65,6 +65,7 @@ export function PurchaseDialog({ itemTitle, status, units, purchasableUnits, isP
 
   return (
     <dialog ref={dialogRef} onCancel={handleCancel} onClose={handleClose} aria-labelledby="purchase-units-label" className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-[22px] bg-paper p-6 text-ink backdrop:bg-ink/50">
+      {/* The one-unit title reuses the Stepper's label id, so the dialog is named by whichever title shows. */}
       {units > 1 ? (
         <div className="mb-4 flex items-end gap-2">
           <Stepper id="purchase-units" label="How many did you buy?" labelClassName="mb-3 font-display text-[1.3rem] leading-tight" value={count} min={1} max={purchasableUnits} onChange={setCount} disabled={isPending} describedBy="purchase-units-held" />
