@@ -123,7 +123,7 @@ describe('migrateToLatest on a database an older build created', () => {
     await released.destroy();
   });
 
-  it('accepts a database the current migration created, run again', async () => {
+  it('accepts a database this build already migrated, on the next start', async () => {
     await expect(migrateToLatest(db)).resolves.toBeUndefined();
   });
 });
