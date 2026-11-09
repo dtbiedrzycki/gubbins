@@ -55,12 +55,12 @@ describe('Content-Security-Policy', () => {
 });
 
 describe('GET /api/instance', () => {
-  it('serves the source URL and privacy contact without a session', async () => {
-    const configured = buildApp(buildDependencies(db, undefined, { instance: { sourceUrl: 'https://example.com/src', privacyContact: 'me@example.com' } }), { cookieSecret: 'test-secret' });
+  it('serves the source URL, privacy contact and version without a session', async () => {
+    const configured = buildApp(buildDependencies(db, undefined, { instance: { sourceUrl: 'https://example.com/src', privacyContact: 'me@example.com', version: '9.9.9' } }), { cookieSecret: 'test-secret' });
     onTestFinished(() => configured.close());
     const response = await configured.inject({ method: 'GET', url: '/api/instance' });
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ sourceUrl: 'https://example.com/src', privacyContact: 'me@example.com' });
+    expect(response.json()).toEqual({ sourceUrl: 'https://example.com/src', privacyContact: 'me@example.com', version: '9.9.9' });
   });
 });
 

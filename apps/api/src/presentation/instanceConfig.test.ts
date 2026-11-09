@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { appVersion } from './appVersion.js';
 import { DEFAULT_INSTANCE_CONFIG, parseInstanceConfig } from './instanceConfig.js';
 
 describe('parseInstanceConfig', () => {
@@ -12,6 +13,10 @@ describe('parseInstanceConfig', () => {
 
   it.each(['not a url', 'ftp://example.com/x', 'javascript:alert(1)'])('stops startup when SOURCE_URL is %j', (SOURCE_URL) => {
     expect(() => parseInstanceConfig({ SOURCE_URL })).toThrow(/SOURCE_URL/);
+  });
+
+  it('reports the release version', () => {
+    expect(parseInstanceConfig({}).version).toBe(appVersion);
   });
 
   it('returns the privacy contact trimmed, and null when unset or blank', () => {

@@ -9,7 +9,7 @@ async function renderApp(path = '/wishlists/new') {
   window.history.pushState({}, '', path);
   vi.resetModules();
   const { default: App } = await import('./App');
-  server.use(mock('get', '/api/instance', 200, { sourceUrl: 'https://git.example.org/fork', privacyContact: null }));
+  server.use(mock('get', '/api/instance', 200, { sourceUrl: 'https://git.example.org/fork', privacyContact: null, version: '0.1.0' }));
   render(
     <QueryClientProvider client={new QueryClient()}>
       <App />
