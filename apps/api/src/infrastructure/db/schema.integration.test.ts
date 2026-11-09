@@ -3,6 +3,7 @@ import { sql, type Insertable, type Kysely } from 'kysely';
 import { createDb } from './createDb.js';
 import { StaleSchemaError } from './assertSchemaMatches.js';
 import { migrateToLatest } from './migrate.js';
+import { up } from './migrations/0001_init.js';
 import type { Database, HoldsTable } from './schema.js';
 
 const W1 = '11111111-1111-7111-8111-111111111111';
@@ -103,8 +104,22 @@ describe('migrateToLatest on a database an older build created', () => {
     const migrating = migrateToLatest(stale);
 
     await expect(migrating).rejects.toThrow(StaleSchemaError);
-    await expect(migrating).rejects.toThrow(/"event_log".*recreate the database.*DATABASE_PATH/s);
+    await expect(migrating).rejects.toThrow(/"event_log".*migration is missing/s);
+    await expect(migrating).rejects.not.toThrow(/delete/i);
     await stale.destroy();
+  });
+
+  it('adopts a database the first release created, keeping its rows and recording 0001_init', async () => {
+    const released = createDb(':memory:');
+    // The first release ran 0001_init's up on every start and recorded nothing.
+    await up(released as unknown as Kysely<unknown>);
+    await released.insertInto('wishlists').values({ id: W1, slug: 's', title: 't', owner_token: 'o', key: 'k', key_gen: 1, created_at: NOW }).execute();
+
+    await migrateToLatest(released);
+
+    expect(await released.selectFrom('wishlists').select(['id', 'slug']).execute()).toEqual([{ id: W1, slug: 's' }]);
+    expect((await sql`select name from kysely_migration`.execute(released)).rows).toEqual([{ name: '0001_init' }]);
+    await released.destroy();
   });
 
   it('accepts a database the current migration created, run again', async () => {
