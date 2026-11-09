@@ -24,7 +24,7 @@ function renderItem(over: Partial<Item> = {}): void {
 
 /** Records the body of every hold request; answers each with the next status given. */
 function holdEndpoint(...statuses: number[]) {
-  const bodies: { idempotencyKey: string; name?: string; message?: string; units?: number }[] = [];
+  const bodies: { idempotencyKey: string; name?: string; units?: number }[] = [];
   server.use(http.post('/api/lists/abc123/items/item-1/hold', async ({ request }) => {
     bodies.push((await request.json()) as (typeof bodies)[number]);
     const status = statuses[bodies.length - 1] ?? 201;
@@ -42,11 +42,10 @@ describe('ItemView', () => {
     await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
     expect(screen.getByText('Other guests will see it\u2019s taken while you buy it.')).toBeInTheDocument();
     await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
-    await user.type(screen.getByLabelText('Message to the owner (optional)'), 'Collecting Friday');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     await vi.waitFor(() => expect(screen.queryByRole('dialog', { hidden: true })).not.toBeInTheDocument());
-    expect(bodies).toEqual([{ idempotencyKey: expect.any(String), name: 'Amara', message: 'Collecting Friday', units: 1 }]);
+    expect(bodies).toEqual([{ idempotencyKey: expect.any(String), name: 'Amara', units: 1 }]);
   });
 
   it('sends the key minted at opening on every retry — not a fresh one per tap (ADR-0048)', async () => {

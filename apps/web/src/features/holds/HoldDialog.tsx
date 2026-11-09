@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { useHoldCredential, type HoldCredential } from './useHoldCredential';
-import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
+import { LimitedInput } from '../../lib/LimitedField';
 import { Stepper } from '../../lib/Stepper';
 import { ApiError } from '../../api/client';
 import { readGifterNames, writeGifterNames } from '../../lib/gifterNames';
 
-/** The longest name and message the API takes. */
+/** The longest name the API takes. */
 const NAME_MAX = 100;
-const MESSAGE_MAX = 300;
 
 export interface HoldDialogProps {
   itemTitle: string;
@@ -16,7 +15,7 @@ export interface HoldDialogProps {
   availableUnits: number;
   isPending: boolean;
   error: Error | null;
-  onConfirm: (credential: HoldCredential, details: { name: string; message: string; units: number }) => void;
+  onConfirm: (credential: HoldCredential, details: { name: string; units: number }) => void;
   onClose: () => void;
 }
 
@@ -24,7 +23,7 @@ export interface HoldDialogProps {
  * A real <dialog> (ADR-0024), mounted only while open: opening it is what
  * mints the hold's credential, so a guest who taps "Yes, hold it" twice on
  * slow venue wifi sends one key twice and gets one hold. The first send locks
- * the name, message and count, so a retry carries exactly what the key was first
+ * the name and count, so a retry carries exactly what the key was first
  * sent with; the server would keep the first details anyway. It cannot be
  * dismissed while the hold is in flight, so the outcome lands where the
  * guest is looking.
@@ -33,7 +32,6 @@ export function HoldDialog({ itemTitle, holdDurationDays, availableUnits, isPend
   const dialogRef = useRef<HTMLDialogElement>(null);
   const credential = useHoldCredential();
   const [name, setName] = useState(readGifterNames);
-  const [message, setMessage] = useState('');
   const [units, setUnits] = useState(1);
   const [sent, setSent] = useState(false);
   // A refused hold records nothing, so the same key can be sent again with new details.
@@ -90,12 +88,10 @@ export function HoldDialog({ itemTitle, holdDurationDays, availableUnits, isPend
       <LimitedInput id="hold-name" required describedBy={['hold-name-hint', 'hold-name-privacy', locked && 'hold-details-locked']} value={name} onChange={(e) => setName(e.target.value)} onBlur={() => writeGifterNames(name)} max={NAME_MAX} disabled={isPending} readOnly={locked} className="field mb-1" />
       <p id="hold-name-hint" className="text-sm text-muted">Include everyone the gift is from, e.g. Sam &amp; Alex Smith.</p>
       <p id="hold-name-privacy" className="mb-4 text-sm text-muted">Names are only shared with the list owner.</p>
-      <label className="mb-1 block" htmlFor="hold-message">Message to the owner (optional)</label>
-      <LimitedTextarea id="hold-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} readOnly={locked} describedBy={[locked && 'hold-details-locked']} className="field mb-4" />
       {locked && <p id="hold-details-locked" className="mb-4 text-sm text-muted">To change your details, cancel and start again.</p>}
       <p role="alert" className="mb-4 text-error empty:mb-0">{tooFew ? `Only ${availableUnits} left now.` : error?.message}</p>
       <div className="flex gap-2">
-        <button type="button" onClick={() => { setSent(true); onConfirm(credential, { name: name.trim(), message: message.trim(), units }); }} disabled={isPending || !name.trim()} className="btn-primary">
+        <button type="button" onClick={() => { setSent(true); onConfirm(credential, { name: name.trim(), units }); }} disabled={isPending || !name.trim()} className="btn-primary">
           {isPending ? 'Holding…' : `Yes, hold ${units > 1 ? units : 'it'}`}
         </button>
         <button type="button" onClick={onClose} disabled={isPending} className="btn-secondary">
