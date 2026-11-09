@@ -29,8 +29,9 @@ calls the project launched:
 - Releases are cut deliberately. Merges pile up on `main` in between.
 
 We will track migrations with Kysely's `Migrator`, listing them in code
-(`infrastructure/db/migrations/index.ts`) and running each one in a
-transaction. `0001_init` is frozen as the released baseline. A schema
+(`infrastructure/db/migrations/index.ts`) and running the pending
+migrations and their records in one transaction, so a failed release
+leaves the database as the previous release left it. `0001_init` is frozen as the released baseline. A schema
 change is a new migration file, and a migration that is in a release tag
 is never edited: `scripts/check-shipped-migrations.sh` fails the local
 gate when one is changed or deleted.
@@ -43,7 +44,8 @@ gate when one is changed or deleted.
   yet. Tags and PR history are enough for one owner.
 - **The app copies the database before migrating** — deferred. One copy
   kept until the next release could outlive ADR-[065](0065-erasure-across-backups-and-the-subject-access-routing-fix.md)'s
-  30-day backup limit. Rollback is still restoring a backup
+  30-day backup limit. Instead, the operator copies the database by hand
+  before deploying a minor release, and rollback is still restoring a backup
   (ADR-[032](0032-migrations-are-forward-only-rollback-restore-from-backup.md)).
 
 ## Consequences
@@ -54,4 +56,7 @@ gate when one is changed or deleted.
 - Accepted ADRs may still be amended in place through `0.x`, and become
   immutable from `1.0.0` ([ADR README](README.md)).
 - Cutting a release is a short manual procedure in CONTRIBUTING.md. The
-  release gate in the governance spec (image scans, SBOM) is still to come.
+  release gate in the
+  [governance spec](../spec/governance-licensing-and-release.md) (image
+  scans, SBOM) is still to come, as is ADR-0032's CI run of every
+  migration against a seeded copy of the prior schema.

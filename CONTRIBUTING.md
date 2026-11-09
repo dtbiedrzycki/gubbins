@@ -57,7 +57,8 @@ an edit to an existing one
    taking the next number, and list it in `migrations/index.ts`.
 2. A migration that is in a release tag is never edited. Fix it with
    another new migration. `scripts/check-shipped-migrations.sh` fails
-   when one is changed.
+   when one is changed or deleted. Run it before pushing (the local gate
+   runs it).
 3. An event payload shape change needs a version bump and an upcaster
    (ADR-[032](docs/adr/0032-migrations-are-forward-only-rollback-restore-from-backup.md)),
    not an in-place edit.
@@ -75,10 +76,14 @@ feature, and the **patch** number for fixes only.
 2. Open a PR and merge it.
 3. Tag the merge commit and push the tag:
    `git tag -a vX.Y.Z <merge commit> -m vX.Y.Z && git push origin vX.Y.Z`.
-4. Build the container from the tag and deploy it.
+4. Build the container from the tag.
+5. If the release bumps the minor number, stop the running container and
+   copy `/data/wishlist.db` somewhere safe. This is the pre-upgrade
+   backup ADR-0032 requires.
+6. Deploy the new container.
 
-Migrations are forward-only. To roll back, restore the database from a
-backup and deploy the previous tag
+Migrations are forward-only. To roll back, restore the database from
+that copy (or another backup) and deploy the previous tag
 (ADR-[032](docs/adr/0032-migrations-are-forward-only-rollback-restore-from-backup.md)).
 
 ## Stack
