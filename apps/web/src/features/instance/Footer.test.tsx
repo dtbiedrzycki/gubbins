@@ -35,7 +35,7 @@ describe('Footer', () => {
     const client = renderFooter();
 
     await waitFor(() => expect(client.getQueryState(['instance'])?.status).toBe('error'));
-    expect(screen.getByRole('contentinfo')).toHaveTextContent(/Privacy$/);
+    expect(screen.queryByText(/^v/)).not.toBeInTheDocument();
   });
 
   it('shows the version the server is running', async () => {
