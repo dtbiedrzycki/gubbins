@@ -47,6 +47,40 @@ Non-trivial decisions are recorded under `docs/adr/` — see
 [`docs/adr/README.md`](docs/adr/README.md). Copy
 `docs/adr/0000-adr-template.md` to start one.
 
+## Changing the schema
+
+Production holds real data, so a schema change is a new migration, never
+an edit to an existing one
+(ADR-[086](docs/adr/0086-releases-are-tagged-0x-versions-and-shipped-migrations-are-never-edited.md)):
+
+1. Add `apps/api/src/infrastructure/db/migrations/NNNN_short_name.ts`,
+   taking the next number, and list it in `migrations/index.ts`.
+2. A migration that is in a release tag is never edited. Fix it with
+   another new migration. `scripts/check-shipped-migrations.sh` fails
+   when one is changed.
+3. An event payload shape change needs a version bump and an upcaster
+   (ADR-[032](docs/adr/0032-migrations-are-forward-only-rollback-restore-from-backup.md)),
+   not an in-place edit.
+4. A release that includes a migration bumps the minor version.
+
+## Cutting a release
+
+Versions are `0.x`. Bump the **minor** number for a migration or a new
+feature, and the **patch** number for fixes only.
+
+1. From an up-to-date `main`, create a `release/vX.Y.Z` branch, run
+   `npm version <minor|patch> --workspaces --include-workspace-root --no-git-tag-version`,
+   then `npm run gen:api`, because the OpenAPI document carries the
+   version.
+2. Open a PR and merge it.
+3. Tag the merge commit and push the tag:
+   `git tag -a vX.Y.Z <merge commit> -m vX.Y.Z && git push origin vX.Y.Z`.
+4. Build the container from the tag and deploy it.
+
+Migrations are forward-only. To roll back, restore the database from a
+backup and deploy the previous tag
+(ADR-[032](docs/adr/0032-migrations-are-forward-only-rollback-restore-from-backup.md)).
+
 ## Stack
 
 The front-end/back-end structure and framework choices are not settled
