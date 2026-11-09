@@ -72,6 +72,13 @@ textarea.field { min-height: 88px; resize: vertical; }
 .token .row { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .next { color: var(--moss); font-weight: 700; }
 .error { color: var(--wax); }
+/* Quantity: the guests' stepper, with a count the owner can also type (digits only, snapped to 1–99 on leaving). */
+.stepper { display: inline-flex; align-items: center; overflow: hidden; border: 1.5px solid var(--ink); border-radius: 14px; background: var(--card); justify-self: start; }
+.stepper button { box-shadow: none; border-radius: 0; width: 48px; padding: 0; font-size: 1.3rem; }
+.stepper input { width: 56px; min-height: 44px; border: 0; border-inline: 1.5px solid var(--line); background: transparent; text-align: center; font: 700 1.15rem/1 var(--sans); color: var(--ink); }
+.qty { display: grid; gap: 4px; font-weight: 700; }
+.note { flex-basis: 100%; font-size: .875rem; }
+mark { background: #B4D5FE; color: inherit; } /* stands in for the browser's text selection */
 .add { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
 </style>
 </head>
@@ -142,6 +149,18 @@ textarea.field { min-height: 88px; resize: vertical; }
 </div>
 
 <div class="shot">
+  <p class="cap"><b>Couldn’t copy.</b> Where the browser blocks the clipboard, the text is highlighted instead and a note under the row says so for two seconds; the button keeps its label.</p>
+  <div class="screen">
+    <div class="invite" style="margin-top:22px">
+      <p class="lead">Guests open the list with</p>
+      <p class="key">lantern-thimble-oak</p>
+      <button class="small copykey">Copy key</button>
+      <div class="link" style="flex-wrap:wrap"><span><mark>gubbins.example/l/ada-birthday</mark></span><button class="small">Copy link</button><p class="note" aria-live="polite">Couldn’t copy to the clipboard; the link is highlighted so you can copy it.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="shot">
   <p class="cap"><b>Create a list.</b> Same fields and wording as today, in the guest page's fields and pill buttons. The suggested key reads large so the host can judge it before keeping it.</p>
   <main class="screen">
     <h1>Create a wishlist</h1>
@@ -196,14 +215,14 @@ textarea.field { min-height: 88px; resize: vertical; }
 </div>
 
 <div class="shot">
-  <p class="cap"><b>Editing an item.</b> The row opens in place into the same fields as Add an item.</p>
+  <p class="cap"><b>Editing an item.</b> The row opens in place into the same fields as Add an item. Quantity uses the guests' − / + stepper, and the count can also be typed.</p>
   <main class="screen">
     <section aria-labelledby="ei">
       <h2 id="ei">Edit item</h2>
       <form class="stack" onsubmit="return false">
         <label>Title<input class="field" value="Hori-hori garden knife"></label>
         <label>Price (USD)<input class="field" value="34.00"></label>
-        <label>Quantity<input class="field" value="1"></label>
+        <div class="qty"><span id="eq">Quantity</span><span class="stepper"><button aria-label="One fewer">−</button><input aria-labelledby="eq" inputmode="numeric" value="1"><button aria-label="One more">+</button></span></div>
         <div class="keyrow"><button class="primary">Save</button><button>Cancel</button></div>
       </form>
     </section>
