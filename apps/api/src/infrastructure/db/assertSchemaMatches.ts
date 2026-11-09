@@ -18,12 +18,12 @@ async function columnsByTable(db: QueryExecutorProvider): Promise<Map<string, st
 }
 
 /**
- * A migration is recorded by name, so one that is missing from this build, or
- * was edited after it was released, leaves the database in a shape no
- * migration will correct, and the first write that touches a changed column
- * fails as a 500 in front of a guest. This compares every table against what
- * the migrations build on a fresh in-memory database, so drift stops the
- * server at startup with a message that says what went wrong, instead.
+ * A migration is recorded by name, so one edited after it was released, a hand
+ * change to the database, or a database older than the first recorded release
+ * leaves a shape no migration will correct, and the first write that touches a
+ * changed column fails as a 500 in front of a guest. This compares every table
+ * against what the migrations build on a fresh in-memory database, so drift
+ * stops the server at startup with a message that says what went wrong, instead.
  */
 export async function assertSchemaMatches(db: QueryExecutorProvider): Promise<void> {
   const reference = createDb(':memory:');
