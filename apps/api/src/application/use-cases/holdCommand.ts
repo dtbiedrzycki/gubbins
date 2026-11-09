@@ -21,7 +21,8 @@ export interface HoldCommand {
  * The body every hold command shares, run inside a unit of work: load the
  * list, find the hold on it, check permission, let the wishlist decide,
  * then persist the outcome and answer with the hold's view. A command supplies
- * only its permission check and its wishlist call. `now` is the clock reading
+ * only its permission check and its wishlist call, which may first read what it
+ * needs (it runs before anything is written). `now` is the clock reading
  * the list is loaded at; the wishlist then decides everything as of it.
  */
 export async function runHoldCommand<E extends LedgerEvent>(
