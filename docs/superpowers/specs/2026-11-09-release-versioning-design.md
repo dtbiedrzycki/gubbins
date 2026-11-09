@@ -1,7 +1,7 @@
 # Release versioning and tracked migrations — design
 
 **Date:** 2026-11-09
-**Status:** Draft, awaiting owner approval
+**Status:** Approved 2026-11-09
 
 ## Why
 
@@ -96,12 +96,9 @@ is `0.0.0` and there are no tags.
 - Migrations run inside the existing startup path (`server.ts` calls
   `migrateToLatest`) and via `npm run migrate`, which is dev-only: the
   runtime image has no `tsx` or `src/`.
-- **Assumption:** the production database was created fresh by the
-  `786f26b5` build, so its constraints match `0001_init` as frozen.
-  `assertSchemaMatches` only compares column names. If the assumption is
-  wrong, a later migration that rebuilds a table could assume constraints
-  production doesn't have. *(owner to confirm; if unknown, compare a `.schema`
-  dump from production before the first table-rebuilding migration)*
+- **Production's starting point** (owner confirmed 2026-11-09): the production
+  database was created fresh by the `786f26b5` build, so its constraints match
+  `0001_init` as frozen.
 
 ### Version
 
