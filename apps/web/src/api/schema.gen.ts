@@ -823,7 +823,6 @@ export interface operations {
                     idempotencyKey: string;
                     name: string;
                     units: number;
-                    message?: string;
                 };
             };
         };

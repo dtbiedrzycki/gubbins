@@ -36,12 +36,12 @@ describe('HoldItem', () => {
     });
   });
 
-  it('stores the holder\'s details and references them from the hold and the event', async () => {
+  it('stores the holder\'s name with no message, referenced from the hold and the event', async () => {
     const { useCase, store, eventStore, wishlists } = await makeUseCase();
-    const { holdId } = await useCase.execute({ ...input(), message: 'Congrats' }, GUEST);
+    const { holdId } = await useCase.execute(input(), GUEST);
 
     const rows = [...store.guestPii.values()];
-    expect(rows).toEqual([{ id: expect.any(String), name: 'Ada', message: 'Congrats' }]);
+    expect(rows).toEqual([{ id: expect.any(String), name: 'Ada', message: null }]);
     expect((await wishlists.findById(WISHLIST_ID, NOW))?.findHold(holdId)?.piiRef?.value).toBe(rows[0]!.id);
     expect(eventStore.recorded(ITEM_ID)[0]!.event).toMatchObject({ piiRef: rows[0]!.id });
   });

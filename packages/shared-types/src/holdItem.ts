@@ -5,7 +5,6 @@ export const holdItemRequestSchema = z.object({
   idempotencyKey: z.string().min(1),
   name: z.string().min(1),
   units: z.number().int().min(1),
-  message: z.string().optional(),
 });
 export type HoldItemRequest = z.infer<typeof holdItemRequestSchema>;
 
