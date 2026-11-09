@@ -1,6 +1,6 @@
 {
   "name": "gubbins",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "A wishlist application (early scaffolding — stack undecided).",
   "license": "AGPL-3.0-or-later",
@@ -9,7 +9,10 @@
     "node": ">=24.17"
   },
   "packageManager": "npm@11.13.0",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "test": "bats scripts/test && npm run build --workspace=packages/shared-types --if-present && npm run test --workspaces --if-present",
     "test:e2e": "playwright test",
