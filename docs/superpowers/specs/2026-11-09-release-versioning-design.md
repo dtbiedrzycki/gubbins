@@ -28,12 +28,14 @@ is `0.0.0` and there are no tags.
 ## Non-goals
 
 - A 1.0.0 release. The project stays on `0.x` until the owner calls it launched.
-- Down-migrations. ADR-0032 stays forward-only: rollback means restoring the
-  copy.
+- Down-migrations. ADR-0032 stays forward-only: rollback means restoring a
+  backup.
 - An app-taken backup before migrating. The owner ruled it out for now
   (2026-11-09). An earlier draft had one, but it clashed with the 30-day
   backup limit (ADR-0065), so it's deferred. Rollback is still restoring a
-  backup (ADR-0032). Today that means the host's nightly disk backup.
+  backup (ADR-0032). Before deploying a release that bumps the minor number,
+  the operator stops the container and copies `/data/wishlist.db` by hand,
+  as ADR-0032's pre-upgrade backup (owner, 2026-11-09).
 - Data migrations beyond what a schema change needs.
 - More than one production instance, or migrating several databases.
 - GitHub Releases pages, a changelog, release bots or commit-message
@@ -60,7 +62,8 @@ is `0.0.0` and there are no tags.
 - **Where the version shows:** git tags `vX.Y.Z`, and the app footer next to
   the existing AGPL, Source and Privacy links.
 - **No changelog** for now.
-- **No app-taken backup** for now. See Non-goals.
+- **No app-taken backup** for now. Before a minor release the operator
+  copies the database by hand. See Non-goals.
 - **ADRs** stay editable in place through all `0.x` releases. The README's
   immutability rule applies from `1.0.0`.
 
@@ -87,11 +90,12 @@ is `0.0.0` and there are no tags.
   Its error message must stop telling the operator to delete the database.
   Instead it should say that the schema doesn't match this build and that a
   migration is missing or was edited after release.
-- **Each migration runs in a transaction.** Kysely's SQLite adapter reports
-  `supportsTransactionalDdl = false`, so the Migrator doesn't wrap anything
-  itself. SQLite does support DDL inside transactions, so we wrap each
-  migration ourselves. A failed migration rolls back fully, and the server
-  exits non-zero. Production's `restart: unless-stopped` will retry, and each
+- **Pending migrations run in one transaction.** SQLite supports DDL inside
+  transactions, but Kysely's SQLite adapter reports
+  `supportsTransactionalDdl = false`. `createDb` tells the adapter it does,
+  so the Migrator applies all pending migrations and their records in one
+  transaction. A failure rolls back the whole batch, and the server exits
+  non-zero. Production's `restart: unless-stopped` will retry, and each
   retry fails the same way against an unchanged database. *(my call)*
 - Migrations run inside the existing startup path (`server.ts` calls
   `migrateToLatest`) and via `npm run migrate`, which is dev-only: the
@@ -106,7 +110,8 @@ is `0.0.0` and there are no tags.
   `package.json`s get the same number at each bump so nothing disagrees.
 - **Cutting a release** (documented in CONTRIBUTING.md): on an up-to-date
   `main`, bump all versions with one command, commit, tag `vX.Y.Z`, push the
-  commit and the tag, then build the container from the tag. An npm script may
+  commit and the tag, then build the container from the tag. Before
+  deploying a minor release, stop the container and copy the database. An npm script may
   wrap this. *(builder's call; plain `npm version` with workspaces is fine)*
 - `v0.1.0`: tag `786f26b5` as `v0.1.0`. The first commit that sets
   `package.json` to `0.1.0` comes after that tag. That's acceptable, because
@@ -130,7 +135,8 @@ is `0.0.0` and there are no tags.
 - **The plan includes both follow-through steps**, so the guard can't ship
   without ever running:
   - Editing the skill's `verify.sh` (outside the repo) to call the script.
-  - Handing the owner the `git tag v0.1.0 786f26b5 && git push origin v0.1.0`
+  - Handing the owner the
+    `git tag -a v0.1.0 786f26b5 -m v0.1.0 && git push origin v0.1.0`
     command to run themselves.
 
 ### Docs
