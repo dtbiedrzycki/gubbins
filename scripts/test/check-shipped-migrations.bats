@@ -27,7 +27,7 @@ release() {
   git tag -a v0.1.0 -m v0.1.0
 }
 
-@test "passes when no release is tagged" {
+@test "passes with an edited migration when no release is tagged" {
   echo "edited" >> "$DIR/0001_init.ts"
   run "$GUARD"
   [ "$status" -eq 0 ]
@@ -41,7 +41,7 @@ release() {
   [ "$status" -eq 0 ]
 }
 
-@test "fails, naming the file, when a shipped migration is edited" {
+@test "fails when a shipped migration is edited, naming the file and saying to add a new migration" {
   release
   echo "edited" >> "$DIR/0001_init.ts"
   run "$GUARD"
@@ -58,12 +58,30 @@ release() {
   [[ "$output" == *"0001_init.ts"* ]]
 }
 
-@test "passes when a new migration is listed in the shipped index" {
+@test "passes when index.ts, which lists every migration, changes after the tag" {
   echo "export const migrations = { a };" > "$DIR/index.ts"
   git add -A && git commit -q -m "add index"
   release
-  echo "create table b" > "$DIR/0002_b.ts"
   echo "export const migrations = { a, b };" > "$DIR/index.ts"
   run "$GUARD"
   [ "$status" -eq 0 ]
+}
+
+@test "fails when a migration shipped in the newest tag is edited" {
+  release
+  echo "create table b" > "$DIR/0002_b.ts"
+  git add -A && git commit -q -m "add 0002"
+  git tag -a v0.2.0 -m v0.2.0
+  echo "edited" >> "$DIR/0002_b.ts"
+  run "$GUARD"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"v0.2.0"* ]]
+}
+
+@test "fails when run from a subdirectory" {
+  release
+  echo "edited" >> "$DIR/0001_init.ts"
+  cd apps/api
+  run "$GUARD"
+  [ "$status" -eq 1 ]
 }

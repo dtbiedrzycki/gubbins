@@ -3,6 +3,7 @@
 # tree: a released migration has already run on someone's database, so a
 # change to it never reaches them. Passes when no v* tag is reachable.
 set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
 
 dir=apps/api/src/infrastructure/db/migrations
 tag=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null) || exit 0
