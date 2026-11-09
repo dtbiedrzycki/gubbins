@@ -116,7 +116,7 @@ describe('CreateListForm', () => {
     expect(screen.getByLabelText('Zelle email or US phone')).toHaveAccessibleDescription(hint);
   });
 
-  it('links to the manage page without the owner token and tells the owner to save it', async () => {
+  it('links to the manage page in a new tab without the owner token, and warns that the token is private and shown only once', async () => {
     server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'owner-secret-token', key: 'guest-key-value' }));
     await fillAndSubmit();
 
@@ -124,7 +124,14 @@ describe('CreateListForm', () => {
     expect(link).toHaveAttribute('href', '/wishlists/abc123/manage');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-    expect(screen.getByText("Save your owner token now: you'll need it to manage the list, and it isn't shown again.")).toBeInTheDocument();
+    expect(screen.getByText("Keep this private. You need it to manage the list, and it isn't shown again.")).toBeInTheDocument();
+  });
+
+  it('moves focus to "Your list is ready" once the list is created', async () => {
+    server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'o', key: 'k' }));
+    await fillAndSubmit();
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Your list is ready' })).toHaveFocus());
   });
 
   it('sends the suggested key with the list and shows it on the ready screen', async () => {

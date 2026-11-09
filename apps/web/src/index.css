@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Storybook palette for the guest view; gold and petal never carry text. */
+/* Storybook palette for guests and hosts; gold, petal and brass never carry text. */
 @theme {
   --color-paper: #F6F3FB;
   --color-ink: #2E2447;
@@ -10,6 +10,7 @@
   --color-petal: #F2CBD6;
   --color-gold: #D9A93A;
   --color-wax: #9E2A45;
+  --color-brass: #8C6A4A;
   --color-error: #B42335;
 
   --font-display: "IM Fell English", Georgia, serif;
@@ -42,6 +43,18 @@
   &:disabled { opacity: 0.5; }
 }
 
+/* Pills inside a row (Edit, Delete, the copy buttons, Regenerate) take less room. */
+@utility btn-sm {
+  padding-inline: 0.875rem;
+  font-size: 0.95rem;
+}
+
+@utility section-heading {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
 @utility field {
   display: block;
   width: 100%;
@@ -62,7 +75,7 @@
     margin: 0 auto;
     border-radius: 85px 85px 6px 6px;
     background: repeating-linear-gradient(90deg, var(--color-moss) 0 32px, #2B5035 32px 34px);
-    box-shadow: 0 0 0 7px #8C6A4A, 0 0 0 9px var(--color-ink);
+    box-shadow: 0 0 0 7px var(--color-brass), 0 0 0 9px var(--color-ink);
   }
   .door::before {
     content: "";
@@ -74,7 +87,7 @@
     margin-left: -20px;
     border-radius: 50%;
     background: #F2E3A8;
-    box-shadow: 0 0 0 4px #8C6A4A;
+    box-shadow: 0 0 0 4px var(--color-brass);
   }
   .door::after {
     content: "";
@@ -86,6 +99,43 @@
     border-radius: 50%;
     background: var(--color-gold);
     box-shadow: inset -2px -2px 0 #A57E22;
+  }
+
+  /* The host's invitation card: the guest key and link, hung from a brass eyelet. */
+  .invite {
+    position: relative;
+    display: grid;
+    gap: 0.875rem;
+    margin: 1.25rem 0.375rem 0.25rem;
+    padding: 1.625rem 1.25rem 1.25rem;
+    border: 1.5px solid var(--color-ink);
+    border-radius: 6px 6px 22px 22px;
+    background: white;
+    box-shadow: 4px 5px 0 var(--color-petal);
+    transform: rotate(-1.2deg);
+  }
+  .invite::before {
+    content: "";
+    position: absolute;
+    top: -28px;
+    left: 50%;
+    width: 2px;
+    height: 30px;
+    background: var(--color-brass);
+    transform: rotate(14deg);
+    transform-origin: bottom;
+  }
+  .invite::after {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    margin-left: -6px;
+    border-radius: 50%;
+    background: var(--color-paper);
+    box-shadow: 0 0 0 3px var(--color-brass);
   }
 
   /* A moss rule with a petal flower at its centre, under the list title. */
