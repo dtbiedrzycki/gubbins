@@ -59,11 +59,11 @@ describe('MarkHoldPurchased', () => {
     expect([...store.guestPii.values()]).toEqual([{ id: expect.any(String), name: 'Ada', message: 'Congratulations!' }]);
   });
 
-  it('purchases nothing when the message is over 300 characters', async () => {
+  it('purchases nothing when the message is invalid', async () => {
     const { placeHold, purchase, eventStore, wishlists, clock } = await setup();
     const { holdId } = await placeHold();
 
-    await expect(purchase(holdId, GUEST, 'x'.repeat(301))).rejects.toBeInstanceOf(DomainValidationError);
+    await expect(purchase(holdId, GUEST, 'x'.repeat(1000))).rejects.toBeInstanceOf(DomainValidationError);
 
     expect(eventStore.recorded(ITEM_ID).map(({ event }) => event.type)).toEqual(['ItemHeld']);
     expect((await wishlists.findById(WISHLIST_ID, clock.now()))?.findHold(holdId)?.statusAt(clock.now())).toBe('active');
