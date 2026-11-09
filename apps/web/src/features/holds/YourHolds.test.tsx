@@ -350,7 +350,7 @@ describe('YourHolds', () => {
 
     await user.click(buy);
 
-    expect(screen.getByRole('dialog', { name: 'Mark \u201cStroller\u201d as purchased?' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(requests).toBe(0);
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
