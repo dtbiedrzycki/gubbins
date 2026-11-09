@@ -181,8 +181,10 @@ GuestDataAccess (plain table, not event-sourced — same category as
   for why the table is per-record rather than per-guest. *(ADR-[060](../adr/0060-manual-contributions-are-voidable-not-editable.md))*
 - A `GuestPii` row's `name`/`message` may be edited in place only where
   the referencing contribution has `source = manual` and the row's
-  `redactedAt IS NULL`. Guest-authored rows are redactable but never
-  editable; a redacted row is neither. *(ADR-[060](../adr/0060-manual-contributions-are-voidable-not-editable.md))*
+  `redactedAt IS NULL`. Guest-authored rows are redactable but not
+  editable, except that marking a hold purchased writes that hold's guest
+  details once more, to add the message. A redacted row is never written:
+  the erasure work must make that write refuse or skip a redacted row. *(ADR-[060](../adr/0060-manual-contributions-are-voidable-not-editable.md))*
 - A list must have at least one `PaymentMethod` before a `group` or `fund`
   item can be created; the last remaining method cannot be removed while
   any non-archived `group`/`fund` item exists
