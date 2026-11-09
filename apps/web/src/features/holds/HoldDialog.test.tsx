@@ -87,7 +87,7 @@ describe('HoldDialog', () => {
     expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
   });
 
-  it('asks for the gifter name only', () => {
+  it('has no message box', () => {
     renderDialog();
     expect(screen.queryByLabelText('Message to the owner (optional)')).not.toBeInTheDocument();
   });
