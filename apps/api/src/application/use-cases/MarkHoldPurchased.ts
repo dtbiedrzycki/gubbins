@@ -21,7 +21,8 @@ export class MarkHoldPurchased implements HoldCommand {
         // Built before anything is written, so an invalid message purchases nothing.
         if (hold.piiRef) {
           const existing = await ctx.guestPii.findById(hold.piiRef.value);
-          if (existing) guestUpdate = { id: hold.piiRef.value, details: GuestDetails.from({ name: existing.name, message: input.message }) };
+          if (!existing) throw new Error(`guest_pii row ${hold.piiRef.value} is missing`);
+          guestUpdate = { id: hold.piiRef.value, details: GuestDetails.from({ name: existing.name, message: input.message }) };
         }
         return wishlist.purchaseHold(hold, input.units);
       });
