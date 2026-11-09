@@ -1,5 +1,5 @@
 import SqliteDatabase from 'better-sqlite3';
-import { Kysely, SqliteDialect } from 'kysely';
+import { Kysely, SqliteAdapter, SqliteDialect } from 'kysely';
 import type { Database } from './schema.js';
 
 export interface CreateDbOptions {
@@ -12,6 +12,24 @@ export interface CreateDbOptions {
   busyTimeoutMs?: number;
 }
 
+/**
+ * SQLite runs DDL inside transactions, but Kysely's adapter says it can't, so
+ * its Migrator would apply a migration and record it in two separate commits.
+ * Saying it can makes the Migrator run pending migrations and their records in
+ * one transaction. Only the Migrator reads this flag.
+ */
+class TransactionalDdlSqliteAdapter extends SqliteAdapter {
+  override get supportsTransactionalDdl(): boolean {
+    return true;
+  }
+}
+
+class TransactionalDdlSqliteDialect extends SqliteDialect {
+  override createAdapter(): SqliteAdapter {
+    return new TransactionalDdlSqliteAdapter();
+  }
+}
+
 export function createDb(path: string, options: CreateDbOptions = {}): Kysely<Database> {
   const sqlite = new SqliteDatabase(path, { timeout: options.busyTimeoutMs ?? 5000 });
   sqlite.pragma('journal_mode = WAL');
@@ -20,5 +38,5 @@ export function createDb(path: string, options: CreateDbOptions = {}): Kysely<Da
   // to be (it varies by build) — the schema's foreign keys must be
   // real constraints the database checks, not just documentation.
   sqlite.pragma('foreign_keys = ON');
-  return new Kysely<Database>({ dialect: new SqliteDialect({ database: sqlite }) });
+  return new Kysely<Database>({ dialect: new TransactionalDdlSqliteDialect({ database: sqlite }) });
 }

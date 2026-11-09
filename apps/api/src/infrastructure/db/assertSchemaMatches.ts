@@ -1,6 +1,6 @@
 import { sql, type Kysely, type QueryExecutorProvider } from 'kysely';
 import { createDb } from './createDb.js';
-import { up } from './migrations/0001_init.js';
+import { runMigrations } from './runMigrations.js';
 
 export class StaleSchemaError extends Error {}
 
@@ -18,28 +18,26 @@ async function columnsByTable(db: QueryExecutorProvider): Promise<Map<string, st
 }
 
 /**
- * Until 1.0, 0001_init is amended in place rather than followed by new
- * migrations, and its `createTable(...).ifNotExists()`
- * skips any table that already exists. A database an older build created
- * therefore keeps its old shape without complaint, and the first write that
- * touches a changed column fails as a 500 in front of a guest. This compares
- * every table against what the current migration builds on a fresh
- * in-memory database, so drift stops the server at startup with a message
- * that says what to do, instead.
+ * A migration is recorded by name, so one edited after it was released, a hand
+ * change to the database, or a database older than the first recorded release
+ * leaves a shape no migration will correct, and the first write that touches a
+ * changed column fails as a 500 in front of a guest. This compares every table
+ * against what the migrations build on a fresh in-memory database, so drift
+ * stops the server at startup with a message that says what went wrong, instead.
  */
 export async function assertSchemaMatches(db: QueryExecutorProvider): Promise<void> {
   const reference = createDb(':memory:');
   try {
-    await up(reference as unknown as Kysely<unknown>);
+    await runMigrations(reference as unknown as Kysely<unknown>);
     const expected = await columnsByTable(reference);
     const actual = await columnsByTable(db);
     for (const [table, columns] of expected) {
       const found = actual.get(table);
       if (found !== columns) {
         throw new StaleSchemaError(
-          `Database schema is out of date: table "${table}" has columns (${found ?? 'table missing'}) ` +
-          `but this build expects (${columns}). 0001_init is amended in place before 1.0, so recreate the ` +
-          'database: stop the server, delete the file at DATABASE_PATH, and start it again.',
+          `Database schema doesn't match this build: table "${table}" has columns (${found ?? 'table missing'}) ` +
+          `but this build expects (${columns}). A migration is missing, or one was edited after it was released. ` +
+          'Deploy the release that last ran against this database, and don\'t change the database by hand.',
         );
       }
     }
