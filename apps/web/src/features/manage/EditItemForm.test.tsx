@@ -37,7 +37,7 @@ describe('EditItemForm', () => {
     expect(screen.getByText('Single item')).toBeInTheDocument();
     expect(screen.getByLabelText('Title')).toHaveValue('Muslin swaddles');
     expect(screen.getByLabelText('Title')).toHaveAttribute('maxlength', '120');
-    expect(screen.getByLabelText('Quantity')).toHaveValue(3);
+    expect(screen.getByLabelText('Quantity')).toHaveValue('3');
     expect(screen.getByLabelText('Price (USD)')).toHaveValue('32.00');
     expect(screen.getByLabelText('Store link')).toHaveValue('https://example.com/s');
     expect(screen.getByLabelText('Description (optional)')).toHaveValue('Any neutral colour.');

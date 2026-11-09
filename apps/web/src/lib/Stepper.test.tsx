@@ -36,3 +36,42 @@ describe('Stepper', () => {
     expect(more).toHaveAttribute('aria-disabled', 'false');
   });
 });
+
+describe('a typeable Stepper', () => {
+  function TypeableCounter() {
+    const [value, setValue] = useState(2);
+    return <><Stepper typeable id="count" label="Quantity" value={value} min={1} max={99} onChange={setValue} /><p>Value {value}</p></>;
+  }
+
+  it.each([['150', '99'], ['0', '1'], ['', '2'], ['7', '7']])('turns a typed "%s" into %s when the owner leaves the box', async (typed, shown) => {
+    const user = userEvent.setup();
+    render(<TypeableCounter />);
+    const box = screen.getByLabelText('Quantity');
+
+    await user.clear(box);
+    if (typed) await user.type(box, typed);
+    await user.tab();
+
+    expect(box).toHaveValue(shown);
+    expect(screen.getByText(`Value ${shown}`)).toBeInTheDocument();
+  });
+
+  it('ignores anything but digits', async () => {
+    const user = userEvent.setup();
+    render(<TypeableCounter />);
+    const box = screen.getByLabelText('Quantity');
+    await user.clear(box);
+    await user.type(box, '1a-2.');
+    expect(box).toHaveValue('12');
+  });
+
+  it('steps from a typed number', async () => {
+    const user = userEvent.setup();
+    render(<TypeableCounter />);
+    const box = screen.getByLabelText('Quantity');
+    await user.clear(box);
+    await user.type(box, '40');
+    await user.click(screen.getByRole('button', { name: 'One more' }));
+    expect(box).toHaveValue('41');
+  });
+});

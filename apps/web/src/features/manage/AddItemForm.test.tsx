@@ -46,6 +46,7 @@ describe('AddItemForm', () => {
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Added "Crib".'));
     expect(body).toEqual({ type: 'single', title: 'Crib', quantity: 2, priceMinor: 19999, url: 'https://shop.example/crib' });
     expect(screen.getByLabelText('Title')).toHaveValue('');
+    expect(screen.getByLabelText('Quantity')).toHaveValue('1');
     expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
   });
 
