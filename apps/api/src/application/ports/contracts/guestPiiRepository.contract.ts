@@ -28,8 +28,8 @@ export function describeGuestPiiRepositoryContract(adapter: string, factory: Gue
     });
 
     it('replaces the name and message of an existing row', async () => {
-      await fx.guestPii.insert('pii-1', GuestDetails.from({ name: 'Ada' }));
-      const updated = GuestDetails.from({ name: 'Ada', message: 'Congratulations!' });
+      await fx.guestPii.insert('pii-1', GuestDetails.from({ name: 'Ada', message: 'Hello' }));
+      const updated = GuestDetails.from({ name: 'Grace' });
       await fx.guestPii.update('pii-1', updated);
       expect(await fx.guestPii.findById('pii-1')).toEqual(updated);
     });
