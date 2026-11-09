@@ -1,10 +1,12 @@
 # Release Versioning and Tracked Migrations Implementation Plan
 
+> **As built:** PRs #206–#210 supersede this plan where they differ: pending migrations and their records run in one transaction through an adapter flag, not a wrapper per migration; the schema error says to deploy the release that last ran against the database; the guard checks only numbered `NNNN_*.ts` files (7 bats tests); the bump also regenerates `apps/api/openapi.json` (7 files); the release steps add `npm run gen:api` and a manual database copy before a minor release; and #210 is stacked on #205.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Every schema change ships as a new migration file that runs once per database and in a transaction. Releases are tagged `0.x` versions, and the footer shows the running version.
 
-**Architecture:** Kysely's `Migrator` with an explicit, in-code migration list replaces rerunning `0001_init` on each startup. A shell guard compares shipped migration files against the latest `v*` tag. The API reads its version from `apps/api/package.json` and returns it from `/api/instance`, and the footer renders it.
+**Architecture:** Kysely's `Migrator` with an explicit, in-code migration list replaces rerunning `0001_init` on each startup. A shell guard compares shipped migration files against the latest `v*` tag. The API reads its version from the root `package.json` (the existing `presentation/appVersion.ts`) and returns it from `/api/instance`, and the footer renders it.
 
 **Tech Stack:** TypeScript, Kysely 0.29 + better-sqlite3, Fastify + zod, React + TanStack Query + msw, bats, npm workspaces (npm 11).
 
@@ -25,7 +27,7 @@
 
 1. **Production adoption:** a database with the `0001` tables and rows but no migration record keeps every row on first startup, and `0001_init` gets recorded. Covered in Task 2.
 2. **A migration that throws partway** leaves no schema change and no record, so the restart loop retries against an unchanged database. Covered in Task 2.
-3. **The compiled build finds `package.json`:** `dist/presentation/instanceConfig.js` resolves `../../package.json` to `apps/api/package.json`, both in the repo and in the runtime image. Checked by curling the built container in Task 5.
+3. **The compiled build finds `package.json`:** `appVersion.ts` resolves the root `package.json` from both `src/presentation` and `dist/presentation`, in the repo and in the runtime image. Checked by curling the built container in Task 5.
 4. **A clone with no `v*` tags** (fresh, shallow or tags not fetched): the guard passes rather than failing every verify. Covered in Task 3.
 5. **Server unreachable:** the footer shows no version rather than a stale or guessed one. Covered in Task 5.
 
@@ -131,11 +133,11 @@
 That's 10 files.
 
 **Interfaces:**
-- Produces: `APP_VERSION: string`, exported from `instanceConfig.ts`. It's read once at module load with `readFileSync(new URL('../../package.json', import.meta.url))`, and module load throws if `version` isn't a string. The same relative path works from `src/presentation` and `dist/presentation`.
-- `instanceResponseSchema` gains `version: z.string()`. `InstanceConfig`, `DEFAULT_INSTANCE_CONFIG` and `parseInstanceConfig`'s result gain `version: APP_VERSION`. `parseInstanceConfig`'s signature is unchanged.
+- Consumes: `appVersion: string` from the existing `presentation/appVersion.ts`, which reads the root `package.json` from both `src` and `dist`.
+- `instanceResponseSchema` gains `version: z.string()`. `InstanceConfig`, `DEFAULT_INSTANCE_CONFIG` and `parseInstanceConfig`'s result gain `version: appVersion`. `parseInstanceConfig`'s signature is unchanged.
 
 - [ ] **Step 1: Write the failing tests.**
-  - `instanceConfig.test.ts`: `reports the version in apps/api/package.json`. Expect `parseInstanceConfig({}).version` to be the `version` field read from that file in the test.
+  - `instanceConfig.test.ts`: `reports the release version`. Expect `parseInstanceConfig({}).version` to be `appVersion`.
   - `routes.integration.test.ts`: in the existing `GET /api/instance` test, pass `version: '9.9.9'` in the configured instance and expect it in the JSON.
   - `Footer.test.tsx`:
     - `shows the version the server is running`: mock `version: '0.2.0'` and expect `findByText('v0.2.0')`.
@@ -144,7 +146,7 @@ That's 10 files.
 - [ ] **Step 3: Implement the API side, then regenerate** `openapi.json` and `schema.gen.ts`.
 - [ ] **Step 4: Render the version in `Footer.tsx`.** When `data` is present, add a `' · '` separator followed by `v{data.version}` after the Privacy link, as plain text in the existing footer styling. Add `version` to the `App.test.tsx` and `PrivacyPage.test.tsx` fixtures.
 - [ ] **Step 5:** Run full `verify.sh`. Expected: PASS.
-- [ ] **Step 6: Check the compiled path.** Run `docker build -t gubbins:footer-version .`. Run it with `SESSION_COOKIE_SECRET=x`, then `curl -s localhost:3000/api/instance`. Expected: JSON with `"version":"<apps/api/package.json version>"`. Announce the container run to peer sessions first, per the memory note. Use the container IP if the port isn't reachable.
+- [ ] **Step 6: Check the compiled path.** Run `docker build -t gubbins:footer-version .`. Run it with `SESSION_COOKIE_SECRET=x`, then `curl -s localhost:3000/api/instance`. Expected: JSON with `"version":"<root package.json version>"`. Announce the container run to peer sessions first, per the memory note. Use the container IP if the port isn't reachable.
 - [ ] **Step 7:** Commit, push and open the PR.
 
 ---
