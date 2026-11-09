@@ -371,7 +371,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     const guest = await guestAccess(request, request.params.slug);
     if (!guest) return reply.code(404).send(NOT_FOUND);
     try {
-      const view = await deps.markHoldPurchased.execute({ wishlistId: guest.wishlist.id.value, holdId: request.params.holdId, units: request.body.units }, guest.access);
+      const view = await deps.markHoldPurchased.execute({ wishlistId: guest.wishlist.id.value, holdId: request.params.holdId, units: request.body.units, message: request.body.message }, guest.access);
       return reply.code(200).send(view);
     } catch (err) {
       return sendDomainError(reply, err);

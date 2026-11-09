@@ -958,6 +958,7 @@ export interface operations {
             content: {
                 "application/json": {
                     units: number;
+                    message?: string;
                 };
             };
         };

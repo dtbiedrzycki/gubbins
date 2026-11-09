@@ -30,7 +30,7 @@ export async function runHoldCommand<E extends LedgerEvent>(
   access: AccessContext,
   now: Date,
   permit: (hold: Hold, access: AccessContext) => Actor | null,
-  decide: (wishlist: Wishlist, hold: Hold) => HoldCommandResult<E>,
+  decide: (wishlist: Wishlist, hold: Hold) => HoldCommandResult<E> | Promise<HoldCommandResult<E>>,
 ): Promise<HoldView> {
   const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
   if (!wishlist) throw new HoldNotFoundError(input.holdId);
@@ -42,7 +42,7 @@ export async function runHoldCommand<E extends LedgerEvent>(
   const actor = permit(hold, access);
   if (!actor) throw new HoldNotFoundError(input.holdId);
 
-  const { item, event, expectedSeq } = decide(wishlist, hold);
+  const { item, event, expectedSeq } = await decide(wishlist, hold);
 
   await ctx.eventStore.append(item.id.value, expectedSeq, [event], actor);
   await ctx.wishlists.save(wishlist);
