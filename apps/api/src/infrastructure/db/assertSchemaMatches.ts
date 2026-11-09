@@ -37,7 +37,7 @@ export async function assertSchemaMatches(db: QueryExecutorProvider): Promise<vo
         throw new StaleSchemaError(
           `Database schema doesn't match this build: table "${table}" has columns (${found ?? 'table missing'}) ` +
           `but this build expects (${columns}). A migration is missing, or one was edited after it was released. ` +
-          'Restore from a backup rather than changing the database by hand.',
+          'Deploy the release that last ran against this database, and don\'t change the database by hand.',
         );
       }
     }

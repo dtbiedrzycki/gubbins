@@ -106,6 +106,7 @@ describe('migrateToLatest on a database an older build created', () => {
     await expect(migrating).rejects.toThrow(StaleSchemaError);
     await expect(migrating).rejects.toThrow(/"event_log".*migration is missing/s);
     await expect(migrating).rejects.not.toThrow(/delete/i);
+    await expect(migrating).rejects.toThrow(/deploy the release that last ran against this database/i);
     await stale.destroy();
   });
 

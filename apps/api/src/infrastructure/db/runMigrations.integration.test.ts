@@ -48,4 +48,15 @@ describe('runMigrations', () => {
     const recorded = await sql`select name from kysely_migration`.execute(db);
     expect(recorded.rows).toEqual([]);
   });
+
+  it('rolls back a migration whose record cannot be written', async () => {
+    await runMigrations(db, {});
+    await sql`create trigger refuse_record before insert on kysely_migration begin select raise(abort, 'disk full'); end`.execute(db);
+    const list = { '0001_a': { up: async (m: Kysely<unknown>) => { await sql`create table t (n integer)`.execute(m); } } };
+
+    await expect(runMigrations(db, list)).rejects.toThrow(/disk full/);
+
+    const table = await sql`select name from pragma_table_info('t')`.execute(db);
+    expect(table.rows).toEqual([]);
+  });
 });
