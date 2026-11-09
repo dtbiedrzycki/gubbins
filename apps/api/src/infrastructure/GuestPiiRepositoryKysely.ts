@@ -12,6 +12,14 @@ export class GuestPiiRepositoryKysely implements GuestPiiRepository {
       .execute();
   }
 
+  async update(id: string, details: GuestDetails): Promise<void> {
+    const result = await this.db.updateTable('guest_pii')
+      .set({ name: details.name, message: details.message })
+      .where('id', '=', id)
+      .executeTakeFirst();
+    if (result.numUpdatedRows === 0n) throw new Error(`guest_pii row not found (${id})`);
+  }
+
   async findById(id: string): Promise<GuestDetails | null> {
     const row = await this.db.selectFrom('guest_pii').select(['name', 'message']).where('id', '=', id).executeTakeFirst();
     return row ? GuestDetails.from(row) : null;

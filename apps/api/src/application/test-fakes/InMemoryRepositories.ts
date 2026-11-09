@@ -177,6 +177,11 @@ export class InMemoryGuestPiiRepository implements GuestPiiRepository {
     this.store.guestPii.set(id, { id, name: details.name, message: details.message });
   }
 
+  async update(id: string, details: GuestDetails): Promise<void> {
+    if (!this.store.guestPii.has(id)) throw new Error(`guest_pii row not found (${id})`);
+    this.store.guestPii.set(id, { id, name: details.name, message: details.message });
+  }
+
   async findById(id: string): Promise<GuestDetails | null> {
     const row = this.store.guestPii.get(id);
     return row ? GuestDetails.from(row) : null;
