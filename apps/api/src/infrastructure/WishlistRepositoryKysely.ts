@@ -59,7 +59,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     if (list.title !== wishlist.title || list.description !== wishlist.description) {
       await this.db.updateTable('wishlists').set({ title: wishlist.title, description: wishlist.description }).where('id', '=', wishlist.id.value).execute();
     }
-    // Writes only items the domain added, edited or moved on, so an untouched row keeps its updated_at.
+    // Writes only items the domain added, edited, reordered or whose stream advanced, so an untouched row keeps its updated_at.
     for (const [index, item] of wishlist.items.entries()) {
       const row = stored.get(item.id.value);
       if (row === undefined) { await this.items.insert(item, index); continue; }
