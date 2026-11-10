@@ -96,6 +96,35 @@ describe('ItemView', () => {
     expect(bodies[0].units).toBe(2);
   });
 
+  it("moves focus to the gift's heading once a hold succeeds", async () => {
+    holdEndpoint(201);
+    const user = userEvent.setup();
+    renderItem();
+
+    await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+    await vi.waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Stroller' })).toHaveFocus());
+  });
+
+  it("moves focus to the gift's heading when the guest cancels after the item was held by someone else", async () => {
+    const client = new QueryClient();
+    const view = (over: Partial<Item>) => (
+      <QueryClientProvider client={client}>
+        <ItemView slug="abc123" holdDurationDays={3} item={single(over)} payment={payment} heldUnits={0} chippedInMinor={0} />
+      </QueryClientProvider>
+    );
+    const user = userEvent.setup();
+    const { rerender } = render(view({}));
+    await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
+
+    rerender(view({ status: 'held', availableUnits: 0 }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Stroller' })).toHaveFocus();
+  });
+
   it('returns focus to the Hold button when the dialog is cancelled', async () => {
     const user = userEvent.setup();
     renderItem();
@@ -222,6 +251,22 @@ describe('ItemView', () => {
   it('says "You\'re holding 2" when the guest holds 2', () => {
     renderItem({ status: 'held', availableUnits: 0 }, { heldUnits: 2 });
     expect(screen.getByText("You're holding 2")).toBeInTheDocument();
+  });
+
+  it('announces "You\'re holding 2" through a live region already on the card', () => {
+    const client = new QueryClient();
+    const view = (heldUnits: number) => (
+      <QueryClientProvider client={client}>
+        <ItemView slug="abc123" holdDurationDays={3} item={single({ availableUnits: 5 })} payment={payment} heldUnits={heldUnits} chippedInMinor={0} />
+      </QueryClientProvider>
+    );
+    const { rerender } = render(view(0));
+    // Screen readers miss a live region that arrives already holding its text.
+    const regions = [...document.querySelectorAll('[aria-live="polite"]')];
+
+    rerender(view(2));
+
+    expect(regions).toContain(screen.getByText("You're holding 2"));
   });
 
   it('shows no holding line when the guest holds none', () => {

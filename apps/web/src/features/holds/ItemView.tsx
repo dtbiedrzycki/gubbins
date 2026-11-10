@@ -79,13 +79,14 @@ export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chi
       {item.description && <ClampedText id={`item-description-${item.id}`}><Markdown text={item.description} /></ClampedText>}
       {item.url && <p><a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2.5 text-moss underline">View on {storeHost(item.url)} <span className="sr-only">for {item.title} (opens in a new tab)</span></a></p>}
       {item.type === 'single' && item.status === 'available' && item.availableUnits > 1 && <p>Wanted: {item.availableUnits} more</p>}
-      {heldUnits > 0 && <p>You're holding {heldUnits}</p>}
       {/* Mounted while available too: screen readers miss a live region that arrives already filled.
           While it's empty, the row adds no gap of its own. */}
       <div className="flex items-center gap-2.5 has-[>p:empty:only-child]:mb-0">
         {item.status !== 'available' && <Seal tone={item.status === 'purchased' ? 'gold-wax' : 'red-wax'} />}
         <ItemAnnouncement message={thanks || (item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is held.` : `${item.title} has been purchased.`)} />
       </div>
+      {/* Mounted on every single gift, so a hold that leaves units free is still announced. */}
+      {item.type === 'single' && <p aria-live="polite" className="empty:mb-0">{heldUnits > 0 ? `You're holding ${heldUnits}` : ''}</p>}
       {group && (
         <>
           <progress max={group.price} value={Math.min(group.pledged, group.price)} aria-label={progress!} className="sr-only" />
