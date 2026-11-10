@@ -1,9 +1,11 @@
 import createClient from 'openapi-fetch';
 import type {
   AddItemRequest, AddItemResponse, CreateListRequest, CreateListResponse, EditedResponse, EditItemRequest, EditListDetailsRequest, EnterGuestKeyRequest, EnterGuestKeyResponse,
-  GuestKeySuggestionResponse, HoldItemRequest, HoldItemResponse, HoldView, ListViewResponse, ManageViewResponse, OwnerSessionRequest, OwnerSessionResponse, PledgeRequest, PledgeResponse,
+  GuestKeySuggestionResponse, HoldItemRequest, HoldItemResponse, HoldView, ListViewResponse, ManageViewResponse, MoveItemRequest, OwnerSessionRequest, OwnerSessionResponse, PledgeRequest, PledgeResponse,
 } from '@gubbins/shared-types';
 import type { paths } from './schema.gen';
+
+export type MoveTarget = MoveItemRequest['to'];
 
 export class ApiError extends Error {
   constructor(
@@ -78,6 +80,9 @@ export const api = {
 
   deleteItem: (slug: string, itemId: string): Promise<EditedResponse> =>
     http.DELETE('/api/lists/{slug}/items/{itemId}', { params: { path: { slug, itemId } } }).then(unwrap),
+
+  moveItem: (slug: string, itemId: string, to: MoveTarget): Promise<EditedResponse> =>
+    http.POST('/api/lists/{slug}/items/{itemId}/move', { params: { path: { slug, itemId } }, body: { to } }).then(unwrap),
 
   editListDetails: (slug: string, input: EditListDetailsRequest): Promise<EditedResponse> =>
     http.PUT('/api/lists/{slug}', { params: { path: { slug } }, body: input }).then(unwrap),
