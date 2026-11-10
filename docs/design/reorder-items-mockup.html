@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gubbins Reorder Mockup</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Alegreya+Sans:wght@400;700&display=swap">
+<style>
+/* Layout: phone-width screens side by side on wide windows, stacked on phones; the app's own palette and faces. */
+:root {
+  --paper: #F6F3FB; --ink: #2E2447; --muted: #625A78; --line: #DCD3EA;
+  --moss: #34603F; --petal: #F2CBD6; --wax: #9E2A45; --gold: #D9A93A;
+  --card: #FFFFFF; --frame: #E9E3F3;
+  --display: "IM Fell English", Georgia, serif;
+  --sans: "Alegreya Sans", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #1E1830; --ink: #EDE7F8; --muted: #B3AACB; --line: #3E3558;
+  --moss: #7DB38A; --petal: #5A3442; --wax: #E07A92; --gold: #E6BE62;
+  --card: #2A2240; --frame: #15111F; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #1E1830; --ink: #EDE7F8; --muted: #B3AACB; --line: #3E3558;
+  --moss: #7DB38A; --petal: #5A3442; --wax: #E07A92; --gold: #E6BE62;
+  --card: #2A2240; --frame: #15111F; color-scheme: dark }
+body { margin: 0; background: var(--frame); color: var(--ink); font: 17px/1.45 var(--sans); padding: 24px 16px 48px; }
+header { max-width: 900px; margin: 0 auto 28px; }
+header h1 { font: 2rem/1.1 var(--display); margin: 0 0 8px; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); max-width: 60ch; }
+.wrap { max-width: 900px; margin: 0 auto; display: grid; gap: 36px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); align-items: start; }
+.shot { display: grid; gap: 10px; }
+.cap { font-size: .95rem; color: var(--muted); }
+.cap b { color: var(--ink); letter-spacing: .04em; text-transform: uppercase; font-size: .8rem; display: block; margin-bottom: 2px; }
+.screen { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 20px 18px; display: grid; gap: 14px; }
+h3 { font: 700 .8rem/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+ul { list-style: none; margin: 0; padding: 0; }
+li { border-bottom: 1px solid var(--line); padding: 14px 0; display: grid; gap: 4px; }
+li:first-child { border-top: 1px solid var(--line); }
+li.moved { animation: flash .9s ease-out; }
+@keyframes flash { from { background: var(--petal); } to { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { li.moved { animation: none; } }
+.t { font-weight: 700; overflow-wrap: anywhere; }
+.meta { color: var(--muted); font-size: .92rem; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+button { font: inherit; font-size: .92rem; min-height: 44px; min-width: 44px; padding: 6px 12px; border-radius: 6px; cursor: pointer;
+  border: 1.5px solid var(--ink); background: transparent; color: var(--ink); display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+button.danger { border-color: var(--wax); color: var(--wax); }
+button.icon { padding: 6px; }
+button[disabled] { opacity: .35; cursor: not-allowed; }
+button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
+.side { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: start; }
+.stack { display: grid; gap: 6px; }
+.g { padding: 12px 0; }
+.g .t { font-weight: 400; }
+.live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.note { font-size: .92rem; color: var(--muted); margin: 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Putting gifts in order</h1>
+  <p>The owner moves a gift with a two-by-two block beside it on the manage page. The buttons work: tap them to try. Guests see the same order (right). New gifts land at the top, just below the add form.</p>
+</header>
+<p class="live" aria-live="polite" id="live"></p>
+<div class="wrap">
+  <div class="shot">
+    <div class="cap"><b>Manage page · move buttons beside each gift</b>The top row moves the gift up: one spot, or all the way to the top. The bottom row moves it down: one spot, or all the way to the bottom. Gifts stay the same height as now.</div>
+    <div class="screen"><h3>Items</h3><ul id="b"></ul></div>
+  </div>
+  <div class="shot">
+    <div class="cap"><b>What guests see</b>The guest list follows the order you set, and it updates as you tap.</div>
+    <div class="screen"><h3>Gifts</h3><ul id="g"></ul></div>
+  </div>
+</div>
+<script>
+const I = {
+  top: '<path d="M5 4h14M12 20V9M7 13l5-5 5 5"/>',
+  up: '<path d="M12 19V6M6 12l6-6 6 6"/>',
+  down: '<path d="M12 5v13M6 12l6 6 6-6"/>',
+  bottom: '<path d="M5 20h14M12 4v11M7 11l5 5 5-5"/>',
+};
+const svg = (k) => `<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${I[k]}</svg>`;
+let items = [
+  ['Cast-iron skillet', '£45 · quantity 1'],
+  ['Board game: something co-op', 'quantity 1'],
+  ['Pour-over coffee kettle', '£38 · quantity 1'],
+  ['Hardback cookbook', '£25 · quantity 1'],
+  ['Weekend away', '£300 target', true],
+  ['Paperback novels', '£9 · quantity 3'],
+  ['Linen tea towels', '£16 · quantity 2'],
+];
+let movedTitle = null, focusKey = null;
+const label = { top: 'to the top', up: 'up', down: 'down', bottom: 'to the bottom' };
+function move(i, how) {
+  const [it] = items.splice(i, 1);
+  const to = how === 'top' ? 0 : how === 'bottom' ? items.length : how === 'up' ? i - 1 : i + 1;
+  items.splice(to, 0, it);
+  movedTitle = it[0];
+  document.getElementById('live').textContent = `${it[0]} moved to position ${to + 1} of ${items.length}.`;
+  return to;
+}
+function btn(view, i, how, n, withText) {
+  const off = (how === 'top' || how === 'up') ? i === 0 : i === n - 1;
+  const text = { top: 'Top', up: 'Up', down: 'Down', bottom: 'Bottom' }[how];
+  return `<button type="button" class="${withText ? '' : 'icon'}" data-v="${view}" data-i="${i}" data-h="${how}" ${off ? 'disabled' : ''}
+    aria-label="Move ${items[i][0]} ${label[how]}">${svg(how)}${withText ? text : ''}</button>`;
+}
+function render() {
+  const n = items.length;
+  const meta = ([t, m, group]) => `<span class="t">${t}${group ? ' <span class="meta" style="font-weight:400">group gift</span>' : ''}</span><span class="meta">${m}</span>`;
+  const cls = (t) => t === movedTitle ? ' class="moved"' : '';
+  const actions = '<div class="row"><button type="button">Edit</button><button type="button" class="danger">Delete</button></div>';
+  document.getElementById('b').innerHTML = items.map((it, i) => `<li${cls(it[0])}><div class="side"><div style="display:grid;gap:4px">${meta(it)}${actions}</div>
+    <div class="stack" style="grid-template-columns:auto auto" role="group" aria-label="Move ${it[0]}">${['up', 'top', 'down', 'bottom'].map((h) => btn('b', i, h, n, false)).join('')}</div></div></li>`).join('');
+  document.getElementById('g').innerHTML = items.map((it) => `<li class="g${it[0] === movedTitle ? ' moved' : ''}">${meta(it)}</li>`).join('');
+  if (focusKey) {
+    // Focus stays on the same button of the moved gift; if that button is now disabled (hit the end), it falls back to its row.
+    const [v, i, h] = focusKey;
+    const sel = (hh) => document.querySelector(`button[data-v="${v}"][data-i="${i}"][data-h="${hh}"]`);
+    const b = sel(h);
+    (b && !b.disabled ? b : [...document.querySelectorAll(`button[data-v="${v}"][data-i="${i}"]`)].find((x) => !x.disabled))?.focus();
+  }
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-h]');
+  if (!b) return;
+  const to = move(+b.dataset.i, b.dataset.h);
+  focusKey = [b.dataset.v, to, b.dataset.h];
+  render();
+});
+render();
+</script>
+</body>
+</html>
