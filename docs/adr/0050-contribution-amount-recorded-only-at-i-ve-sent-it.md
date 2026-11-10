@@ -21,7 +21,9 @@ are sent, with no pre-payment draft state server-side — so a dedicated
 cross-device pledge-recovery secret is unnecessary. A same-session
 "already sent" hint, reusing the `sessionHash` pattern from
 [holds](../spec/holds.md), covers accidental resubmission on the same
-device only.
+device only. The hint is a "You chipped in $X" line on the group gift's
+card (the session's pledges to it, summed), plus one entry per pledge in
+the guest's "Your contributions" sheet.
 
 ## Alternatives considered
 
