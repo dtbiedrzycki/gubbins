@@ -76,7 +76,8 @@ and can go first.
 - **The button** floats at the bottom centre of the list page, above the
   page content: "Your contributions · N", where N is the number of entries
   the sheet lists. It appears only once the guest has at least one entry, and
-  the first time it appears while the page is open it gets the existing
+  the first time it appears while the page is open (not on load, and not
+  for later entries while it already shows) it gets the existing
   wax-seal stamp animation (`Seal`'s `stamp`).
 - **Room at the end of the list.** While the button shows, the page's bottom
   padding is at least the button's height plus its gap, so the last gift
@@ -103,8 +104,10 @@ and can go first.
 The gift's card gains a line "You're holding N" (N = units across the
 guest's holds on that item whose status is `active`; expired, purchased
 and released holds don't count, since the sheet already shows them with
-their own status — my call), in place of moving focus to the section. Focus goes to that line or the card's heading (builder's call),
-and the button's count goes up.
+their own status; owner ruling, 2026-11-10), in place of moving focus to
+the section. Focus goes to the gift's heading, which also exists when the
+guest lost the item to someone else and cancelled; the button's count goes
+up.
 
 ### Group-gift card
 
@@ -124,7 +127,9 @@ Outcomes now show inside the sheet, where the action was taken. When an
 action removes the guest's last entry, so the sheet would be empty, the
 sheet closes and the outcome is announced in a live region on the page that
 stays mounted (the button's region or the page's existing status line;
-builder's call). The "released" message rule (cleared when a new hold
+builder's call), and focus moves to the list's title (`<h1>`, made
+focusable with `tabIndex={-1}`), since the button it would return to is
+gone. The "released" message rule (cleared when a new hold
 appears) carries over unchanged.
 
 ### "Wanted" counts
@@ -148,8 +153,8 @@ hostname, lowercased by the URL parser, with one leading `www.` removed:
 `https://shop.example.co.uk/x` → "View on shop.example.co.uk",
 `https://vndr.to/abc` → "View on vndr.to". The screen-reader text after it
 ("for {title} (opens in a new tab)") stays. Item URLs are already
-validated as https when saved (`Item.ts`); if parsing ever fails, show "View in
-store" rather than break the card.
+validated as https in `Item`'s constructor, so every stored URL parses and
+no fallback is needed.
 
 ## API
 
@@ -180,11 +185,12 @@ field.
 - Domain: `contributionsForSession` returns only that session's pledges.
 - Use case: `GetListView` returns `myContributions`, newest first, and none
   without a guest session.
-- Route: the response matches the schema (one test, existing pattern).
-- Web: the host label (www stripped, subdomain kept, unparsable falls back);
+- Route: the existing list-view response test (`toEqual`) gains
+  `myContributions: []`.
+- Web: the host label (www stripped, subdomain kept, port dropped);
   the button shows only with entries and its count; the sheet lists holds
   then chip-ins; closing returns focus to the button; an action that empties
-  the sheet still announces its outcome; the gift card's "You're holding N"
+  the sheet still announces its outcome and moves focus to the list title; the gift card's "You're holding N"
   (active holds only); the group-gift card's "You chipped in" total across
   two pledges;
   the new "Wanted" wording.
@@ -192,7 +198,8 @@ field.
   hook rather than in each dialog.
 - e2e: existing specs that look for "N left", "View in store" or "Your
   holds" are updated; one spec opens the sheet from the button and marks a
-  hold as purchased.
+  hold as purchased, and checks Escape on the purchase sheet opened from
+  it closes only the purchase sheet.
 
 ## Left to the builder
 
