@@ -87,36 +87,32 @@ describe('HoldDialog', () => {
     expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
   });
 
-  it('confirms with the trimmed name and message', async () => {
+  it('confirms with the trimmed name', async () => {
     const user = userEvent.setup();
     const { props } = renderDialog();
 
     await user.type(screen.getByLabelText('Gifter name(s)'), '  Amara ');
-    await user.type(screen.getByLabelText('Message to the owner (optional)'), ' Happy to collect Friday ');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
-    expect(props.onConfirm).toHaveBeenCalledWith(expect.anything(), { name: 'Amara', message: 'Happy to collect Friday', units: 1 });
+    expect(props.onConfirm).toHaveBeenCalledWith(expect.anything(), { name: 'Amara', units: 1 });
   });
 
-  it('locks the name and message once sent, so a retry sends what was sent', async () => {
+  it('locks the name once sent, so a retry sends what was sent', async () => {
     const user = userEvent.setup();
     const { props } = renderDialog();
 
     await user.type(screen.getByLabelText('Gifter name(s)'), 'Amra');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
     await user.type(screen.getByLabelText('Gifter name(s)'), 'a');
-    await user.type(screen.getByLabelText('Message to the owner (optional)'), 'Hi');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
-    expect(vi.mocked(props.onConfirm).mock.calls[1][1]).toEqual({ name: 'Amra', message: '', units: 1 });
+    expect(vi.mocked(props.onConfirm).mock.calls[1][1]).toEqual({ name: 'Amra', units: 1 });
     expect(screen.getByLabelText('Gifter name(s)')).toHaveAccessibleDescription('Include everyone the gift is from, e.g. Sam & Alex Smith. Names are only shared with the list owner. To change your details, cancel and start again.');
-    expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAccessibleDescription('To change your details, cancel and start again.');
   });
 
-  it('limits the gifter names to 100 characters and the message to 300', () => {
+  it('limits the gifter names to 100 characters', () => {
     renderDialog();
     expect(screen.getByLabelText('Gifter name(s)')).toHaveAttribute('maxlength', '100');
-    expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAttribute('maxlength', '300');
   });
 
   it('marks the gifter names as required and describes them with the hint and the privacy line', () => {
@@ -180,7 +176,7 @@ describe('HoldDialog', () => {
     expect(screen.getByText('Other guests will see they\u2019re taken while you buy them.')).toBeInTheDocument();
     expect(screen.getByText('After you buy them, come back and tap \u201cMark as purchased\u201d.')).toBeInTheDocument();
     expect(screen.getByText('If you don\u2019t, the hold ends after 3 days and another guest could buy them too.')).toBeInTheDocument();
-    expect(props.onConfirm).toHaveBeenCalledWith(expect.anything(), { name: 'Amara', message: '', units: 2 });
+    expect(props.onConfirm).toHaveBeenCalledWith(expect.anything(), { name: 'Amara', units: 2 });
   });
 
   it('locks the count once the hold is sent, even when fewer are free by the retry', async () => {
@@ -198,7 +194,7 @@ describe('HoldDialog', () => {
     rerender(<HoldDialog {...props} availableUnits={2} error={new Error('Network error')} />);
     await user.click(screen.getByRole('button', { name: 'Yes, hold 3' }));
 
-    expect(vi.mocked(props.onConfirm).mock.calls[1][1]).toEqual({ name: 'Amara', message: '', units: 3 });
+    expect(vi.mocked(props.onConfirm).mock.calls[1][1]).toEqual({ name: 'Amara', units: 3 });
   });
 
   it('after a 409 that is not about units, shows the server\u2019s message and keeps the details locked', async () => {
@@ -228,6 +224,6 @@ describe('HoldDialog', () => {
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
     const [[first], [credential, details]] = vi.mocked(props.onConfirm).mock.calls;
     expect(credential.idempotencyKey).toBe(first.idempotencyKey);
-    expect(details).toEqual({ name: 'Amara Okafor', message: '', units: 1 });
+    expect(details).toEqual({ name: 'Amara Okafor', units: 1 });
   });
 });
