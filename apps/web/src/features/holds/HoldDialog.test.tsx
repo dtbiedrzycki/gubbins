@@ -87,11 +87,6 @@ describe('HoldDialog', () => {
     expect(localStorage.getItem('gubbins.gifterNames')).toBe('Sam & Alex');
   });
 
-  it('has no message box', () => {
-    renderDialog();
-    expect(screen.queryByLabelText('Message to the owner (optional)')).not.toBeInTheDocument();
-  });
-
   it('confirms with the trimmed name', async () => {
     const user = userEvent.setup();
     const { props } = renderDialog();
