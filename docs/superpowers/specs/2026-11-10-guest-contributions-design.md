@@ -52,7 +52,7 @@ The owner tried the guest list page and found three problems:
 
 ## Order of work
 
-1. **After the purchase-message stack (#211–#217) merges.** It rewrites the
+1. **After the purchase-message stack (#211–#216) merges.** It rewrites the
    purchase sheet and the hold cards that this design moves into the new
    sheet (owner ruling, 2026-11-10).
 2. **First, one shared piece of code for the modal sheets** (owner ruling,

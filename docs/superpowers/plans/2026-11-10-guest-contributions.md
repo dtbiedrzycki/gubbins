@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- **Start only after the purchase-message stack (#211–#217) has merged to main.** It rewrites `PurchaseDialog`, `HoldActions` and the hold cards. Every task bases on main as it stands then; where this plan names a line, re-find it there.
+- **Start only after the purchase-message stack (#211–#216) has merged to main.** It rewrites `PurchaseDialog`, `HoldActions` and the hold cards. Every task bases on main as it stands then; where this plan names a line, re-find it there.
 - At most 10 changed files per PR, generated files included (skill small-prs). One linear stack, Tasks 1, 2, 3, 4a, 4b, 5, 6: each task one PR (7 PRs).
 - Verify each branch with `~/.claude/skills/verifying-gubbins-locally/verify.sh` (add `--e2e` when the PR targets main) on a clean tree. A branch is green only when it prints `verify: all ... checks passed`.
 - Exact copy: "Wanted: N more", "of N wanted", "Only N still wanted now.", "View on {host}", "Your contributions", "Your contributions · N", "You're holding N", "You chipped in $X.XX." (sheet entry), "You chipped in $X.XX" (card line), "Close".
