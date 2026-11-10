@@ -49,8 +49,8 @@ The order is still the order gifts were added, because `addItem` still appends. 
 - Create: `apps/api/src/infrastructure/db/itemPositions.integration.test.ts` (not under `migrations/`, so `check-shipped-migrations.sh` never freezes it)
 - Modify: `apps/api/src/infrastructure/db/migrations/index.ts`
 - Modify: `apps/api/src/infrastructure/db/schema.ts`
-- Modify: `apps/api/src/infrastructure/db/schema.integration.test.ts`: its typed `insertInto('items')` calls gain `position`, and the adoption test expects `0002_item_positions` to be recorded too.
-- Modify: `apps/api/src/application/ports/ItemRepository.ts`
+- Modify: `apps/api/src/infrastructure/db/schema.integration.test.ts`: its typed `insertInto('items')` calls gain `position`, and the adoption test expects `0002_item_positions` to be recorded too. Rename that test so its name no longer says only `0001_init`.
+- Modify: `apps/api/src/application/ports/ItemRepository.ts`: `ItemRow.position`, `insert(item, position)`, `savePosition`, and the doc comment.
 - Modify: `apps/api/src/infrastructure/ItemRepositoryKysely.ts`
 - Modify: `apps/api/src/infrastructure/WishlistRepositoryKysely.ts`
 - Modify: `apps/api/src/application/test-fakes/InMemoryRepositories.ts`
@@ -67,7 +67,7 @@ The order is still the order gifts were added, because `addItem` still appends. 
   - Run `0001_init` alone with `runMigrations(db, { '0001_init': migrations['0001_init'] })`.
   - Insert two lists with raw SQL, each with three items whose `created_at` values are out of id order, and two items sharing one `created_at`.
   - Run all `migrations`.
-  - Test `it("numbers each list's items from 0, oldest first, breaking a tie by id")`: per list, `select id, position from items where wishlist_id = ? order by position` equals the oldest-first ids with positions `[0, 1, 2]`.
+  - Test `it("numbers each list's items from 0, oldest first, breaking a tie by id")`: per list, `select id, position from items where wishlist_id = ? order by position` equals the oldest-first ids with positions `[0, 1, 2]`. *(Protects: the backfill `UPDATE`, including its `wishlist_id` and tie-break terms.)*
 - [ ] **Step 2: Run** `~/.claude/skills/verifying-gubbins-locally/verify.sh --quick apps/api src/infrastructure/db`. Expected: FAIL.
 - [ ] **Step 3: Implement:**
   - **Migration `0002_item_positions`:** `alter table items add column position integer not null default 0`, then `update items set position = (select count(*) from items o where o.wishlist_id = items.wishlist_id and (o.created_at < items.created_at or (o.created_at = items.created_at and o.id < items.id)))`. Register it in `index.ts`.
@@ -97,13 +97,13 @@ The order is still the order gifts were added, because `addItem` still appends. 
 - Changes: `addItem` puts the new item first (`unshift`). The doc comment on `items` becomes "The items, in the owner's order: the first is the top of the list."
 
 - [ ] **Step 1: Write the failing tests:**
-  - In `Wishlist.test.ts`, change `takes several items, each reachable by id` so it expects `['Crib', 'Stroller']`, and rename it `takes several items, the newest first, each reachable by id`.
+  - In `Wishlist.test.ts`, change `takes several items, each reachable by id` so it expects `['Crib', 'Stroller']`, and rename it `takes several items, the newest first, each reachable by id`. *(Protects: `addItem`'s `unshift`.)*
   - Use a list with gifts A, B and C, in that order (`reconstitute`).
-  - `it.each([['top', 'C', ['C','A','B']], ['up', 'C', ['A','C','B']], ['down', 'A', ['B','A','C']], ['bottom', 'A', ['B','C','A']]])('moves an item %s', …)`.
-  - `it.each([['top','A'], ['up','A'], ['down','C'], ['bottom','C']])('leaves the order as it is when %s would pass the end', …)`.
-  - In the contract, replace `loads every item of the list, in the order they were added` with `it("save stores a moved item's place, so the next load has the new order")`. Seed list C with Stroller then Crib (loaded as Crib, Stroller), then `moveItem(stroller, 'top')`, save and reload. Expect `[Stroller, Crib]` by id.
-  - Change `save adds a new item to the list, with its stream at seq 0` so it expects `[ITEM_A2, ITEM_A]`, and rename it `save adds a new item to the top of the list, with its stream at seq 0`.
-  - Add `it("saving one list's new order leaves another list's order as it was")`. Seed list C with two gifts and list D with two gifts. Reorder and save C. D's reloaded ids are unchanged.
+  - `it.each([['top', 'C', ['C','A','B']], ['up', 'C', ['A','C','B']], ['down', 'A', ['B','A','C']], ['bottom', 'A', ['B','C','A']]])('moves an item %s', …)`. *(Protects: each branch of `moveItem`.)*
+  - `it.each([['top','A'], ['up','A'], ['down','C'], ['bottom','C']])('leaves the order as it is when %s would pass the end', …)`. *(Protects: the end guards in `moveItem`.)*
+  - In the contract, replace `loads every item of the list, in the order they were added` with `it("save stores a moved item's place, so the next load has the new order")`. Seed list C with Stroller then Crib (loaded as Crib, Stroller), then `moveItem(stroller, 'top')`, save and reload. Expect `[Stroller, Crib]` by id. *(Protects: `save` calling `savePosition` when an index changed, and both loads sorting by `position`.)*
+  - Change `save adds a new item to the list, with its stream at seq 0` so it expects `[ITEM_A2, ITEM_A]`, and rename it `save adds a new item to the top of the list, with its stream at seq 0`. *(Protects: `addItem`'s `unshift` surviving a save, and the existing gift's position shifting.)*
+  - Add `it("saving one list's new order leaves another list's order as it was")`. Seed list C with two gifts and list D with two gifts whose ids are not in id order (so a sort by id would change it). Reorder and save C. D's reloaded ids are unchanged. *(Protects: `save` writing positions only for this list's rows.)*
 - [ ] **Step 2: Run** `verify.sh --quick apps/api src/domain/entities/Wishlist.test.ts src/application/test-fakes/InMemoryRepositories.contract.test.ts src/infrastructure/contracts.integration.test.ts`. Expected: FAIL.
 - [ ] **Step 3: Implement** `moveItem` and the `unshift`.
 - [ ] **Step 4: Run** `verify.sh --quick apps/api`. Fix any other flipped expectation; list each in the commit. Expected: PASS.
@@ -124,8 +124,8 @@ The order is still the order gifts were added, because `addItem` still appends. 
   It has the same shape as `DeleteItem`.
 
 - [ ] **Step 1: Write the failing tests**, built like `DeleteItem.test.ts`:
-  - `it('saves the new order, appending no event')`: after `to: 'top'`, the reloaded list has the moved gift first, and the event store's count is unchanged.
-  - `it('treats a caller who is not the owner as no list')`: rejects with `WishlistNotFoundError`.
+  - `it('saves the new order, appending no event')`: after `to: 'top'`, the reloaded list has the moved gift first, and the event store's count is unchanged. *(Protects: `execute` loading, moving and saving in one unit of work, with no append.)*
+  - `it('treats a caller who is not the owner as no list')`: rejects with `WishlistNotFoundError`. *(Protects: the `access.owner` guard.)*
 - [ ] **Step 2: Run** `verify.sh --quick apps/api src/application/use-cases/MoveItem.test.ts`. Expected: FAIL.
 - [ ] **Step 3: Implement**, mirroring `DeleteItem.execute`.
 - [ ] **Step 4: Run** the same command. Expected: PASS.
@@ -151,7 +151,7 @@ The order is still the order gifts were added, because `addItem` still appends. 
   - `AppDependencies.moveItem`.
 
 - [ ] **Step 1: Write the failing tests:**
-  - In `ownerEditing.test.ts`: `it('accepts each move target and refuses any other')`. Each of the four values parses. `'first'` fails, and so does `{}`.
+  - In `ownerEditing.test.ts`: `it('accepts each move target and refuses any other')`. Each of the four values parses. `'first'` fails, and so does `{}`. *(Protects: the `z.enum`.)*
   - In a new `describe('POST /api/lists/:slug/items/:itemId/move')` in `routes.integration.test.ts`:
     - `it('the owner moves a gift to the top, and the guest view lists it first')`: the response is 200 with `{ ok: true }`, and the list view's ids have the moved gift first;
     - `it('answers 404 for a gift on another list')`;
@@ -180,30 +180,28 @@ The order is still the order gifts were added, because `addItem` still appends. 
   - A button is `disabled` only at an end.
   - While `pending` is true, every button has `aria-disabled="true"` and its click does nothing.
 
-`ManageItems` owns one move mutation and three pieces of state:
+`ManageItems` owns one move mutation and this state:
 - **The pending flag:** `onSettled` returns the manage-view invalidation, as Delete's does, so the mutation stays pending until the refetch finishes.
-- **The last move,** `{ itemId, to, failed }`.
-  - After a success, an effect keyed on `items` runs once the refetched list renders. It focuses `move-{to}-{itemId}`, or, if that button is now disabled, the first enabled button in the block. It sets the announcement, then clears the last move.
+- **The last successful move,** `{ itemId, to } | null`, set in `onSuccess`. An effect keyed on `[items, isPending]` acts when `isPending` is false and a last move is set. It works even when the refetch returns an unchanged list, which TanStack Query hands back as the same object.
+  - It focuses `move-{to}-{itemId}`, or, if that button is now disabled, the first enabled button in the block.
+  - It sets the announcement, then clears the last move.
   - React reorders keyed rows by moving DOM nodes, which can drop focus to `body` for a moment. The effect restores it. Check this in the e2e test, not in jsdom.
-- **The announcement:** `{title} moved to position {n} of {m}.`, worked out from the refetched `items`. It goes in one always-mounted `<p aria-live="polite">` below the list.
+- **The announcement:** `{title} moved to position {n} of {m}.`, worked out from `items`. It goes in one always-mounted `<p aria-live="polite" id="move-announcement">` below the list. Tests find it by that id.
+- **Move errors, per gift:** a `Record<itemId, string>`. `onMutate` deletes the moving gift's entry, and `onError` sets it, so another gift's move never clears it. An effect keyed on that record focuses the newest error's `<p role="alert" tabIndex={-1}>` in its row, separate from Delete's alert.
 
-On error:
-- that gift's row shows the error in its own `<p role="alert" tabIndex={-1}>`, separate from Delete's, and focus moves to it;
-- there is no announcement;
-- a 404 calls `onUnauthorized()`;
-- the error clears when that gift's next move starts. Another gift's move doesn't clear it.
+On error there is no announcement, and a 404 calls `onUnauthorized()`.
 
 While a row shows the edit form, it has no move block.
 
-- [ ] **Step 1: Write the failing tests** in `ManageItems.test.tsx`. Add a harness, `renderLiveItems(initial)`, that renders `ManageItems` from a real `useQuery(manageViewKey('abc123'))` against MSW's manage-view handler, so a move refetches. Pass an `onUnauthorized` spy. Every move handler answers 200 `{ ok: true }` unless the test says otherwise, then serves the reordered view.
-  - `it('moves a gift to the top, keeps focus in its block, and says where it went')`: with A, B and C, tap "Move C to the top". After the refetch, Top is disabled, so focus falls back to "Move C down". The live region reads `C moved to position 1 of 3.`
-  - `it('keeps focus on Up after moving up one place')`: with A, B and C, tap "Move C up". Focus is on "Move C up", and the live region reads `C moved to position 2 of 3.`
-  - `it.each` over the four buttons, `it('the %s button asks for %s')`: the request body equals `{ to }`.
-  - `it('disables Up and Top on the first gift and Down and Bottom on the last; a lone gift has all four disabled')`.
-  - `it('ignores a tap while a move is pending')`: hold the first response open, then tap Up again. Exactly one request is sent.
-  - `it("shows the server's error in the gift's row, with focus on it, and announces nothing")`: MSW answers 500 with an error body. The alert shows the client's message, focus is on it, and the live region is empty.
-  - `it("clears a gift's error when its next move starts")`.
-  - `it('sends the owner back to the token gate on 404')`: `onUnauthorized` is called once.
+- [ ] **Step 1: Write the failing tests** in `ManageItems.test.tsx`. Add a harness, `renderLiveItems(initial)`, that renders `ManageItems` from a real `useQuery(manageViewKey('abc123'))`. Write it a manage-view MSW handler, because no shared one exists: it serves `initial` until a move succeeds, and the reordered list after that. Pass an `onUnauthorized` spy. Every move handler answers 200 `{ ok: true }` unless the test says otherwise, then serves the reordered view.
+  - `it('moves focus to the first enabled button when the tapped one is disabled at the end')`: with A, B and C, tap "Move C to the top". After the refetch, focus is on "Move C down". *(Protects: the disabled-button fallback.)*
+  - `it('keeps focus on Up after moving up one place')`: with A, B and C, tap "Move C up". Focus is on "Move C up", and the live region reads `C moved to position 2 of 3.` *(Protects: the focus restore and the announcement text.)*
+  - `it.each` over the four buttons, `it('the %s button asks for %s')`: the request body equals `{ to }`. *(Protects: each button's `onMove` argument.)*
+  - `it('disables Up and Top on the first gift and Down and Bottom on the last; a lone gift has all four disabled')`. *(Protects: the end checks on `disabled`.)*
+  - `it('ignores a tap while a move is pending')`: hold the first response open, then tap Up again. Exactly one request is sent. *(Protects: the `pending` click guard.)*
+  - `it("shows the server's error in the gift's row, with focus on it, and announces nothing")`: MSW answers 500 with an error body. The alert shows the client's message, focus is on it, and the live region is empty. *(Protects: `onError` and the error-focus effect.)*
+  - `it("keeps a gift's error while another gift moves, and clears it when that gift moves again")`. *(Protects: per-gift errors and `onMutate`'s delete.)*
+  - `it('sends the owner back to the token gate on 404')`: `onUnauthorized` is called once. *(Protects: the 404 branch.)*
 - [ ] **Step 2: Run** `verify.sh --quick apps/web src/features/manage/ManageItems.test.tsx --testTimeout=30000`. Expected: FAIL.
 - [ ] **Step 3: Implement** `api.moveItem`, `MoveItemButtons`, and the `ManageItems` changes. Lay out the block as in mockup B2:
   - a two-column grid to the right of the gift's details;

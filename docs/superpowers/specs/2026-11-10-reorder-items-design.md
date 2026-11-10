@@ -146,4 +146,4 @@ Follow skill `testing-at-the-owning-layer`: one test per rule, at the layer that
   - the live announcement;
   - a tap while a move is pending sends nothing;
   - error and 404 handling.
-- **E2E:** one journey. The owner adds three gifts, moves one to the top, and the guest page shows that order.
+- **E2E:** one journey. The owner adds three gifts and moves one to the bottom; focus stays in its block, and the guest page shows that order.
