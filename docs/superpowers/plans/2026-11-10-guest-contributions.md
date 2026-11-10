@@ -58,7 +58,7 @@
 - Produces: `storeHost(url: string): string | null` — hostname with one leading `www.` removed; `null` if `new URL` throws.
 
 - [ ] **Step 1:** Tests in `storeHost.test.ts` (protect the `www.` strip and the catch):
-  - `'names the site without www'`: `storeHost('https://www.amazon.com/dp/1')` → `'amazon.com'`
+  - `'names the site without www'`: `storeHost('https://www.vendor.com/item/1')` → `'vendor.com'`
   - `'keeps other subdomains'`: `'https://shop.example.co.uk/x'` → `'shop.example.co.uk'`
   - `'drops the port and lower-cases the host'`: `'https://WWW.Example.com:8443/x'` → `'example.com'`
   - `'is null for a url it cannot read'`: `'not a url'` → `null`

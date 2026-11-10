@@ -32,9 +32,9 @@ The owner tried the guest list page and found three problems:
 
 - **Actions on chip-ins.** A pledge can't be changed or withdrawn in the app
   today, so its entry is read-only.
-- **Friendly store names** ("Amazon" rather than "amazon.com"). The owner
+- **Friendly store names** ("Vendor" rather than "vendor.com"). The owner
   asked for the domain.
-- **Expanding short links.** `amzn.to/…` reads "View on amzn.to"; the owner
+- **Expanding short links.** `vndr.to/…` reads "View on vndr.to"; the owner
   accepted this. The server never visits item links to resolve them.
 - **A `StoreUrl` value object.** It stays a parked follow-up; the domain is
   worked out in the web app, since it's display text only (owner ruling,
@@ -144,9 +144,9 @@ stays.
 
 "View in store" becomes "View on {host}", where host is the link's
 hostname, lowercased by the URL parser, with one leading `www.` removed:
-`https://www.amazon.com/dp/…` → "View on amazon.com",
+`https://www.vendor.com/item/…` → "View on vendor.com",
 `https://shop.example.co.uk/x` → "View on shop.example.co.uk",
-`https://amzn.to/abc` → "View on amzn.to". The screen-reader text after it
+`https://vndr.to/abc` → "View on vndr.to". The screen-reader text after it
 ("for {title} (opens in a new tab)") stays. Item URLs are already
 validated as https when saved (`Item.ts`); if parsing ever fails, show "View in
 store" rather than break the card.
