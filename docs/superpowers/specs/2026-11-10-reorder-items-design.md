@@ -107,7 +107,7 @@ There is one new owner-only endpoint, protected in the same way as `PUT/DELETE /
 
 ## Decision records
 
-Add one ADR (next free number; `0086` at the time of writing, so check the other open branches) that records:
+[ADR-0086](../../adr/0086-the-owner-sets-the-order-guests-see.md) records:
 
 - The owner sets the order that guests see.
 - New gifts go first.
