@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { Hold } from '../../domain/entities/Hold.js';
+import { DomainValidationError } from '../../domain/errors.js';
 import { MarkHoldPurchased } from './MarkHoldPurchased.js';
 import type { AccessContext } from '../AccessContext.js';
 import { aWishlist } from '../test-fakes/builders.js';
@@ -11,7 +13,7 @@ import { DAY, GUEST, ITEM_ID, WISHLIST_ID, twoListsWithOneItemEach } from '../te
 async function setup() {
   const world = await twoListsWithOneItemEach();
   const purchaseUseCase = new MarkHoldPurchased(world.unitOfWork, world.clock);
-  const purchase = (holdId: string, access: AccessContext = GUEST) => purchaseUseCase.execute({ wishlistId: WISHLIST_ID, holdId, units: 1 }, access);
+  const purchase = (holdId: string, access: AccessContext = GUEST, message?: string) => purchaseUseCase.execute({ wishlistId: WISHLIST_ID, holdId, units: 1, message }, access);
   return { ...world, purchase };
 }
 
@@ -46,5 +48,39 @@ describe('MarkHoldPurchased', () => {
     const view = await new MarkHoldPurchased(unitOfWork, clock).execute({ wishlistId, holdId, units: 2 }, GUEST);
 
     expect(view).toMatchObject({ status: 'purchased', units: 3, purchasedUnits: 2 });
+  });
+
+  it("stores the message on the hold's guest details", async () => {
+    const { placeHold, purchase, store } = await setup();
+    const { holdId } = await placeHold();
+
+    await purchase(holdId, GUEST, 'Congratulations!');
+
+    expect([...store.guestPii.values()]).toEqual([{ id: expect.any(String), name: 'Ada', message: 'Congratulations!' }]);
+  });
+
+  it('purchases nothing when the message is invalid', async () => {
+    const { placeHold, purchase, eventStore, wishlists, clock } = await setup();
+    const { holdId } = await placeHold();
+
+    await expect(purchase(holdId, GUEST, 'x'.repeat(1000))).rejects.toBeInstanceOf(DomainValidationError);
+
+    expect(eventStore.recorded(ITEM_ID).map(({ event }) => event.type)).toEqual(['ItemHeld']);
+    expect((await wishlists.findById(WISHLIST_ID, clock.now()))?.findHold(holdId)?.statusAt(clock.now())).toBe('active');
+  });
+
+  it('purchases a hold with no guest details and drops the message', async () => {
+    const { placeHold, purchase, store } = await setup();
+    const { holdId } = await placeHold();
+    const held = store.holds.get(holdId)!;
+    store.holds.set(holdId, Hold.reconstitute({
+      id: holdId, itemId: ITEM_ID, secret: held.secret.value, sessionHash: held.sessionHash.value, idempotencyKey: held.idempotencyKey.value,
+      expiresAt: held.expiresAt, extendedAt: null, releasedAt: null, purchasedAt: null, piiRef: null, units: 1, purchasedUnits: null,
+    }));
+    store.guestPii.clear();
+
+    await expect(purchase(holdId, GUEST, 'Hello')).resolves.toMatchObject({ status: 'purchased' });
+
+    expect(store.guestPii.size).toBe(0);
   });
 });

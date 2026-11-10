@@ -432,6 +432,15 @@ describe('hold lifecycle over HTTP', () => {
     expect(release.json()).toMatchObject({ code: 'hold_not_active' });
   });
 
+  it("passes the message from the purchase body to the hold's guest details", async () => {
+    const { list, cookie, holdId } = await heldByGuest();
+
+    const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/holds/${holdId}/purchase`, headers: { cookie }, payload: { units: 1, message: 'Congrats' } });
+
+    expect(response.statusCode).toBe(200);
+    expect(await db.selectFrom('guest_pii').select(['name', 'message']).execute()).toEqual([{ name: 'Ada', message: 'Congrats' }]);
+  });
+
   it('marks purchased with the units bought: 2 of a hold of 3', async () => {
     const list = await createList(app, 3);
     const cookie = await guestOn(list);

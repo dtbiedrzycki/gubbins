@@ -21,7 +21,8 @@ export interface HoldCommand {
  * The body every hold command shares, run inside a unit of work: load the
  * list, find the hold on it, check permission, let the wishlist decide,
  * then persist the outcome and answer with the hold's view. A command supplies
- * only its permission check and its wishlist call. `now` is the clock reading
+ * only its permission check and its wishlist call, which may first read what it
+ * needs (it runs before anything is written). `now` is the clock reading
  * the list is loaded at; the wishlist then decides everything as of it.
  */
 export async function runHoldCommand<E extends LedgerEvent>(
@@ -30,7 +31,7 @@ export async function runHoldCommand<E extends LedgerEvent>(
   access: AccessContext,
   now: Date,
   permit: (hold: Hold, access: AccessContext) => Actor | null,
-  decide: (wishlist: Wishlist, hold: Hold) => HoldCommandResult<E>,
+  decide: (wishlist: Wishlist, hold: Hold) => HoldCommandResult<E> | Promise<HoldCommandResult<E>>,
 ): Promise<HoldView> {
   const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
   if (!wishlist) throw new HoldNotFoundError(input.holdId);
@@ -42,7 +43,7 @@ export async function runHoldCommand<E extends LedgerEvent>(
   const actor = permit(hold, access);
   if (!actor) throw new HoldNotFoundError(input.holdId);
 
-  const { item, event, expectedSeq } = decide(wishlist, hold);
+  const { item, event, expectedSeq } = await decide(wishlist, hold);
 
   await ctx.eventStore.append(item.id.value, expectedSeq, [event], actor);
   await ctx.wishlists.save(wishlist);

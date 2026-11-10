@@ -20,6 +20,6 @@ export const holdViewSchema = z.object({
 });
 export type HoldView = z.infer<typeof holdViewSchema>;
 
-/** How many of the held units were bought. */
-export const markHoldPurchasedRequestSchema = z.object({ units: z.number().int().min(1) });
+/** How many of the held units were bought, and an optional message to the owner. */
+export const markHoldPurchasedRequestSchema = z.object({ units: z.number().int().min(1), message: z.string().optional() });
 export type MarkHoldPurchasedRequest = z.infer<typeof markHoldPurchasedRequestSchema>;
