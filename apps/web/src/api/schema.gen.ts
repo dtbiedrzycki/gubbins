@@ -494,6 +494,12 @@ export interface operations {
                                 purchase: boolean;
                             };
                         }[];
+                        myContributions: {
+                            contributionId: string;
+                            itemId: string;
+                            amountMinor: number;
+                            pledgedAt: string;
+                        }[];
                         capabilities: {
                             holdDurationDays: number;
                         };

@@ -16,6 +16,7 @@ const view = (held: boolean): ListViewResponse => ({
   items: [aListItem({ status: held ? 'held' : 'available', availableUnits: held ? 0 : 1 })],
   payment: { venmoHandle: null, zelleHandle: null },
   myHolds: held ? [hold] : [],
+  myContributions: [],
   capabilities: { holdDurationDays: 3 },
 });
 
@@ -39,6 +40,7 @@ describe('ListPage', () => {
       aListItem({ id: 'item-2', title: 'Cot' }),
     ],
     myHolds: [{ ...hold, itemId: 'item-2' }],
+    myContributions: [],
   };
 
   it('shows the list title and a heading for each item', async () => {

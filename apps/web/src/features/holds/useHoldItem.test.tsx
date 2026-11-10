@@ -22,6 +22,7 @@ const listView = (status: 'available' | 'held'): ListViewResponse => ({
   items: [aListItem({ status, availableUnits: status === 'held' ? 0 : 1 })],
   payment: { venmoHandle: null, zelleHandle: null },
   myHolds: [],
+  myContributions: [],
   capabilities: { holdDurationDays: 3 },
 });
 
