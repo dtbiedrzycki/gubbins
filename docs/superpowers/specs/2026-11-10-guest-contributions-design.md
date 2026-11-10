@@ -125,9 +125,8 @@ Today the section owns two live regions (`role="status"` and
 `role="alert"`) for action outcomes, mounted even when empty (ADR-0025).
 Outcomes now show inside the sheet, where the action was taken. When an
 action removes the guest's last entry, so the sheet would be empty, the
-sheet closes and the outcome is announced in a live region on the page that
-stays mounted (the button's region or the page's existing status line;
-builder's call), and focus moves to the list's title (`<h1>`, made
+sheet closes and the outcome is announced in a `status`/`alert` pair on the
+page that stays mounted (its own, not the refetch-error line), and focus moves to the list's title (`<h1>`, made
 focusable with `tabIndex={-1}`), since the button it would return to is
 gone. The "released" message rule (cleared when a new hold
 appears) carries over unchanged.
@@ -190,7 +189,8 @@ field.
 - Web: the host label (www stripped, subdomain kept, port dropped);
   the button shows only with entries and its count; the sheet lists holds
   then chip-ins; closing returns focus to the button; an action that empties
-  the sheet still announces its outcome and moves focus to the list title; the gift card's "You're holding N"
+  the sheet still announces its outcome and moves focus to the list title;
+  the gift card's "You're holding N"
   (active holds only); the group-gift card's "You chipped in" total across
   two pledges;
   the new "Wanted" wording.
@@ -207,6 +207,4 @@ field.
 - Whether the purchase sheet's silent-close fix lands in the hook.
 - Exact bottom padding value and how the button is positioned (fixed vs
   sticky), as long as it never covers content at the end of the list.
-- Which element gets focus after a hold, and which live region carries the
-  outcome when the sheet empties.
 - The PR split, within the 10-file cap.

@@ -15,7 +15,7 @@
 - **Start only after the purchase-message stack (#211–#217) has merged to main.** It rewrites `PurchaseDialog`, `HoldActions` and the hold cards. Every task bases on main as it stands then; where this plan names a line, re-find it there.
 - At most 10 changed files per PR, generated files included (skill small-prs). One linear stack, Tasks 1, 2, 3, 4a, 4b, 5, 6: each task one PR (7 PRs).
 - Verify each branch with `~/.claude/skills/verifying-gubbins-locally/verify.sh` (add `--e2e` when the PR targets main) on a clean tree. A branch is green only when it prints `verify: all ... checks passed`.
-- Exact copy: "Wanted: N more", "of N wanted", "Only N still wanted now.", "View on {host}", fallback "View in store", "Your contributions", "Your contributions · N", "You're holding N", "You chipped in $X.XX." (sheet entry), "You chipped in $X.XX" (card line), "Close".
+- Exact copy: "Wanted: N more", "of N wanted", "Only N still wanted now.", "View on {host}", "Your contributions", "Your contributions · N", "You're holding N", "You chipped in $X.XX." (sheet entry), "You chipped in $X.XX" (card line), "Close".
 - No plan identifiers in test names or comments; ADR citations are fine (skill reviewing-for-recurring-feedback).
 - Each test is at the layer that decides its rule (skill testing-at-the-owning-layer). The protected line is named beside each test below.
 - Worktrees under `/workspace/.worktrees/`; announce e2e runs; at most 3 verify runs in parallel.
@@ -42,7 +42,7 @@
 **Interfaces:** none.
 
 - [ ] **Step 1:** Rename and update the existing tests (they protect the three strings):
-  - ItemView: `'shows how many more are wanted only when more than one is available'` expects `Wanted: 5 more`. The `it.each` `'hides the units left when %s'` becomes `'hides how many are wanted when %s'` and queries `/^Wanted:/` (its old `/left$/` query would match nothing after the change and pass vacuously).
+  - ItemView: `'shows how many more are wanted only when more than one is available'` expects `Wanted: 5 more`. The `it.each` `'hides the units left when %s'` becomes `'hides how many are wanted when %s'` and queries `/^Wanted:/` (its old `/left$/` query would match nothing after the change and pass vacuously). The same query swap applies to `'gives a group gift its price and no Hold button or units'`.
   - HoldDialog: the 409 test becomes `'after a 409 with 1 still wanted, says "Only 1 still wanted now." and lets the guest confirm again'`; its `'of 2 left'` assertion becomes `'of 2 wanted'`.
 - [ ] **Step 2:** Run `npx vitest run --testTimeout=30000 src/features/holds` in `apps/web`. Expect FAIL on the new strings.
 - [ ] **Step 3:** Change the three strings to the exact copy; update the Stepper comment ("such as how many are still wanted").
@@ -113,7 +113,7 @@ The route's zod serializer sends the parsed (stripped) output, so the new field 
 
 - [ ] **Step 1:** Tests:
   - Wishlist: `'contributionsForSession returns only that session's pledges, across items'` (protects the filter).
-  - GetListView: `'lists pledges newest first, each with only its id, item, amount and pledge time'`, asserting with `toEqual` on the mapped objects so any extra field (`sessionHash`, `idempotencyKey`, `piiRef`) fails it (protects the sort and the mapping; the session filter is the Wishlist test's). Extend `'shows no holds to a caller without a session'` → `'shows no holds or pledges to a caller without a session'` (protects the `access.guestSession` branch).
+  - GetListView: `'lists pledges newest first, each with only its id, item, amount and pledge time'`, asserting with `toEqual` on the mapped objects so any extra field (`sessionHash`, `idempotencyKey`, `piiRef`) fails it (protects the sort and the mapping; the session filter is the Wishlist test's). Rename `'shows the list, its available item, no holds, and the hold duration guests will get'` → `'shows the list, its available item, no holds or pledges, and the hold duration guests will get'`, adding `myContributions: []` to its whole-view match. Extend `'shows no holds to a caller without a session'` → `'shows no holds or pledges to a caller without a session'` (protects the `access.guestSession` branch).
 - [ ] **Step 2:** Run `npx vitest run src/domain/entities/Wishlist.test.ts src/application/use-cases/GetListView.test.ts` in `apps/api`; expect FAIL.
 - [ ] **Step 3:** Implement.
 - [ ] **Step 4:** Run; expect PASS.
@@ -148,7 +148,7 @@ The route's zod serializer sends the parsed (stripped) output, so the new field 
 - [ ] **Step 1:** Tests:
   - ItemView: `'says "You're holding 2" when the guest holds 2'` and `'shows no holding line when the guest holds none'` (protect the line's condition).
   - ItemView: `'says "You chipped in $40.00" on a group gift the guest pledged to'`, `'shows no chip-in line when the guest pledged nothing'`, and `'still says "You chipped in $40.00" once the gift is fully funded'` (protect the chip-in line's condition and placement outside the Chip in branch).
-  - ListPage: rewrite `'keeps a gift held from the Available filter on screen and moves focus to "Your holds"'` → `'after holding, keeps the gift on screen and moves focus to its heading'`, and `'moves focus to Your holds when the guest cancels after losing the item to someone else'` → `'after losing the item to someone else and cancelling, moves focus to the gift's heading'` (protect ItemView's focus target, through the page).
+  - ListPage: rewrite `'keeps a gift held from the Available filter on screen and moves focus to "Your holds"'` → `'after holding from the Available filter, keeps the gift on screen and moves focus to its heading'`, and `'moves focus to Your holds when the guest cancels after losing the item to someone else'` → `'after losing the item to someone else and cancelling, moves focus to the gift's heading'` (protect ItemView's focus target, through the page). Remove the focus assertion from `'holds the item, then shows it held and under "Your holds" with its actions'`, which the first rewrite now owns.
   - ListPage: `'counts only active holds: 2 active and 1 expired read "You're holding 2"'` and `'sums two pledges of $40.00 and $15.00 to "You chipped in $55.00"'` (protect the two derivations in ListPage).
 - [ ] **Step 2:** Run; expect FAIL.
 - [ ] **Step 3:** Implement. The holding line sits with the units line; the chip-in line sits with the pledged total, above Chip in, and stays when fully funded.
@@ -166,19 +166,23 @@ The route's zod serializer sends the parsed (stripped) output, so the new field 
 
 **Interfaces:**
 - Consumes: `useModalDialog` (Task 3), `myContributions` (Task 4b), `formatMoney`, `Seal`.
-- Produces: `YourContributions({ slug, holds, contributions, itemTitles })`, rendering the floating button and, when opened, the sheet. It renders nothing visible when there are no entries, but keeps its page-level live region mounted (ADR-0025).
+- Produces: `YourContributions({ slug, holds, contributions, itemTitles, onEmptied })`, rendering the floating button and, when opened, the sheet. `onEmptied: () => void` is called when an action removes the last entry; `ListPage` wires it to focus its `<h1>` (by ref, `tabIndex={-1}`). It renders nothing visible when there are no entries, but keeps a page-level `role="status"` and `role="alert"` pair mounted (ADR-0025) for outcomes that empty the sheet; outcomes that leave entries show in the sheet's own pair.
 
-- [ ] **Step 1:** Tests in `YourContributions.test.tsx`. Existing hold-card tests carry over, renamed only where they mention "Your holds"; `'says where holds will appear when there are none'` is deleted with the empty state. The existing test that moves focus to the "Your holds" heading after a release is replaced by the last-entry test below.
+- [ ] **Step 1:** Tests in `YourContributions.test.tsx`. Existing hold-card tests carry over, renamed only where they mention "Your holds"; `'says where holds will appear when there are none'` is deleted with the empty state. Rewrites of existing tests:
+  - `'after a release, moves focus to the Your holds heading'` → `'after a release with other entries left, moves focus to the sheet's heading'`
+  - `'after a refusal, moves focus to the Your holds heading'` → `'after a refusal, moves focus to the sheet's heading, beside the explanation'`
+  - the two `'closes the purchase sheet … and shows why beside "Your holds"'` tests and `'still explains a refusal when the refetch shows the hold was already released elsewhere'` keep their setups with "beside the sheet's heading"; add `'when a refusal removes the last entry, closes the sheet and still explains it'` (protects the page-level alert region).
+  New tests:
   - `'shows no button when the guest has neither holds nor pledges'`
   - `'labels the button with the number of entries'`: 1 hold + 2 pledges → `Your contributions · 3`
   - `'lists holds, then pledges newest first'`, with a pledge entry reading `You chipped in $40.00.`
   - `'returns focus to the button when the sheet closes'`
-  - `'when the last hold is released, closes the sheet, announces it and moves focus to the list title'`
+  - `'when the last hold is released, closes the sheet, announces it and calls onEmptied'`
   - `'stamps the button when it first appears, not on load and not for a later entry'`
 - [ ] **Step 2:** Run; expect FAIL.
-- [ ] **Step 3:** Implement. The button is `fixed` at bottom centre. While it shows, `ListPage`'s `<main>` gets bottom padding at least its height plus gap (a test in `ListPage.test.tsx`: `'leaves room for the contributions button after the last gift'`, asserting the padding class is present only when entries exist). The sheet is a `<dialog>` via `useModalDialog`, titled "Your contributions", with Close. `ListPage`'s `<h1>` gets `tabIndex={-1}` as the focus target when the sheet empties. Outcome live regions sit inside the sheet; a page-level `role="status"` region carries the outcome when an action empties the sheet. Delete the "Holds you place appear here." empty state.
+- [ ] **Step 3:** Implement. The button is `fixed` at bottom centre. While it shows, `ListPage`'s `<main>` gets bottom padding at least its height plus gap (a test in `ListPage.test.tsx`: `'pads the end of the page only while the contributions button shows'`; the real no-overlap check is in the e2e step below). The sheet is a `<dialog>` via `useModalDialog`, titled "Your contributions", with Close. `ListPage`'s `<h1>` gets `tabIndex={-1}` and is focused from `onEmptied`. ListPage tests: add `'when the guest releases their last hold, moves focus to the list title'`; rewrite those that find the "Your holds" region: `'shows the list title and a heading for each item'` (drop the region check), `'holds the item, then shows it held and under "Your holds" with its actions'` → `'holds the item, then lists it in Your contributions with its actions'`, and `'keeps the list, with the new hold under "Your holds", when the refetch after a hold fails'` → `'keeps the list, with the new hold in Your contributions, when the refetch after a hold fails'`. Outcome live regions sit inside the sheet; a page-level `role="status"` region carries the outcome when an action empties the sheet. Delete the "Holds you place appear here." empty state.
 - [ ] **Step 4:** Run; expect PASS.
-- [ ] **Step 5:** e2e: replace the `'Your holds'` heading/region locators with: click `Your contributions · N`, then act in the dialog named "Your contributions". `guest-holds-several` keeps its journey (hold 2, buy 1 from the sheet, another guest sees `Wanted: 4 more`) and adds one step: open Mark as purchased from the sheet, press Escape, expect the purchase sheet closed and the "Your contributions" dialog still open. Announce the e2e run.
+- [ ] **Step 5:** e2e: replace the `'Your holds'` heading/region locators with: click `Your contributions · N`, then act in the dialog named "Your contributions". `guest-holds-several` keeps its journey (hold 2, buy 1 from the sheet, another guest sees `Wanted: 4 more`) and adds one step: open Mark as purchased from the sheet, press Escape, expect the purchase sheet closed and the "Your contributions" dialog still open; then close it, scroll to the bottom, and expect the button's bounding box not to overlap the last gift's. Announce the e2e run.
 - [ ] **Step 6:** Verify with `--e2e`, commit `feat(web): Your contributions opens from a floating button`.
 
 ### Docs (with the design PR, not the stack)
