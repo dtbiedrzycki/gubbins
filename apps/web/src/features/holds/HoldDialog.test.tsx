@@ -166,7 +166,7 @@ describe('HoldDialog', () => {
   it('holds 2 of 2 units, no more, and says "Yes, hold 2"', async () => {
     const user = userEvent.setup();
     const { props } = renderDialog({ availableUnits: 2 });
-    expect(screen.getByRole('group', { name: 'How many?' })).toHaveAccessibleDescription('of 2 left');
+    expect(screen.getByRole('group', { name: 'How many?' })).toHaveAccessibleDescription('of 2 wanted');
 
     await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'One more' }));
@@ -209,7 +209,7 @@ describe('HoldDialog', () => {
     expect(screen.getByLabelText('Gifter name(s)')).toHaveAttribute('readonly');
   });
 
-  it('after a 409 with 1 left, says "Only 1 left now." and lets the guest confirm again', async () => {
+  it('after a 409 with 1 still wanted, says "Only 1 still wanted now." and lets the guest confirm again', async () => {
     const user = userEvent.setup();
     const { props, rerender } = renderDialog({ availableUnits: 3 });
     await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
@@ -218,7 +218,7 @@ describe('HoldDialog', () => {
 
     rerender(<HoldDialog {...props} availableUnits={1} error={new ApiError(409, 'This item is no longer available.', 'item_unavailable')} />);
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Only 1 left now.');
+    expect(screen.getByRole('alert')).toHaveTextContent('Only 1 still wanted now.');
     expect(screen.queryByRole('group', { name: 'How many?' })).not.toBeInTheDocument();
     await user.type(screen.getByLabelText('Gifter name(s)'), ' Okafor');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));

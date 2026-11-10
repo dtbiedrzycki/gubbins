@@ -37,7 +37,7 @@ async function expectNoSeriousAxeViolations(page: Page): Promise<void> {
   expect(scan.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
 }
 
-test('a guest holds 2 of 5, buys 1, and another guest sees 4 left', async ({ page, context, browser, baseURL }) => {
+test('a guest holds 2 of 5, buys 1, and another guest sees "Wanted: 4 more"', async ({ page, context, browser, baseURL }) => {
   const list = await listOfFiveOnesies(page);
   const guest = await guestKeyedIn(context, list);
   const yourHolds = guest.getByRole('region', { name: 'Your holds' });
@@ -46,7 +46,7 @@ test('a guest holds 2 of 5, buys 1, and another guest sees 4 left', async ({ pag
   await guest.getByRole('button', { name: 'One more' }).click();
   await guest.getByLabel('Gifter name(s)').fill('Amara');
   await guest.getByRole('button', { name: 'Yes, hold 2' }).click();
-  await expect(guest.getByText('3 left')).toBeVisible();
+  await expect(guest.getByText('Wanted: 3 more')).toBeVisible();
   await expect(yourHolds.getByText('× 2')).toBeVisible();
 
   await yourHolds.getByRole('button', { name: 'Mark as purchased' }).click();
@@ -64,7 +64,7 @@ test('a guest holds 2 of 5, buys 1, and another guest sees 4 left', async ({ pag
   const otherContext = await browser.newContext({ baseURL });
   try {
     const other = await guestKeyedIn(otherContext, list);
-    await expect(other.getByText('4 left')).toBeVisible();
+    await expect(other.getByText('Wanted: 4 more')).toBeVisible();
   } finally {
     await otherContext.close();
   }

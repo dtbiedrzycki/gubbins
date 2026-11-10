@@ -10,7 +10,7 @@ export interface StepperProps {
   max: number;
   onChange: (value: number) => void;
   disabled?: boolean;
-  /** Id of text that describes the count, such as how many are left. */
+  /** Id of text that describes the count, such as how many are still wanted. */
   describedBy?: string;
   /** The count is also a text box that takes only digits; a typed number snaps to the nearest allowed value. */
   typeable?: boolean;
