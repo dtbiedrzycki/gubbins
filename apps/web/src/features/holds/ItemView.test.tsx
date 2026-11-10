@@ -248,11 +248,6 @@ describe('ItemView', () => {
     expect(screen.queryByText(/^Wanted:/)).not.toBeInTheDocument();
   });
 
-  it('says "You\'re holding 2" when the guest holds 2', () => {
-    renderItem({ status: 'held', availableUnits: 0 }, { heldUnits: 2 });
-    expect(screen.getByText("You're holding 2")).toBeInTheDocument();
-  });
-
   it('announces "You\'re holding 2" through a live region already on the card', () => {
     const client = new QueryClient();
     const view = (heldUnits: number) => (
