@@ -15,6 +15,7 @@ import { EnterOwnerToken } from '../application/use-cases/EnterOwnerToken.js';
 import { GetListView } from '../application/use-cases/GetListView.js';
 import { EditItem } from '../application/use-cases/EditItem.js';
 import { DeleteItem } from '../application/use-cases/DeleteItem.js';
+import { MoveItem } from '../application/use-cases/MoveItem.js';
 import { EditListDetails } from '../application/use-cases/EditListDetails.js';
 import { AddItem } from '../application/use-cases/AddItem.js';
 import { GetManageView } from '../application/use-cases/GetManageView.js';
@@ -49,6 +50,7 @@ export interface AppDependencies {
   addItem: AddItem;
   editItem: EditItem;
   deleteItem: DeleteItem;
+  moveItem: MoveItem;
   editListDetails: EditListDetails;
   getManageView: GetManageView;
   holdItem: HoldItem;
@@ -82,6 +84,7 @@ export function buildDependencies(db: Kysely<Database>, logger: Logger = new Con
     addItem: new AddItem(unitOfWork, tokenGenerator, clock),
     editItem: new EditItem(unitOfWork, clock),
     deleteItem: new DeleteItem(unitOfWork, clock),
+    moveItem: new MoveItem(unitOfWork, clock),
     editListDetails: new EditListDetails(unitOfWork, clock),
     getManageView: new GetManageView(unitOfWork, clock),
     holdItem: new HoldItem(unitOfWork, tokenGenerator, clock, hasher, holdPolicy),

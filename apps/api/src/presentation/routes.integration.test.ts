@@ -685,6 +685,42 @@ describe('DELETE /api/lists/:slug/items/:itemId', () => {
   });
 });
 
+describe('POST /api/lists/:slug/items/:itemId/move', () => {
+  const move = (slug: string, itemId: string, cookie: string | undefined, to = 'top') =>
+    app.inject({ method: 'POST', url: `/api/lists/${slug}/items/${itemId}/move`, headers: cookie ? { cookie } : {}, payload: { to } });
+
+  it('the owner moves a gift to the top, and the guest view lists it first', async () => {
+    const list = await createList();
+    const cookie = await ownerOn(list);
+    const added = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/items`, headers: { cookie }, payload: { type: 'single', title: 'Cot', quantity: 1 } });
+    const cotId = (added.json() as { itemId: string }).itemId;
+    const guest = await guestOn(list);
+    const ids = async () =>
+      ((await app.inject({ method: 'GET', url: `/api/lists/${list.slug}`, headers: { cookie: guest } })).json() as { items: { id: string }[] }).items.map((i) => i.id);
+    expect(await ids()).toEqual([cotId, list.itemId]);
+
+    const response = await move(list.slug, list.itemId, cookie);
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ ok: true });
+    expect(await ids()).toEqual([list.itemId, cotId]);
+  });
+
+  it("answers another list's gift with the generic 404", async () => {
+    const list = await createList();
+    const other = await createList();
+    const response = await move(list.slug, other.itemId, await ownerOn(list));
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ message: 'Not found' });
+  });
+
+  it('answers a guest session without the owner cookie with the generic 404', async () => {
+    const list = await createList();
+    const response = await move(list.slug, list.itemId, await guestOn(list));
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ message: 'Not found' });
+  });
+});
+
 describe('GET /api/lists/:slug/manage', () => {
   const manage = (slug: string, cookie?: string) => app.inject({ method: 'GET', url: `/api/lists/${slug}/manage`, headers: cookie ? { cookie } : {} });
 

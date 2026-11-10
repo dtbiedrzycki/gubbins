@@ -5,7 +5,7 @@ import {
   createListRequestSchema, createListResponseSchema, guestKeySuggestionResponseSchema,
   enterGuestKeyRequestSchema, enterGuestKeyResponseSchema,
   ownerSessionRequestSchema, ownerSessionResponseSchema,
-  editListDetailsRequestSchema, editedResponseSchema,
+  editListDetailsRequestSchema, editedResponseSchema, moveItemRequestSchema,
   addItemRequestSchema, addItemResponseSchema, editItemRequestSchema,
   manageViewResponseSchema,
   holdItemRequestSchema, holdItemResponseSchema, holdViewSchema, markHoldPurchasedRequestSchema, listViewResponseSchema,
@@ -286,6 +286,28 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     if (!owner) return reply.code(404).send(NOT_FOUND);
     try {
       await deps.deleteItem.execute({ wishlistId: owner.wishlist.id.value, itemId: request.params.itemId }, owner.access);
+      return reply.code(200).send({ ok: true });
+    } catch (err) {
+      return sendDomainError(reply, err);
+    }
+  });
+
+  app.post('/api/lists/:slug/items/:itemId/move', {
+    schema: {
+      operationId: 'moveItem',
+      params: slugItemParams,
+      body: moveItemRequestSchema,
+      response: {
+        200: json('The item moved, or was already at that end of the list.', editedResponseSchema),
+        400: json(INVALID_REQUEST, errorResponseSchema),
+        404: json('No such list or item, or no owner cookie for the list. Deliberately indistinguishable.', errorResponseSchema),
+      },
+    },
+  }, async (request, reply) => {
+    const owner = await ownerAccess(request, request.params.slug);
+    if (!owner) return reply.code(404).send(NOT_FOUND);
+    try {
+      await deps.moveItem.execute({ wishlistId: owner.wishlist.id.value, itemId: request.params.itemId, to: request.body.to }, owner.access);
       return reply.code(200).send({ ok: true });
     } catch (err) {
       return sendDomainError(reply, err);
