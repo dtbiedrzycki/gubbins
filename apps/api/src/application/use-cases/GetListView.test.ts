@@ -22,6 +22,22 @@ async function setup(policy?: HoldPolicy) {
   return { ...world, view, release, purchase };
 }
 
+const GROUP_ITEM_ID = '44444444-4444-7444-8444-444444444444';
+
+async function groupSetup() {
+  const persistence = inMemoryPersistence();
+  const clock = new FixedClock(T0);
+  const wishlist = Wishlist.create({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0, paymentMethods: PaymentMethods.from({ venmoHandle: 'sam-w' }) });
+  wishlist.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, { generateEntityId: () => GROUP_ITEM_ID });
+  await persistence.wishlists.insert(wishlist);
+  const pledgeUseCase = new PledgeContribution(persistence.unitOfWork, new SequentialTokenGenerator(), clock);
+  const pledge = (idempotencyKey: string, amountMinor: number) =>
+    pledgeUseCase.execute({ wishlistId: WISHLIST_ID, itemId: GROUP_ITEM_ID, idempotencyKey, amountMinor, name: 'Ada', message: '' }, GUEST);
+  const useCase = new GetListView(persistence.unitOfWork, clock, { durationDays: 3 });
+  const view = (access: AccessContext = GUEST) => useCase.execute({ wishlistId: WISHLIST_ID }, access);
+  return { clock, pledge, view };
+}
+
 describe('GetListView items and payment', () => {
   it('lists every item in order with its type, units left, url, price and description, and the payment handles', async () => {
     const persistence = inMemoryPersistence();
@@ -72,7 +88,7 @@ describe('GetListView', () => {
     expect(shown.description).toBe('Ship to 1 Main St');
   });
 
-  it('shows the list, its available item, no holds, and the hold duration guests will get', async () => {
+  it('shows the list, its available item, no holds or pledges, and the hold duration guests will get', async () => {
     const { view } = await setup({ durationDays: 5 });
 
     expect(await view()).toEqual({
@@ -80,6 +96,7 @@ describe('GetListView', () => {
       items: [{ id: ITEM_ID, title: 'Stroller', type: 'single', status: 'available', availableUnits: 1, url: null, description: null, priceMinor: null, pledgedMinor: null }],
       payment: { venmoHandle: null, zelleHandle: null },
       myHolds: [],
+      myContributions: [],
       capabilities: { holdDurationDays: 5 },
     });
   });
@@ -131,10 +148,26 @@ describe('GetListView', () => {
     expect((await view()).myHolds.map((h) => [h.holdId, h.status])).toEqual([[first.holdId, 'expired'], [second.holdId, 'active']]);
   });
 
-  it('shows no holds to a caller without a session', async () => {
+  it('shows no holds or pledges to a caller without a session', async () => {
     const { placeHold, view } = await setup();
     await placeHold();
+    const { pledge, view: groupView } = await groupSetup();
+    await pledge('k1', 1000);
+    expect((await groupView(GUEST)).myContributions).toHaveLength(1);
+    expect((await groupView(NO_SESSION)).myContributions).toEqual([]);
     expect((await view(NO_SESSION)).myHolds).toEqual([]);
+  });
+
+  it('lists pledges newest first, each with only its id, item, amount and pledge time', async () => {
+    const { clock, pledge, view } = await groupSetup();
+    const first = await pledge('k1', 1000);
+    clock.advance(DAY);
+    const second = await pledge('k2', 2500);
+
+    expect((await view()).myContributions).toEqual([
+      { contributionId: second.contributionId, itemId: GROUP_ITEM_ID, amountMinor: 2500, pledgedAt: new Date(T0.getTime() + DAY).toISOString() },
+      { contributionId: first.contributionId, itemId: GROUP_ITEM_ID, amountMinor: 1000, pledgedAt: T0.toISOString() },
+    ]);
   });
 
   it('throws WishlistNotFoundError for an unknown list', async () => {

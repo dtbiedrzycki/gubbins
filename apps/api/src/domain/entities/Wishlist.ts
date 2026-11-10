@@ -217,6 +217,11 @@ export class Wishlist {
     return this.holds.filter((hold) => hold.belongsToSession(sessionHash));
   }
 
+  /** Every pledge `sessionHash` made on the list's items. */
+  contributionsForSession(sessionHash: string): Contribution[] {
+    return this.contributions.filter((contribution) => contribution.belongsToSession(sessionHash));
+  }
+
   private replayOf<T extends { belongsToSession(sessionHash: string): boolean }>(found: T | null, itemId: string, sessionHash: string): T | null {
     if (found && !found.belongsToSession(sessionHash)) throw new ItemUnavailableError(itemId);
     return found;
