@@ -30,7 +30,7 @@ Lists hold about 5 to 40 gifts.
 ## Anti-goals
 
 - A "reorder mode" or a "Save order" button. Each tap is the whole action.
-- Rows that get taller. The move block has to fit beside the gift's name, price and Edit/Delete row without growing the row. The owner chose this layout specifically so a 40-gift page doesn't get longer.
+- A move block that makes rows taller. The block has to fit beside the gift's name, price and Edit/Delete row. The owner chose this layout so a 40-gift page doesn't get longer. Text wrapping in the narrower left column is the accepted exception (see below).
 - Reordering that changes or blocks anything a guest has done. Holds, purchases and pledges are unaffected. A gift that guests have touched moves exactly like any other gift, and so does a group gift.
 
 ## Owner experience (manage page, `apps/web/src/features/manage/ManageItems.tsx`)
@@ -69,11 +69,9 @@ There is one new owner-only endpoint, protected in the same way as `PUT/DELETE /
 
 `POST /api/lists/:slug/items/:itemId/move` with body `{ "to": "top" | "up" | "down" | "bottom" }`
 
-- **204** with no body on success, including a no-op such as moving the first gift up. A no-op is not an error, because the UI disables those buttons and a stale second tab shouldn't produce an error.
+- **200 `{ "ok": true }`** on success (`editedResponseSchema`, as edit and delete return), including a no-op such as moving the first gift up. A no-op is not an error, because the UI disables those buttons and a stale second tab shouldn't produce an error.
 - **400** for a missing or unknown `to`.
 - **404** for an unknown list, an unknown item, an item on another list, or no owner access. These follow the existing owner routes' rules.
-
-The web client's `unwrap` (`apps/web/src/api/client.ts`) throws when there is no data, and openapi-fetch returns no data for a 204. This is the first 204 route, so the client's `moveItem` must treat a bodyless 204 as success rather than go through `unwrap` as it is.
 
 `GET` manage view and `GET` list view return items in the owner's order. The response shapes don't change; the order of the `items` array is the contract. The shared OpenAPI types are updated for the new route, keeping the dependency list explicit as the repo already does.
 
@@ -81,11 +79,14 @@ The web client's `unwrap` (`apps/web/src/api/client.ts`) throws when there is no
 
 - Production has real data, so this needs a **new migration** (`0002_…`). Shipped migrations are never edited (ADR-0085).
 - **My call:** add an integer `position` column to `items`. The migration backfills each list's existing gifts so the current oldest-first order is kept. Sorting changes from `created_at, id` to `position`, with `id` as a tiebreak only as a safety net.
-- **Numbering is left to you,** as long as these hold. One way to do it: a new gift takes `min(position) − 1`; Top and Bottom take min − 1 and max + 1; Up and Down swap with the neighbour. Gaps left by deletes are harmless, and no renumbering pass is needed.
-  - Positions are unique within a list after every operation.
-  - A move never touches another list's gifts.
-- **My call: no unique index on `(wishlist_id, position)`, and no CHECK.** SQLite checks UNIQUE row by row, so a swap done as two UPDATEs would collide with itself. Uniqueness is the aggregate's rule (see "Domain").
-- **`position` is carried by `Item`, and only `Wishlist` sets it.** `WishlistRepositoryKysely.save` writes only the item columns that changed, so it must compare and write `position` the same way it does the other columns. The in-memory `InMemoryWishlistRepository` must keep the order too. The adapter never works out positions itself.
+- **The order of `Wishlist.items` is the only truth.** `position` is how storage keeps that order:
+  - each gift's `position` is its index in `Wishlist.items` (0 is the top);
+  - both repositories load a list's gifts sorted by `position`, so `reconstitute` receives them in order;
+  - `WishlistRepositoryKysely.save` writes `position` for the rows whose index changed (an insert writes it too), comparing it like the other columns. A move to the top of a 40-gift list rewrites up to 40 rows, which is fine at this size;
+  - the in-memory `InMemoryWishlistRepository` keeps the same order.
+  
+  `Item` carries no position, and no code anywhere computes one other than "index in the list".
+- **My call: no unique index on `(wishlist_id, position)`, and no CHECK.** Indices are unique by construction. A unique index would also trip during a save, because SQLite checks UNIQUE row by row as each UPDATE runs.
 - If the contributions or security-headers work lands a migration first, take the next number.
 
 ## Domain
@@ -94,8 +95,7 @@ The web client's `unwrap` (`apps/web/src/api/client.ts`) throws when there is no
 - **`Wishlist` owns the order.** Its `_items` array is already ordered. The rules live in the aggregate:
   - a new gift goes first;
   - what each `to` does;
-  - moving past an end is a no-op;
-  - positions stay unique.
+  - moving past an end is a no-op.
   
   The exact method shape follows the repo's DDD conventions (skill `reviewing-for-recurring-feedback`).
 - Comments and test names that state the old rule change with it:
@@ -103,7 +103,7 @@ The web client's `unwrap` (`apps/web/src/api/client.ts`) throws when there is no
   - `ItemRepository.findAllByWishlistId`'s doc comment;
   - the tie-break comment in `ItemRepositoryKysely`;
   - the contract test "loads every item of the list, in the order they were added".
-- Concurrency: two owner devices moving gifts at the same moment means the last write wins. Run each move in one transaction through the existing unit of work, so positions never end up duplicated.
+- Concurrency: two owner devices moving gifts at the same moment means the last write wins. Run each move in one transaction through the existing unit of work, so a list is never saved half-reordered.
 
 ## Decision records
 
@@ -116,13 +116,13 @@ Add one ADR (next free number; `0086` at the time of writing, so check the other
 ## Builder's calls (decided while writing this, not by the owner)
 
 - Existing lists keep oldest-first as their starting order.
-- Endpoint shape: one `move` route with `to`, returning 204, where an end-of-list move is a no-op rather than 409.
-- An integer `position` column, rather than a linked list or an order array on the wishlist.
+- Endpoint shape: one `move` route with `to`, returning 200 `{ ok: true }` like edit and delete (changed from 204 after review, so the web client needs no special case), where an end-of-list move is a no-op rather than 409.
+- An integer `position` column holding each gift's index in the list, rather than a linked list or an order array on the wishlist. (Changed after review: positions are indices, not gapped numbers the domain assigns.)
 - Moves are not ledger events.
 - Last write wins across devices.
 - On a failed move, refetch and show the error the way Delete does, with focus going to the error. Don't roll back an optimistic update by hand. (The UI may wait for the response, like Delete; a round trip to a single-user SQLite server is fast enough.)
 - Focus and announcement behaviour, as in the mockup.
-- No unique index on `(wishlist_id, position)`; `Wishlist` keeps positions unique. (Added after the owner's approval, from review.)
+- No unique index on `(wishlist_id, position)`. (Added after the owner's approval, from review.)
 - **Taps while a move is in flight are ignored.** While a move is pending, every move button on the list is marked `aria-disabled="true"` and its click does nothing. The real `disabled` attribute is not used, because it would drop focus. Once the list has refetched, the buttons are live again. The announcement is worked out from the refetched order, so it is never stale and is never doubled.
 
 ## Testing (at the owning layer)
@@ -137,7 +137,8 @@ Follow skill `testing-at-the-owning-layer`: one test per rule, at the layer that
   - a reordered list loads in its new order. This replaces the "in the order they were added" test.
   - saving a reorder of one list leaves another list's order unchanged.
 - **Migration:** the backfill keeps oldest-first per list.
-- **Route:** 204, 400 for a bad `to`, and 404 for no owner access or a foreign item. Exact payload assertions.
+- **Shared types (`moveItemRequestSchema`):** an unknown or missing `to` is refused.
+- **Route:** 200 `{ ok: true }`, and 404 for no owner access or a foreign item. Exact payload assertions.
 - **Web (`ManageItems`):**
   - the buttons send the right `to`;
   - disabled states at the ends;
