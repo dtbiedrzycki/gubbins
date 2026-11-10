@@ -209,13 +209,43 @@ describe('Wishlist.addItem', () => {
     expect([item.id.value, item.wishlistId.value]).toEqual([ITEM_ID, WISHLIST_ID]);
   });
 
-  it('takes several items, each reachable by id', () => {
+  it('takes several items, the newest first, each reachable by id', () => {
     const wishlist = Wishlist.create(validProps);
     const ids = [ITEM_ID, OTHER_ITEM_ID];
     let next = 0;
     for (const title of ['Stroller', 'Crib']) wishlist.addItem({ type: 'single', title }, { generateEntityId: () => ids[next++] });
-    expect(wishlist.items.map((i) => i.title)).toEqual(['Stroller', 'Crib']);
+    expect(wishlist.items.map((i) => i.title)).toEqual(['Crib', 'Stroller']);
     expect(wishlist.getItem(OTHER_ITEM_ID).title).toBe('Crib');
+  });
+});
+
+describe('Wishlist.moveItem', () => {
+  const listOf = () => Wishlist.reconstitute({
+    ...persisted,
+    items: ['A', 'B', 'C'].map((title, i) => Item.reconstitute({ id: `00000000-0000-7000-8000-00000000000${i + 1}`, wishlistId: WISHLIST_ID, type: 'single', title, quantity: 1, seq: 0, asOf: T0 })),
+  });
+  const idOf = (title: string) => listOf().items.find((i) => i.title === title)!.id.value;
+  const titles = (w: Wishlist) => w.items.map((i) => i.title);
+
+  it.each([
+    ['top', 'C', ['C', 'A', 'B']],
+    ['up', 'C', ['A', 'C', 'B']],
+    ['down', 'A', ['B', 'A', 'C']],
+    ['bottom', 'A', ['B', 'C', 'A']],
+  ] as const)('moves an item %s', (to, title, expected) => {
+    const wishlist = listOf();
+    wishlist.moveItem(idOf(title), to);
+    expect(titles(wishlist)).toEqual(expected);
+  });
+
+  it.each([['top', 'A'], ['up', 'A'], ['down', 'C'], ['bottom', 'C']] as const)('leaves the order as it is when %s would pass the end', (to, title) => {
+    const wishlist = listOf();
+    wishlist.moveItem(idOf(title), to);
+    expect(titles(wishlist)).toEqual(['A', 'B', 'C']);
+  });
+
+  it('refuses an item that is not on the list', () => {
+    expect(() => listOf().moveItem(OTHER_ITEM_ID, 'top')).toThrow(ItemNotFoundError);
   });
 });
 

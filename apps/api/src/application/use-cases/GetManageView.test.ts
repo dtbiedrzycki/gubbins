@@ -36,9 +36,9 @@ describe('GetManageView', () => {
     expect(shown).toEqual({
       title: 'Baby Shower', description: null, key: 'the-key',
       items: [
+        { id: GROUP_ITEM_ID, type: 'group', title: 'Pram', quantity: 1, priceMinor: 50_000, url: null, description: null, deletable: false, committedUnits: 0, pledgedMinor: 2_500 },
         { id: ITEM_ID, type: 'single', title: 'Stroller', quantity: 1, priceMinor: null, url: null, description: null, deletable: true, committedUnits: 0, pledgedMinor: null },
         { id: OTHER_ITEM_ID, type: 'single', title: 'Toaster', quantity: 1, priceMinor: null, url: null, description: null, deletable: false, committedUnits: 1, pledgedMinor: null },
-        { id: GROUP_ITEM_ID, type: 'group', title: 'Pram', quantity: 1, priceMinor: 50_000, url: null, description: null, deletable: false, committedUnits: 0, pledgedMinor: 2_500 },
       ],
     });
   });

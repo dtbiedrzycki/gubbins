@@ -38,8 +38,8 @@ describe('GetListView items and payment', () => {
       .execute({ wishlistId: WISHLIST_ID }, NO_SESSION);
 
     expect(shown.items).toEqual([
-      { id: ids[0], title: 'Crib', type: 'single', status: 'available', availableUnits: 2, url: 'https://shop.example/crib', description: 'White, no drawers', priceMinor: 19999, pledgedMinor: null },
       { id: ids[1], title: 'Mixer', type: 'group', status: 'available', availableUnits: 1, url: null, description: null, priceMinor: 45000, pledgedMinor: 0 },
+      { id: ids[0], title: 'Crib', type: 'single', status: 'available', availableUnits: 2, url: 'https://shop.example/crib', description: 'White, no drawers', priceMinor: 19999, pledgedMinor: null },
     ]);
     expect(shown.payment).toEqual({ venmoHandle: 'sam-w', zelleHandle: null });
   });
