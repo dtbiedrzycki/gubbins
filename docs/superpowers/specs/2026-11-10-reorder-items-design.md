@@ -40,17 +40,24 @@ The owner chose layout **B2** in the mockup.
 - Each gift row has a **two-by-two block of icon buttons on its right**:
   - top row: **Up** (one place) and **Top**
   - bottom row: **Down** (one place) and **Bottom**
-- The gift's name, price line, and Edit and Delete buttons stay on the left, unchanged.
+- The gift's name, price line, and Edit and Delete buttons stay on the left, unchanged. Delete's "can't be deleted" hint, its confirmation and its error also stay in the left column.
+- The block takes about 100 px, so the left column narrows (at 360 px wide, from about 312 to about 208 px). Rows stay the same height unless a long title or the Delete hint wraps onto more lines. That trade-off is accepted.
 - The four buttons form a group labelled "Move ‹title›". Each has its own accessible name, such as "Move ‹title› up" or "Move ‹title› to the top". Each is at least 44 × 44 px.
 - A button that can't do anything is disabled: Up and Top on the first gift, Down and Bottom on the last. With one gift, all four are disabled.
 - After a move:
   - the list shows the new order;
   - **focus stays on the same button of the moved gift**, so the owner can tap Up repeatedly;
   - if that button has become disabled (the gift reached an end), focus goes to the first enabled button in that gift's block;
-  - a polite live region announces "‹title› moved to position N of M."
-  - The mockup's brief highlight on the moved row is optional. If you build it, respect `prefers-reduced-motion`.
+  - a live region announces "‹title› moved to position N of M." This is one `role="status"` element for the whole list, always mounted, following `AddItemForm`'s pattern.
+  - The mockup's brief highlight on the moved row is optional. If you build it, respect `prefers-reduced-motion`, and keep text contrast at 4.5:1 or better while it shows; a bar on the left edge does this, a background fill may not.
 - While a gift is being edited (its row shows the edit form), its move block is hidden along with the rest of its row. The other gifts can still be moved.
-- If a move fails, the list refetches and shows the server's order, and the error appears the way a failed Delete does today. A 404 means the owner cookie is no longer accepted: call `onUnauthorized()`, as Delete does.
+- If a move fails:
+  - the list refetches and shows the server's order;
+  - the error appears in the moved gift's row, in the same kind of `role="alert"` paragraph Delete uses, and focus moves to it, as with Delete;
+  - there is no "moved" announcement;
+  - the error clears at the start of that gift's next move.
+  - So focus stays on the button only after a successful move.
+- A 404 means the owner cookie is no longer accepted: call `onUnauthorized()`, as Delete does. A gift deleted on another device also returns 404 and sends the owner back to the token gate. Delete on `main` behaves the same way, and that is accepted here too.
 
 ## Guest experience
 
@@ -62,9 +69,11 @@ There is one new owner-only endpoint, protected in the same way as `PUT/DELETE /
 
 `POST /api/lists/:slug/items/:itemId/move` with body `{ "to": "top" | "up" | "down" | "bottom" }`
 
-- **204** on success, including a no-op such as moving the first gift up. A no-op is not an error, because the UI disables those buttons and a stale second tab shouldn't produce an error.
+- **204** with no body on success, including a no-op such as moving the first gift up. A no-op is not an error, because the UI disables those buttons and a stale second tab shouldn't produce an error.
 - **400** for a missing or unknown `to`.
 - **404** for an unknown list, an unknown item, an item on another list, or no owner access. These follow the existing owner routes' rules.
+
+The web client's `unwrap` (`apps/web/src/api/client.ts`) throws when there is no data, and openapi-fetch returns no data for a 204. This is the first 204 route, so the client's `moveItem` must treat a bodyless 204 as success rather than go through `unwrap` as it is.
 
 `GET` manage view and `GET` list view return items in the owner's order. The response shapes don't change; the order of the `items` array is the contract. The shared OpenAPI types are updated for the new route, keeping the dependency list explicit as the repo already does.
 
@@ -75,13 +84,25 @@ There is one new owner-only endpoint, protected in the same way as `PUT/DELETE /
 - **Numbering is left to you,** as long as these hold. One way to do it: a new gift takes `min(position) − 1`; Top and Bottom take min − 1 and max + 1; Up and Down swap with the neighbour. Gaps left by deletes are harmless, and no renumbering pass is needed.
   - Positions are unique within a list after every operation.
   - A move never touches another list's gifts.
-- The DB gets **no CHECK or UNIQUE constraint on `position`** unless you judge it structural. See ADR-0083: CHECKs back up structural invariants only. A unique index on `(wishlist_id, position)` is a reasonable structural guard, but a swap needs care around it, so this is left to you.
+- **My call: no unique index on `(wishlist_id, position)`, and no CHECK.** SQLite checks UNIQUE row by row, so a swap done as two UPDATEs would collide with itself. Uniqueness is the aggregate's rule (see "Domain").
+- **`position` is carried by `Item`, and only `Wishlist` sets it.** `WishlistRepositoryKysely.save` writes only the item columns that changed, so it must compare and write `position` the same way it does the other columns. The in-memory `InMemoryWishlistRepository` must keep the order too. The adapter never works out positions itself.
 - If the contributions or security-headers work lands a migration first, take the next number.
 
 ## Domain
 
 - A move is an owner edit of the list. It is **not a ledger event**. Editing a gift doesn't record one either, and the owner-editing audit trail was deferred as YAGNI.
-- Where the rule lives is left to you, following the repo's DDD conventions (skill `reviewing-for-recurring-feedback`). The rules are: where a new gift goes, what each `to` does, and that moving past an end is a no-op. They belong in the domain or the use case, not the route or the SQL. The `Wishlist` aggregate is the natural owner of "the order of my items".
+- **`Wishlist` owns the order.** Its `_items` array is already ordered. The rules live in the aggregate:
+  - a new gift goes first;
+  - what each `to` does;
+  - moving past an end is a no-op;
+  - positions stay unique.
+  
+  The exact method shape follows the repo's DDD conventions (skill `reviewing-for-recurring-feedback`).
+- Comments and test names that state the old rule change with it:
+  - `Wishlist.items`'s doc comment ("in the order they were added");
+  - `ItemRepository.findAllByWishlistId`'s doc comment;
+  - the tie-break comment in `ItemRepositoryKysely`;
+  - the contract test "loads every item of the list, in the order they were added".
 - Concurrency: two owner devices moving gifts at the same moment means the last write wins. Run each move in one transaction through the existing unit of work, so positions never end up duplicated.
 
 ## Decision records
@@ -99,20 +120,22 @@ Add one ADR (next free number; `0086` at the time of writing, so check the other
 - An integer `position` column, rather than a linked list or an order array on the wishlist.
 - Moves are not ledger events.
 - Last write wins across devices.
-- On a failed move, refetch and show the error the way Delete does. Don't roll back an optimistic update by hand. (The UI may wait for the response, like Delete; a round trip to a single-user SQLite server is fast enough.)
+- On a failed move, refetch and show the error the way Delete does, with focus going to the error. Don't roll back an optimistic update by hand. (The UI may wait for the response, like Delete; a round trip to a single-user SQLite server is fast enough.)
 - Focus and announcement behaviour, as in the mockup.
+- No unique index on `(wishlist_id, position)`; `Wishlist` keeps positions unique. (Added after the owner's approval, from review.)
 - **Taps while a move is in flight are ignored.** While a move is pending, every move button on the list is marked `aria-disabled="true"` and its click does nothing. The real `disabled` attribute is not used, because it would drop focus. Once the list has refetched, the buttons are live again. The announcement is worked out from the refetched order, so it is never stale and is never doubled.
 
 ## Testing (at the owning layer)
 
 Follow skill `testing-at-the-owning-layer`: one test per rule, at the layer that decides it.
 
-- **Domain or use case:**
+- **Domain (`Wishlist`):**
   - each of the four moves;
   - no-op at each end;
-  - a new gift lands first;
-  - a move leaves other lists alone.
-- **Repository contract:** order round-trips through `findAllByWishlistId`, in-memory and Kysely.
+  - a new gift lands first.
+- **WishlistRepository contract** (runs against both `InMemoryWishlistRepository` and `WishlistRepositoryKysely`):
+  - a reordered list loads in its new order. This replaces the "in the order they were added" test.
+  - saving a reorder of one list leaves another list's order unchanged.
 - **Migration:** the backfill keeps oldest-first per list.
 - **Route:** 204, 400 for a bad `to`, and 404 for no owner access or a foreign item. Exact payload assertions.
 - **Web (`ManageItems`):**
@@ -120,5 +143,6 @@ Follow skill `testing-at-the-owning-layer`: one test per rule, at the layer that
   - disabled states at the ends;
   - focus stays on the same button, or falls back at an end;
   - the live announcement;
+  - a tap while a move is pending sends nothing;
   - error and 404 handling.
 - **E2E:** one journey. The owner adds three gifts, moves one to the top, and the guest page shows that order.

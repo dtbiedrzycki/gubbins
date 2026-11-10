@@ -36,7 +36,7 @@ ul { list-style: none; margin: 0; padding: 0; }
 li { border-bottom: 1px solid var(--line); padding: 14px 0; display: grid; gap: 4px; }
 li:first-child { border-top: 1px solid var(--line); }
 li.moved { animation: flash .9s ease-out; }
-@keyframes flash { from { background: var(--petal); } to { background: transparent; } }
+@keyframes flash { from { box-shadow: inset 4px 0 0 var(--wax); } to { box-shadow: inset 4px 0 0 transparent; } }
 @media (prefers-reduced-motion: reduce) { li.moved { animation: none; } }
 .t { font-weight: 700; overflow-wrap: anywhere; }
 .meta { color: var(--muted); font-size: .92rem; }
@@ -46,7 +46,7 @@ button { font: inherit; font-size: .92rem; min-height: 44px; min-width: 44px; pa
 button.danger { border-color: var(--wax); color: var(--wax); }
 button.icon { padding: 6px; }
 button[disabled] { opacity: .35; cursor: not-allowed; }
-button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+button:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
 .side { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: start; }
 .stack { display: grid; gap: 6px; }
@@ -59,7 +59,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 <body>
 <header>
   <h1>Putting gifts in order</h1>
-  <p>The owner moves a gift with a two-by-two block beside it on the manage page. The buttons work: tap them to try. Guests see the same order (right). New gifts land at the top, just below the add form.</p>
+  <p>The owner moves a gift with a two-by-two block beside it on the manage page. The buttons work: tap them to try. Guests see the same order (beside or below). New gifts land at the top of the list.</p>
 </header>
 <p class="live" aria-live="polite" id="live"></p>
 <div class="wrap">
@@ -68,7 +68,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
     <div class="screen"><h3>Items</h3><ul id="b"></ul></div>
   </div>
   <div class="shot">
-    <div class="cap"><b>What guests see</b>The guest list follows the order you set, and it updates as you tap.</div>
+    <div class="cap"><b>What guests see</b>The guest list follows the order you set. Guests see a new order the next time their page loads; here it follows along so you can compare.</div>
     <div class="screen"><h3>Gifts</h3><ul id="g"></ul></div>
   </div>
 </div>
