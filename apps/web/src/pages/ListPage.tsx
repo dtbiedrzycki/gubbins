@@ -73,7 +73,8 @@ export default function ListPage() {
   return (
     // While the floating "Your contributions" button shows, the end of the page leaves room for it, so it never covers the last gift:
     // pb-24 (6rem) clears the button's 2.75rem height and 1rem gap from the bottom, with room to spare.
-    <main className={`flex-1 bg-paper p-6 text-ink ${hasContributions ? 'pb-24' : ''}`}>
+    // scroll-mb-24 does the same for a control that Tab scrolls into view mid-list.
+    <main className={`flex-1 bg-paper p-6 text-ink ${hasContributions ? 'pb-24 [&_*]:scroll-mb-24' : ''}`}>
       <div className="mx-auto max-w-sm space-y-8">
         <header className="text-center">
           <h1 ref={title} tabIndex={-1} className="font-display text-[2.05rem] leading-tight text-balance break-words">{query.data.title}</h1>

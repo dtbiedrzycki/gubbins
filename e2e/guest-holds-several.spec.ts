@@ -79,6 +79,14 @@ test('a guest holds 2 of 5, buys 1, and another guest sees "Wanted: 4 more"', as
   const lastGift = await guest.getByRole('listitem').filter({ has: guest.getByRole('heading', { level: 2, name: 'Baby onesies' }) }).boundingBox();
   expect(lastGift!.y + lastGift!.height).toBeLessThanOrEqual(button!.y);
 
+  // Nor does it cover a control that keyboard focus scrolls into view; a very short window puts that control below the fold.
+  await guest.setViewportSize({ width: 375, height: 150 });
+  await guest.evaluate(() => window.scrollTo(0, 0));
+  await guest.getByRole('button', { name: 'Hold this item' }).focus();
+  const focused = await guest.getByRole('button', { name: 'Hold this item' }).boundingBox();
+  const buttonNow = await guest.getByRole('button', { name: /^Your contributions · / }).boundingBox();
+  expect(focused!.y + focused!.height).toBeLessThanOrEqual(buttonNow!.y);
+
   const otherContext = await browser.newContext({ baseURL });
   try {
     const other = await guestKeyedIn(otherContext, list);
