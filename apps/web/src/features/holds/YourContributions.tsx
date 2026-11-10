@@ -101,24 +101,31 @@ export function YourContributions({ slug, holds, contributions, itemTitles, onEm
 
   const status = outcome?.ok ? outcome.message : '';
   const alert = outcome && !outcome.ok ? outcome.message : '';
+  // The sheet shows an outcome once its refetch has landed: if that empties
+  // the sheet, the page pair announces it instead, and only once.
+  const settling = useIsMutating() > 0;
 
   return (
     <>
       <p role="status" aria-live="polite" className="mt-3 font-bold text-moss empty:mt-0">{open ? '' : status}</p>
       <p role="alert" className="mt-3 text-error empty:mt-0">{open ? '' : alert}</p>
       {entries > 0 && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-4 z-10 flex justify-center px-4">
-          <button ref={button} type="button" onClick={openSheet} className="btn-primary pointer-events-auto inline-flex items-center gap-2 whitespace-nowrap shadow-[0_4px_14px_rgb(0_0_0/0.25)]">
-            <Seal size="sm" stamp={stampButton} />
-            Your contributions · {entries}
-          </button>
-        </div>
+        <>
+          {/* Gifts scrolling under the button fade out behind it. */}
+          <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 bottom-0 z-10 h-[70px] bg-linear-to-b from-transparent to-paper" />
+          <div className="pointer-events-none fixed inset-x-0 bottom-4 z-10 flex justify-center px-4">
+            <button ref={button} type="button" onClick={openSheet} className="btn-primary pointer-events-auto inline-flex items-center gap-2 whitespace-nowrap shadow-[0_4px_14px_rgb(0_0_0/0.25)]">
+              <Seal size="sm" stamp={stampButton} />
+              Your contributions · {entries}
+            </button>
+          </div>
+        </>
       )}
       {open && (
         <Sheet headingRef={sheetHeading} onClose={closeSheet}>
           <div>
-            <p role="status" aria-live="polite" className="font-bold text-moss">{status}</p>
-            <p role="alert" className="text-error">{alert}</p>
+            <p role="status" aria-live="polite" className="font-bold text-moss">{settling ? '' : status}</p>
+            <p role="alert" className="text-error">{settling ? '' : alert}</p>
           </div>
           <ul className="space-y-3">
             {holds.map((hold) => {

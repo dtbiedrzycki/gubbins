@@ -507,7 +507,7 @@ describe('YourContributions', () => {
     expect(await screen.findByRole('button', { name: 'Your contributions · 3' })).toBeInTheDocument();
   });
 
-  it('lists holds, then pledges newest first', async () => {
+  it('lists holds, then pledges in the order the server sends them', async () => {
     const older: Pledge = { ...pledge, contributionId: 'pledge-0', amountMinor: 1500, pledgedAt: '2026-01-01T00:00:00.000Z' };
     listViews(list([active], [pledge, older]));
     const region = await openYourContributions();
@@ -545,24 +545,75 @@ describe('YourContributions', () => {
     expect(onEmptied).toHaveBeenCalledTimes(1);
   });
 
-  it('stamps the button when it first appears, not on load and not for a later entry', async () => {
+  it('does not stamp the button shown on load', async () => {
     listViews(list([active]));
-    const { unmount } = renderYourContributions();
-    const onLoad = await screen.findByRole('button', { name: 'Your contributions · 1' });
-    expect(onLoad.querySelector('[data-seal]')!.className).not.toContain('animate-stamp');
-    unmount();
+    renderYourContributions();
 
-    const second: HoldView = { ...active, holdId: 'hold-2' };
-    listViews(list([]), list([active]), list([active, second]));
+    const button = await screen.findByRole('button', { name: 'Your contributions · 1' });
+    expect(button.querySelector('[data-seal]')!.className).not.toContain('animate-stamp');
+  });
+
+  it('stamps the button the first time it appears', async () => {
+    listViews(list([]), list([active]));
+    renderYourContributions();
+    await screen.findByRole('status');
+
+    await client.invalidateQueries();
+
+    const button = await screen.findByRole('button', { name: 'Your contributions · 1' });
+    expect(button.querySelector('[data-seal]')!.className.split(' ')).toContain('motion-safe:animate-stamp');
+  });
+
+  it('keeps the same seal when a later entry arrives', async () => {
+    listViews(list([active]), list([active, { ...active, holdId: 'hold-2' }]));
+    renderYourContributions();
+    const seal = (await screen.findByRole('button', { name: 'Your contributions · 1' })).querySelector('[data-seal]');
+
+    await client.invalidateQueries();
+
+    // The seal plays its animation once, as it mounts.
+    expect((await screen.findByRole('button', { name: 'Your contributions · 2' })).querySelector('[data-seal]')).toBe(seal);
+  });
+
+  it('does not stamp the button when it reappears after the sheet emptied', async () => {
+    listViews(list([]), list([active]), list([]), list([active]));
     renderYourContributions();
     await screen.findByRole('status');
     await client.invalidateQueries();
-    const appeared = (await screen.findByRole('button', { name: 'Your contributions · 1' })).querySelector('[data-seal]')!;
-    expect(appeared.className.split(' ')).toContain('motion-safe:animate-stamp');
+    await screen.findByRole('button', { name: 'Your contributions · 1' });
+    await client.invalidateQueries();
+    await waitFor(() => expect(screen.queryByRole('button')).not.toBeInTheDocument());
 
     await client.invalidateQueries();
 
-    // The seal plays its animation once, as it mounts; a later entry keeps the same one.
-    expect((await screen.findByRole('button', { name: 'Your contributions · 2' })).querySelector('[data-seal]')).toBe(appeared);
+    const button = await screen.findByRole('button', { name: 'Your contributions · 1' });
+    expect(button.querySelector('[data-seal]')!.className).not.toContain('animate-stamp');
+  });
+
+  it.each([
+    ['release', 'Release hold', 'status', () => mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false } })],
+    ['refusal', 'Extend hold', 'alert', () => mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' })],
+  ] as const)('holds back a %s until its refetch lands, so one that empties the sheet is announced once', async (_, press, role, answer) => {
+    let landRefetch!: () => void;
+    const refetched = new Promise<void>((resolve) => { landRefetch = resolve; });
+    let gets = 0;
+    server.use(
+      http.get('/api/lists/abc123', async () => {
+        if (++gets === 1) return HttpResponse.json(list([active]));
+        await refetched;
+        return HttpResponse.json(list([]));
+      }),
+      answer(),
+    );
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: press }));
+    if (press === 'Release hold') await user.click(within(region).getByRole('button', { name: 'Yes, release it' }));
+    await waitFor(() => expect(gets).toBe(2));
+
+    expect(within(region).getByRole(role)).toBeEmptyDOMElement();
+    landRefetch();
+    await waitFor(() => expect(region).not.toBeInTheDocument());
   });
 });

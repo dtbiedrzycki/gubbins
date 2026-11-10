@@ -76,7 +76,7 @@ test('a guest holds 2 of 5, buys 1, and another guest sees "Wanted: 4 more"', as
   await guest.setViewportSize({ width: 375, height: 400 });
   await guest.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const button = await guest.getByRole('button', { name: /^Your contributions · / }).boundingBox();
-  const lastGift = await guest.getByRole('list').last().getByRole('listitem').last().boundingBox();
+  const lastGift = await guest.getByRole('listitem').filter({ has: guest.getByRole('heading', { level: 2, name: 'Baby onesies' }) }).boundingBox();
   expect(lastGift!.y + lastGift!.height).toBeLessThanOrEqual(button!.y);
 
   const otherContext = await browser.newContext({ baseURL });

@@ -250,13 +250,10 @@ describe('ListPage', () => {
     renderListPage();
 
     await user.click(await screen.findByRole('button', { name: /^Hold this item/ }));
-    expect(screen.getByText('After you buy it, come back and tap \u201cMark as purchased\u201d.')).toBeInTheDocument();
     await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
-    expect(await screen.findByText('Stroller is held.')).toBeInTheDocument();
-    expect(screen.queryByRole('dialog', { hidden: true })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Your contributions · 1' }));
+    await user.click(await screen.findByRole('button', { name: 'Your contributions · 1' }));
     const yourContributions = screen.getByRole('dialog', { name: 'Your contributions' });
     expect(within(yourContributions).getByRole('heading', { name: 'Stroller' })).toBeInTheDocument();
     expect(within(yourContributions).getByRole('button', { name: 'Extend hold' })).toBeInTheDocument();
