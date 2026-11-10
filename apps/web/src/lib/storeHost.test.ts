@@ -10,7 +10,11 @@ describe('storeHost', () => {
     expect(storeHost('https://shop.example.co.uk/x')).toBe('shop.example.co.uk');
   });
 
-  it('drops the port and lower-cases the host', () => {
-    expect(storeHost('https://WWW.Example.com:8443/x')).toBe('example.com');
+  it('drops the port', () => {
+    expect(storeHost('https://vendor.com:8443/x')).toBe('vendor.com');
+  });
+
+  it('strips an upper-case WWW, since the URL parser lower-cases the host first', () => {
+    expect(storeHost('https://WWW.Vendor.com/x')).toBe('vendor.com');
   });
 });
