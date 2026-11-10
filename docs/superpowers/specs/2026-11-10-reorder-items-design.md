@@ -48,7 +48,7 @@ The owner chose layout **B2** in the mockup.
   - the list shows the new order;
   - **focus stays on the same button of the moved gift**, so the owner can tap Up repeatedly;
   - if that button has become disabled (the gift reached an end), focus goes to the first enabled button in that gift's block;
-  - a live region announces "‹title› moved to position N of M." This is one `role="status"` element for the whole list, always mounted, following `AddItemForm`'s pattern.
+  - a live region announces "‹title› moved to position N of M." This is one `<p aria-live="polite">` for the whole list, always mounted. It deliberately has no `role="status"`, because existing e2e specs query the manage page's single status (`AddItemForm`'s).
   - The mockup's brief highlight on the moved row is optional. If you build it, respect `prefers-reduced-motion`, and keep text contrast at 4.5:1 or better while it shows; a bar on the left edge does this, a background fill may not.
 - While a gift is being edited (its row shows the edit form), its move block is hidden along with the rest of its row. The other gifts can still be moved.
 - If a move fails:

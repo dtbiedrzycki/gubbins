@@ -24,6 +24,20 @@ gifts. The design is in the
   and leaves no record.
 - Moving a gift past either end changes nothing and is not an error.
 
+## Alternatives considered
+
+- **Drag-and-drop.** It is quicker for long moves on a 40-gift list, but it
+  is more code, and it needs a keyboard alternative anyway. Left out for now.
+- **Long-press for Top and Bottom.** Nobody discovers it, it clashes with
+  the phone's own long-press, and keyboard users can't do it.
+- **Up and Down with Top and Bottom behind a ⋯ menu.** Tidier, but a jump
+  takes two taps. The owner chose four visible buttons.
+- **Gapped position numbers that the domain assigns** (new gift = min − 1,
+  swap on up and down). This puts the order in two places, the list and the
+  numbers, which can disagree. Storing each gift's index keeps one truth.
+- **New gifts at the bottom** (as before). The add form sits at the top of
+  the manage page, so the top keeps a new gift next to it.
+
 ## Consequences
 
 - Lists that existed before this change keep their oldest-first order.
