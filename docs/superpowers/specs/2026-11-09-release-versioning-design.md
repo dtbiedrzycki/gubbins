@@ -141,9 +141,7 @@ is `0.0.0` and there are no tags.
 
 ### Docs
 
-- New ADR (next free number on `main`; note that `0085` is taken by the
-  unpushed "I'm buying this" branch, so this takes `0086` and that branch keeps
-  `0085`): versioning on `0.x` with the minor/patch rule, tags as the release
+- New ADR 0085: versioning on `0.x` with the minor/patch rule, tags as the release
   record, and the version shown in the footer.
 - ADR-0032 needs no change: rollback is still restoring a backup.
 - Amend `docs/adr/README.md`: accepted ADRs may be amended in place until

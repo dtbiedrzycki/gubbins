@@ -13,7 +13,7 @@ the choice made, and the consequences accepted.
 - Until 1.0.0, an accepted ADR may be amended in place instead: add
   an `Amended:` line with the date and what changed. From 1.0.0,
   supersede it as above. Releases on `0.x` don't end this
-  (ADR-[086](0086-releases-are-tagged-0x-versions-and-shipped-migrations-are-never-edited.md)).
+  (ADR-[085](0085-releases-are-tagged-0x-versions-and-shipped-migrations-are-never-edited.md)).
 - Keep them short. Link to code, issues, or other ADRs rather than
   restating them.
 - **Date** is the date the decision was actually made — set it to the
@@ -122,7 +122,7 @@ one-time renumbering documented in the restructuring history.
 | [082](0082-payment-handles-set-at-list-creation.md) | Payment handles are set at list creation | Accepted |
 | [083](0083-database-checks-back-up-structural-invariants-only.md) | Database CHECKs back up structural invariants only | Accepted |
 | [084](0084-a-hold-covers-one-or-more-units.md) | A hold covers one or more units; buying fewer releases the rest | Accepted |
-| [086](0086-releases-are-tagged-0x-versions-and-shipped-migrations-are-never-edited.md) | Releases are tagged 0.x versions, and shipped migrations are never edited | Accepted |
+| [085](0085-releases-are-tagged-0x-versions-and-shipped-migrations-are-never-edited.md) | Releases are tagged 0.x versions, and shipped migrations are never edited | Accepted |
 
 ## Imported ADRs (0001–0070)
 

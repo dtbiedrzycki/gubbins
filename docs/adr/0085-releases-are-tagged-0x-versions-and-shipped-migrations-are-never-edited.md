@@ -1,4 +1,4 @@
-# 0086. Releases are tagged 0.x versions, and shipped migrations are never edited
+# 0085. Releases are tagged 0.x versions, and shipped migrations are never edited
 
 - **Status:** Accepted
 - **Date:** 2026-11-09

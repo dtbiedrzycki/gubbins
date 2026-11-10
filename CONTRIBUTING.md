@@ -51,7 +51,7 @@ Non-trivial decisions are recorded under `docs/adr/` — see
 
 Production holds real data, so a schema change is a new migration, never
 an edit to an existing one
-(ADR-[086](docs/adr/0086-releases-are-tagged-0x-versions-and-shipped-migrations-are-never-edited.md)):
+(ADR-[085](docs/adr/0085-releases-are-tagged-0x-versions-and-shipped-migrations-are-never-edited.md)):
 
 1. Add `apps/api/src/infrastructure/db/migrations/NNNN_short_name.ts`,
    taking the next number, and list it in `migrations/index.ts`.
