@@ -15,9 +15,10 @@ import { cleanDescription, Item, type ItemEdit, type ItemStatus } from './Item.j
 
 const WISHLIST_DESCRIPTION_MAX = 2000; // room for an address and delivery notes; bounds stored input
 
-/** What a hold command returns: the hold it changed, the item whose stream moved, and the event to append at `expectedSeq`. */
+/** Where a move sends a gift: one place up or down, or to either end. */
 export type MoveTarget = 'top' | 'up' | 'down' | 'bottom';
 
+/** What a hold command returns: the hold it changed, the item whose stream moved, and the event to append at `expectedSeq`. */
 export interface HoldCommandResult<E> {
   hold: Hold;
   item: Item;

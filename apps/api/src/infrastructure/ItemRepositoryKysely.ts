@@ -23,6 +23,7 @@ export class ItemRepositoryKysely implements ItemRepository {
       .selectAll('items')
       .select('item_state.seq as seq')
       .where('wishlist_id', '=', wishlistId)
+      // Positions are unique by construction (ADR-0086); id only keeps the order stable if two ever tie.
       .orderBy('items.position').orderBy('items.id')
       .execute();
     return rows.map((row) => ({
