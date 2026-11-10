@@ -17,8 +17,8 @@ const payment: ListViewResponse['payment'] = { venmoHandle: 'my-venmo', zelleHan
 type Item = NonNullable<ListViewResponse['items']>[number];
 const single = aListItem;
 
-function renderItem(over: Partial<Item> = {}): void {
-  const ui = <ItemView slug="abc123" holdDurationDays={3} item={single(over)} payment={payment} />;
+function renderItem(over: Partial<Item> = {}, mine: { heldUnits?: number; chippedInMinor?: number } = {}): void {
+  const ui = <ItemView slug="abc123" holdDurationDays={3} item={single(over)} payment={payment} heldUnits={mine.heldUnits ?? 0} chippedInMinor={mine.chippedInMinor ?? 0} />;
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}>{ui}</QueryClientProvider>);
 }
 
@@ -153,7 +153,7 @@ describe('ItemView', () => {
     const client = new QueryClient();
     const view = (status: Item['status']) => (
       <QueryClientProvider client={client}>
-        <ItemView slug="abc123" holdDurationDays={3} item={single({ status })} payment={payment} />
+        <ItemView slug="abc123" holdDurationDays={3} item={single({ status })} payment={payment} heldUnits={0} chippedInMinor={0} />
       </QueryClientProvider>
     );
     const { rerender } = render(view('available'));
@@ -217,6 +217,31 @@ describe('ItemView', () => {
   ] as const)('hides how many are wanted when %s', (_, over) => {
     renderItem(over);
     expect(screen.queryByText(/^Wanted:/)).not.toBeInTheDocument();
+  });
+
+  it('says "You\'re holding 2" when the guest holds 2', () => {
+    renderItem({ status: 'held', availableUnits: 0 }, { heldUnits: 2 });
+    expect(screen.getByText("You're holding 2")).toBeInTheDocument();
+  });
+
+  it('shows no holding line when the guest holds none', () => {
+    renderItem({ availableUnits: 5 });
+    expect(screen.queryByText(/^You're holding/)).not.toBeInTheDocument();
+  });
+
+  it('says "You chipped in $40.00" on a group gift the guest pledged to', () => {
+    renderItem({ type: 'group', priceMinor: 45000, pledgedMinor: 10000, availableUnits: 0 }, { chippedInMinor: 4000 });
+    expect(screen.getByText('You chipped in $40.00')).toBeInTheDocument();
+  });
+
+  it('shows no chip-in line when the guest pledged nothing', () => {
+    renderItem({ type: 'group', priceMinor: 45000, pledgedMinor: 10000, availableUnits: 0 });
+    expect(screen.queryByText(/^You chipped in/)).not.toBeInTheDocument();
+  });
+
+  it('still says "You chipped in $40.00" once the gift is fully funded', () => {
+    renderItem({ type: 'group', priceMinor: 45000, pledgedMinor: 45000, status: 'purchased', availableUnits: 0 }, { chippedInMinor: 4000 });
+    expect(screen.getByText('You chipped in $40.00')).toBeInTheDocument();
   });
 
   it('gives a group gift its price and no Hold button or units', () => {

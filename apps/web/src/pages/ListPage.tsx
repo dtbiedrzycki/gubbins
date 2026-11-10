@@ -105,8 +105,8 @@ export default function ListPage() {
                 item={item}
                 holdDurationDays={days}
                 payment={query.data.payment}
-                // The Hold button has gone; the new hold's actions are under Your holds.
-                focusElsewhere={() => document.getElementById('your-holds-heading')?.focus()}
+                heldUnits={query.data.myHolds.filter((h) => h.itemId === item.id && h.status === 'active').reduce((sum, h) => sum + h.units, 0)}
+                chippedInMinor={query.data.myContributions.filter((c) => c.itemId === item.id).reduce((sum, c) => sum + c.amountMinor, 0)}
               />
             </li>
           ))}
