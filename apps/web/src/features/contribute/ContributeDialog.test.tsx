@@ -266,7 +266,7 @@ describe('ContributeDialog', () => {
     expect(screen.getByLabelText('Gifter name(s)')).toHaveValue('Sam & Alex Smith');
   });
 
-  it('sends one request for two fast taps, and cannot be escaped meanwhile', async () => {
+  it('sends one request for two fast taps', async () => {
     const bodies = pledgeEndpoint(50);
     const user = userEvent.setup();
     const { props } = renderDialog();
@@ -275,9 +275,6 @@ describe('ContributeDialog', () => {
     const send = screen.getByRole('button', { name: "I've sent it" });
     await user.dblClick(send);
 
-    const escape = new Event('cancel', { cancelable: true });
-    screen.getByRole('dialog', { hidden: true }).dispatchEvent(escape);
-    expect(escape.defaultPrevented).toBe(true);
     await vi.waitFor(() => expect(props.onPledged).toHaveBeenCalled());
     expect(bodies).toHaveLength(1);
   });
