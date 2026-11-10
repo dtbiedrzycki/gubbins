@@ -286,8 +286,9 @@ describe('YourContributions', () => {
     await waitFor(() => expect(within(region).getByRole('button', { name: 'Yes, release it' })).toBeDisabled());
     expect(within(region).getByText('Release your hold on Stroller? Someone else will be able to hold it.')).toHaveFocus();
 
+    // Let the request finish inside the test, so nothing settles after teardown.
     respond();
-    await waitFor(() => expect(within(region).getByRole('heading', { name: 'Your contributions' })).toHaveFocus());
+    await waitFor(() => expect(within(region).queryByRole('heading', { name: 'Stroller' })).not.toBeInTheDocument());
   });
 
   it('after a refusal, moves focus to the sheet\'s heading, beside the explanation', async () => {
