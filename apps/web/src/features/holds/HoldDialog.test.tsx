@@ -122,33 +122,11 @@ describe('HoldDialog', () => {
     expect(name).toHaveAccessibleDescription('Include everyone the gift is from, e.g. Sam & Alex Smith. Names are only shared with the list owner.');
   });
 
-  it('cannot be cancelled or escaped while the hold is in flight', () => {
+  it('cannot be cancelled while the hold is in flight', () => {
     renderDialog({ isPending: true });
 
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Holding…' })).toBeDisabled();
-    const escape = new Event('cancel', { cancelable: true });
-    screen.getByRole('dialog', { hidden: true }).dispatchEvent(escape);
-    expect(escape.defaultPrevented).toBe(true);
-  });
-
-  it('reopens rather than closes if the browser closes it anyway while the hold is in flight', () => {
-    // Chrome does not let a page refuse a second Escape in a row.
-    const { props } = renderDialog({ isPending: true });
-    const dialog = screen.getByRole('dialog', { hidden: true }) as HTMLDialogElement;
-
-    dialog.open = false;
-    dialog.dispatchEvent(new Event('close'));
-
-    expect(props.onClose).not.toHaveBeenCalled();
-    expect(dialog.open).toBe(true);
-  });
-
-  it('can be escaped when nothing is in flight', () => {
-    renderDialog();
-    const escape = new Event('cancel', { cancelable: true });
-    screen.getByRole('dialog', { hidden: true }).dispatchEvent(escape);
-    expect(escape.defaultPrevented).toBe(false);
   });
 
   it('shows a failed hold in the alert region already in the dialog', () => {

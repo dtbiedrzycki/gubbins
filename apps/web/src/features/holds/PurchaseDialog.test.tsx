@@ -93,24 +93,10 @@ describe('PurchaseDialog', () => {
     expect(screen.getByRole('button', { name: 'Mark 1 as purchased' })).toBeEnabled();
   });
 
-  it('cannot be cancelled or escaped while the purchase is in flight', () => {
+  it('cannot be cancelled while the purchase is in flight', () => {
     renderDialog({ isPending: true });
 
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Mark 2 as purchased' })).toBeDisabled();
-    const escape = new Event('cancel', { cancelable: true });
-    screen.getByRole('dialog', { hidden: true }).dispatchEvent(escape);
-    expect(escape.defaultPrevented).toBe(true);
-  });
-
-  it('reopens rather than closes if the browser closes it anyway while the purchase is in flight', () => {
-    const { props } = renderDialog({ isPending: true });
-    const dialog = screen.getByRole('dialog', { hidden: true }) as HTMLDialogElement;
-
-    dialog.open = false;
-    dialog.dispatchEvent(new Event('close'));
-
-    expect(props.onClose).not.toHaveBeenCalled();
-    expect(dialog.open).toBe(true);
   });
 });

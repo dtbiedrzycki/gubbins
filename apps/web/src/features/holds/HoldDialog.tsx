@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
+import { useState } from 'react';
 import { useHoldCredential, type HoldCredential } from './useHoldCredential';
 import { LimitedInput } from '../../lib/LimitedField';
 import { Stepper } from '../../lib/Stepper';
 import { ApiError } from '../../api/client';
 import { readGifterNames, writeGifterNames } from '../../lib/gifterNames';
+import { useModalDialog } from '../../lib/useModalDialog';
 
 /** The longest name the API takes. */
 const NAME_MAX = 100;
@@ -29,7 +30,6 @@ export interface HoldDialogProps {
  * guest is looking.
  */
 export function HoldDialog({ itemTitle, holdDurationDays, availableUnits, isPending, error, onConfirm, onClose }: HoldDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const credential = useHoldCredential();
   const [name, setName] = useState(readGifterNames);
   const [units, setUnits] = useState(1);
@@ -41,37 +41,18 @@ export function HoldDialog({ itemTitle, holdDurationDays, availableUnits, isPend
   // a locked count stays as sent, so a retry carries it.
   if (!locked && units > availableUnits && availableUnits >= 1) setUnits(availableUnits);
 
-  function show() {
-    const dialog = dialogRef.current;
-    if (!dialog || dialog.open) return;
-    if (typeof dialog.showModal === 'function') {
-      dialog.showModal();
-    } else {
-      dialog.open = true; // jsdom test environment only — showModal isn't implemented there
-    }
-  }
-
-  useEffect(show, []);
-
-  // Escape fires `cancel` before the dialog closes; refusing it keeps the
-  // dialog up until the request settles.
-  function handleCancel(event: SyntheticEvent<HTMLDialogElement>) {
-    writeGifterNames(name); // Escape can close the dialog without the name field ever losing focus
-    if (isPending) event.preventDefault();
-  }
-
-  // Chrome won't let a page refuse a second Escape in a row, so a close can
-  // still arrive mid-flight: reopen, so the outcome is not lost.
-  function handleClose() {
-    if (isPending) show();
-    else onClose();
-  }
+  const { ref, onCancel, onClose: handleClose } = useModalDialog({ isPending, onClose });
 
   const pronoun = units > 1 ? 'them' : 'it';
   const duration = `${holdDurationDays} ${holdDurationDays === 1 ? 'day' : 'days'}`;
 
   return (
-    <dialog ref={dialogRef} onCancel={handleCancel} onClose={handleClose} aria-labelledby="hold-dialog-title" className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-[22px] bg-paper p-6 text-ink backdrop:bg-ink/50">
+    <dialog ref={ref} onClose={handleClose}
+      onCancel={(event) => {
+        writeGifterNames(name); // Escape can close the dialog without the name field ever losing focus
+        onCancel(event);
+      }}
+      aria-labelledby="hold-dialog-title" className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-[22px] bg-paper p-6 text-ink backdrop:bg-ink/50">
       <p id="hold-dialog-title" className="mb-2 break-words font-display text-[1.3rem] leading-tight">Hold &ldquo;{itemTitle}&rdquo; for yourself?</p>
       <p className="mb-4 text-muted">Other guests will see {units > 1 ? <>they&rsquo;re taken while you buy them</> : <>it&rsquo;s taken while you buy it</>}.</p>
       {availableUnits > 1 && (
