@@ -211,7 +211,7 @@ describe('ItemView', () => {
   });
 
   it.each([
-    ['one unit is left', { availableUnits: 1 }],
+    ['only one is wanted', { availableUnits: 1 }],
     ['held', { status: 'held', availableUnits: 0 }],
     ['purchased', { status: 'purchased', availableUnits: 0 }],
   ] as const)('hides how many are wanted when %s', (_, over) => {
