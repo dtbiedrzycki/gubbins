@@ -130,6 +130,23 @@ describe('ListPage', () => {
     expect(await screen.findByText('You chipped in $55.00')).toBeInTheDocument();
   });
 
+  it('shows each gift only its own holds and pledges', async () => {
+    const group = (id: string, title: string) => aListItem({ id, title, type: 'group', priceMinor: 45000, pledgedMinor: 4000, availableUnits: 0 });
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({
+      ...view(false),
+      items: [aListItem(), aListItem({ id: 'item-2', title: 'Cot' }), group('item-3', 'Pram'), group('item-4', 'Crib')],
+      myHolds: [{ ...hold, units: 2 }],
+      myContributions: [{ contributionId: 'c1', itemId: 'item-3', amountMinor: 4000, pledgedAt: '2026-01-01T00:00:00.000Z' }],
+    })));
+    renderListPage();
+
+    const card = async (name: string) => within((await screen.findByRole('heading', { level: 2, name })).closest('li')!);
+    expect((await card('Stroller')).getByText("You're holding 2")).toBeInTheDocument();
+    expect((await card('Cot')).queryByText(/You're holding/)).not.toBeInTheDocument();
+    expect((await card('Pram')).getByText('You chipped in $40.00')).toBeInTheDocument();
+    expect((await card('Crib')).queryByText(/You chipped in/)).not.toBeInTheDocument();
+  });
+
   it('says so when no gifts match the chosen filter', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
     renderListPage();
