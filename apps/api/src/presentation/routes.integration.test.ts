@@ -39,8 +39,8 @@ describe('GET /health', () => {
   });
 });
 
-describe('Content-Security-Policy', () => {
-  it('sends the image policy on API responses and the SPA fallback', async () => {
+describe('security headers', () => {
+  it('sends the content and referrer policies on API responses and the SPA fallback', async () => {
     const webDist = await mkdtemp(path.join(tmpdir(), 'gubbins-web-'));
     onTestFinished(() => rm(webDist, { recursive: true, force: true }));
     await writeFile(path.join(webDist, 'index.html'), '<!doctype html><title>spa</title>');
@@ -49,7 +49,8 @@ describe('Content-Security-Policy', () => {
     for (const url of ['/api/instance', '/wishlists/abc']) {
       const response = await withSpa.inject({ method: 'GET', url });
       expect(response.statusCode).toBe(200);
-      expect(response.headers['content-security-policy']).toBe("img-src 'self'");
+      expect(response.headers['content-security-policy']).toBe("img-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");
+      expect(response.headers['referrer-policy']).toBe('no-referrer');
     }
   });
 });

@@ -46,11 +46,13 @@ export function buildApp(deps: AppDependencies, options: BuildAppOptions): Fasti
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
-  // Backstop to the markdown rules: an owner's text must never load an image from another host
-  // (it would leak guest IPs).
-  // Deliberately not the full strict CSP the privacy spec calls for.
+  // Backstops: an owner's text must never load an image from another host (it would leak guest
+  // IPs), a proxy such as a Cloudflare tunnel must not inject its own scripts, and an outgoing link
+  // must not reveal the list's secret address. Deliberately not the full strict CSP the privacy
+  // spec calls for: styles and connections are left open.
   app.addHook('onSend', async (_request, reply) => {
-    reply.header('Content-Security-Policy', "img-src 'self'");
+    reply.header('Content-Security-Policy', "img-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");
+    reply.header('Referrer-Policy', 'no-referrer');
   });
 
   app.register(cookie, { secret: options.cookieSecret });
