@@ -6,7 +6,7 @@ import { ApiError } from '../../api/client';
 
 function renderDialog(overrides: Partial<PurchaseDialogProps> = {}) {
   const props: PurchaseDialogProps = {
-    status: 'active', units: 2, purchasableUnits: 2, isPending: false, error: null,
+    status: 'active', itemTitle: 'Stroller', units: 2, purchasableUnits: 2, isPending: false, error: null,
     onConfirm: vi.fn(), onClose: vi.fn(), ...overrides,
   };
   return { props, ...render(<PurchaseDialog {...props} />) };
@@ -23,8 +23,33 @@ describe('PurchaseDialog', () => {
 
     await user.click(screen.getByRole('button', { name: 'Mark 2 as purchased' }));
 
-    expect(props.onConfirm).toHaveBeenCalledWith(2);
+    expect(props.onConfirm).toHaveBeenCalledWith(2, '');
     expect(screen.queryByText(/will be released/)).not.toBeInTheDocument();
+  });
+
+  it('for one unit held, asks "Mark “Stroller” as purchased?" with no stepper or release note', () => {
+    renderDialog({ units: 1, purchasableUnits: 1 });
+
+    expect(screen.getByRole('dialog', { name: 'Mark \u201cStroller\u201d as purchased?' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'How many did you buy?' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/will be released/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mark as purchased' })).toBeInTheDocument();
+  });
+
+  it('sends the message with the count', async () => {
+    const user = userEvent.setup();
+    const { props } = renderDialog({ units: 1, purchasableUnits: 1 });
+
+    await user.type(screen.getByLabelText('Message to the owner (optional)'), 'Congrats');
+    await user.click(screen.getByRole('button', { name: 'Mark as purchased' }));
+
+    expect(props.onConfirm).toHaveBeenCalledWith(1, 'Congrats');
+  });
+
+  it('locks the message box while the purchase is in flight', () => {
+    renderDialog({ isPending: true });
+
+    expect(screen.getByLabelText('Message to the owner (optional)')).toBeDisabled();
   });
 
   it('warns that the other 1 will be released when lowered to 1', async () => {
@@ -35,7 +60,7 @@ describe('PurchaseDialog', () => {
 
     expect(screen.getByText('The other 1 will be released, so another guest can hold it.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Mark 1 as purchased' }));
-    expect(props.onConfirm).toHaveBeenCalledWith(1);
+    expect(props.onConfirm).toHaveBeenCalledWith(1, '');
   });
 
   it('says "them" when more than one will be released', async () => {

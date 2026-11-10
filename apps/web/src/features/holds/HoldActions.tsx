@@ -104,9 +104,9 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
 
   const { holdId } = hold;
 
-  function buy(units: number) {
+  function buy(units: number, message: string) {
     onStart();
-    purchase.mutate({ holdId, units });
+    purchase.mutate({ holdId, units, message });
   }
 
   // Unmounting the dialog skips the browser's own focus return, so it is done here.
@@ -125,7 +125,7 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {hold.actions.purchase && (
-          <button ref={purchaseButton} type="button" disabled={pending} onClick={() => (hold.units > 1 ? openPurchaseSheet() : buy(1))} className={primary}>Mark as purchased</button>
+          <button ref={purchaseButton} type="button" disabled={pending} onClick={openPurchaseSheet} className={primary}>Mark as purchased</button>
         )}
         {hold.actions.extend && (
           <button type="button" disabled={pending} onClick={() => { onStart(); extend.mutate({ holdId }); }} className={secondary}>Extend hold</button>
@@ -153,6 +153,7 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
       )}
       {purchaseSheetOpen && hold.actions.purchase && (
         <PurchaseDialog
+          itemTitle={itemTitle}
           status={hold.status}
           units={hold.units}
           purchasableUnits={hold.purchasableUnits}
