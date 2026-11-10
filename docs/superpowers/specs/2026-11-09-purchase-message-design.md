@@ -19,11 +19,12 @@ it odd in testing. The note belongs with the purchase.
    still be marked purchased.
 3. A one-unit hold now opens a small purchase sheet (mockup option A) instead
    of being marked purchased in one click, so the box has somewhere to live.
-4. Every message already stored for a hold is deleted, including on holds that
-   were already purchased.
 
 ## Non-goals
 
+- **Clearing messages already stored on holds.** Only the owner has used the
+  live site so far, so no guest has written one. Any stored hold message
+  stays where it is; no migration.
 - **Showing messages to the owner.** No owner screen shows them today and
   this change doesn't add one. ADR-0022 (messages are not spoiler-gated)
   still describes how they will be shown.
@@ -101,14 +102,6 @@ place. An over-long message fails with 400 and nothing is purchased.
   as today. It never enters an event, so ADR-0057 erasure still covers it.
   `GuestPiiRepository` gets a way to set a row's message; its contract test
   covers it.
-- **Deleting stored hold messages:** a new migration,
-  `0002_clear_hold_messages`, sets `message = NULL` on every `guest_pii` row
-  referenced by a hold (`holds.pii_ref`). Rows referenced by contributions
-  keep their message. No schema change.
-- **Depends on tracked migrations** (PR #206, release-versioning spec): the
-  migration needs the `Migrator` and `migrations/index.ts` that PR adds, so
-  it is built after #206 merges (or stacked on it). It must run exactly once:
-  if it ran on every startup it would wipe messages given at purchase.
 
 ## Decision records
 
@@ -124,7 +117,7 @@ placed. No new ADR.
   before names were required, none of which exist in production) is
   purchased normally and the message is dropped.
 - The single-unit sheet's title wording above.
-- Migration name and the repository method's name.
+- The repository method's name.
 
 ## Testing (at the owning layer)
 
@@ -132,8 +125,6 @@ placed. No new ADR.
 - Use case: `MarkHoldPurchased` stores the message on the hold's row; an
   over-long message purchases nothing. `HoldItem` stores no message.
 - Repository contract: setting a row's message.
-- Migration: an integration test that clears hold messages and keeps pledge
-  messages.
 - Web: `HoldDialog` has no message box; `PurchaseDialog` sends the message,
   shows the stepper only for more than one unit, and keeps the text on
   failure; `HoldActions` opens the sheet for a one-unit hold.

@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** The guest's optional message to the owner is collected when a hold is marked purchased, not when it is placed, and every message already stored on a hold is deleted.
+**Goal:** The guest's optional message to the owner is collected when a hold is marked purchased, not when it is placed.
 
-**Architecture:** The message stays on the hold's existing `guest_pii` row (never in an event). `MarkHoldPurchased` rewrites that row through a new `GuestPiiRepository.update`, validating via `GuestDetails`. The web `PurchaseDialog` opens for every purchase and gains the message box; `HoldDialog` loses it. A one-time migration clears hold messages.
+**Architecture:** The message stays on the hold's existing `guest_pii` row (never in an event). `MarkHoldPurchased` rewrites that row through a new `GuestPiiRepository.update`, validating via `GuestDetails`. The web `PurchaseDialog` opens for every purchase and gains the message box; `HoldDialog` loses it.
 
 **Tech Stack:** TypeScript, Fastify + zod, Kysely/SQLite, React + TanStack Query, vitest, Playwright.
 
@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Every PR ≤ 10 changed files, generated files included (skill small-prs). Stack: Task 1 → 2 → 3 → 4 → 5, each a PR on the one below. Task 6 is its own PR off main after PR #206 merges.
+- Every PR ≤ 10 changed files, generated files included (skill small-prs). Stack: Task 1 → 2 → 3 → 4 → 5, each a PR on the one below.
 - Message rules: trimmed; blank means `null`; at most 300 characters; owned by `GuestDetails` only. No DB length CHECK.
 - Label copy, exactly: `Message to the owner (optional)`. One-unit sheet title: `Mark “{item title}” as purchased?`. Buttons: `Mark as purchased`, `Cancel`.
 - The hold request stays a non-strict zod object: an unknown `message` is stripped, never a 400.
@@ -128,20 +128,3 @@
 - [ ] **Step 3: Implement**: drop `message` from the schema, `HoldItemInput` and the route call; `GuestDetails.from({ name: input.name })`.
 - [ ] **Step 4: Run** `npm run gen:api` and the full `npm test`; expect PASS.
 - [ ] **Step 5: Commit** `feat(api): a hold takes no message`.
-
-### Task 6: Delete stored hold messages (after PR #206 merges)
-
-**Files:**
-- Create: `apps/api/src/infrastructure/db/migrations/0002_clear_hold_messages.ts`
-- Modify: `apps/api/src/infrastructure/db/migrations/index.ts` (add `'0002_clear_hold_messages'`)
-- Create: `apps/api/src/infrastructure/db/clearHoldMessages.integration.test.ts`
-
-**Interfaces:**
-- Consumes: the `migrations` record and `Migrator` from PR #206.
-- Produces: `up(db: Kysely<unknown>)` running `UPDATE guest_pii SET message = NULL WHERE id IN (SELECT pii_ref FROM holds WHERE pii_ref IS NOT NULL)`. No `down`.
-
-- [ ] **Step 1: Failing test** `it('clears every hold\'s message and keeps pledge messages')`: migrate to `0001_init` only, insert a list, an item, a hold whose guest_pii row has `message: 'Congrats'` and a contribution whose row has `message: 'Chipping in'`; migrate to latest; expect the hold row's message `null` and the pledge row's `'Chipping in'`.
-- [ ] **Step 2: Run** `npm test --workspace=apps/api -- clearHoldMessages`; expect FAIL.
-- [ ] **Step 3: Implement** the migration and register it.
-- [ ] **Step 4: Run** the full `npm test`; expect PASS (including #206's schema-match and shipped-migration checks).
-- [ ] **Step 5: Commit** `feat(api): delete the messages stored on holds`.
