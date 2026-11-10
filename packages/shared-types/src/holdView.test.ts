@@ -43,8 +43,8 @@ describe('listViewResponseSchema', () => {
     expect(listViewResponseSchema.safeParse(list).success).toBe(true);
   });
 
-  it('requires myHolds, myContributions and capabilities', () => {
-    expect(listViewResponseSchema.safeParse({ title: 't', items: [], payment: list.payment }).success).toBe(false);
+  it.each(['myHolds', 'myContributions', 'capabilities'])('rejects a list view without %s', (key) => {
+    expect(listViewResponseSchema.safeParse({ ...list, [key]: undefined }).success).toBe(false);
   });
 
   it('requires items and payment', () => {

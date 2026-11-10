@@ -452,7 +452,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The list, its item, this session's holds, and what this server does for guests. */
+            /** @description The list, its items, this session's holds and pledges, and what this server does for guests. */
             200: {
                 headers: {
                     [name: string]: unknown;

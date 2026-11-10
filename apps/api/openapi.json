@@ -359,7 +359,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The list, its item, this session's holds, and what this server does for guests.",
+            "description": "The list, its items, this session's holds and pledges, and what this server does for guests.",
             "content": {
               "application/json": {
                 "schema": {

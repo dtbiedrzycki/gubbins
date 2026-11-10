@@ -148,14 +148,16 @@ describe('GetListView', () => {
     expect((await view()).myHolds.map((h) => [h.holdId, h.status])).toEqual([[first.holdId, 'expired'], [second.holdId, 'active']]);
   });
 
-  it('shows no holds or pledges to a caller without a session', async () => {
+  it('shows no holds to a caller without a session', async () => {
     const { placeHold, view } = await setup();
     await placeHold();
-    const { pledge, view: groupView } = await groupSetup();
-    await pledge('k1', 1000);
-    expect((await groupView(GUEST)).myContributions).toHaveLength(1);
-    expect((await groupView(NO_SESSION)).myContributions).toEqual([]);
     expect((await view(NO_SESSION)).myHolds).toEqual([]);
+  });
+
+  it('shows no pledges to a caller without a session', async () => {
+    const { pledge, view } = await groupSetup();
+    await pledge('k1', 1000);
+    expect((await view(NO_SESSION)).myContributions).toEqual([]);
   });
 
   it('lists pledges newest first, each with only its id, item, amount and pledge time', async () => {
