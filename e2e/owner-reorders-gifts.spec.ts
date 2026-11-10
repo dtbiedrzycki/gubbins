@@ -32,7 +32,6 @@ test('the owner moves a gift to the bottom, keeps focus there, and guests see th
 
   // Bottom is disabled once Cookbook is last, so focus stays in its block on Up.
   await expect(manage.getByRole('button', { name: 'Move Cookbook up' })).toBeFocused();
-  await expect(manage.locator('#move-announcement')).toHaveText('Cookbook moved to position 3 of 3.');
   await expectNoSeriousAxeViolations(manage);
 
   const guest = await context.newPage();

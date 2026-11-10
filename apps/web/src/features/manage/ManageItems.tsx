@@ -10,6 +10,7 @@ import { MoveItemButtons } from './MoveItemButtons';
 
 export interface ManageItemsProps {
   slug: string;
+  /** The manage-view query's items as cached; a move waits for this array to be the refetched one. */
   items: ManageViewResponse['items'];
   /** The server no longer accepts the owner cookie (404). */
   onUnauthorized: () => void;

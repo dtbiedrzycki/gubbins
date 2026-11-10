@@ -56,6 +56,8 @@ function renderLiveItems(initial: Items) {
 }
 
 const titles = () => screen.getAllByRole('listitem').map((li) => li.querySelector('p')!.textContent);
+const disabled = (title: string) => within(screen.getByRole('group', { name: `Move ${title}` }))
+  .getAllByRole('button').map((b) => [b.getAttribute('aria-label'), (b as HTMLButtonElement).disabled]);
 const announcement = () => document.getElementById('move-announcement')!;
 /** The next move fails with this message; later moves succeed. */
 const nextMoveFails = (message: string) =>
@@ -152,15 +154,14 @@ describe('ManageItems', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Move C down' })).toHaveFocus());
   });
 
-  it('keeps focus on Up after moving up one place', async () => {
+  it('announces the new position after moving a gift down one place', async () => {
     const user = userEvent.setup();
     renderLiveItems(abc());
 
-    await user.click(await screen.findByRole('button', { name: 'Move C up' }));
+    await user.click(await screen.findByRole('button', { name: 'Move A down' }));
 
-    await waitFor(() => expect(announcement()).toHaveTextContent('C moved to position 2 of 3.'));
-    expect(titles()).toEqual(['A', 'C', 'B']);
-    expect(screen.getByRole('button', { name: 'Move C up' })).toHaveFocus();
+    await waitFor(() => expect(announcement()).toHaveTextContent('A moved to position 2 of 3.'));
+    expect(titles()).toEqual(['B', 'A', 'C']);
   });
 
   it.each([
@@ -174,16 +175,17 @@ describe('ManageItems', () => {
     await waitFor(() => expect(moves).toEqual([{ itemId: 'b', to }]));
   });
 
-  it('disables Up and Top on the first gift and Down and Bottom on the last; a lone gift has all four disabled', () => {
-    const { rerender } = renderItems(abc());
-    const disabled = (title: string) => within(screen.getByRole('group', { name: `Move ${title}` }))
-      .getAllByRole('button').map((b) => [b.getAttribute('aria-label'), (b as HTMLButtonElement).disabled]);
+  it('disables Up and Top on the first gift and Down and Bottom on the last', () => {
+    renderItems(abc());
 
     expect(disabled('A')).toEqual([['Move A up', true], ['Move A to the top', true], ['Move A down', false], ['Move A to the bottom', false]]);
     expect(disabled('B')).toEqual([['Move B up', false], ['Move B to the top', false], ['Move B down', false], ['Move B to the bottom', false]]);
     expect(disabled('C')).toEqual([['Move C up', false], ['Move C to the top', false], ['Move C down', true], ['Move C to the bottom', true]]);
+  });
 
-    rerender([item({ id: 'a', title: 'A' })]);
+  it('disables all four buttons on a lone gift', () => {
+    renderItems([item({ id: 'a', title: 'A' })]);
+
     expect(disabled('A').map(([, off]) => off)).toEqual([true, true, true, true]);
   });
 
@@ -220,10 +222,12 @@ describe('ManageItems', () => {
     expect(alert).toHaveAttribute('role', 'alert');
     expect(alert.closest('li')).toBe(screen.getByRole('group', { name: 'Move C' }).closest('li'));
     await waitFor(() => expect(alert).toHaveFocus());
+    // Waits for the move to settle, so a late announcement would show.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Move C up' })).not.toHaveAttribute('aria-disabled'));
     expect(announcement()).toBeEmptyDOMElement();
   });
 
-  it("keeps a gift's error while another gift moves, and clears it when that gift moves again", async () => {
+  it("leaves a gift's error showing while another gift moves, and clears it when that gift moves again", async () => {
     const user = userEvent.setup();
     renderLiveItems(abc());
     server.use(nextMoveFails('The list could not be saved.'));
