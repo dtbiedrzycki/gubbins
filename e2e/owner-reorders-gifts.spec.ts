@@ -9,7 +9,7 @@ async function expectNoSeriousAxeViolations(page: import('@playwright/test').Pag
   expect(scan.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
 }
 
-test('the owner moves a gift to the bottom, keeps focus there, and guests see the new order', async ({ page, context }) => {
+test('the owner moves a gift down and then to the bottom, focus stays in its block, and guests see the new order', async ({ page, context }) => {
   await page.goto('/wishlists/new');
   await page.getByLabel('List title').fill('Housewarming');
   await expect(page.getByRole('region', { name: 'Guest key' }).locator('[aria-live]')).not.toBeEmpty();
@@ -27,6 +27,12 @@ test('the owner moves a gift to the bottom, keeps focus there, and guests see th
     await manage.getByRole('button', { name: 'Add item' }).click();
     await expect(manage.getByRole('status')).toHaveText(`Added "${title}".`);
   }
+
+  // React moves Cookbook's own row, which drops focus in Chromium, so this proves focus is put back on the tapped button.
+  await manage.getByRole('button', { name: 'Move Cookbook down' }).click();
+  // The announcement is set right after focus is put back, and the tap itself left focus here, so wait for the move to land first.
+  await expect(manage.locator('#move-announcement')).toHaveText('Cookbook moved to position 2 of 3.');
+  await expect(manage.getByRole('button', { name: 'Move Cookbook down' })).toBeFocused();
 
   await manage.getByRole('button', { name: 'Move Cookbook to the bottom' }).click();
 

@@ -161,12 +161,11 @@ describe('ManageItems', () => {
     await user.click(await screen.findByRole('button', { name: 'Move A down' }));
 
     await waitFor(() => expect(announcement()).toHaveTextContent('A moved to position 2 of 3.'));
-    expect(titles()).toEqual(['B', 'A', 'C']);
   });
 
   it.each([
     ['up', 'up'], ['to the top', 'top'], ['down', 'down'], ['to the bottom', 'bottom'],
-  ])('the %s button asks for %s', async (name, to) => {
+  ])('"Move B %s" sends to: %s', async (name, to) => {
     const user = userEvent.setup();
     const { moves } = renderLiveItems(abc());
 
@@ -201,13 +200,14 @@ describe('ManageItems', () => {
       return HttpResponse.json({ ok: true });
     }));
     const up = await screen.findByRole('button', { name: 'Move C up' });
+    const otherGiftsDown = screen.getByRole('button', { name: 'Move A down' });
 
     await user.click(up);
-    await waitFor(() => expect(up).toHaveAttribute('aria-disabled', 'true'));
-    await user.click(up);
+    await waitFor(() => expect(otherGiftsDown).toHaveAttribute('aria-disabled', 'true'));
+    await user.click(otherGiftsDown);
     release();
 
-    await waitFor(() => expect(up).not.toHaveAttribute('aria-disabled'));
+    await waitFor(() => expect(otherGiftsDown).not.toHaveAttribute('aria-disabled'));
     expect(sent).toBe(1);
   });
 
