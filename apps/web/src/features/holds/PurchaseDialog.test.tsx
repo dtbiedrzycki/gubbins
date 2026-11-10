@@ -93,7 +93,7 @@ describe('PurchaseDialog', () => {
     expect(screen.getByRole('button', { name: 'Mark 1 as purchased' })).toBeEnabled();
   });
 
-  it('cannot be cancelled while the purchase is in flight', () => {
+  it('disables Cancel and confirm while the purchase is in flight', () => {
     renderDialog({ isPending: true });
 
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();

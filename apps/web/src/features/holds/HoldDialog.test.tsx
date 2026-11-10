@@ -122,7 +122,7 @@ describe('HoldDialog', () => {
     expect(name).toHaveAccessibleDescription('Include everyone the gift is from, e.g. Sam & Alex Smith. Names are only shared with the list owner.');
   });
 
-  it('cannot be cancelled while the hold is in flight', () => {
+  it('disables Cancel and confirm while the hold is in flight', () => {
     renderDialog({ isPending: true });
 
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();

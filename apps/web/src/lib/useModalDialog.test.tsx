@@ -34,11 +34,15 @@ describe('useModalDialog', () => {
     expect(dialog.open).toBe(true);
   });
 
-  it('calls onClose when closed with nothing in flight', () => {
-    const { dialog, onClose } = renderSheet();
+  it('lets Escape through when nothing is in flight', () => {
+    const { dialog } = renderSheet();
     const escape = new Event('cancel', { cancelable: true });
     dialog.dispatchEvent(escape);
     expect(escape.defaultPrevented).toBe(false);
+  });
+
+  it('calls onClose when closed with nothing in flight', () => {
+    const { dialog, onClose } = renderSheet();
     dialog.open = false;
     dialog.dispatchEvent(new Event('close'));
     expect(onClose).toHaveBeenCalledOnce();

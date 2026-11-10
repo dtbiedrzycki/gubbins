@@ -40,7 +40,6 @@ export class GetListView {
       if (!wishlist) throw new WishlistNotFoundError(input.wishlistId);
 
       const mine = access.guestSession ? wishlist.holdsForSession(access.guestSession.sessionHash) : [];
-
       const pledges = access.guestSession ? wishlist.contributionsForSession(access.guestSession.sessionHash) : [];
 
       return {
@@ -58,7 +57,7 @@ export class GetListView {
           .filter((hold) => wishlist.holdStatus(hold) !== 'released')
           .sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime())
           .map((hold) => toHoldView(wishlist, hold)),
-        myContributions: [...pledges]
+        myContributions: pledges
           .sort((a, b) => b.pledgedAt.getTime() - a.pledgedAt.getTime())
           .map((c) => ({ contributionId: c.id.value, itemId: c.itemId.value, amountMinor: c.amount.amountMinor, pledgedAt: c.pledgedAt.toISOString() })),
         capabilities: { holdDurationDays: this.policy.durationDays },
