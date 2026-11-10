@@ -38,9 +38,12 @@
 **Hold flow**
 - Tap "Hold it" → sheet with: name (required), optional email ("so we can
   remind you before the hold expires" — only shown if `SMTP` is configured,
-  per the capability-flag rule in [ops](ops.md)), optional message to the owner
-  (≤300 chars), subtitle "Other guests will see it's taken while you buy it", and a boxed note: buy it, come back and tap "Mark as purchased", or the hold ends after 3 days.
-  Primary CTA: "Confirm hold."
+  per the capability-flag rule in [ops](ops.md)), subtitle "Other guests will see it's taken while you buy it", and a boxed note: buy it, come back and tap "Mark as purchased", or the hold ends after 3 days.
+  Primary CTA: "Confirm hold." The hold sheet asks for name(s) only; the
+  message to the owner is asked when the hold is marked purchased.
+- Tap "Mark as purchased" → sheet with the optional message to the owner
+  (≤300 chars). One unit: title "Mark “{item}” as purchased?". More than one
+  unit: "How many did you buy?" plus the message box.
 - Confirmation screen: **"Mark as purchased"** is the primary action (per
   [holds](holds.md)). The private hold link (`/wishlists/{slug}/holds/{holdSecret}`) is shown
   prominently with a "Copy link" button and a line explaining it's the way
@@ -62,7 +65,7 @@
 - "Cover the rest" is hidden once remainder ≤ 0 under `allowOverfunding:
   block`; kept visible with a confirming dialog under `warn`/`allow`.
 - Name (required), optional message to owner (≤300 chars, same field/cap as
-  holds), then payment method selection from the list's configured methods
+  the purchase sheet), then payment method selection from the list's configured methods
   (single method: skip selection, render it directly) with the honest
   "we can't verify this automatically" disclaimer, then deep link / QR /
   copyable handle per that method's render strategy.
@@ -103,7 +106,7 @@
   where the guest can only recover the second hold's secret. *(ADR-[048](../adr/0048-hold-contribution-submits-carry-a-client-generated.md))*
 
 **Message from giver to owner**
-- Optional free-text field, ≤300 chars, on both the hold sheet and the
+- Optional free-text field, ≤300 chars, on the purchase sheet and the
   contribute flow. Escaped on output, same treatment as names.
 - Visible to the owner **immediately**, regardless of
   `ownerSeesClaimStatus`, `ownerSeesClaimerIdentity`, or `revealAfter` —

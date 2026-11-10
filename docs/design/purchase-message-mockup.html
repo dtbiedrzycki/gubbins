@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Purchase Message Mockups</title>
+<style>
+/* Fonts come from the repo's own Fontsource packages (run npm ci first); without them the Georgia and system-ui fallbacks show. */
+@font-face { font-family: "IM Fell English"; font-style: normal; font-weight: 400; src: url(../../node_modules/@fontsource/im-fell-english/files/im-fell-english-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-style: normal; font-weight: 400; src: url(../../node_modules/@fontsource/alegreya-sans/files/alegreya-sans-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-style: normal; font-weight: 700; src: url(../../node_modules/@fontsource/alegreya-sans/files/alegreya-sans-latin-700-normal.woff2) format("woff2"); }
+/* Layout: phone-width frames side by side (stacking when narrow), in the guest theme's own look; one deliberate light theme like the repo mockups. */
+:root {
+  --paper: #F6F3FB; --ink: #2E2447; --muted: #625A78; --line: #DCD3EA; --card: #FFFFFF;
+  --moss: #34603F; --wax: #9E2A45; --page: #ECE7F4; --on-moss: #FFFFFF; --note: #FFF7E0;
+  --display: "IM Fell English", Georgia, serif;
+  --sans: "Alegreya Sans", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 16px/1.45 var(--sans); }
+main { max-width: 1240px; margin: 0 auto; padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font: 2rem/1.15 var(--display); margin: 0 0 6px; text-wrap: balance; }
+h2 { font: 1.4rem/1.2 var(--display); margin: 36px 0 6px; }
+.lede { color: var(--muted); max-width: 64ch; margin: 0 0 20px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 28px; align-items: start; }
+.frame { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.tag { font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.why { font-size: .92rem; color: var(--muted); margin: 0; }
+.phone { background: var(--paper); border: 1.5px solid var(--line); border-radius: 28px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.item { background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.item h3 { font: 1.15rem/1.2 var(--display); margin: 0; }
+.meta { color: var(--muted); font-size: .92rem; margin: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { min-height: 2.75rem; padding: .5rem 1.1rem; border-radius: 22px 22px 22px 6px; font: 700 1rem var(--sans); border: 0; color: var(--ink); }
+.primary { background: var(--moss); color: var(--on-moss); }
+.secondary { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink); }
+.dialog { background: var(--paper); border-radius: 22px; padding: 18px; box-shadow: 0 0 0 1.5px var(--ink); display: flex; flex-direction: column; gap: 10px; }
+.dialog p, .inline p { margin: 0; }
+.inline { border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.title { font: 1.2rem/1.2 var(--display); }
+.muted { color: var(--muted); }
+.field { border: 1.5px solid var(--ink); border-radius: 14px; background: var(--card); min-height: 2.5rem; padding: .45rem .7rem; color: var(--muted); font-size: .95rem; }
+.area { min-height: 4.5rem; }
+.small { font-size: .9rem; }
+.count-note { font-size: .82rem; color: var(--muted); text-align: right; margin-top: -4px; }
+.gone { text-decoration: line-through; color: var(--muted); opacity: .7; }
+.stepper { display: flex; align-items: center; gap: 10px; }
+.step { width: 2.75rem; height: 2.75rem; border-radius: 50%; border: 1.5px solid var(--ink); background: var(--card); font: 700 1.2rem var(--sans); color: var(--ink); }
+.count { font: 700 1.2rem var(--sans); min-width: 1.5ch; text-align: center; }
+.ok { background: var(--note); border-radius: 14px; padding: 10px 12px; font-weight: 700; }
+button:focus-visible { outline: 3px solid var(--wax); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Message at purchase</h1>
+  <p class="lede">The note to the owner moves from holding an item to marking it purchased. Holding still asks for a name. Below: the hold dialog without the message, then two ways to handle a one-item hold, which today is marked purchased in one click with no dialog.</p>
+
+  <h2>What changes everywhere</h2>
+  <div class="grid">
+    <section class="frame">
+      <span class="tag">Hold dialog (message removed)</span>
+      <div class="phone">
+        <div class="dialog">
+          <p class="title">Hold &ldquo;Wooden train set&rdquo;</p>
+          <span>Gifter name(s)</span>
+          <div class="field">Sam &amp; Alex Smith</div>
+          <span class="gone">Message to the owner (optional)</span>
+          <div class="row">
+            <button class="btn primary" type="button">Hold it</button>
+            <button class="btn secondary" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="frame">
+      <span class="tag">More than one held: existing sheet gains the box</span>
+      <div class="phone">
+        <div class="dialog">
+          <p class="title">How many did you buy?</p>
+          <div class="stepper">
+            <button class="step" type="button" aria-label="One fewer">&minus;</button>
+            <span class="count">2</span>
+            <button class="step" type="button" aria-label="One more">+</button>
+            <span class="muted small">of 3 held</span>
+          </div>
+          <p class="ok" style="background:var(--card);border:1.5px solid var(--line);font-weight:700">The other 1 will be released, so another guest can hold it.</p>
+          <span>Message to the owner (optional)</span>
+          <div class="field area">Congratulations! Can&rsquo;t wait to meet the little one.</div>
+          <p class="count-note">53 / 300</p>
+          <div class="row">
+            <button class="btn primary" type="button">Mark 2 as purchased</button>
+            <button class="btn secondary" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <h2>One item held</h2>
+  <div class="grid">
+    <section class="frame">
+      <span class="tag">Today (one click)</span>
+      <p class="why">No place for a message, so this can&rsquo;t stay as it is.</p>
+      <div class="phone">
+        <div class="item">
+          <h3>Wooden train set</h3>
+          <p class="meta">Held until Sat 14 Nov, 6:00 pm.</p>
+          <div class="row">
+            <button class="btn primary" type="button">Mark as purchased</button>
+            <button class="btn secondary" type="button">Extend hold</button>
+            <button class="btn secondary" type="button">Release hold</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="frame">
+      <span class="tag">Option A: a small dialog (chosen)</span>
+      <p class="why">The same sheet as the multi-item one, minus the count. Every purchase looks alike.</p>
+      <div class="phone">
+        <div class="dialog">
+          <p class="title">Mark &ldquo;Wooden train set&rdquo; as purchased?</p>
+          <span>Message to the owner (optional)</span>
+          <div class="field area">Congratulations! Can&rsquo;t wait to meet the little one.</div>
+          <p class="count-note">53 / 300</p>
+          <div class="row">
+            <button class="btn primary" type="button">Mark as purchased</button>
+            <button class="btn secondary" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="frame">
+      <span class="tag">Option B: inside the hold card (not chosen)</span>
+      <p class="why">Like &ldquo;Release hold&rdquo;, which already asks inside the card. No pop-up.</p>
+      <div class="phone">
+        <div class="item">
+          <h3>Wooden train set</h3>
+          <p class="meta">Held until Sat 14 Nov, 6:00 pm.</p>
+          <div class="inline">
+            <p>Mark Wooden train set as purchased?</p>
+            <span>Message to the owner (optional)</span>
+            <div class="field area">Congratulations! Can&rsquo;t wait to meet the little one.</div>
+            <p class="count-note">53 / 300</p>
+            <div class="row">
+              <button class="btn primary" type="button">Mark as purchased</button>
+              <button class="btn secondary" type="button">Not yet</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+</body>
+</html>

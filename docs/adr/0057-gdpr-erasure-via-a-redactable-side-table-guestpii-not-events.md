@@ -43,7 +43,9 @@ one session creates several.
 - **Session-scoped (per-guest) `GuestPii` rows** instead of per-record —
   rejected: three of the table's four fields are genuinely per-record.
   `message` is the giver's note on *this* hold or *this* pledge
-  ([guest UX](../spec/guest-ux.md)), and a session-scoped row would force
+  ([guest UX](../spec/guest-ux.md)); a hold's message is written when
+  the hold is marked purchased, not when it is placed, onto the row the
+  hold already points at, and a session-scoped row would force
   it back onto the Hold/Contribution — returning PII to the event
   payload, the exact thing this ADR prevents. `name` may legitimately
   differ between records ("Dave" on a hold, "Dave & Sarah" on a pledge),
