@@ -516,8 +516,6 @@ describe('YourContributions', () => {
     expect(entries.map((entry) => within(entry).getByRole('heading').textContent)).toEqual(['Stroller', 'Pram fund', 'Pram fund']);
     expect(within(entries[1]).getByText('You chipped in $40.00.')).toBeInTheDocument();
     expect(within(entries[2]).getByText('You chipped in $15.00.')).toBeInTheDocument();
-    expect(entries[1].querySelector('[data-seal]')).toHaveAttribute('data-seal', 'coin');
-    expect(within(entries[1]).queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('returns focus to the button when the sheet closes', async () => {

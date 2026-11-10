@@ -71,7 +71,8 @@ export default function ListPage() {
   const focusFilter = () => document.querySelector<HTMLButtonElement>('[aria-label="Show gifts"] button')?.focus();
   const hasContributions = query.data.myHolds.length + query.data.myContributions.length > 0;
   return (
-    // While the floating "Your contributions" button shows, the end of the page leaves room for it, so it never covers the last gift.
+    // While the floating "Your contributions" button shows, the end of the page leaves room for it, so it never covers the last gift:
+    // pb-24 (6rem) clears the button's 2.75rem height and 1rem gap from the bottom, with room to spare.
     <main className={`flex-1 bg-paper p-6 text-ink ${hasContributions ? 'pb-24' : ''}`}>
       <div className="mx-auto max-w-sm space-y-8">
         <header className="text-center">
