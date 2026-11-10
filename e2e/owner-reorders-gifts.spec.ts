@@ -28,7 +28,8 @@ test('the owner moves a gift down and then to the bottom, focus stays in its blo
     await expect(manage.getByRole('status')).toHaveText(`Added "${title}".`);
   }
 
-  // React moves Cookbook's own row, which drops focus in Chromium, so this proves focus is put back on the tapped button.
+  // Cookbook's own row moves; this proves focus stays on the tapped button and the focus restore doesn't pull it elsewhere.
+  // (Chromium keeps focus on the button through the move, so this doesn't exercise the restore itself.)
   await manage.getByRole('button', { name: 'Move Cookbook down' }).click();
   // The announcement is set right after focus is put back, and the tap itself left focus here, so wait for the move to land first.
   await expect(manage.locator('#move-announcement')).toHaveText('Cookbook moved to position 2 of 3.');

@@ -213,7 +213,7 @@ describe('ManageItems', () => {
 
   it("shows the server's error in the gift's row, with focus on it, and announces nothing", async () => {
     const user = userEvent.setup();
-    renderLiveItems(abc());
+    const { onUnauthorized } = renderLiveItems(abc());
     server.use(nextMoveFails('The list could not be saved.'));
 
     await user.click(await screen.findByRole('button', { name: 'Move C up' }));
@@ -225,6 +225,7 @@ describe('ManageItems', () => {
     // Waits for the move to settle, so a late announcement would show.
     await waitFor(() => expect(screen.getByRole('button', { name: 'Move C up' })).not.toHaveAttribute('aria-disabled'));
     expect(announcement()).toBeEmptyDOMElement();
+    expect(onUnauthorized).not.toHaveBeenCalled();
   });
 
   it("leaves a gift's error showing while another gift moves, and clears it when that gift moves again", async () => {
