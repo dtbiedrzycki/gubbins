@@ -14,7 +14,6 @@ export interface HoldItemInput {
   idempotencyKey: string;
   name: string;
   units: number;
-  message?: string;
 }
 
 export class HoldItem {
@@ -47,7 +46,7 @@ export class HoldItem {
       const replay = wishlist.findHoldForReplay(input.itemId, input.idempotencyKey, guest.sessionHash);
       if (replay) return toHoldView(wishlist, replay);
 
-      const details = GuestDetails.from({ name: input.name, message: input.message });
+      const details = GuestDetails.from({ name: input.name });
       // The ref keys a guest_pii row outside the aggregate that the domain never sees (ADR-0057), so the use case mints it beside the insert.
       const piiRef = this.tokenGenerator.generateEntityId();
 

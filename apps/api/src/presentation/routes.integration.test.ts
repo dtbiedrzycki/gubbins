@@ -258,16 +258,16 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
     expect(viewResponse.json()).toMatchObject({ items: [{ status: 'held' }] });
   });
 
-  it('passes the name, message and units from the body to the hold', async () => {
+  it('passes the name and units from the body to the hold', async () => {
     const list = await createList(app, 3);
     const cookie = extractCookieHeader(await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } }));
 
     const response = await app.inject({
       method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`,
-      headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', message: 'Congrats', units: 2 },
+      headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', units: 2 },
     });
 
-    expect(await db.selectFrom('guest_pii').select(['name', 'message']).execute()).toEqual([{ name: 'Ada', message: 'Congrats' }]);
+    expect(await db.selectFrom('guest_pii').select('name').execute()).toEqual([{ name: 'Ada' }]);
     expect(response.json()).toMatchObject({ units: 2 });
   });
 

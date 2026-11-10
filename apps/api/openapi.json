@@ -1157,9 +1157,6 @@
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 9007199254740991
-                  },
-                  "message": {
-                    "type": "string"
                   }
                 },
                 "required": [
