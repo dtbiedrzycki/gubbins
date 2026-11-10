@@ -14,9 +14,9 @@ import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
 import type { TransactionContext, UnitOfWork } from '../ports/UnitOfWork.js';
 import type { WishlistRepository } from '../ports/WishlistRepository.js';
 
-const toRow = (item: Item): ItemRow => ({
+const toRow = (item: Item, position: number): ItemRow => ({
   id: item.id.value, wishlistId: item.wishlistId.value, type: item.type, title: item.title,
-  quantity: item.quantity, url: item.url, priceMinor: item.priceMinor, description: item.description, seq: item.seq,
+  quantity: item.quantity, url: item.url, priceMinor: item.priceMinor, description: item.description, position, seq: item.seq,
 });
 
 /**
@@ -80,7 +80,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
 
   async insert(wishlist: Wishlist): Promise<void> {
     this.store.wishlists.set(wishlist.id.value, copyWishlist(wishlist));
-    for (const item of wishlist.items) this.store.items.set(item.id.value, toRow(item));
+    for (const [index, item] of wishlist.items.entries()) this.store.items.set(item.id.value, toRow(item, index));
   }
 
   async findBySlug(slug: string, now: Date): Promise<Wishlist | null> {
@@ -99,7 +99,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
     this.store.wishlists.set(wishlist.id.value, copyWishlist(wishlist));
     for (const row of removed) this.store.items.delete(row.id);
     // The purchased count is derived from the holds, never stored.
-    for (const item of wishlist.items) this.store.items.set(item.id.value, toRow(item));
+    for (const [index, item] of wishlist.items.entries()) this.store.items.set(item.id.value, toRow(item, index));
     const holds = new InMemoryHoldRepository(this.store);
     for (const hold of wishlist.holds) {
       if (this.store.holds.has(hold.id.value)) await holds.save(hold);
@@ -115,7 +115,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
     if (wishlist === undefined) return null;
     const holds = this.store.holdsOnList(wishlist.id.value).map(copyHold);
     const contributions = this.store.contributionsOnList(wishlist.id.value);
-    const items = [...this.store.items.values()].filter((row) => row.wishlistId === wishlist.id.value).map((row) => Item.reconstitute({
+    const items = [...this.store.items.values()].filter((row) => row.wishlistId === wishlist.id.value).sort((a, b) => a.position - b.position).map((row) => Item.reconstitute({
       ...row, asOf: now,
       holds: holds.filter((h) => h.itemId.value === row.id),
       contributions: contributions.filter((c) => c.itemId.value === row.id),

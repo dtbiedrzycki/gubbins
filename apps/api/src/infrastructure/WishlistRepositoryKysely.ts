@@ -33,7 +33,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
       description: wishlist.description,
       created_at: new Date().toISOString(),
     }).execute();
-    for (const item of wishlist.items) await this.items.insert(item);
+    for (const [index, item] of wishlist.items.entries()) await this.items.insert(item, index);
   }
 
   async findBySlug(slug: string, now: Date): Promise<Wishlist | null> {
@@ -60,11 +60,12 @@ export class WishlistRepositoryKysely implements WishlistRepository {
       await this.db.updateTable('wishlists').set({ title: wishlist.title, description: wishlist.description }).where('id', '=', wishlist.id.value).execute();
     }
     // Writes only items the domain added, edited or moved on, so an untouched row keeps its updated_at.
-    for (const item of wishlist.items) {
+    for (const [index, item] of wishlist.items.entries()) {
       const row = stored.get(item.id.value);
-      if (row === undefined) { await this.items.insert(item); continue; }
+      if (row === undefined) { await this.items.insert(item, index); continue; }
       if (row.title !== item.title || row.quantity !== item.quantity || row.url !== item.url
         || row.priceMinor !== item.priceMinor || row.description !== item.description) await this.items.update(item);
+      if (row.position !== index) await this.items.savePosition(item.id.value, index);
       if (row.seq !== item.seq) await this.items.saveState(item);
     }
     // Before holds are written.
