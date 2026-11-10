@@ -9,9 +9,11 @@ describe('editListDetailsRequestSchema', () => {
 });
 
 describe('moveItemRequestSchema', () => {
-  it('accepts each move target and refuses any other', () => {
-    for (const to of ['top', 'up', 'down', 'bottom']) expect(moveItemRequestSchema.safeParse({ to }).success).toBe(true);
-    expect(moveItemRequestSchema.safeParse({ to: 'first' }).success).toBe(false);
-    expect(moveItemRequestSchema.safeParse({}).success).toBe(false);
+  it.each(['top', 'up', 'down', 'bottom'])('accepts %s', (to) => {
+    expect(moveItemRequestSchema.safeParse({ to }).success).toBe(true);
+  });
+
+  it.each([['missing', {}], ['"first"', { to: 'first' }]])('refuses a body whose to is %s', (_name, body) => {
+    expect(moveItemRequestSchema.safeParse(body).success).toBe(false);
   });
 });
