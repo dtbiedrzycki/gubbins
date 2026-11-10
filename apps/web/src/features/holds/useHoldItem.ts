@@ -7,7 +7,7 @@ export function useHoldItem(slug: string, itemId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: HoldItemRequest) => api.holdItem(slug, itemId, input),
-    // The server confirmed the hold, so "Your holds" can show it even if the
+    // The server confirmed the hold, so "Your contributions" can show it even if the
     // refetch below fails. The item's status is left to the server: with
     // more than one unit, it may still be available.
     onSuccess: (hold) => queryClient.setQueryData<ListViewResponse>(listViewKey(slug), (view) =>

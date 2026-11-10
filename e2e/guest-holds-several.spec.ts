@@ -27,7 +27,7 @@ async function guestKeyedIn(context: BrowserContext, { guestLink, guestKey }: { 
   await guest.goto(guestLink);
   await guest.getByLabel('Guest key').fill(guestKey);
   await guest.getByRole('button', { name: 'View list' }).click();
-  await expect(guest.getByRole('heading', { name: 'Your holds' })).toBeVisible();
+  await expect(guest.getByRole('heading', { level: 1, name: 'Baby Shower' })).toBeVisible();
   return guest;
 }
 
@@ -40,26 +40,44 @@ async function expectNoSeriousAxeViolations(page: Page): Promise<void> {
 test('a guest holds 2 of 5, buys 1, and another guest sees "Wanted: 4 more"', async ({ page, context, browser, baseURL }) => {
   const list = await listOfFiveOnesies(page);
   const guest = await guestKeyedIn(context, list);
-  const yourHolds = guest.getByRole('region', { name: 'Your holds' });
+  const yourContributions = guest.getByRole('dialog', { name: 'Your contributions' });
 
   await guest.getByRole('button', { name: 'Hold this item' }).click();
   await guest.getByRole('button', { name: 'One more' }).click();
   await guest.getByLabel('Gifter name(s)').fill('Amara');
   await guest.getByRole('button', { name: 'Yes, hold 2' }).click();
   await expect(guest.getByText('Wanted: 3 more')).toBeVisible();
-  await expect(yourHolds.getByText('× 2')).toBeVisible();
+  await guest.getByRole('button', { name: 'Your contributions · 1' }).click();
+  await expect(yourContributions.getByText('× 2')).toBeVisible();
 
-  await yourHolds.getByRole('button', { name: 'Mark as purchased' }).click();
+  // Escape closes only the purchase sheet opened from inside this one.
+  await yourContributions.getByRole('button', { name: 'Mark as purchased' }).click();
   const sheet = guest.getByRole('dialog', { name: 'How many did you buy?' });
+  await expect(sheet).toBeVisible();
+  await guest.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+  await expect(yourContributions).toBeVisible();
+
+  await yourContributions.getByRole('button', { name: 'Mark as purchased' }).click();
   await sheet.getByRole('button', { name: 'One fewer' }).click();
   await expect(sheet.getByText('The other 1 will be released, so another guest can hold it.')).toBeVisible();
   await expectNoSeriousAxeViolations(guest);
   await sheet.getByRole('button', { name: 'Mark 1 as purchased' }).click();
 
   await expect(sheet).toBeHidden();
-  await expect(yourHolds.getByRole('status')).toHaveText('Baby onesies: 1 marked as purchased. Thank you!');
-  await expect(yourHolds.getByText('Marked as purchased.', { exact: true })).toBeVisible();
-  await expect(yourHolds.getByText('× 2')).toHaveCount(0);
+  await expect(yourContributions.getByRole('status')).toHaveText('Baby onesies: 1 marked as purchased. Thank you!');
+  await expect(yourContributions.getByText('Marked as purchased.', { exact: true })).toBeVisible();
+  await expect(yourContributions.getByText('× 2')).toHaveCount(0);
+
+  // A tap on the backdrop closes the sheet; the button then never covers the last gift.
+  await guest.mouse.click(5, 5);
+  await expect(yourContributions).toBeHidden();
+  // A phone-sized window, so the list is taller than the screen.
+  await guest.setViewportSize({ width: 375, height: 400 });
+  await guest.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const button = await guest.getByRole('button', { name: /^Your contributions · / }).boundingBox();
+  const lastGift = await guest.getByRole('list').last().getByRole('listitem').last().boundingBox();
+  expect(lastGift!.y + lastGift!.height).toBeLessThanOrEqual(button!.y);
 
   const otherContext = await browser.newContext({ baseURL });
   try {
