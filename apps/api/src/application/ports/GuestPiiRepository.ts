@@ -7,5 +7,7 @@ import type { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
  */
 export interface GuestPiiRepository {
   insert(id: string, details: GuestDetails): Promise<void>;
+  /** Replaces name and message in place; throws when no row has the id. */
+  update(id: string, details: GuestDetails): Promise<void>;
   findById(id: string): Promise<GuestDetails | null>;
 }

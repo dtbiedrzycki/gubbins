@@ -27,6 +27,17 @@ export function describeGuestPiiRepositoryContract(adapter: string, factory: Gue
       expect(await fx.guestPii.findById('missing')).toBeNull();
     });
 
+    it('replaces the name and message of an existing row', async () => {
+      await fx.guestPii.insert('pii-1', GuestDetails.from({ name: 'Ada', message: 'Hello' }));
+      const updated = GuestDetails.from({ name: 'Grace' });
+      await fx.guestPii.update('pii-1', updated);
+      expect(await fx.guestPii.findById('pii-1')).toEqual(updated);
+    });
+
+    it('refuses to update an unknown id', async () => {
+      await expect(fx.guestPii.update('missing', GuestDetails.from({ name: 'Ada' }))).rejects.toThrow();
+    });
+
     it('refuses a second insert with the same id', async () => {
       await fx.guestPii.insert('pii-1', GuestDetails.from({ name: 'Ada' }));
       await expect(fx.guestPii.insert('pii-1', GuestDetails.from({ name: 'Other' }))).rejects.toThrow();
