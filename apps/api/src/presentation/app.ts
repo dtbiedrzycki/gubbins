@@ -49,7 +49,9 @@ export function buildApp(deps: AppDependencies, options: BuildAppOptions): Fasti
   // Backstops: an owner's text must never load an image from another host (it would leak guest
   // IPs), a proxy such as a Cloudflare tunnel must not inject its own scripts, and an outgoing link
   // must not reveal the list's secret address. Deliberately not the full strict CSP the privacy
-  // spec calls for: styles and connections are left open.
+  // spec calls for: styles stay open because inline style attributes (the pledge bar's width) would
+  // need 'unsafe-inline', and connections stay open because with script-src 'self' no foreign code
+  // runs to open one.
   app.addHook('onSend', async (_request, reply) => {
     reply.header('Content-Security-Policy', "img-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");
     reply.header('Referrer-Policy', 'no-referrer');

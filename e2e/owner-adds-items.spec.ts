@@ -62,4 +62,13 @@ test('the owner adds a single item and a group gift, and a guest sees both', asy
     document.body.append(image);
   });
   await expect.poll(() => policyViolations).toEqual([expect.stringContaining("'https://images.example/tracker.png'")]);
+  // A proxy such as a Cloudflare tunnel must not be able to inject its own script.
+  await guest.evaluate(() => {
+    const script = document.createElement('script');
+    script.src = 'https://scripts.example/beacon.js';
+    document.body.append(script);
+  });
+  await expect
+    .poll(() => policyViolations)
+    .toEqual([expect.stringContaining("'https://images.example/tracker.png'"), expect.stringContaining("'https://scripts.example/beacon.js'")]);
 });
