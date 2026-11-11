@@ -70,7 +70,19 @@ describe('ManagePage', () => {
     );
     await enterToken();
 
-    expect(await screen.findByText('Enter your owner token again.')).toBeInTheDocument();
+    expect(await screen.findByText('Your owner session has ended. Enter your owner token to keep managing your list.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Owner token')).toBeInTheDocument();
+  });
+
+  it("says the gift may be gone when a gift's own action answers 404", async () => {
+    serveView(() => ['Rings']);
+    server.use(http.delete('/api/lists/:slug/items/:itemId', () => HttpResponse.json({ message: 'Not found' }, { status: 404 })));
+    const user = await enterToken();
+
+    await user.click(await screen.findByRole('button', { name: 'Delete Rings' }));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(await screen.findByText('That gift may have been deleted on another device, or your owner session has ended. Enter your owner token to keep managing your list.')).toBeInTheDocument();
     expect(screen.getByLabelText('Owner token')).toBeInTheDocument();
   });
 });
