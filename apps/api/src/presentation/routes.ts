@@ -166,7 +166,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       operationId: 'getListView',
       params: slugParams,
       response: {
-        200: json("The list, its item, this session's holds, and what this server does for guests.", listViewResponseSchema),
+        200: json("The list, its items, this session's holds and pledges, and what this server does for guests.", listViewResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
         404: json('No such list, or no valid session for it. The two are deliberately indistinguishable.', errorResponseSchema),
       },

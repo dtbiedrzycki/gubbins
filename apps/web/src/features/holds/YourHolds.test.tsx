@@ -23,7 +23,7 @@ const list = (myHolds: HoldView[]): ListViewResponse => ({
   title: 'Baby Shower', description: null,
   items: [aListItem({ status: myHolds.length ? 'held' : 'available', availableUnits: myHolds.length ? 0 : 1 })],
   payment: { venmoHandle: null, zelleHandle: null },
-  myHolds, capabilities: { holdDurationDays: 3 },
+  myHolds, myContributions: [], capabilities: { holdDurationDays: 3 },
 });
 
 /** Serves each list view in turn on successive GETs, then keeps serving the last one. */

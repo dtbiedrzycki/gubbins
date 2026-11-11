@@ -237,6 +237,7 @@ describe('GET /api/lists/:slug', () => {
       items: [{ id: list.itemId, title: 'Stroller', type: 'single', status: 'available', availableUnits: 1, url: null, description: null, priceMinor: null, pledgedMinor: null }],
       payment: { venmoHandle: null, zelleHandle: null },
       myHolds: [],
+      myContributions: [],
       capabilities: { holdDurationDays: 3 },
     });
   });

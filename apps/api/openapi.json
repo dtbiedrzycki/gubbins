@@ -359,7 +359,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The list, its item, this session's holds, and what this server does for guests.",
+            "description": "The list, its items, this session's holds and pledges, and what this server does for guests.",
             "content": {
               "application/json": {
                 "schema": {
@@ -534,6 +534,36 @@
                         "additionalProperties": false
                       }
                     },
+                    "myContributions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "contributionId": {
+                            "type": "string"
+                          },
+                          "itemId": {
+                            "type": "string"
+                          },
+                          "amountMinor": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "exclusiveMinimum": true,
+                            "maximum": 9007199254740991
+                          },
+                          "pledgedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "contributionId",
+                          "itemId",
+                          "amountMinor",
+                          "pledgedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "capabilities": {
                       "type": "object",
                       "properties": {
@@ -556,6 +586,7 @@
                     "items",
                     "payment",
                     "myHolds",
+                    "myContributions",
                     "capabilities"
                   ],
                   "additionalProperties": false

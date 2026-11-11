@@ -36,15 +36,15 @@ describe('listViewResponseSchema', () => {
   const listItem = { id: 'i', title: 'x', type: 'single', status: 'held', availableUnits: 0, url: null, description: null, priceMinor: null, pledgedMinor: null };
   const list = {
     title: 't', description: null, items: [listItem], payment: { venmoHandle: null, zelleHandle: 'a@b.co' },
-    myHolds: [view], capabilities: { holdDurationDays: 3 },
+    myHolds: [view], myContributions: [], capabilities: { holdDurationDays: 3 },
   };
 
   it('accepts a list with its holds and capabilities', () => {
     expect(listViewResponseSchema.safeParse(list).success).toBe(true);
   });
 
-  it('requires myHolds and capabilities', () => {
-    expect(listViewResponseSchema.safeParse({ title: 't', items: [], payment: list.payment }).success).toBe(false);
+  it.each(['myHolds', 'myContributions', 'capabilities'])('rejects a list view without %s', (key) => {
+    expect(listViewResponseSchema.safeParse({ ...list, [key]: undefined }).success).toBe(false);
   });
 
   it('requires items and payment', () => {

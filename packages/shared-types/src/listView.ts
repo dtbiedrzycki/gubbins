@@ -17,6 +17,17 @@ export const listItemSchema = z.object({
   pledgedMinor: z.number().int().nonnegative().nullable(),
 });
 
+/**
+ * One of this guest's pledges toward a group gift. Names, messages and payment details are
+ * deliberately left out: the guest sees amounts and times, nothing about anyone else.
+ */
+export const contributionViewSchema = z.object({
+  contributionId: z.string(),
+  itemId: z.string(),
+  amountMinor: z.number().int().positive(),
+  pledgedAt: z.string(),
+});
+
 export const listViewResponseSchema = z.object({
   title: z.string(),
   description: z.string().nullable(),
@@ -25,6 +36,8 @@ export const listViewResponseSchema = z.object({
   payment: z.object({ venmoHandle: z.string().nullable(), zelleHandle: z.string().nullable() }),
   /** This session's holds on the list, oldest expiry first. Released holds are left out. */
   myHolds: z.array(holdViewSchema),
+  /** This session's pledges on the list, newest first. */
+  myContributions: z.array(contributionViewSchema),
   /** What this server does for guests (ops: capability flags). */
   capabilities: z.object({ holdDurationDays: z.number().int().positive() }),
 });
