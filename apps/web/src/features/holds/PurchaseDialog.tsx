@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { HoldView } from '@gubbins/shared-types';
 import { LimitedTextarea } from '../../lib/LimitedField';
 import { Stepper } from '../../lib/Stepper';
@@ -39,6 +39,12 @@ export function PurchaseDialog({ itemTitle, status, units, purchasableUnits, isP
   const recapped = error instanceof ApiError && error.code === 'item_unavailable' && purchasableUnits >= 1;
 
   const { ref, onCancel, onClose: handleClose } = useModalDialog({ isPending, onClose });
+  // The confirm button is disabled in flight, so the browser drops focus from it.
+  // When a refusal keeps the sheet open, hand focus back so the guest can try again.
+  const confirmButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (error && !isPending) confirmButton.current?.focus();
+  }, [error, isPending]);
 
   return (
     <dialog ref={ref} onCancel={onCancel} onClose={handleClose} aria-labelledby="purchase-units-label" className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-[22px] bg-paper p-6 text-ink backdrop:bg-ink/50">
@@ -62,7 +68,7 @@ export function PurchaseDialog({ itemTitle, status, units, purchasableUnits, isP
       <LimitedTextarea id="purchase-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} className="field mb-4" />
       <p role="alert" className="mb-4 text-error empty:mb-0">{recapped ? capNote : error?.message}</p>
       <div className="flex gap-2">
-        <button type="button" onClick={() => onConfirm(count, message)} disabled={isPending} className="btn-primary">
+        <button ref={confirmButton} type="button" onClick={() => onConfirm(count, message)} disabled={isPending} className="btn-primary">
           {units > 1 ? `Mark ${count} as purchased` : 'Mark as purchased'}
         </button>
         <button type="button" onClick={onClose} disabled={isPending} className="btn-secondary">
