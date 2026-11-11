@@ -511,6 +511,53 @@ describe('YourContributions', () => {
     expect(within(region).getByRole('heading', { name: 'Your contributions' })).toHaveFocus();
   });
 
+  it('keeps the purchase sheet open after a network failure, so a second tap can buy it', async () => {
+    listViews(list([expiredBuyable]), list([expiredBuyable]), list([purchased]));
+    let attempts = 0;
+    server.use(http.post('/api/lists/:slug/holds/:holdId/purchase', () => (++attempts === 1 ? HttpResponse.error() : HttpResponse.json(purchased))));
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
+    const sheet = within(region).getByRole('dialog');
+    await user.click(within(sheet).getByRole('button', { name: 'Mark as purchased' }));
+    await waitFor(() => expect(within(sheet).getByRole('alert')).toHaveTextContent("Couldn't reach the server. Check your connection and try again."));
+    await user.click(within(sheet).getByRole('button', { name: 'Mark as purchased' }));
+
+    await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Stroller is marked as purchased. Thank you!'));
+  });
+
+  it('thanks the guest when the refetch after a network failure shows the purchase went through', async () => {
+    // The server bought it, but its answer never arrived.
+    listViews(list([expiredBuyable]), list([purchased]));
+    server.use(http.post('/api/lists/:slug/holds/:holdId/purchase', () => HttpResponse.error()));
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
+    await user.click(within(within(region).getByRole('dialog')).getByRole('button', { name: 'Mark as purchased' }));
+
+    await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Stroller is marked as purchased. Thank you!'));
+    expect(within(region).getByRole('alert')).toBeEmptyDOMElement();
+  });
+
+  it('says to reload, not repeat a network failure, when a later refetch takes away the purchase', async () => {
+    const lapsed: HoldView = { ...expiredBuyable, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false } };
+    // 1: the page loads; 2: the failed request's own refetch still offers the purchase;
+    // 3: a later background refetch doesn't.
+    listViews(list([expiredBuyable]), list([expiredBuyable]), list([lapsed]));
+    server.use(http.post('/api/lists/:slug/holds/:holdId/purchase', () => HttpResponse.error()));
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
+    await user.click(within(within(region).getByRole('dialog')).getByRole('button', { name: 'Mark as purchased' }));
+    await waitFor(() => expect(within(within(region).getByRole('dialog')).getByRole('alert')).toHaveTextContent("Couldn't reach the server. Check your connection and try again."));
+    await client.invalidateQueries({ queryKey: listViewKey('abc123') });
+
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent('You can no longer mark Stroller as purchased. Reload to see if it is still available.'));
+  });
+
   it('shows no button when the guest has neither holds nor pledges', async () => {
     listViews(list([]));
     renderYourContributions();
