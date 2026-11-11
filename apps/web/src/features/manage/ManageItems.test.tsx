@@ -213,7 +213,7 @@ describe('ManageItems', () => {
     expect(sent).toBe(1);
   });
 
-  it("shows the move's friendly error in the gift's row, with focus on it, and announces nothing", async () => {
+  it("shows why a move failed in the gift's row, with focus on it, and doesn't announce a move", async () => {
     const user = userEvent.setup();
     const { onUnauthorized } = renderLiveItems(abc());
     server.use(nextMoveFails());
