@@ -16,6 +16,9 @@ export class ApiError extends Error {
   }
 }
 
+/** A request that never got an answer: the server may or may not have handled it. */
+export const isNetworkFailure = (error: Error): boolean => error instanceof ApiError && error.status === 0;
+
 // Paths, methods, params and bodies are typed by the OpenAPI contract
 // (apps/api/openapi.json → schema.gen.ts, ADR-0077). The server validates
 // every response against its schema before sending, so the client does not

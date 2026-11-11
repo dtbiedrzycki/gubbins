@@ -4,7 +4,7 @@ import type { HoldView } from '@gubbins/shared-types';
 import { useHoldAction, type HoldAction } from './useHoldAction';
 import { formatExpiry } from './formatExpiry';
 import { PurchaseDialog } from './PurchaseDialog';
-import { ApiError } from '../../api/client';
+import { ApiError, isNetworkFailure } from '../../api/client';
 
 export interface HoldActionsProps {
   slug: string;
@@ -23,9 +23,6 @@ export interface HoldOutcome {
 
 const primary = 'btn-primary';
 const secondary = 'btn-secondary';
-
-// The client reports a request that never reached the server as status 0.
-const isNetworkFailure = (error: Error) => error instanceof ApiError && error.status === 0;
 
 // The API answers a generic 404 for an unknown hold, another session's hold
 // or a lapsed session alike; a reload shows which (the key gate, or the list).
@@ -54,11 +51,13 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
   });
   const [purchaseSheetOpen, setPurchaseSheetOpen] = useState(false);
   const purchaseButton = useRef<HTMLButtonElement>(null);
+  const purchasedMessage = (purchasedUnits: number | null) =>
+    hold.units > 1 ? `${itemTitle}: ${purchasedUnits} marked as purchased. Thank you!` : `${itemTitle} is marked as purchased. Thank you!`;
   const purchase = useHoldAction(slug, 'purchase', {
     onSuccess: (view) => {
       // The modal makes the page inert, so it must be gone before the outcome moves focus.
       flushSync(() => setPurchaseSheetOpen(false));
-      onOutcome({ action: 'purchase', ok: true, message: hold.units > 1 ? `${itemTitle}: ${view.purchasedUnits} marked as purchased. Thank you!` : `${itemTitle} is marked as purchased. Thank you!` });
+      onOutcome({ action: 'purchase', ok: true, message: purchasedMessage(view.purchasedUnits) });
     },
     // The sheet keeps a refusal it can retry: a network failure, or fewer units
     // free (re-capped by the refetch). Any other can come with a refetch that
@@ -91,21 +90,24 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
   // refusal, or in the background (say, on returning to the tab). Close it for
   // good, so it cannot reopen on its own, and say why once the page is no longer
   // inert. An object, so the same message twice is still reported twice.
-  const [lostPurchase, setLostPurchase] = useState<{ message: string } | null>(null);
+  const [lostPurchase, setLostPurchase] = useState<{ ok: boolean; message: string } | null>(null);
   if (purchaseSheetOpen && !hold.actions.purchase && !purchase.isPending) {
     setPurchaseSheetOpen(false);
-    setLostPurchase({
+    // A request whose answer was lost may still have gone through.
+    if (hold.status === 'purchased') setLostPurchase({ ok: true, message: purchasedMessage(hold.purchasedUnits) });
+    else setLostPurchase({
+      ok: false,
       // A kept network failure says nothing about why the purchase went away.
       message: purchase.error && !isNetworkFailure(purchase.error)
         ? failureMessage(purchase.error)
         : `You can no longer mark ${itemTitle} as purchased. Reload to see if ${hold.units > 1 ? 'they are' : 'it is'} still available.`,
     });
   }
-  const reportLostPurchase = useEffectEvent((message: string) => {
-    onOutcome({ action: 'purchase', ok: false, message });
+  const reportLostPurchase = useEffectEvent((outcome: { ok: boolean; message: string }) => {
+    onOutcome({ action: 'purchase', ...outcome });
   });
   useEffect(() => {
-    if (lostPurchase) reportLostPurchase(lostPurchase.message);
+    if (lostPurchase) reportLostPurchase(lostPurchase);
   }, [lostPurchase]);
 
   const mutations = [extend, release, purchase];
