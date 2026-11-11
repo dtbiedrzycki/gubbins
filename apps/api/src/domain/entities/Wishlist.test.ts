@@ -451,3 +451,21 @@ describe('Wishlist.holdsForSession', () => {
     expect(wishlist.holdsForSession(SESSION)).toEqual(mine);
   });
 });
+
+describe('Wishlist.contributionsForSession', () => {
+  it("returns only that session's pledges, across items", () => {
+    const pledge = (id: string, itemId: string, sessionHash: string) => Contribution.reconstitute({
+      id, itemId, amountMinor: 2_500, sessionHash, idempotencyKey: `k-${id}`, piiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
+    });
+    const onMixer = pledge('77777777-7777-7777-8777-777777777771', ITEM_ID, SESSION);
+    const onPram = pledge('77777777-7777-7777-8777-777777777772', OTHER_ITEM_ID, SESSION);
+    const theirs = pledge('77777777-7777-7777-8777-777777777773', ITEM_ID, OTHER_SESSION);
+    const group = (id: string, title: string, seq: number, contributions: Contribution[]) =>
+      Item.reconstitute({ id, wishlistId: WISHLIST_ID, type: 'group', title, quantity: 1, priceMinor: 10_000, seq, asOf: T0, contributions });
+    const wishlist = Wishlist.reconstitute({
+      ...validProps, keyGen: 1,
+      items: [group(ITEM_ID, 'Mixer', 1, [onMixer, theirs]), group(OTHER_ITEM_ID, 'Pram', 2, [onPram])],
+    });
+    expect(wishlist.contributionsForSession(SESSION)).toEqual([onMixer, onPram]);
+  });
+});

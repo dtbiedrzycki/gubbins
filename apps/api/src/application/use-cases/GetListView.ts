@@ -17,6 +17,8 @@ export interface ListView {
   payment: { venmoHandle: string | null; zelleHandle: string | null };
   /** This session's holds on the list, oldest expiry first. */
   myHolds: HoldView[];
+  /** This session's pledges on the list's group gifts, newest first. */
+  myContributions: { contributionId: string; itemId: string; amountMinor: number; pledgedAt: string }[];
   capabilities: { holdDurationDays: number };
 }
 
@@ -38,6 +40,7 @@ export class GetListView {
       if (!wishlist) throw new WishlistNotFoundError(input.wishlistId);
 
       const mine = access.guestSession ? wishlist.holdsForSession(access.guestSession.sessionHash) : [];
+      const pledges = access.guestSession ? wishlist.contributionsForSession(access.guestSession.sessionHash) : [];
 
       return {
         title: wishlist.title,
@@ -54,6 +57,9 @@ export class GetListView {
           .filter((hold) => wishlist.holdStatus(hold) !== 'released')
           .sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime())
           .map((hold) => toHoldView(wishlist, hold)),
+        myContributions: pledges
+          .sort((a, b) => b.pledgedAt.getTime() - a.pledgedAt.getTime())
+          .map((c) => ({ contributionId: c.id.value, itemId: c.itemId.value, amountMinor: c.amount.amountMinor, pledgedAt: c.pledgedAt.toISOString() })),
         capabilities: { holdDurationDays: this.policy.durationDays },
       };
     });
