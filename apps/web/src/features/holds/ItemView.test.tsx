@@ -17,8 +17,8 @@ const payment: ListViewResponse['payment'] = { venmoHandle: 'my-venmo', zelleHan
 type Item = NonNullable<ListViewResponse['items']>[number];
 const single = aListItem;
 
-function renderItem(over: Partial<Item> = {}): void {
-  const ui = <ItemView slug="abc123" holdDurationDays={3} item={single(over)} payment={payment} />;
+function renderItem(over: Partial<Item> = {}, mine: { heldUnits?: number; chippedInMinor?: number } = {}): void {
+  const ui = <ItemView slug="abc123" holdDurationDays={3} item={single(over)} payment={payment} heldUnits={mine.heldUnits ?? 0} chippedInMinor={mine.chippedInMinor ?? 0} />;
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}>{ui}</QueryClientProvider>);
 }
 
@@ -96,6 +96,35 @@ describe('ItemView', () => {
     expect(bodies[0].units).toBe(2);
   });
 
+  it("moves focus to the gift's heading once a hold succeeds", async () => {
+    holdEndpoint(201);
+    const user = userEvent.setup();
+    renderItem();
+
+    await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+    await vi.waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Stroller' })).toHaveFocus());
+  });
+
+  it("moves focus to the gift's heading when the guest cancels after the item was held by someone else", async () => {
+    const client = new QueryClient();
+    const view = (over: Partial<Item>) => (
+      <QueryClientProvider client={client}>
+        <ItemView slug="abc123" holdDurationDays={3} item={single(over)} payment={payment} heldUnits={0} chippedInMinor={0} />
+      </QueryClientProvider>
+    );
+    const user = userEvent.setup();
+    const { rerender } = render(view({}));
+    await user.click(screen.getByRole('button', { name: /^Hold this item/ }));
+
+    rerender(view({ status: 'held', availableUnits: 0 }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Stroller' })).toHaveFocus();
+  });
+
   it('returns focus to the Hold button when the dialog is cancelled', async () => {
     const user = userEvent.setup();
     renderItem();
@@ -153,7 +182,7 @@ describe('ItemView', () => {
     const client = new QueryClient();
     const view = (status: Item['status']) => (
       <QueryClientProvider client={client}>
-        <ItemView slug="abc123" holdDurationDays={3} item={single({ status })} payment={payment} />
+        <ItemView slug="abc123" holdDurationDays={3} item={single({ status })} payment={payment} heldUnits={0} chippedInMinor={0} />
       </QueryClientProvider>
     );
     const { rerender } = render(view('available'));
@@ -217,6 +246,42 @@ describe('ItemView', () => {
   ] as const)('hides how many are wanted when %s', (_, over) => {
     renderItem(over);
     expect(screen.queryByText(/^Wanted:/)).not.toBeInTheDocument();
+  });
+
+  it('announces "You\'re holding 2" through a live region already on the card', () => {
+    const client = new QueryClient();
+    const view = (heldUnits: number) => (
+      <QueryClientProvider client={client}>
+        <ItemView slug="abc123" holdDurationDays={3} item={single({ availableUnits: 5 })} payment={payment} heldUnits={heldUnits} chippedInMinor={0} />
+      </QueryClientProvider>
+    );
+    const { rerender } = render(view(0));
+    // Screen readers miss a live region that arrives already holding its text.
+    const regions = [...document.querySelectorAll('[aria-live="polite"]')];
+
+    rerender(view(2));
+
+    expect(regions).toContain(screen.getByText("You're holding 2"));
+  });
+
+  it('shows no holding line when the guest holds none', () => {
+    renderItem({ availableUnits: 5 });
+    expect(screen.queryByText(/^You're holding/)).not.toBeInTheDocument();
+  });
+
+  it('says "You chipped in $40.00" on a group gift the guest pledged to', () => {
+    renderItem({ type: 'group', priceMinor: 45000, pledgedMinor: 10000, availableUnits: 0 }, { chippedInMinor: 4000 });
+    expect(screen.getByText('You chipped in $40.00')).toBeInTheDocument();
+  });
+
+  it('shows no chip-in line when the guest pledged nothing', () => {
+    renderItem({ type: 'group', priceMinor: 45000, pledgedMinor: 10000, availableUnits: 0 });
+    expect(screen.queryByText(/^You chipped in/)).not.toBeInTheDocument();
+  });
+
+  it('still says "You chipped in $40.00" once the gift is fully funded', () => {
+    renderItem({ type: 'group', priceMinor: 45000, pledgedMinor: 45000, status: 'purchased', availableUnits: 0 }, { chippedInMinor: 4000 });
+    expect(screen.getByText('You chipped in $40.00')).toBeInTheDocument();
   });
 
   it('gives a group gift its price and no Hold button or units', () => {

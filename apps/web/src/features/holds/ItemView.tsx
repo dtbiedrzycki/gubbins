@@ -15,11 +15,13 @@ export interface ItemViewProps {
   item: NonNullable<ListViewResponse['items']>[number];
   holdDurationDays: number;
   payment: ListViewResponse['payment'];
-  /** Moves focus once the dialog has gone and the Hold button has too: the hold landed, or someone else's did. */
-  focusElsewhere?: () => void;
+  /** Units in this guest's active holds on the item. */
+  heldUnits: number;
+  /** What this guest has pledged to the item, in minor units. */
+  chippedInMinor: number;
 }
 
-export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere }: ItemViewProps) {
+export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chippedInMinor }: ItemViewProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [chipInOpen, setChipInOpen] = useState(false);
   const [thanks, setThanks] = useState('');
@@ -37,6 +39,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
   }
   const { mutate, isPending, error, reset } = useHoldItem(slug, item.id);
   const holdButton = useRef<HTMLButtonElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
 
   // Unmounting the dialog skips the browser's own focus return, and the page
   // is inert until the modal has gone, so move focus after the commit.
@@ -47,8 +50,9 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
     const button = closedBy.current === 'cancel' ? holdButton.current : null;
     closedBy.current = null;
     if (button) button.focus();
-    else focusElsewhere?.();
-  }, [dialogOpen, focusElsewhere]);
+    // The Hold button has gone, so the card's own heading is the nearest place left.
+    else heading.current?.focus();
+  }, [dialogOpen]);
 
   function closeDialog() {
     closedBy.current = 'cancel';
@@ -70,7 +74,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
   // the moment the guest releases or buys from "Your holds".
   return (
     <div className="space-y-4">
-      <h2 className="font-display text-[1.3rem] leading-tight text-balance break-words">{item.title}</h2>
+      <h2 ref={heading} tabIndex={-1} className="font-display text-[1.3rem] leading-tight text-balance break-words">{item.title}</h2>
       {item.priceMinor !== null && <p className="font-bold tabular-nums">{formatMoney(item.priceMinor)}</p>}
       {item.description && <ClampedText id={`item-description-${item.id}`}><Markdown text={item.description} /></ClampedText>}
       {item.url && <p><a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2.5 text-moss underline">View on {storeHost(item.url)} <span className="sr-only">for {item.title} (opens in a new tab)</span></a></p>}
@@ -81,6 +85,8 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
         {item.status !== 'available' && <Seal tone={item.status === 'purchased' ? 'gold-wax' : 'red-wax'} />}
         <ItemAnnouncement message={thanks || (item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is held.` : `${item.title} has been purchased.`)} />
       </div>
+      {/* Mounted on every single gift, so a hold that leaves units free is still announced. */}
+      {item.type === 'single' && <p aria-live="polite" className="empty:mb-0">{heldUnits > 0 ? `You're holding ${heldUnits}` : ''}</p>}
       {group && (
         <>
           <progress max={group.price} value={Math.min(group.pledged, group.price)} aria-label={progress!} className="sr-only" />
@@ -91,6 +97,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
               <div data-bar-fill className="h-full bg-gold bg-[radial-gradient(circle_at_30%_50%,#F3D27A_0_3px,transparent_3.5px)] bg-[length:10px_12px]" style={{ width: `${Math.min(pledgedPercent, 100)}%` }} />
             </div>
           </div>
+          {chippedInMinor > 0 && <p>You chipped in {formatMoney(chippedInMinor)}</p>}
           <button ref={chipInButton} type="button" onClick={() => { setThanks(''); setChipInOpen(true); }} className="btn-primary">
             Chip in
           </button>

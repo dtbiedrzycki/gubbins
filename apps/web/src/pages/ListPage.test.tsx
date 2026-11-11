@@ -87,7 +87,7 @@ describe('ListPage', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Cot' })).toBeInTheDocument();
   });
 
-  it('keeps a gift held from the Available filter on screen and moves focus to "Your holds"', async () => {
+  it('keeps a gift held from the Available filter on screen', async () => {
     let held = false;
     server.use(
       http.get('/api/lists/abc123', () => HttpResponse.json(view(held))),
@@ -102,7 +102,51 @@ describe('ListPage', () => {
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     expect(await screen.findByText('Stroller is held.')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Your holds' })).toHaveFocus();
+  });
+
+  it('counts units in active holds only: 2 + 1 active and 1 expired read "You\'re holding 3"', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({
+      ...view(true),
+      myHolds: [
+        { ...hold, holdId: 'h1', units: 2 },
+        { ...hold, holdId: 'h2', units: 1 },
+        { ...hold, holdId: 'h3', units: 1, status: 'expired' },
+      ],
+    })));
+    renderListPage();
+
+    expect(await screen.findByText("You're holding 3")).toBeInTheDocument();
+  });
+
+  it('sums two pledges of $40.00 and $15.00 to "You chipped in $55.00"', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({
+      ...view(false),
+      items: [aListItem({ type: 'group', priceMinor: 45000, pledgedMinor: 5500, availableUnits: 0 })],
+      myContributions: [
+        { contributionId: 'c1', itemId: 'item-1', amountMinor: 4000, pledgedAt: '2026-01-01T00:00:00.000Z' },
+        { contributionId: 'c2', itemId: 'item-1', amountMinor: 1500, pledgedAt: '2026-01-02T00:00:00.000Z' },
+      ],
+    })));
+    renderListPage();
+
+    expect(await screen.findByText('You chipped in $55.00')).toBeInTheDocument();
+  });
+
+  it('shows each gift only its own holds and pledges', async () => {
+    const group = (id: string, title: string) => aListItem({ id, title, type: 'group', priceMinor: 45000, pledgedMinor: 4000, availableUnits: 0 });
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({
+      ...view(false),
+      items: [aListItem(), aListItem({ id: 'item-2', title: 'Cot' }), group('item-3', 'Pram'), group('item-4', 'Crib')],
+      myHolds: [{ ...hold, units: 2 }],
+      myContributions: [{ contributionId: 'c1', itemId: 'item-3', amountMinor: 4000, pledgedAt: '2026-01-01T00:00:00.000Z' }],
+    })));
+    renderListPage();
+
+    const card = async (name: string) => within((await screen.findByRole('heading', { level: 2, name })).closest('li')!);
+    expect((await card('Stroller')).getByText("You're holding 2")).toBeInTheDocument();
+    expect((await card('Cot')).queryByText(/You're holding/)).not.toBeInTheDocument();
+    expect((await card('Pram')).getByText('You chipped in $40.00')).toBeInTheDocument();
+    expect((await card('Crib')).queryByText(/You chipped in/)).not.toBeInTheDocument();
   });
 
   it('says so when no gifts match the chosen filter', async () => {
@@ -232,8 +276,6 @@ describe('ListPage', () => {
     expect(await within(yourHolds).findByRole('button', { name: 'Extend hold' })).toBeInTheDocument();
     expect(screen.getByText('Stroller is held.')).toBeInTheDocument();
     expect(screen.queryByRole('dialog', { hidden: true })).not.toBeInTheDocument();
-    // The Hold button is gone; focus goes where the new hold's actions are.
-    expect(within(yourHolds).getByRole('heading', { name: 'Your holds' })).toHaveFocus();
   });
 
   it('keeps the list, with the new hold under "Your holds", when the refetch after a hold fails', async () => {
@@ -275,27 +317,6 @@ describe('ListPage', () => {
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     expect(await screen.findByLabelText('Guest key')).toBeInTheDocument();
-  });
-
-  it('moves focus to Your holds when the guest cancels after losing the item to someone else', async () => {
-    let gets = 0;
-    server.use(
-      http.get('/api/lists/abc123', () => {
-        const lost = view(true);
-        return HttpResponse.json(++gets === 1 ? view(false) : lost);
-      }),
-      http.post('/api/lists/abc123/items/item-1/hold', () => HttpResponse.json({ message: 'This item is no longer available.', code: 'item_unavailable' }, { status: 409 })),
-    );
-    const user = userEvent.setup();
-    renderListPage();
-
-    await user.click(await screen.findByRole('button', { name: /^Hold this item/ }));
-    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
-    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
-    await waitFor(() => expect(screen.getByText('Stroller is held.')).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: 'Cancel' }));
-
-    expect(screen.getByRole('heading', { name: 'Your holds' })).toHaveFocus();
   });
 
   it.each([401, 404])('asks for the guest key when the first load answers %i', async (status) => {
