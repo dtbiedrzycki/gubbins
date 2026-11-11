@@ -12,8 +12,8 @@ export function Footer() {
     <footer className="mt-auto border-t border-line px-4 pb-7 pt-5 text-center text-sm text-muted">
       Gubbins is free software under the <a className="inline-block py-3 text-moss underline" href={AGPL_URL}>AGPL-3.0</a>
       {' · '}<a className="inline-block py-3 text-moss underline" href={data?.sourceUrl ?? UPSTREAM_SOURCE_URL}>Source on GitHub</a>
-      {' · '}<Link className="inline-block py-3 text-moss underline" to="/privacy">Privacy</Link>
       {data && <>{' · '}<span>v{data.version}</span></>}
+      {' · '}<Link className="inline-block py-3 text-moss underline" to="/privacy">Privacy</Link>
     </footer>
   );
 }
