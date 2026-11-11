@@ -20,6 +20,7 @@ const noDependencies: AppDependencies = {
   addItem: unusedDependency('addItem'),
   editItem: unusedDependency('editItem'),
   deleteItem: unusedDependency('deleteItem'),
+  moveItem: unusedDependency('moveItem'),
   editListDetails: unusedDependency('editListDetails'),
   getManageView: unusedDependency('getManageView'),
   holdItem: unusedDependency('holdItem'),
