@@ -187,10 +187,10 @@ describe('ItemView', () => {
     expect(screen.getByText('$450.00').nextElementSibling).toContainElement(screen.getByRole('status'));
   });
 
-  it('links to the store in a new tab, naming the item', () => {
-    renderItem({ url: 'https://shop.example/stroller' });
-    const link = screen.getByRole('link', { name: 'View in store for Stroller (opens in a new tab)' });
-    expect(link).toHaveAttribute('href', 'https://shop.example/stroller');
+  it('links to the store in a new tab, naming the site and the item', () => {
+    renderItem({ url: 'https://example.com/stroller' });
+    const link = screen.getByRole('link', { name: 'View on example.com for Stroller (opens in a new tab)' });
+    expect(link).toHaveAttribute('href', 'https://example.com/stroller');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });

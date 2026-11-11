@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ListViewResponse } from '@gubbins/shared-types';
 import { useHoldItem } from './useHoldItem';
+import { storeHost } from '../../lib/storeHost';
 import { HoldDialog } from './HoldDialog';
 import { ItemAnnouncement } from './ItemAnnouncement';
 import { Seal } from './Seal';
@@ -72,7 +73,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
       <h2 className="font-display text-[1.3rem] leading-tight text-balance break-words">{item.title}</h2>
       {item.priceMinor !== null && <p className="font-bold tabular-nums">{formatMoney(item.priceMinor)}</p>}
       {item.description && <ClampedText id={`item-description-${item.id}`}><Markdown text={item.description} /></ClampedText>}
-      {item.url && <p><a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2.5 text-moss underline">View in store <span className="sr-only">for {item.title} (opens in a new tab)</span></a></p>}
+      {item.url && <p><a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2.5 text-moss underline">View on {storeHost(item.url)} <span className="sr-only">for {item.title} (opens in a new tab)</span></a></p>}
       {item.type === 'single' && item.status === 'available' && item.availableUnits > 1 && <p>Wanted: {item.availableUnits} more</p>}
       {/* Mounted while available too: screen readers miss a live region that arrives already filled.
           While it's empty, the row adds no gap of its own. */}
