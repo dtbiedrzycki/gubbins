@@ -13,6 +13,29 @@ function renderDialog(overrides: Partial<PurchaseDialogProps> = {}) {
 }
 
 describe('PurchaseDialog', () => {
+  it('hands focus back to the confirm button when a refusal lands and keeps the sheet open', () => {
+    const networkFailure = new ApiError(0, "Couldn't reach the server. Check your connection and try again.");
+    const { props, rerender } = renderDialog({ units: 1, purchasableUnits: 1, isPending: true });
+    // In a browser, the disabled button loses focus while the request is in flight.
+    screen.getByLabelText('Message to the owner (optional)').focus();
+
+    rerender(<PurchaseDialog {...props} isPending={false} error={networkFailure} />);
+
+    expect(screen.getByRole('button', { name: 'Mark as purchased' })).toHaveFocus();
+  });
+
+  it('leaves focus where the guest moves it after a refusal', async () => {
+    const user = userEvent.setup();
+    const networkFailure = new ApiError(0, "Couldn't reach the server. Check your connection and try again.");
+    renderDialog({ units: 1, purchasableUnits: 1, error: networkFailure });
+    const field = screen.getByLabelText('Message to the owner (optional)');
+
+    await user.click(field);
+    await user.type(field, 'Congrats');
+
+    expect(field).toHaveFocus();
+  });
+
   it('starts at 2 of 2 held and says "Mark 2 as purchased"', async () => {
     const user = userEvent.setup();
     const { props } = renderDialog();

@@ -33,7 +33,7 @@ async function expectNoSeriousAxeViolations(page: Page): Promise<void> {
   expect(scan.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
 }
 
-test('a guest holds the item, extends the hold once, and marks it purchased on a second try after a network failure', async ({ page, context }) => {
+test('a guest holds the item, extends the hold once, and marks it purchased', async ({ page, context }) => {
   const guest = await guestOnNewList(page, context);
   const yourContributions = guest.getByRole('dialog', { name: 'Your contributions' });
 
@@ -62,13 +62,7 @@ test('a guest holds the item, extends the hold once, and marks it purchased on a
   const sheet = guest.getByRole('dialog', { name: /as purchased\?$/ });
   await sheet.getByLabel('Message to the owner (optional)').fill('Congratulations!');
   await expectNoSeriousAxeViolations(guest);
-  // The first tap never reaches the server: the sheet keeps the error and hands focus back for a retry.
-  await guest.route('**/purchase', (route) => route.abort());
   await sheet.getByRole('button', { name: 'Mark as purchased' }).click();
-  await expect(sheet.getByRole('alert')).toHaveText("Couldn't reach the server. Check your connection and try again.");
-  await expect(sheet.getByRole('button', { name: 'Mark as purchased' })).toBeFocused();
-  await guest.unroute('**/purchase');
-  await guest.keyboard.press('Enter');
   await expect(yourContributions.getByRole('status')).toHaveText('Stroller is marked as purchased. Thank you!');
   await expect(yourContributions.getByText('Marked as purchased.', { exact: true })).toBeVisible();
   await yourContributions.getByRole('button', { name: 'Close' }).click();
