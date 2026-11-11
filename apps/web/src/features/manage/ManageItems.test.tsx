@@ -230,7 +230,7 @@ describe('ManageItems', () => {
     expect(onUnauthorized).not.toHaveBeenCalled();
   });
 
-  it('shows the delete failure in the gift\'s row, with focus on it, when the server errors', async () => {
+  it("shows why a delete failed in the gift's row, with focus on it, when the server errors", async () => {
     server.use(http.delete('/api/lists/:slug/items/:itemId', () => HttpResponse.json({ message: 'Boom' }, { status: 500 })));
     const user = userEvent.setup();
     renderItems([item({})]);

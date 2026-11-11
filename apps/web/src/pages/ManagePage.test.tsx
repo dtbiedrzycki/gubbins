@@ -63,7 +63,7 @@ describe('ManagePage', () => {
     expect(await screen.findByText('Cot')).toBeInTheDocument();
   });
 
-  it('returns to the token gate when the view answers 404', async () => {
+  it('says the owner session has ended when the view answers 404', async () => {
     server.use(
       mock('post', '/api/lists/{slug}/owner-session', 200, { ok: true }),
       mock('get', '/api/lists/{slug}/manage', 404, { message: 'Not found' }),
@@ -72,6 +72,19 @@ describe('ManagePage', () => {
 
     expect(await screen.findByText('Your owner session has ended. Enter your owner token to keep managing your list.')).toBeInTheDocument();
     expect(screen.getByLabelText('Owner token')).toBeInTheDocument();
+  });
+
+  it('says the owner session has ended when adding a gift answers 404', async () => {
+    serveView(() => ['Rings']);
+    server.use(http.post('/api/lists/:slug/items', () => HttpResponse.json({ message: 'Not found' }, { status: 404 })));
+    const user = await enterToken();
+    await screen.findByText('Rings');
+
+    await user.type(screen.getByLabelText('Title'), 'Cot');
+    await user.type(screen.getByLabelText('Price (USD)'), '100');
+    await user.click(screen.getByRole('button', { name: 'Add item' }));
+
+    expect(await screen.findByText('Your owner session has ended. Enter your owner token to keep managing your list.')).toBeInTheDocument();
   });
 
   it("says the gift may be gone when a gift's own action answers 404", async () => {
