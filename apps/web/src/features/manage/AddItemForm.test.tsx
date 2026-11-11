@@ -144,7 +144,7 @@ describe('AddItemForm', () => {
     expect(screen.getByRole('alert')).toBeEmptyDOMElement();
   });
 
-  it("shows the server's message and keeps what was typed when adding fails", async () => {
+  it("shows the server's reason for a refused add, with what was typed still in the form", async () => {
     const message = 'Add a Venmo or Zelle handle to this list before adding a group gift.';
     server.use(mock('post', '/api/lists/{slug}/items', 409, { code: 'no_payment_method', message }));
     const user = userEvent.setup();
