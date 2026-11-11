@@ -508,6 +508,7 @@ describe('YourContributions', () => {
 
     await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent(`You can no longer mark Stroller as purchased. Reload to see if ${pronoun} still available.`));
     expect(within(region).queryByRole('dialog')).not.toBeInTheDocument();
+    expect(within(region).getByRole('heading', { name: 'Your contributions' })).toHaveFocus();
   });
 
   it('shows no button when the guest has neither holds nor pledges', async () => {
