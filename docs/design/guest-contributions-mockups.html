@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your Contributions Placement</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Alegreya+Sans:wght@400;700&display=swap">
+<style>
+:root {
+  --paper: #F6F3FB; --ink: #2E2447; --muted: #625A78; --line: #DCD3EA;
+  --moss: #34603F; --wax: #9E2A45; --gold: #D9A93A; --card: #FFFFFF; --frame: #E9E3F3; --note: #FBF4E2;
+  --display: "IM Fell English", Georgia, serif; --sans: "Alegreya Sans", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #1E1830; --ink: #EDE7F8; --muted: #B3AACB; --line: #3E3558;
+  --moss: #7DB38A; --wax: #E07A92; --gold: #E6BE62; --card: #2A2240; --frame: #15111F; --note: #3A3220; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #1E1830; --ink: #EDE7F8; --muted: #B3AACB; --line: #3E3558;
+  --moss: #7DB38A; --wax: #E07A92; --gold: #E6BE62; --card: #2A2240; --frame: #15111F; --note: #3A3220; color-scheme: dark }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--frame); color: var(--ink); font: 17px/1.45 var(--sans); padding: 24px 16px 56px; }
+.wrap { max-width: 1000px; margin: 0 auto; display: grid; gap: 36px; }
+header { max-width: 640px; }
+header h1 { font: 2.1rem/1.1 var(--display); margin: 0 0 8px; }
+header p { margin: 0 0 6px; color: var(--muted); }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 28px; align-items: start; }
+.shot { display: grid; gap: 10px; }
+.shot > h2 { font: 700 .8rem/1 var(--sans); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.cap { font-size: .95rem; color: var(--muted); }
+.cap b { color: var(--ink); }
+.guess { display: inline-block; font: 700 .72rem/1 var(--sans); letter-spacing: .05em; text-transform: uppercase; background: var(--note); color: var(--ink); padding: 3px 6px; border-radius: 4px; margin-right: 4px; }
+.phone { position: relative; background: var(--paper); border: 1px solid var(--line); border-radius: 26px; padding: 22px 16px 16px; display: grid; gap: 14px; height: 620px; overflow: hidden; }
+.phone h1 { font: 1.7rem/1.1 var(--display); text-align: center; margin: 0; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: .9rem; }
+.btn { font: 700 .95rem var(--sans); min-height: 40px; padding: 6px 16px; border-radius: 20px 20px 20px 6px; border: 0; background: var(--moss); color: #fff; }
+.btn.sec { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.seal { width: 20px; height: 20px; border-radius: 50%; background: var(--wax); box-shadow: inset -3px -3px 0 rgba(0,0,0,.2); flex: none; }
+.seal.gold { background: var(--gold); }
+.seal.coin { background: var(--moss); }
+.box { background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 12px 14px; display: grid; gap: 8px; }
+.box h3 { font: 1.3rem var(--display); margin: 0; }
+.entry { display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 8px; }
+.entry:first-of-type { border-top: 0; padding-top: 0; }
+.filter { display: flex; gap: 6px; }
+.filter span { font-size: .85rem; padding: 4px 10px; border-radius: 14px; box-shadow: inset 0 0 0 1.5px var(--line); }
+.filter span.on { background: var(--ink); color: var(--paper); }
+.item { border-bottom: 1px solid var(--line); padding-bottom: 10px; display: grid; gap: 3px; }
+.item b { font: 1.1rem var(--display); }
+.fade { position: absolute; left: 0; right: 0; bottom: 0; height: 70px; background: linear-gradient(transparent, var(--paper)); pointer-events: none; }
+.pill { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 2; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+.sheet { position: absolute; inset: 0; background: rgba(46,36,71,.5); display: flex; align-items: flex-end; z-index: 3; }
+.sheet .panel { background: var(--paper); width: 100%; border-radius: 22px 22px 0 0; padding: 18px 16px 20px; display: grid; gap: 10px; }
+.chip { font-size: .85rem; color: var(--moss); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Where "Your contributions" lives</h1>
+    <p>A guest who held two things last week comes back to mark one as bought. Today the section sits under every gift.</p>
+    <p class="small">The section lists holds (with their actions) and, new, the guest's chip-ins to group gifts.</p>
+  </header>
+
+  <div class="pair">
+    <div class="shot">
+      <h2>A · Section near the top (not chosen)</h2>
+      <div class="phone">
+        <h1>Maya's baby shower</h1>
+        <div class="box">
+          <h3>Your contributions</h3>
+          <div class="entry">
+            <div class="row"><span class="seal"></span><b>Baby onesies</b> <span class="chip">× 2</span></div>
+            <p class="small">Held until Sat 15 Nov, 6:00 pm.</p>
+            <div class="row"><button class="btn">Mark as purchased</button><button class="btn sec">Extend</button><button class="btn sec">Release</button></div>
+          </div>
+          <div class="entry">
+            <div class="row"><span class="seal gold"></span><b>Board book</b></div>
+            <p class="small">Marked as purchased.</p>
+          </div>
+          <div class="entry">
+            <div class="row"><span class="seal coin"></span><b>Pram fund</b></div>
+            <p class="small">You chipped in $40.00.</p>
+          </div>
+        </div>
+        <div class="filter"><span class="on">All</span><span>Available</span></div>
+        <div class="item"><b>Muslin swaddles</b><p class="small muted">$24.00</p></div>
+        <div class="fade"></div>
+      </div>
+      <p class="cap"><b>Above the gift filter.</b> Nothing to find: it's the first thing a returning guest sees. <span class="guess">My guess</span>it shows only once the guest has held or chipped in, so a first-time guest goes straight to the gifts.</p>
+      <p class="cap">Cost: with several holds it pushes the gifts down, and holding a gift moves focus up past the list.</p>
+    </div>
+
+    <div class="shot">
+      <h2>B · Floating button, opens a sheet (chosen)</h2>
+      <div class="phone">
+        <h1>Maya's baby shower</h1>
+        <div class="filter"><span class="on">All</span><span>Available</span></div>
+        <div class="item"><b>Muslin swaddles</b><p class="small muted">$24.00</p><p class="small">Wanted: 3 more</p></div>
+        <div class="item"><b>Baby onesies</b><p class="small muted">$12.00</p><p class="small">You're holding 2</p></div>
+        <div class="item"><b>Night light</b><p class="small muted">$30.00</p></div>
+        <div class="item"><b>Bath towels</b><p class="small muted">$18.00</p></div>
+        <div class="fade"></div>
+        <button class="btn pill">Your contributions · 3</button>
+      </div>
+      <p class="cap"><b>Always one tap away</b>, wherever the guest has scrolled. Shows only once there's something in it. The end of the list gets enough room that the button never covers the last gift.</p>
+    </div>
+
+    <div class="shot">
+      <h2>B · …after tapping it</h2>
+      <div class="phone">
+        <h1>Maya's baby shower</h1>
+        <div class="item"><b>Muslin swaddles</b></div>
+        <div class="sheet"><div class="panel">
+          <div class="row" style="justify-content:space-between"><h3 style="font:1.4rem var(--display);margin:0">Your contributions</h3><button class="btn sec">Close</button></div>
+          <div class="entry">
+            <div class="row"><span class="seal"></span><b>Baby onesies</b> <span class="chip">× 2</span></div>
+            <p class="small">Held until Sat 15 Nov, 6:00 pm.</p>
+            <div class="row"><button class="btn">Mark as purchased</button><button class="btn sec">Extend</button><button class="btn sec">Release</button></div>
+          </div>
+          <div class="entry">
+            <div class="row"><span class="seal gold"></span><b>Board book</b></div>
+            <p class="small">Marked as purchased.</p>
+          </div>
+          <div class="entry">
+            <div class="row"><span class="seal coin"></span><b>Pram fund</b></div>
+            <p class="small">You chipped in $40.00.</p>
+          </div>
+        </div></div>
+      </div>
+      <p class="cap">Same contents and actions as today's section, in a sheet over the list. The end of the list keeps room for the button, so it never covers the last gift. Cost: it's a new kind of control for this page.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>
