@@ -492,6 +492,25 @@ describe('YourContributions', () => {
     expect(within(screen.getByRole('dialog', { name: 'How many did you buy?' })).getByRole('alert')).toBeEmptyDOMElement();
   });
 
+  it.each([
+    [1, 'it is'],
+    [2, 'they are'],
+  ])('closes the purchase sheet and says to reload when a refetch takes away the purchase of a %i-unit hold', async (units, pronoun) => {
+    const expired: HoldView = { ...expiredBuyable, units, purchasableUnits: units };
+    const lapsed: HoldView = { ...expired, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false } };
+    // While the guest looks for their receipt, the last free unit goes to someone else.
+    listViews(list([expired]), list([lapsed]));
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
+    await client.invalidateQueries({ queryKey: listViewKey('abc123') });
+
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent(`You can no longer mark Stroller as purchased. Reload to see if ${pronoun} still available.`));
+    expect(within(region).queryByRole('dialog')).not.toBeInTheDocument();
+    expect(within(region).getByRole('heading', { name: 'Your contributions' })).toHaveFocus();
+  });
+
   it('shows no button when the guest has neither holds nor pledges', async () => {
     listViews(list([]));
     renderYourContributions();

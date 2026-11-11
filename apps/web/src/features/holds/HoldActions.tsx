@@ -84,20 +84,25 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
     setConfirmingRelease(next);
   }
 
-  // The refetch after a refusal can leave nothing to buy, which unmounts the
-  // sheet: close it for good, so it cannot reopen on its own, and send its
-  // error up once the page is no longer inert.
-  const [lostPurchaseError, setLostPurchaseError] = useState<Error | null>(null);
+  // A refetch can leave nothing to buy, which unmounts the sheet: after a
+  // refusal, or in the background (say, on returning to the tab). Close it for
+  // good, so it cannot reopen on its own, and say why once the page is no longer
+  // inert. An object, so the same message twice is still reported twice.
+  const [lostPurchase, setLostPurchase] = useState<{ message: string } | null>(null);
   if (purchaseSheetOpen && !hold.actions.purchase && !purchase.isPending) {
     setPurchaseSheetOpen(false);
-    setLostPurchaseError(purchase.error);
+    setLostPurchase({
+      message: purchase.error
+        ? failureMessage(purchase.error)
+        : `You can no longer mark ${itemTitle} as purchased. Reload to see if ${hold.units > 1 ? 'they are' : 'it is'} still available.`,
+    });
   }
-  const reportLostPurchase = useEffectEvent((error: Error) => {
-    onOutcome({ action: 'purchase', ok: false, message: failureMessage(error) });
+  const reportLostPurchase = useEffectEvent((message: string) => {
+    onOutcome({ action: 'purchase', ok: false, message });
   });
   useEffect(() => {
-    if (lostPurchaseError) reportLostPurchase(lostPurchaseError);
-  }, [lostPurchaseError]);
+    if (lostPurchase) reportLostPurchase(lostPurchase.message);
+  }, [lostPurchase]);
 
   const mutations = [extend, release, purchase];
   const pending = mutations.some((m) => m.isPending);
