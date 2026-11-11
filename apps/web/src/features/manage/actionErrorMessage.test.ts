@@ -12,12 +12,14 @@ describe('actionErrorMessage', () => {
       .toBe(`Couldn’t ${action} Rings. Something went wrong on our end. Wait a moment, then try again.`);
   });
 
-  it.each([
-    ['a request that threw', new TypeError('Failed to fetch')],
-    ['the client’s no-response error', new ApiError(0, "Couldn't reach the server. Check your connection and try again.")],
-  ])('says the owner seems to be offline for %s', (_, error) => {
-    expect(actionErrorMessage(error, 'delete', 'Rings'))
+  it('says the owner seems to be offline when no response arrived', () => {
+    expect(actionErrorMessage(new ApiError(0, "Couldn't reach the server. Check your connection and try again."), 'delete', 'Rings'))
       .toBe('Couldn’t delete Rings. You seem to be offline. Check your connection, then try again.');
+  });
+
+  it('says it failed on our end for an error that is not the API’s', () => {
+    expect(actionErrorMessage(new TypeError('Unexpected token'), 'move', 'Rings'))
+      .toBe('Couldn’t move Rings. Something went wrong on our end. Wait a moment, then try again.');
   });
 
   it('keeps the server’s own message for another refusal', () => {
