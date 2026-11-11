@@ -159,6 +159,17 @@ describe('AddItemForm', () => {
     expect(screen.getByLabelText('Title')).toHaveValue('Stand mixer');
   });
 
+  it('says which gift could not be added, and why, when the server fails', async () => {
+    server.use(http.post('/api/lists/:slug/items', () => HttpResponse.json({ message: 'The list could not be saved.' }, { status: 500 })));
+    const user = userEvent.setup();
+    renderForm(<AddItemForm slug="abc123" onUnauthorized={() => {}} />);
+
+    await user.type(screen.getByLabelText('Title'), '  Crib ');
+    await user.click(screen.getByRole('button', { name: 'Add item' }));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Couldn’t add Crib. Something went wrong on our end. Wait a moment, then try again.'));
+  });
+
   it('calls onUnauthorized when the owner cookie is not accepted', async () => {
     server.use(mock('post', '/api/lists/{slug}/items', 404, { message: 'Not found' }));
     const onUnauthorized = vi.fn();

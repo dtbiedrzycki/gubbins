@@ -111,7 +111,7 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
                   </button>
                 </ItemActions>
                 {moveErrors[item.id] && (
-                  <p id={`move-error-${item.id}`} role="alert" tabIndex={-1} className="text-error">{actionErrorMessage(moveErrors[item.id]!, 'move', item.title)}</p>
+                  <p id={`move-error-${item.id}`} role="alert" tabIndex={-1} className="text-error">{actionErrorMessage(moveErrors[item.id]!, `Couldn’t move ${item.title}.`)}</p>
                 )}
               </div>
               <MoveItemButtons
@@ -201,7 +201,7 @@ function ItemActions({ slug, item, onUnauthorized, children }: ItemActionsProps)
           </div>
         </div>
       )}
-      <p ref={alert} id={alertId} role="alert" tabIndex={-1} className="text-error empty:hidden">{error && actionErrorMessage(error, 'delete', item.title)}</p>
+      <p ref={alert} id={alertId} role="alert" tabIndex={-1} className="text-error empty:hidden">{error && actionErrorMessage(error, `Couldn’t delete ${item.title}.`)}</p>
     </>
   );
 }

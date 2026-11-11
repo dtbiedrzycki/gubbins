@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { EditItemRequest, ManageViewResponse } from '@gubbins/shared-types';
 import { api, ApiError } from '../../api/client';
+import { actionErrorMessage } from './actionErrorMessage';
 import { manageViewKey } from './manageViewKey';
 import { parseUsd } from '../../lib/parseUsd';
 import { formatMoney } from '../../lib/formatMoney';
@@ -106,7 +107,7 @@ export function EditItemForm({ slug, item, onDone, onUnauthorized }: EditItemFor
         <label htmlFor="edit-item-description" className="block font-bold">Description (optional)</label>
         <LimitedTextarea id="edit-item-description" rows={3} max={DESCRIPTION_MAX} value={description} onChange={(e) => setDescription(e.target.value)} className={field} />
       </div>
-      <p id="edit-item-error" role="alert" className="text-error empty:mb-0">{priceError || error?.message}</p>
+      <p id="edit-item-error" role="alert" className="text-error empty:mb-0">{priceError || (error && actionErrorMessage(error, `Couldn’t save your changes to ${item.title}.`))}</p>
       {confirmTarget !== null ? (
         <div className="space-y-2 rounded-[14px] border border-line bg-white p-3.5">
           <p ref={confirmHeading} tabIndex={-1} className="font-bold">This target is already met</p>
