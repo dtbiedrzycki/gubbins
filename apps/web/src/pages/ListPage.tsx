@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useListView } from '../features/holds/useListView';
 import { GuestKeyGate } from '../features/guest-key/GuestKeyGate';
@@ -9,7 +9,7 @@ import { HowGroupGiftsWork } from '../features/contribute/HowGroupGiftsWork';
 import { ItemFilter, filterKey, type ItemFilterValue } from '../features/holds/ItemFilter';
 import { ClampedText } from '../lib/ClampedText';
 import { Markdown } from '../lib/Markdown';
-import { YourHolds } from '../features/holds/YourHolds';
+import { YourContributions } from '../features/holds/YourContributions';
 
 export default function ListPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -22,6 +22,7 @@ export default function ListPage() {
   const [retried, setRetried] = useState(false);
   // The ids are fixed when the guest picks a filter, so a gift that changes state stays shown (with any open dialog) until they pick again.
   const [filter, setFilter] = useState<{ value: ItemFilterValue; ids?: Set<string> }>({ value: 'all' });
+  const title = useRef<HTMLHeadingElement>(null);
   if (!slug) return null;
 
   if (query.status === 'pending') {
@@ -68,12 +69,19 @@ export default function ListPage() {
   const canChipIn = items.some((item) => item.type === 'group' && filterKey(item) === 'available');
   // The card is going; the gift filter comes next.
   const focusFilter = () => document.querySelector<HTMLButtonElement>('[aria-label="Show gifts"] button')?.focus();
+  const hasContributions = query.data.myHolds.length + query.data.myContributions.length > 0;
   return (
-    <main className="flex-1 bg-paper p-6 text-ink">
+    // While the floating "Your contributions" button shows, the end of the page leaves room for it, so it never covers the last gift:
+    // pb-24 (6rem) clears the button's 2.75rem height and 1rem gap from the bottom, with room to spare.
+    // scroll-mb-24 does the same for a control that Tab scrolls into view mid-list.
+    <main className={`flex-1 bg-paper p-6 text-ink ${hasContributions ? 'pb-24 [&_*]:scroll-mb-24' : ''}`}>
       <div className="mx-auto max-w-sm space-y-8">
         <header className="text-center">
-          <h1 className="font-display text-[2.05rem] leading-tight text-balance break-words">{query.data.title}</h1>
+          <h1 ref={title} tabIndex={-1} className="font-display text-[2.05rem] leading-tight text-balance break-words">{query.data.title}</h1>
           <span className="vine" aria-hidden="true" />
+          {/* Here, so an outcome that empties the sheet shows beside the title that takes focus. */}
+          <YourContributions slug={slug} holds={query.data.myHolds} contributions={query.data.myContributions}
+            itemTitles={Object.fromEntries(items.map((i) => [i.id, i.title]))} onEmptied={() => title.current?.focus()} />
         </header>
         {query.data.description && (
           <section aria-label="About this list">
@@ -112,7 +120,6 @@ export default function ListPage() {
           ))}
         </ul>
         )}
-        <YourHolds slug={slug} holds={query.data.myHolds} itemTitles={Object.fromEntries(items.map((i) => [i.id, i.title]))} />
       </div>
     </main>
   );

@@ -71,7 +71,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chi
 
   // Status comes from the server alone. useHoldItem stays pending until the
   // refetched list view lands, and a remembered local success would go stale
-  // the moment the guest releases or buys from "Your holds".
+  // the moment the guest releases or buys from "Your contributions".
   return (
     <div className="space-y-4">
       <h2 ref={heading} tabIndex={-1} className="font-display text-[1.3rem] leading-tight text-balance break-words">{item.title}</h2>

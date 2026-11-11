@@ -51,8 +51,6 @@ describe('ListPage', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Stroller' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Cot' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /^Hold this item/ })).toHaveLength(2);
-    // The hold is on the second item, so its title comes from the hold's itemId.
-    expect(within(screen.getByRole('region', { name: 'Your holds' })).getByRole('heading', { name: 'Cot' })).toBeInTheDocument();
   });
 
   it("shows the list's description in full, above the gifts", async () => {
@@ -258,7 +256,7 @@ describe('ListPage', () => {
     expect(await screen.findByText('Buy it within 1 day.')).toBeInTheDocument();
   });
 
-  it('holds the item, then shows it held and under "Your holds" with its actions', async () => {
+  it('holds the item, then lists it in Your contributions with its actions', async () => {
     let held = false;
     server.use(
       http.get('/api/lists/abc123', () => HttpResponse.json(view(held))),
@@ -268,17 +266,50 @@ describe('ListPage', () => {
     renderListPage();
 
     await user.click(await screen.findByRole('button', { name: /^Hold this item/ }));
-    expect(screen.getByText('After you buy it, come back and tap \u201cMark as purchased\u201d.')).toBeInTheDocument();
     await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
-    const yourHolds = screen.getByRole('region', { name: 'Your holds' });
-    expect(await within(yourHolds).findByRole('button', { name: 'Extend hold' })).toBeInTheDocument();
-    expect(screen.getByText('Stroller is held.')).toBeInTheDocument();
-    expect(screen.queryByRole('dialog', { hidden: true })).not.toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: 'Your contributions · 1' }));
+    const yourContributions = screen.getByRole('dialog', { name: 'Your contributions' });
+    expect(within(yourContributions).getByRole('heading', { name: 'Stroller' })).toBeInTheDocument();
+    expect(within(yourContributions).getByRole('button', { name: 'Extend hold' })).toBeInTheDocument();
   });
 
-  it('keeps the list, with the new hold under "Your holds", when the refetch after a hold fails', async () => {
+  it('pads the end of the page only while the contributions button shows', async () => {
+    let held = false;
+    server.use(
+      http.get('/api/lists/abc123', () => HttpResponse.json(view(held))),
+      http.post('/api/lists/abc123/items/item-1/hold', () => { held = true; return HttpResponse.json(hold, { status: 201 }); }),
+    );
+    const user = userEvent.setup();
+    renderListPage();
+
+    await user.click(await screen.findByRole('button', { name: /^Hold this item/ }));
+    expect(screen.getByRole('main')).not.toHaveClass('pb-24');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+    await screen.findByRole('button', { name: 'Your contributions · 1' });
+    expect(screen.getByRole('main')).toHaveClass('pb-24');
+  });
+
+  it('when the guest releases their last hold, moves focus to the list title', async () => {
+    let held = true;
+    server.use(
+      http.get('/api/lists/abc123', () => HttpResponse.json(view(held))),
+      http.post('/api/lists/abc123/holds/hold-1/release', () => { held = false; return HttpResponse.json({ ...hold, status: 'released' }); }),
+    );
+    const user = userEvent.setup();
+    renderListPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Your contributions · 1' }));
+    await user.click(screen.getByRole('button', { name: 'Release hold' }));
+    await user.click(screen.getByRole('button', { name: 'Yes, release it' }));
+
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Baby Shower' })).toHaveFocus());
+  });
+
+  it('keeps the list, with the new hold in Your contributions, when the refetch after a hold fails', async () => {
     let gets = 0;
     server.use(
       http.get('/api/lists/abc123', () => (++gets === 1 ? HttpResponse.json(view(false)) : HttpResponse.json({ message: 'Unavailable' }, { status: 503 }))),
@@ -296,8 +327,8 @@ describe('ListPage', () => {
 
     // The refetch, then its one retry.
     await waitFor(() => expect(gets).toBe(3));
-    const yourHolds = screen.getByRole('region', { name: 'Your holds' });
-    expect(await within(yourHolds).findByRole('button', { name: 'Extend hold' })).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: 'Your contributions · 1' }));
+    expect(within(screen.getByRole('dialog', { name: 'Your contributions' })).getByRole('button', { name: 'Extend hold' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Guest key')).not.toBeInTheDocument();
     expect(statuses).toContain(screen.getByText("Couldn't refresh the list, so it may be out of date."));
     expect(gets).toBe(3);
