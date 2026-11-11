@@ -6,11 +6,11 @@ import type { Item } from '../domain/entities/Item.js';
 export class ItemRepositoryKysely implements ItemRepository {
   constructor(private db: Kysely<Database>) {}
 
-  async insert(item: Item): Promise<void> {
+  async insert(item: Item, position: number): Promise<void> {
     const now = new Date().toISOString();
     await this.db.insertInto('items').values({
       id: item.id.value, wishlist_id: item.wishlistId.value, type: item.type, title: item.title,
-      quantity: item.quantity, url: item.url, price_minor: item.priceMinor, description: item.description, created_at: now,
+      quantity: item.quantity, url: item.url, price_minor: item.priceMinor, description: item.description, position, created_at: now,
     }).execute();
     await this.db.insertInto('item_state').values({
       item_id: item.id.value, seq: item.seq, updated_at: now,
@@ -23,11 +23,11 @@ export class ItemRepositoryKysely implements ItemRepository {
       .selectAll('items')
       .select('item_state.seq as seq')
       .where('wishlist_id', '=', wishlistId)
-      // created_at ties within a millisecond; monotonic v7 ids (ADR-0076) break the tie in insertion order.
-      .orderBy('items.created_at').orderBy('items.id')
+      // Positions are unique by construction (ADR-0086); id only keeps the order stable if two ever tie.
+      .orderBy('items.position').orderBy('items.id')
       .execute();
     return rows.map((row) => ({
-      id: row.id, wishlistId: row.wishlist_id, type: row.type, title: row.title, quantity: row.quantity, url: row.url, priceMinor: row.price_minor, description: row.description,
+      id: row.id, wishlistId: row.wishlist_id, type: row.type, title: row.title, quantity: row.quantity, url: row.url, priceMinor: row.price_minor, description: row.description, position: row.position,
       seq: row.seq,
     }));
   }
@@ -37,6 +37,10 @@ export class ItemRepositoryKysely implements ItemRepository {
       .set({ title: item.title, quantity: item.quantity, url: item.url, price_minor: item.priceMinor, description: item.description })
       .where('id', '=', item.id.value)
       .execute();
+  }
+
+  async savePosition(itemId: string, position: number): Promise<void> {
+    await this.db.updateTable('items').set({ position }).where('id', '=', itemId).execute();
   }
 
   async delete(itemId: string): Promise<void> {

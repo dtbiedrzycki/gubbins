@@ -23,6 +23,7 @@ export interface ItemsTable {
   url: string | null;
   price_minor: number | null;
   description: string | null;
+  position: number;
   created_at: string;
 }
 

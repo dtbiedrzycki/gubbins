@@ -16,7 +16,7 @@ beforeEach(async () => {
   db = createDb(':memory:');
   await migrateToLatest(db);
   await db.insertInto('wishlists').values({ id: W1, slug: 's', title: 't', owner_token: 'o', key: 'k', key_gen: 1, created_at: NOW }).execute();
-  await db.insertInto('items').values({ id: I1, wishlist_id: W1, type: 'single', title: 'Cot', quantity: 1, created_at: NOW }).execute();
+  await db.insertInto('items').values({ id: I1, wishlist_id: W1, type: 'single', title: 'Cot', quantity: 1, position: 0, created_at: NOW }).execute();
 });
 
 afterEach(async () => {
@@ -59,7 +59,7 @@ describe('0001_init schema', () => {
     ['that is a group gift without a price', { type: 'group', price_minor: null }],
     ['that is a group gift for more than one unit', { type: 'group', price_minor: 45000, quantity: 2 }],
   ])('refuses an item %s', async (_case, overrides) => {
-    const row = { id: '44444444-4444-7444-8444-444444444444', wishlist_id: W1, title: 'Mixer', quantity: 1, created_at: NOW, ...overrides };
+    const row = { id: '44444444-4444-7444-8444-444444444444', wishlist_id: W1, title: 'Mixer', quantity: 1, position: 0, created_at: NOW, ...overrides };
     await expect(db.insertInto('items').values(row).execute()).rejects.toThrow(/CHECK constraint failed/);
   });
 
@@ -110,7 +110,7 @@ describe('migrateToLatest on a database an older build created', () => {
     await stale.destroy();
   });
 
-  it('adopts a database the first release created, keeping its rows and recording 0001_init', async () => {
+  it('adopts a database the first release created, keeping its rows and recording every migration', async () => {
     const released = createDb(':memory:');
     // The first release ran 0001_init's up on every start and recorded nothing.
     await up(released as unknown as Kysely<unknown>);
@@ -119,7 +119,7 @@ describe('migrateToLatest on a database an older build created', () => {
     await migrateToLatest(released);
 
     expect(await released.selectFrom('wishlists').select(['id', 'slug']).execute()).toEqual([{ id: W1, slug: 's' }]);
-    expect((await sql`select name from kysely_migration`.execute(released)).rows).toEqual([{ name: '0001_init' }]);
+    expect((await sql`select name from kysely_migration`.execute(released)).rows).toEqual([{ name: '0001_init' }, { name: '0002_item_positions' }]);
     await released.destroy();
   });
 
