@@ -11,7 +11,8 @@ import { api, ApiError } from '../api/client';
 export default function ManagePage() {
   const { slug } = useParams<{ slug: string }>();
   const [entered, setEntered] = useState(false);
-  const [expired, setExpired] = useState(false);
+  // Which 404 sent the owner back: a gift's own action (it may just be gone) or anything else (the session).
+  const [expired, setExpired] = useState<'gift' | 'session' | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   // The gate's submit button unmounts on success; keep keyboard focus on the page.
   useEffect(() => { if (entered) heading.current?.focus(); }, [entered]);
@@ -24,7 +25,8 @@ export default function ManagePage() {
   const queryClient = useQueryClient();
   // The owner cookie no longer works (404): back to the gate.
   const gone = query.error instanceof ApiError && query.error.status === 404;
-  const unauthorized = () => { setEntered(false); setExpired(true); };
+  const unauthorized = () => { setEntered(false); setExpired('session'); };
+  const giftUnauthorized = () => { setEntered(false); setExpired('gift'); };
   if (!slug) return null;
 
   return (
@@ -38,7 +40,7 @@ export default function ManagePage() {
             {query.data && <ListDetails slug={slug} onUnauthorized={unauthorized} view={query.data} />}
             {/* Above the items, so adding never means scrolling past a long list. */}
             <AddItemForm slug={slug} onUnauthorized={unauthorized} />
-            {query.data && <ManageItems slug={slug} items={query.data.items} onUnauthorized={unauthorized} />}
+            {query.data && <ManageItems slug={slug} items={query.data.items} onUnauthorized={giftUnauthorized} />}
           </>
         ) : (
           <OwnerTokenGate
@@ -46,9 +48,11 @@ export default function ManagePage() {
             onSuccess={() => {
               // Drop a failed view so the new session fetches afresh.
               queryClient.removeQueries({ queryKey: manageViewKey(slug) });
-              setEntered(true); setExpired(false);
+              setEntered(true); setExpired(null);
             }}
-            notice={expired || gone ? 'Enter your owner token again.' : undefined}
+            notice={expired === 'gift'
+              ? 'That gift may have been deleted on another device, or your owner session has ended. Enter your owner token to keep managing your list.'
+              : expired || gone ? 'Your owner session has ended. Enter your owner token to keep managing your list.' : undefined}
           />
         )}
       </div>

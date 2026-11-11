@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ManageViewResponse } from '@gubbins/shared-types';
 import { api, ApiError, type MoveTarget } from '../../api/client';
 import { formatMoney } from '../../lib/formatMoney';
+import { actionErrorMessage } from './actionErrorMessage';
 import { manageViewKey } from './manageViewKey';
 import { EditItemForm } from './EditItemForm';
 import { MoveItemButtons } from './MoveItemButtons';
@@ -31,7 +32,7 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
   const lastMove = useRef<{ itemId: string; to: MoveTarget } | null>(null);
   // Written directly rather than through state: the text is worked out in an effect, once the moved list has rendered.
   const announcement = useRef<HTMLParagraphElement>(null);
-  const [moveErrors, setMoveErrors] = useState<Record<string, string>>({});
+  const [moveErrors, setMoveErrors] = useState<Record<string, Error>>({});
   const focusErrorOf = useRef<string | null>(null);
   const move = useMutation({
     mutationFn: ({ itemId, to }: { itemId: string; to: MoveTarget }) => api.moveItem(slug, itemId, to),
@@ -49,7 +50,7 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
     onError: (e, { itemId }) => {
       if (e instanceof ApiError && e.status === 404) onUnauthorized();
       focusErrorOf.current = itemId;
-      setMoveErrors((errors) => ({ ...errors, [itemId]: e.message }));
+      setMoveErrors((errors) => ({ ...errors, [itemId]: e }));
     },
     // Returned, so the mutation stays pending until the list has refetched.
     onSettled: () => queryClient.invalidateQueries({ queryKey: manageViewKey(slug) }),
@@ -110,7 +111,7 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
                   </button>
                 </ItemActions>
                 {moveErrors[item.id] && (
-                  <p id={`move-error-${item.id}`} role="alert" tabIndex={-1} className="text-error">{moveErrors[item.id]}</p>
+                  <p id={`move-error-${item.id}`} role="alert" tabIndex={-1} className="text-error">{actionErrorMessage(moveErrors[item.id]!, 'move', item.title)}</p>
                 )}
               </div>
               <MoveItemButtons
@@ -200,7 +201,7 @@ function ItemActions({ slug, item, onUnauthorized, children }: ItemActionsProps)
           </div>
         </div>
       )}
-      <p ref={alert} id={alertId} role="alert" tabIndex={-1} className="text-error empty:hidden">{error?.message}</p>
+      <p ref={alert} id={alertId} role="alert" tabIndex={-1} className="text-error empty:hidden">{error && actionErrorMessage(error, 'delete', item.title)}</p>
     </>
   );
 }
