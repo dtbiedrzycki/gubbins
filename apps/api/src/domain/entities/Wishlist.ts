@@ -166,7 +166,13 @@ export class Wishlist {
   moveItem(itemId: string, to: MoveTarget): void {
     const from = this._items.indexOf(this.getItem(itemId));
     const last = this._items.length - 1;
-    const dest = { top: 0, up: Math.max(from - 1, 0), down: Math.min(from + 1, last), bottom: last }[to];
+    let dest: number;
+    switch (to) {
+      case 'top': dest = 0; break;
+      case 'up': dest = Math.max(from - 1, 0); break;
+      case 'down': dest = Math.min(from + 1, last); break;
+      case 'bottom': dest = last; break;
+    }
     const [item] = this._items.splice(from, 1);
     this._items.splice(dest, 0, item);
   }
