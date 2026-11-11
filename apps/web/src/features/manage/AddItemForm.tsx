@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { AddItemRequest } from '@gubbins/shared-types';
 import { api, ApiError } from '../../api/client';
+import { actionErrorMessage } from './actionErrorMessage';
 import { manageViewKey } from './manageViewKey';
 import { parseUsd } from '../../lib/parseUsd';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
@@ -35,7 +36,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
   const [added, setAdded] = useState('');
   const priceInput = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
-  const { mutate, error, isPending, reset } = useMutation({
+  const { mutate, error, variables, isPending, reset } = useMutation({
     mutationFn: (input: AddItemRequest) => api.addItem(slug, input),
     // Returned, so the mutation stays pending until the list has refetched.
     onSettled: () => queryClient.invalidateQueries({ queryKey: manageViewKey(slug) }),
@@ -106,7 +107,7 @@ export function AddItemForm({ slug, onUnauthorized }: AddItemFormProps) {
           <LimitedTextarea id="item-description" describedBy={['item-description-hint']} rows={3} max={DESCRIPTION_MAX} value={description} onChange={(e) => setDescription(e.target.value)} className={field} />
           <p id="item-description-hint" className="mt-1 text-sm text-muted">Supports **bold**, *italics*, lists and links.</p>
         </div>
-        <p id="item-error" role="alert" className="text-error empty:mb-0">{priceError || error?.message}</p>
+        <p id="item-error" role="alert" className="text-error empty:mb-0">{priceError || (error && actionErrorMessage(error, `Couldn’t add ${variables?.title}.`))}</p>
         <p role="status" aria-live="polite" className="text-moss empty:mb-0">{added}</p>
         <button type="submit" disabled={isPending} className="btn-primary w-full">
           {isPending ? 'Adding…' : 'Add item'}

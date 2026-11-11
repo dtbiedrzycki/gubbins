@@ -144,7 +144,7 @@ describe('AddItemForm', () => {
     expect(screen.getByRole('alert')).toBeEmptyDOMElement();
   });
 
-  it("shows the server's message and keeps what was typed when adding fails", async () => {
+  it("shows the server's reason for a refused add, with what was typed still in the form", async () => {
     const message = 'Add a Venmo or Zelle handle to this list before adding a group gift.';
     server.use(mock('post', '/api/lists/{slug}/items', 409, { code: 'no_payment_method', message }));
     const user = userEvent.setup();
@@ -157,6 +157,17 @@ describe('AddItemForm', () => {
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(message));
     expect(screen.getByLabelText('Title')).toHaveValue('Stand mixer');
+  });
+
+  it('says which gift could not be added, and why, when the server fails', async () => {
+    server.use(http.post('/api/lists/:slug/items', () => HttpResponse.json({ message: 'The list could not be saved.' }, { status: 500 })));
+    const user = userEvent.setup();
+    renderForm(<AddItemForm slug="abc123" onUnauthorized={() => {}} />);
+
+    await user.type(screen.getByLabelText('Title'), '  Crib ');
+    await user.click(screen.getByRole('button', { name: 'Add item' }));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Couldn’t add Crib. Something went wrong on our end. Wait a moment, then try again.'));
   });
 
   it('calls onUnauthorized when the owner cookie is not accepted', async () => {

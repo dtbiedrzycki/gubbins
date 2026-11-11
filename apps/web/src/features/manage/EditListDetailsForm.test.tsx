@@ -51,4 +51,14 @@ describe('EditListDetailsForm', () => {
 
     await waitFor(() => expect(onUnauthorized).toHaveBeenCalled());
   });
+
+  it('says the list details could not be saved, and why, when the server fails', async () => {
+    server.use(http.put('/api/lists/:slug', () => HttpResponse.json({ message: 'The list could not be saved.' }, { status: 500 })));
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Couldn’t save the list details. Something went wrong on our end. Wait a moment, then try again.'));
+  });
 });

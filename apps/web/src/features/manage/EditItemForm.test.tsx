@@ -114,4 +114,15 @@ describe('EditItemForm', () => {
     expect(bodies).toEqual([{ title: 'Stroller fund', quantity: 1, priceMinor, url: null, description: null }]);
     expect(screen.queryByText('This target is already met')).not.toBeInTheDocument();
   });
+
+  it("says which gift's changes could not be saved, by its saved title, when the server fails", async () => {
+    const user = userEvent.setup();
+    renderForm(single);
+    server.use(http.put('/api/lists/:slug/items/:itemId', () => HttpResponse.json({ message: 'The list could not be saved.' }, { status: 500 })));
+
+    await user.type(screen.getByLabelText('Title'), ' and bibs');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Couldn’t save your changes to Muslin swaddles. Something went wrong on our end. Wait a moment, then try again.'));
+  });
 });

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { EditListDetailsRequest } from '@gubbins/shared-types';
 import { api, ApiError } from '../../api/client';
+import { actionErrorMessage } from './actionErrorMessage';
 import { manageViewKey } from './manageViewKey';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
 
@@ -50,7 +51,7 @@ export function EditListDetailsForm({ slug, title, description, onDone, onUnauth
         <label htmlFor="edit-list-description" className="block font-bold">About this list (optional)</label>
         <LimitedTextarea id="edit-list-description" rows={3} max={DESCRIPTION_MAX} value={newDescription} onChange={(e) => setNewDescription(e.target.value)} className={field} />
       </div>
-      <p role="alert" className="text-error empty:mb-0">{error?.message}</p>
+      <p role="alert" className="text-error empty:mb-0">{error && actionErrorMessage(error, 'Couldn’t save the list details.')}</p>
       <div className="flex gap-3">
         <button type="submit" disabled={isPending} className="btn-primary">
           {isPending ? 'Saving…' : 'Save'}
