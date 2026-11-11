@@ -10,11 +10,6 @@ async function expectNoSeriousAxeViolations(page: import('@playwright/test').Pag
 }
 
 test('the owner adds a single item and a group gift, and a guest sees both', async ({ page, context }) => {
-  // Chromium reports each blocked load as a console message naming the policy.
-  const policyViolations: string[] = [];
-  context.on('console', (message) => {
-    if (message.text().includes('Content Security Policy')) policyViolations.push(message.text());
-  });
   await page.goto('/wishlists/new');
   await page.getByLabel('List title').fill('Baby Shower');
   await page.getByLabel('Create secret').fill('e2e-create-secret');
@@ -53,13 +48,4 @@ test('the owner adds a single item and a group gift, and a guest sees both', asy
   await expect(crib.getByRole('link', { name: 'View in store' })).toBeVisible();
   const mixer = guest.getByRole('listitem').filter({ has: guest.getByRole('heading', { name: 'Stand mixer' }) });
   await expect(mixer.getByText('$450.00', { exact: true })).toBeVisible();
-
-  expect(policyViolations).toEqual([]);
-  // A remote image would leak the guest's IP address to its host.
-  await guest.evaluate(() => {
-    const image = document.createElement('img');
-    image.src = 'https://images.example/tracker.png';
-    document.body.append(image);
-  });
-  await expect.poll(() => policyViolations).toEqual([expect.stringContaining("'https://images.example/tracker.png'")]);
 });

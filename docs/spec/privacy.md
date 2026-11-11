@@ -1,7 +1,8 @@
 # Privacy
 
 - Zero outbound requests at runtime by default; self-hosted fonts
-- Strict CSP, no inline scripts (the target; today only `img-src 'self'` ships, on every response, so a page cannot load an image from another origin)
+- Strict CSP, no inline scripts (the target). Today every response carries `img-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`: a page loads images and scripts only from its own origin (so a proxy such as a Cloudflare tunnel cannot inject its analytics), and no other site can frame it. Styles and connections are not yet restricted.
+- `Referrer-Policy: no-referrer` on every response, backing up the `noreferrer` on each outgoing link, so a store or description link never reveals the list's address
 - Instance settings `SOURCE_URL` (where the source is offered, default the project repository) and `PRIVACY_CONTACT` (shown on the privacy page, `/privacy`; none if unset) come from the environment ([deploy](../deploy.md))
 - URL metadata scraping **opt-in and SSRF-guarded**: block private IP ranges, block redirects into them, timeouts. Note that fetching reveals the server IP to the retailer.
 - Images: prefer owner upload; if fetched, cache locally, strip EXIF, resize. **Never hotlink** (leaks guest IPs).
