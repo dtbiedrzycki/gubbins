@@ -24,6 +24,9 @@ export interface HoldOutcome {
 const primary = 'btn-primary';
 const secondary = 'btn-secondary';
 
+// The client reports a request that never reached the server as status 0.
+const isNetworkFailure = (error: Error) => error instanceof ApiError && error.status === 0;
+
 // The API answers a generic 404 for an unknown hold, another session's hold
 // or a lapsed session alike; a reload shows which (the key gate, or the list).
 function failureMessage(error: Error): string {
@@ -61,7 +64,7 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
     // free (re-capped by the refetch). Any other can come with a refetch that
     // removes this hold and the sheet with it, so it closes the sheet and goes up now.
     onError: (error) => {
-      if (purchaseSheetOpen && (!(error instanceof ApiError) || error.code === 'item_unavailable')) return;
+      if (purchaseSheetOpen && (isNetworkFailure(error) || (error instanceof ApiError && error.code === 'item_unavailable'))) return;
       flushSync(() => setPurchaseSheetOpen(false));
       failed('purchase')(error);
     },
@@ -92,7 +95,8 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
   if (purchaseSheetOpen && !hold.actions.purchase && !purchase.isPending) {
     setPurchaseSheetOpen(false);
     setLostPurchase({
-      message: purchase.error
+      // A kept network failure says nothing about why the purchase went away.
+      message: purchase.error && !isNetworkFailure(purchase.error)
         ? failureMessage(purchase.error)
         : `You can no longer mark ${itemTitle} as purchased. Reload to see if ${hold.units > 1 ? 'they are' : 'it is'} still available.`,
     });
