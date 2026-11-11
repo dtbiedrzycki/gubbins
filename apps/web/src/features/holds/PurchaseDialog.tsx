@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
+import { useState } from 'react';
 import type { HoldView } from '@gubbins/shared-types';
 import { LimitedTextarea } from '../../lib/LimitedField';
 import { Stepper } from '../../lib/Stepper';
 import { ApiError } from '../../api/client';
+import { useModalDialog } from '../../lib/useModalDialog';
 
 /** The longest message the API takes. */
 const MESSAGE_MAX = 300;
@@ -28,7 +29,6 @@ export interface PurchaseDialogProps {
  * outcome lands where the guest is looking.
  */
 export function PurchaseDialog({ itemTitle, status, units, purchasableUnits, isPending, error, onConfirm, onClose }: PurchaseDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const [count, setCount] = useState(purchasableUnits);
   const [message, setMessage] = useState('');
   // The list refetches after a refused purchase, so fewer may be free than were picked.
@@ -38,33 +38,10 @@ export function PurchaseDialog({ itemTitle, status, units, purchasableUnits, isP
   // A 409 that re-capped the sheet is told as the new cap, not as "no longer available" beside an offer to buy.
   const recapped = error instanceof ApiError && error.code === 'item_unavailable' && purchasableUnits >= 1;
 
-  function show() {
-    const dialog = dialogRef.current;
-    if (!dialog || dialog.open) return;
-    if (typeof dialog.showModal === 'function') {
-      dialog.showModal();
-    } else {
-      dialog.open = true; // jsdom test environment only — showModal isn't implemented there
-    }
-  }
-
-  useEffect(show, []);
-
-  // Escape fires `cancel` before the dialog closes; refusing it keeps the
-  // dialog up until the request settles.
-  function handleCancel(event: SyntheticEvent<HTMLDialogElement>) {
-    if (isPending) event.preventDefault();
-  }
-
-  // Chrome won't let a page refuse a second Escape in a row, so a close can
-  // still arrive mid-flight: reopen, so the outcome is not lost.
-  function handleClose() {
-    if (isPending) show();
-    else onClose();
-  }
+  const { ref, onCancel, onClose: handleClose } = useModalDialog({ isPending, onClose });
 
   return (
-    <dialog ref={dialogRef} onCancel={handleCancel} onClose={handleClose} aria-labelledby="purchase-units-label" className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-[22px] bg-paper p-6 text-ink backdrop:bg-ink/50">
+    <dialog ref={ref} onCancel={onCancel} onClose={handleClose} aria-labelledby="purchase-units-label" className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-[22px] bg-paper p-6 text-ink backdrop:bg-ink/50">
       {/* The one-unit title reuses the Stepper's label id, so the dialog is named by whichever title shows. */}
       {units > 1 ? (
         <div className="mb-4 flex items-end gap-2">

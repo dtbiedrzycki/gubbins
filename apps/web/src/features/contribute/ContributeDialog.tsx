@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ListViewResponse, PledgeRequest } from '@gubbins/shared-types';
 import { api } from '../../api/client';
@@ -9,6 +9,7 @@ import { venmoPayLink } from './paymentLinks';
 import { readPreferredPayMethod, writePreferredPayMethod, type PayMethod } from './preferredPayMethod';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
 import { readGifterNames, writeGifterNames } from '../../lib/gifterNames';
+import { useModalDialog } from '../../lib/useModalDialog';
 
 export interface ContributeDialogProps {
   slug: string;
@@ -36,7 +37,6 @@ const PAY_METHOD_LABEL: Record<PayMethod, string> = { venmo: 'Venmo', zelle: 'Ze
  * is in flight.
  */
 export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, payment, onPledged, onClose }: ContributeDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const [idempotencyKey] = useState(() => crypto.randomUUID());
   const [step, setStep] = useState<'amount' | 'pay'>('amount');
   const [coverRest, setCoverRest] = useState(false);
@@ -54,23 +54,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
     onSettled: () => queryClient.invalidateQueries({ queryKey: listViewKey(slug) }),
   });
 
-  function show() {
-    const dialog = dialogRef.current;
-    if (!dialog || dialog.open) return;
-    if (typeof dialog.showModal === 'function') dialog.showModal();
-    else dialog.open = true; // jsdom test environment only — showModal isn't implemented there
-  }
-  useEffect(show, []);
-
-  function handleCancel(event: SyntheticEvent<HTMLDialogElement>) {
-    writeGifterNames(name); // Escape can close the dialog without the name field ever losing focus
-    if (isPending) event.preventDefault();
-  }
-  // Chrome won't let a page refuse a second Escape in a row: reopen, so the outcome is not lost.
-  function handleClose() {
-    if (isPending) show();
-    else onClose();
-  }
+  const { ref, onCancel, onClose: handleClose } = useModalDialog({ isPending, onClose });
 
   const sent = !isIdle;
   const lockedHint = sent && 'contribute-locked';
@@ -90,7 +74,12 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   }
 
   return (
-    <dialog ref={dialogRef} onCancel={handleCancel} onClose={handleClose} aria-labelledby="contribute-title" className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-[22px] bg-paper p-6 text-ink backdrop:bg-ink/50">
+    <dialog ref={ref} onClose={handleClose}
+      onCancel={(event) => {
+        writeGifterNames(name); // Escape can close the dialog without the name field ever losing focus
+        onCancel(event);
+      }}
+      aria-labelledby="contribute-title" className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-[22px] bg-paper p-6 text-ink backdrop:bg-ink/50">
       <p id="contribute-title" className="mb-4 break-words font-display text-[1.3rem] leading-tight">Chip in toward &ldquo;{itemTitle}&rdquo;</p>
       {step === 'amount' ? (
         <>
