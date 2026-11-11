@@ -116,7 +116,8 @@ export function YourContributions({ slug, holds, contributions, itemTitles, onEm
           <div className="pointer-events-none fixed inset-x-0 bottom-4 z-10 flex justify-center px-4">
             <button ref={button} type="button" onClick={openSheet} className="btn-primary pointer-events-auto inline-flex items-center gap-2 whitespace-nowrap shadow-[0_4px_14px_rgb(0_0_0/0.25)]">
               <Seal size="sm" stamp={stampButton} />
-              Your contributions · {entries}
+              {/* Past two digits the pill would outgrow a phone's width. */}
+              Your contributions · {entries > 99 ? '99+' : entries}
             </button>
           </div>
         </>

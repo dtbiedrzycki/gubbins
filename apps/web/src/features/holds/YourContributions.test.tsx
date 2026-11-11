@@ -508,6 +508,17 @@ describe('YourContributions', () => {
     expect(await screen.findByRole('button', { name: 'Your contributions · 3' })).toBeInTheDocument();
   });
 
+  it.each([
+    [99, '99'],
+    [100, '99+'],
+  ])('shows %i entries on the button as %s', async (count, label) => {
+    const pledges = Array.from({ length: count }, (_, i) => ({ ...pledge, contributionId: `pledge-${i}` }));
+    listViews(list([], pledges));
+    renderYourContributions();
+
+    expect(await screen.findByRole('button', { name: `Your contributions · ${label}` })).toBeInTheDocument();
+  });
+
   it('lists holds, then pledges in the order the server sends them', async () => {
     const older: Pledge = { ...pledge, contributionId: 'pledge-0', amountMinor: 1500, pledgedAt: '2026-01-01T00:00:00.000Z' };
     listViews(list([active], [pledge, older]));
