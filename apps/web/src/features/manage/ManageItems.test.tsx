@@ -59,9 +59,11 @@ const titles = () => screen.getAllByRole('listitem').map((li) => li.querySelecto
 const disabled = (title: string) => within(screen.getByRole('group', { name: `Move ${title}` }))
   .getAllByRole('button').map((b) => [b.getAttribute('aria-label'), (b as HTMLButtonElement).disabled]);
 const announcement = () => document.getElementById('move-announcement')!;
-/** The next move fails with this message; later moves succeed. */
-const nextMoveFails = (message: string) =>
-  http.post('/api/lists/:slug/items/:itemId/move', () => HttpResponse.json({ message }, { status: 500 }), { once: true });
+/** The next move fails with a server error carrying a raw message; later moves succeed. */
+const nextMoveFails = () =>
+  http.post('/api/lists/:slug/items/:itemId/move', () => HttpResponse.json({ message: 'The list could not be saved.' }, { status: 500 }), { once: true });
+const serverCopy = (action: 'move' | 'delete', title: string) =>
+  `Couldn’t ${action} ${title}. Something went wrong on our end. Wait a moment, then try again.`;
 
 describe('ManageItems', () => {
   it("shows each item's price and quantity, and a group gift's target", () => {
@@ -211,14 +213,14 @@ describe('ManageItems', () => {
     expect(sent).toBe(1);
   });
 
-  it("shows the server's error in the gift's row, with focus on it, and announces nothing", async () => {
+  it("shows the move's friendly error in the gift's row, with focus on it, and announces nothing", async () => {
     const user = userEvent.setup();
     const { onUnauthorized } = renderLiveItems(abc());
-    server.use(nextMoveFails('The list could not be saved.'));
+    server.use(nextMoveFails());
 
     await user.click(await screen.findByRole('button', { name: 'Move C up' }));
 
-    const alert = await screen.findByText('The list could not be saved.');
+    const alert = await screen.findByText(serverCopy('move', 'C'));
     expect(alert).toHaveAttribute('role', 'alert');
     expect(alert.closest('li')).toBe(screen.getByRole('group', { name: 'Move C' }).closest('li'));
     await waitFor(() => expect(alert).toHaveFocus());
@@ -228,21 +230,33 @@ describe('ManageItems', () => {
     expect(onUnauthorized).not.toHaveBeenCalled();
   });
 
+  it('shows the delete failure in the gift\'s row, with focus on it, when the server errors', async () => {
+    server.use(http.delete('/api/lists/:slug/items/:itemId', () => HttpResponse.json({ message: 'Boom' }, { status: 500 })));
+    const user = userEvent.setup();
+    renderItems([item({})]);
+
+    await user.click(screen.getByRole('button', { name: 'Delete Rings' }));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(serverCopy('delete', 'Rings')));
+    expect(screen.getByRole('alert')).toHaveFocus();
+  });
+
   it("leaves a gift's error showing while another gift moves, and clears it when that gift moves again", async () => {
     const user = userEvent.setup();
     renderLiveItems(abc());
-    server.use(nextMoveFails('The list could not be saved.'));
+    server.use(nextMoveFails());
 
     await user.click(await screen.findByRole('button', { name: 'Move A down' }));
-    await screen.findByText('The list could not be saved.');
+    await screen.findByText(serverCopy('move', 'A'));
 
     await user.click(screen.getByRole('button', { name: 'Move B down' }));
     await waitFor(() => expect(titles()).toEqual(['A', 'C', 'B']));
-    expect(screen.getByText('The list could not be saved.')).toBeInTheDocument();
+    expect(screen.getByText(serverCopy('move', 'A'))).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Move A down' }));
     await waitFor(() => expect(titles()).toEqual(['C', 'A', 'B']));
-    expect(screen.queryByText('The list could not be saved.')).not.toBeInTheDocument();
+    expect(screen.queryByText(serverCopy('move', 'A'))).not.toBeInTheDocument();
   });
 
   it('sends the owner back to the token gate on 404', async () => {

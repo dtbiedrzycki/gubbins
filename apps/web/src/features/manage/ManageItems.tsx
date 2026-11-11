@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ManageViewResponse } from '@gubbins/shared-types';
 import { api, ApiError, type MoveTarget } from '../../api/client';
 import { formatMoney } from '../../lib/formatMoney';
+import { actionErrorMessage } from './actionErrorMessage';
 import { manageViewKey } from './manageViewKey';
 import { EditItemForm } from './EditItemForm';
 import { MoveItemButtons } from './MoveItemButtons';
@@ -49,7 +50,7 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
     onError: (e, { itemId }) => {
       if (e instanceof ApiError && e.status === 404) onUnauthorized();
       focusErrorOf.current = itemId;
-      setMoveErrors((errors) => ({ ...errors, [itemId]: e.message }));
+      setMoveErrors((errors) => ({ ...errors, [itemId]: actionErrorMessage(e, 'move', items.find((i) => i.id === itemId)?.title ?? 'this gift') }));
     },
     // Returned, so the mutation stays pending until the list has refetched.
     onSettled: () => queryClient.invalidateQueries({ queryKey: manageViewKey(slug) }),
@@ -200,7 +201,7 @@ function ItemActions({ slug, item, onUnauthorized, children }: ItemActionsProps)
           </div>
         </div>
       )}
-      <p ref={alert} id={alertId} role="alert" tabIndex={-1} className="text-error empty:hidden">{error?.message}</p>
+      <p ref={alert} id={alertId} role="alert" tabIndex={-1} className="text-error empty:hidden">{error && actionErrorMessage(error, 'delete', item.title)}</p>
     </>
   );
 }
