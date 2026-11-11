@@ -15,6 +15,9 @@ import { cleanDescription, Item, type ItemEdit, type ItemStatus } from './Item.j
 
 const WISHLIST_DESCRIPTION_MAX = 2000; // room for an address and delivery notes; bounds stored input
 
+/** Where a move sends a gift: one place up or down, or to either end. */
+export type MoveTarget = 'top' | 'up' | 'down' | 'bottom';
+
 /** What a hold command returns: the hold it changed, the item whose stream moved, and the event to append at `expectedSeq`. */
 export interface HoldCommandResult<E> {
   hold: Hold;
@@ -142,7 +145,7 @@ export class Wishlist {
     } else {
       item = Item.createSingle({ ...props, ...base });
     }
-    this._items.push(item);
+    this._items.unshift(item);
     return item;
   }
 
@@ -159,7 +162,22 @@ export class Wishlist {
     this._items = this._items.filter((item) => item.id.value !== itemId);
   }
 
-  /** The items, in the order they were added. */
+  /** Moves an item up or down a place, or to the top or bottom; moving past an end changes nothing. */
+  moveItem(itemId: string, to: MoveTarget): void {
+    const from = this._items.indexOf(this.getItem(itemId));
+    const last = this._items.length - 1;
+    let dest: number;
+    switch (to) {
+      case 'top': dest = 0; break;
+      case 'up': dest = Math.max(from - 1, 0); break;
+      case 'down': dest = Math.min(from + 1, last); break;
+      case 'bottom': dest = last; break;
+    }
+    const [item] = this._items.splice(from, 1);
+    this._items.splice(dest, 0, item);
+  }
+
+  /** The items, in the owner's order: the first is the top of the list. */
   get items(): readonly Item[] {
     return this._items;
   }

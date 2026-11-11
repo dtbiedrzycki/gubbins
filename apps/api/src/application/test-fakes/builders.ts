@@ -36,7 +36,9 @@ export class WishlistBuilder {
   build(): Wishlist {
     if (this.itemProps.length === 0 && this.purchased !== 0) throw new Error('withPurchasedCount needs withItem');
     const wishlist = Wishlist.create({ ...this.props, asOf: this.instant, paymentMethods: this.paymentMethods });
-    const items = this.itemProps.map(({ id, title, quantity }) => wishlist.addItem({ type: 'single', title, quantity }, { generateEntityId: () => id }));
+    // New gifts go first, so add in reverse to leave the items in the order they were declared.
+    for (const { id, title, quantity } of [...this.itemProps].reverse()) wishlist.addItem({ type: 'single', title, quantity }, { generateEntityId: () => id });
+    const items = wishlist.items;
     if (this.purchased === 0) return wishlist;
     const id = items[0].id.value;
     const holds = Array.from({ length: this.purchased }, (_, i) => Hold.reconstitute({

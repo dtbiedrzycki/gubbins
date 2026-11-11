@@ -30,16 +30,34 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       }
     });
 
-    it('loads every item of the list, in the order they were added', async () => {
-      const ids = ['55555555-5555-7555-8555-555555555551', '55555555-5555-7555-8555-555555555552'];
-      const list = Wishlist.create({ id: '66666666-6666-7666-8666-666666666666', slug: 'list-c', title: 'List C', ownerToken: 'owner-c', key: 'key-c', asOf: NOW });
+    it("save stores a moved item's place, so the next load has the new order", async () => {
+      const list = Wishlist.create({ id: LIST_C, slug: 'list-c', title: 'List C', ownerToken: 'owner-c', key: 'key-c', asOf: NOW });
+      const ids = [ITEM_C1, ITEM_C2];
       let next = 0;
       for (const title of ['Stroller', 'Crib']) list.addItem({ type: 'single', title }, { generateEntityId: () => ids[next++] });
       await fx.wishlists.insert(list);
+      const loaded = (await fx.wishlists.findById(LIST_C, NOW))!;
+      expect(loaded.items.map((i) => i.id.value)).toEqual([ITEM_C2, ITEM_C1]);
 
-      const loaded = await fx.wishlists.findById(list.id.value, NOW);
+      loaded.moveItem(ITEM_C1, 'top');
+      await fx.wishlists.save(loaded);
 
-      expect(loaded?.items.map((i) => i.id.value)).toEqual(ids);
+      expect((await fx.wishlists.findById(LIST_C, NOW))?.items.map((i) => i.id.value)).toEqual([ITEM_C1, ITEM_C2]);
+    });
+
+    it("saving one list's new order leaves another list's order as it was", async () => {
+      const gift = (id: string, listId: string, title: string) => Item.reconstitute({ id, wishlistId: listId, type: 'single', title, quantity: 1, seq: 0, asOf: NOW });
+      const LIST_D = '55555555-5555-7555-8555-555555555600';
+      const D_IDS = ['55555555-5555-7555-8555-555555555602', '55555555-5555-7555-8555-555555555601'];
+      const list = (id: string, slug: string, items: Item[]) => Wishlist.reconstitute({ id, slug, title: slug, ownerToken: 'o', key: `k-${slug}`, keyGen: 1, asOf: NOW, items });
+      await fx.wishlists.insert(list(LIST_C, 'list-c', [gift(ITEM_C1, LIST_C, 'One'), gift(ITEM_C2, LIST_C, 'Two')]));
+      await fx.wishlists.insert(list(LIST_D, 'list-d', [gift(D_IDS[0], LIST_D, 'Three'), gift(D_IDS[1], LIST_D, 'Four')]));
+      const c = (await fx.wishlists.findById(LIST_C, NOW))!;
+
+      c.moveItem(ITEM_C2, 'top');
+      await fx.wishlists.save(c);
+
+      expect((await fx.wishlists.findById(LIST_D, NOW))?.items.map((i) => i.id.value)).toEqual(D_IDS);
     });
 
     it('returns null for an unknown slug or id', async () => {
@@ -226,14 +244,14 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
         .toMatchObject({ title: 'Renamed', quantity: 3, priceMinor: 1200, url: 'https://shop.example/x', description: 'Grey' });
     });
 
-    it('save adds a new item to the list, with its stream at seq 0', async () => {
+    it('save adds a new item to the top of the list, with its stream at seq 0', async () => {
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
       wishlist.addItem({ type: 'single', title: 'Bib' }, { generateEntityId: () => ITEM_A2 });
 
       await fx.wishlists.save(wishlist);
 
       const reloaded = await fx.wishlists.findById(LIST_A, NOW);
-      expect(reloaded?.items.map((i) => i.id.value)).toEqual([ITEM_A, ITEM_A2]);
+      expect(reloaded?.items.map((i) => i.id.value)).toEqual([ITEM_A2, ITEM_A]);
       expect(reloaded?.getItem(ITEM_A2).seq).toBe(0);
     });
 

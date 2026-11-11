@@ -209,13 +209,56 @@ describe('Wishlist.addItem', () => {
     expect([item.id.value, item.wishlistId.value]).toEqual([ITEM_ID, WISHLIST_ID]);
   });
 
-  it('takes several items, each reachable by id', () => {
+  const withStrollerThenCrib = () => {
     const wishlist = Wishlist.create(validProps);
     const ids = [ITEM_ID, OTHER_ITEM_ID];
     let next = 0;
     for (const title of ['Stroller', 'Crib']) wishlist.addItem({ type: 'single', title }, { generateEntityId: () => ids[next++] });
-    expect(wishlist.items.map((i) => i.title)).toEqual(['Stroller', 'Crib']);
-    expect(wishlist.getItem(OTHER_ITEM_ID).title).toBe('Crib');
+    return wishlist;
+  };
+
+  it('puts a new item first: adding Stroller then Crib lists Crib, Stroller', () => {
+    expect(withStrollerThenCrib().items.map((i) => i.title)).toEqual(['Crib', 'Stroller']);
+  });
+
+  it('makes each of several items reachable by its id', () => {
+    const wishlist = withStrollerThenCrib();
+    expect([wishlist.getItem(ITEM_ID).title, wishlist.getItem(OTHER_ITEM_ID).title]).toEqual(['Stroller', 'Crib']);
+  });
+});
+
+describe('Wishlist.moveItem', () => {
+  const ID = { A: '00000000-0000-7000-8000-000000000001', B: '00000000-0000-7000-8000-000000000002', C: '00000000-0000-7000-8000-000000000003' } as const;
+  const listOf = () => Wishlist.reconstitute({
+    ...persisted,
+    items: (['A', 'B', 'C'] as const).map((title) => Item.reconstitute({ id: ID[title], wishlistId: WISHLIST_ID, type: 'single', title, quantity: 1, seq: 0, asOf: T0 })),
+  });
+  const titles = (w: Wishlist) => w.items.map((i) => i.title);
+
+  it.each([
+    ['moves C to the top: A, B, C becomes C, A, B', 'C', 'top', ['C', 'A', 'B']],
+    ['moves C up: A, B, C becomes A, C, B', 'C', 'up', ['A', 'C', 'B']],
+    ['moves A down: A, B, C becomes B, A, C', 'A', 'down', ['B', 'A', 'C']],
+    ['moves A to the bottom: A, B, C becomes B, C, A', 'A', 'bottom', ['B', 'C', 'A']],
+  ] as const)('%s', (_name, title, to, expected) => {
+    const wishlist = listOf();
+    wishlist.moveItem(ID[title], to);
+    expect(titles(wishlist)).toEqual(expected);
+  });
+
+  it.each([
+    ['A to the top', 'A', 'top'],
+    ['A up', 'A', 'up'],
+    ['C down', 'C', 'down'],
+    ['C to the bottom', 'C', 'bottom'],
+  ] as const)('leaves A, B, C as it is when moving %s', (_name, title, to) => {
+    const wishlist = listOf();
+    wishlist.moveItem(ID[title], to);
+    expect(titles(wishlist)).toEqual(['A', 'B', 'C']);
+  });
+
+  it('refuses an item that is not on the list', () => {
+    expect(() => listOf().moveItem(OTHER_ITEM_ID, 'top')).toThrow(ItemNotFoundError);
   });
 });
 
