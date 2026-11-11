@@ -2,13 +2,15 @@ import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ManageViewResponse } from '@gubbins/shared-types';
-import { api, ApiError } from '../../api/client';
+import { api, ApiError, type MoveTarget } from '../../api/client';
 import { formatMoney } from '../../lib/formatMoney';
 import { manageViewKey } from './manageViewKey';
 import { EditItemForm } from './EditItemForm';
+import { MoveItemButtons } from './MoveItemButtons';
 
 export interface ManageItemsProps {
   slug: string;
+  /** The manage-view query's items as cached; a move waits for this array to be the refetched one. */
   items: ManageViewResponse['items'];
   /** The server no longer accepts the owner cookie (404). */
   onUnauthorized: () => void;
@@ -24,11 +26,58 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
       restoreFocusTo.current = null;
     }
   }, [editingId]);
+
+  const queryClient = useQueryClient();
+  const lastMove = useRef<{ itemId: string; to: MoveTarget } | null>(null);
+  // Written directly rather than through state: the text is worked out in an effect, once the moved list has rendered.
+  const announcement = useRef<HTMLParagraphElement>(null);
+  const [moveErrors, setMoveErrors] = useState<Record<string, string>>({});
+  const focusErrorOf = useRef<string | null>(null);
+  const move = useMutation({
+    mutationFn: ({ itemId, to }: { itemId: string; to: MoveTarget }) => api.moveItem(slug, itemId, to),
+    onMutate: ({ itemId }) => {
+      announcement.current!.textContent = '';
+      // Only this gift's error clears; another gift's error stays until that gift moves.
+      setMoveErrors((errors) => {
+        if (!(itemId in errors)) return errors;
+        const rest = { ...errors };
+        delete rest[itemId];
+        return rest;
+      });
+    },
+    onSuccess: (_, moved) => { lastMove.current = moved; },
+    onError: (e, { itemId }) => {
+      if (e instanceof ApiError && e.status === 404) onUnauthorized();
+      focusErrorOf.current = itemId;
+      setMoveErrors((errors) => ({ ...errors, [itemId]: e.message }));
+    },
+    // Returned, so the mutation stays pending until the list has refetched.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: manageViewKey(slug) }),
+  });
+  // Keyed on isPending too: a refetch with an unchanged list hands back the same items.
+  // isPending can clear a render before the refetched items arrive, so it also waits for the items to match the cache.
+  // Reordering keyed rows moves DOM nodes, which can drop focus, so it is put back on the moved gift's block.
+  useEffect(() => {
+    const moved = lastMove.current;
+    if (move.isPending || !moved || items !== queryClient.getQueryData<ManageViewResponse>(manageViewKey(slug))?.items) return;
+    lastMove.current = null;
+    const index = items.findIndex((i) => i.id === moved.itemId);
+    if (index < 0) return;
+    const button = document.getElementById(`move-${moved.to}-${moved.itemId}`) as HTMLButtonElement | null;
+    (button?.disabled ? button.parentElement?.querySelector<HTMLButtonElement>('button:enabled') : button)?.focus();
+    announcement.current!.textContent = `${items[index]!.title} moved to position ${index + 1} of ${items.length}.`;
+  }, [items, move.isPending, queryClient, slug]);
+  useEffect(() => {
+    if (!focusErrorOf.current) return;
+    document.getElementById(`move-error-${focusErrorOf.current}`)?.focus();
+    focusErrorOf.current = null;
+  }, [moveErrors]);
+
   return (
     <section aria-labelledby="manage-items-heading" className="space-y-3">
       <h2 id="manage-items-heading" tabIndex={-1} className="section-heading">Items</h2>
       <ul role="list">
-        {items.map((item) => {
+        {items.map((item, index) => {
           // A group gift always has a price; the type is nullable only because singles may lack one.
           const meta = item.type === 'group'
             ? `${formatMoney(item.priceMinor ?? 0)} target`
@@ -45,24 +94,34 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
             );
           }
           return (
-            <li key={item.id} className="grid gap-1 border-b border-line py-3.5 first:border-t">
-              <p className="font-bold break-words">
-                {item.title}
-                {item.type === 'group' && <span className="ml-2 text-sm font-normal text-muted">group gift</span>}
-              </p>
-              <p className="text-[0.92rem] text-muted">{meta}</p>
-              <ItemActions slug={slug} item={item} onUnauthorized={onUnauthorized}>
-                <button
-                  id={`edit-item-${item.id}`} type="button" aria-label={`Edit ${item.title}`} onClick={() => setEditingId(item.id)}
-                  className="btn-secondary btn-sm"
-                >
-                  Edit
-                </button>
-              </ItemActions>
+            <li key={item.id} className="grid grid-cols-[1fr_auto] items-start gap-2.5 border-b border-line py-3.5 first:border-t">
+              <div className="grid min-w-0 gap-1">
+                <p className="font-bold break-words">
+                  {item.title}
+                  {item.type === 'group' && <span className="ml-2 text-sm font-normal text-muted">group gift</span>}
+                </p>
+                <p className="text-[0.92rem] text-muted">{meta}</p>
+                <ItemActions slug={slug} item={item} onUnauthorized={onUnauthorized}>
+                  <button
+                    id={`edit-item-${item.id}`} type="button" aria-label={`Edit ${item.title}`} onClick={() => setEditingId(item.id)}
+                    className="btn-secondary btn-sm"
+                  >
+                    Edit
+                  </button>
+                </ItemActions>
+                {moveErrors[item.id] && (
+                  <p id={`move-error-${item.id}`} role="alert" tabIndex={-1} className="text-error">{moveErrors[item.id]}</p>
+                )}
+              </div>
+              <MoveItemButtons
+                title={item.title} itemId={item.id} index={index} count={items.length} pending={move.isPending}
+                onMove={(to) => move.mutate({ itemId: item.id, to })}
+              />
             </li>
           );
         })}
       </ul>
+      <p ref={announcement} id="move-announcement" aria-live="polite" className="sr-only" />
     </section>
   );
 }
