@@ -93,7 +93,7 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
   const [lostPurchase, setLostPurchase] = useState<{ ok: boolean; message: string } | null>(null);
   if (purchaseSheetOpen && !hold.actions.purchase && !purchase.isPending) {
     setPurchaseSheetOpen(false);
-    // A request whose answer was lost may still have gone through.
+    // A request whose answer was lost may still have gone through, or another tab bought it.
     if (hold.status === 'purchased') setLostPurchase({ ok: true, message: purchasedMessage(hold.purchasedUnits) });
     else setLostPurchase({
       ok: false,
