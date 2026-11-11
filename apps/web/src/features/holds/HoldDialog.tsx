@@ -77,7 +77,7 @@ export function HoldDialog({ itemTitle, holdDurationDays, availableUnits, isPend
       {availableUnits > 1 && (
         <div className="mb-4 flex items-end gap-2">
           <Stepper id="hold-units" label="How many?" value={units} min={1} max={availableUnits} onChange={setUnits} disabled={isPending || locked} describedBy="hold-units-left" />
-          <p id="hold-units-left" className="pb-2.5 text-sm text-muted">of {availableUnits} left</p>
+          <p id="hold-units-left" className="pb-2.5 text-sm text-muted">of {availableUnits} wanted</p>
         </div>
       )}
       <div className="mb-4 space-y-2 rounded-[18px] border-[1.5px] border-line bg-white p-4">
@@ -89,7 +89,7 @@ export function HoldDialog({ itemTitle, holdDurationDays, availableUnits, isPend
       <p id="hold-name-hint" className="text-sm text-muted">Include everyone the gift is from, e.g. Sam &amp; Alex Smith.</p>
       <p id="hold-name-privacy" className="mb-4 text-sm text-muted">Names are only shared with the list owner.</p>
       {locked && <p id="hold-details-locked" className="mb-4 text-sm text-muted">To change your details, cancel and start again.</p>}
-      <p role="alert" className="mb-4 text-error empty:mb-0">{tooFew ? `Only ${availableUnits} left now.` : error?.message}</p>
+      <p role="alert" className="mb-4 text-error empty:mb-0">{tooFew ? `Only ${availableUnits} still wanted now.` : error?.message}</p>
       <div className="flex gap-2">
         <button type="button" onClick={() => { setSent(true); onConfirm(credential, { name: name.trim(), units }); }} disabled={isPending || !name.trim()} className="btn-primary">
           {isPending ? 'Holding…' : `Yes, hold ${units > 1 ? units : 'it'}`}

@@ -205,25 +205,25 @@ describe('ItemView', () => {
     expect(screen.getByRole('button', { name: 'Hold this item: Stroller' })).toBeInTheDocument();
   });
 
-  it('shows the units left only when more than one is available', () => {
-    renderItem({ availableUnits: 2 });
-    expect(screen.getByText('2 left')).toBeInTheDocument();
+  it('shows how many more are wanted only when more than one is available', () => {
+    renderItem({ availableUnits: 5 });
+    expect(screen.getByText('Wanted: 5 more')).toBeInTheDocument();
   });
 
   it.each([
-    ['one unit is left', { availableUnits: 1 }],
+    ['only one is wanted', { availableUnits: 1 }],
     ['held', { status: 'held', availableUnits: 0 }],
     ['purchased', { status: 'purchased', availableUnits: 0 }],
-  ] as const)('hides the units left when %s', (_, over) => {
+  ] as const)('hides how many are wanted when %s', (_, over) => {
     renderItem(over);
-    expect(screen.queryByText(/left$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Wanted:/)).not.toBeInTheDocument();
   });
 
   it('gives a group gift its price and no Hold button or units', () => {
     renderItem({ type: 'group', priceMinor: 20000, availableUnits: 0 });
     expect(screen.getByText('$200.00')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Hold this item/ })).not.toBeInTheDocument();
-    expect(screen.queryByText(/left$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Wanted:/)).not.toBeInTheDocument();
   });
 
   it.each([

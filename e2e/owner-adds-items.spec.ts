@@ -43,7 +43,7 @@ test('the owner adds a single item and a group gift, and a guest sees both', asy
   await guest.getByRole('button', { name: 'View list' }).click();
 
   const crib = guest.getByRole('listitem').filter({ has: guest.getByRole('heading', { name: 'Crib' }) });
-  await expect(crib.getByText('2 left')).toBeVisible();
+  await expect(crib.getByText('Wanted: 2 more')).toBeVisible();
   await expect(crib.getByText('$199.99')).toBeVisible();
   await expect(crib.getByRole('link', { name: 'View in store' })).toBeVisible();
   const mixer = guest.getByRole('listitem').filter({ has: guest.getByRole('heading', { name: 'Stand mixer' }) });

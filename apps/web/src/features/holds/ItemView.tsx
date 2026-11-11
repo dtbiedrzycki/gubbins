@@ -73,7 +73,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, focusElsewhere
       {item.priceMinor !== null && <p className="font-bold tabular-nums">{formatMoney(item.priceMinor)}</p>}
       {item.description && <ClampedText id={`item-description-${item.id}`}><Markdown text={item.description} /></ClampedText>}
       {item.url && <p><a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2.5 text-moss underline">View in store <span className="sr-only">for {item.title} (opens in a new tab)</span></a></p>}
-      {item.type === 'single' && item.status === 'available' && item.availableUnits > 1 && <p>{item.availableUnits} left</p>}
+      {item.type === 'single' && item.status === 'available' && item.availableUnits > 1 && <p>Wanted: {item.availableUnits} more</p>}
       {/* Mounted while available too: screen readers miss a live region that arrives already filled.
           While it's empty, the row adds no gap of its own. */}
       <div className="flex items-center gap-2.5 has-[>p:empty:only-child]:mb-0">
