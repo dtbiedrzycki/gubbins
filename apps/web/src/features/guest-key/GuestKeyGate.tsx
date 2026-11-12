@@ -66,7 +66,7 @@ export function GuestKeyGate({ slug, onSuccess, initialKey = '', autoSubmit = fa
           />
           <p id="guest-key-hint" className="mt-1.5 text-sm text-muted">The list owner sent it with your invite: three words joined by dashes.</p>
         </div>
-                <p role="alert" className="text-error empty:mb-0">{error ? keyErrorMessage(error) : ''}</p>
+        <p role="alert" className="text-error empty:mb-0">{error ? keyErrorMessage(error) : ''}</p>
         <button type="submit" disabled={isPending} className="btn-primary w-full">
           {opening ? 'Opening…' : isPending ? 'Checking…' : 'View list'}
         </button>
