@@ -353,7 +353,7 @@ describe('ContributeDialog', () => {
     });
   });
 
-  it('tells the guest what to do when the server fails', async () => {
+  it('tells the guest a server failure was on our end, led by what could not be done', async () => {
     server.use(http.post('/api/lists/:slug/items/:itemId/contributions', () => HttpResponse.json({ message: 'boom' }, { status: 500 })));
     const user = userEvent.setup();
     renderDialog();
