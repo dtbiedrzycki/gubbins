@@ -4,10 +4,21 @@ import type { Hasher } from '../application/ports/Hasher.js';
 
 export const SESSION_COOKIE = 'gubbins_session';
 export const OWNER_COOKIE = 'gubbins_owner';
+
+/** Every route for a list sits under this path, so a cookie scoped to it is one per list: entering another list's key or token doesn't replace it. */
+export function listCookiePath(slug: string): string {
+  return `/api/lists/${encodeURIComponent(slug)}`;
+}
+
 // Browsers keep Secure cookies only over HTTPS (localhost is exempt); deployments sit behind TLS.
-export const SIGNED_COOKIE_OPTIONS = { path: '/', httpOnly: true, signed: true, sameSite: 'strict', secure: true } as const;
-// 30 days (seconds): outlasts the default hold plus its one extension (3 + 3 days), so a returning guest can still mark a gift purchased.
-export const GUEST_SESSION_COOKIE_OPTIONS = { ...SIGNED_COOKIE_OPTIONS, maxAge: 30 * 24 * 60 * 60 } as const;
+export function ownerCookieOptions(slug: string) {
+  return { path: listCookiePath(slug), httpOnly: true, signed: true, sameSite: 'strict', secure: true } as const;
+}
+
+// 30 days (seconds), renewed on every accepted request: outlasts the default hold plus its one extension (3 + 3 days), so a returning guest can still mark a gift purchased.
+export function guestSessionCookieOptions(slug: string) {
+  return { ...ownerCookieOptions(slug), maxAge: 30 * 24 * 60 * 60 } as const;
+}
 
 export interface OwnerSessionPayload {
   wishlistId: string;
