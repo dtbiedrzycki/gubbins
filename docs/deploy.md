@@ -59,12 +59,9 @@ handles later.
 
 ## Upgrading
 
-Pull the new code and rerun the `up -d --build` command. The volume persists.
-
-Until go-live the schema is amended in `0001_init` in place, so a schema change
-means deleting the database (`docker compose -f docker-compose.prod.yml down -v`).
-After go-live every schema change is a real migration, and `down -v` destroys
-real data.
+To upgrade, pull the new code and rerun the `up -d --build` command. The volume
+persists and migrations run at start-up, so your data is kept.
+Never run `down -v` on production: it deletes the database volume.
 
 ## Go-live checklist (manual)
 
