@@ -207,6 +207,18 @@ describe('YourContributions', () => {
     expect(within(region).getByRole('alert')).toBeEmptyDOMElement();
   });
 
+  it('still explains a refused extension when the refetch shows the hold was not extended', async () => {
+    listViews(list([active]), list([active]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 409, { message: 'This hold has already been extended.', code: 'hold_already_extended' }));
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
+
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent('This hold has already been extended.'));
+    expect(within(region).getByRole('status')).toBeEmptyDOMElement();
+  });
+
   it.each([
     ['409 hold_not_active', mock('post', '/api/lists/{slug}/holds/{holdId}/release', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' })],
     ['404', mock('post', '/api/lists/{slug}/holds/{holdId}/release', 404, { message: 'Not found' })],
