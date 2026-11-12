@@ -33,6 +33,8 @@ export class GuestKey {
    * interface: domain/ may not import application/ (ADR-012).
    */
   matches(candidate: string, comparer: { compareInConstantTime(a: string, b: string): boolean }): boolean {
-    return comparer.compareInConstantTime(this.value, candidate.trim());
+    // Three lowercase words is what generateGuestKey and isGuestKey produce; older base64url keys keep exact matching.
+    const typed = /^[a-z]+(-[a-z]+){2}$/.test(this.value) ? candidate.trim().toLowerCase().replace(/[\s-]+/g, '-') : candidate.trim();
+    return comparer.compareInConstantTime(this.value, typed);
   }
 }
