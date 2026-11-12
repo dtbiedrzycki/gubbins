@@ -123,13 +123,13 @@ describe('network failures', () => {
 describe('request timeout', () => {
   afterEach(() => vi.useRealTimers());
 
-  it('gives up on a request after 15 seconds', async () => {
+  it('gives up on a request after 7 seconds', async () => {
     vi.useFakeTimers();
     server.use(http.get('/api/instance', () => new Promise(() => {})));
 
     let settled = false;
     const result = api.getInstance().catch((e: unknown) => e).finally(() => { settled = true; });
-    await vi.advanceTimersByTimeAsync(14_999);
+    await vi.advanceTimersByTimeAsync(6_999);
     expect(settled).toBe(false);
     await vi.advanceTimersByTimeAsync(1);
 

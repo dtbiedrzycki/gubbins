@@ -22,7 +22,7 @@ export class ApiError extends Error {
 export const isNetworkFailure = (error: Error): boolean => error instanceof ApiError && error.status === 0;
 
 /** A request with no answer after this long counts as a network failure. */
-export const REQUEST_TIMEOUT_MS = 15_000;
+export const REQUEST_TIMEOUT_MS = 7_000;
 
 // Paths, methods, params and bodies are typed by the OpenAPI contract
 // (apps/api/openapi.json → schema.gen.ts, ADR-0077). The server validates
