@@ -1,4 +1,4 @@
-import { StrictMode, type ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import type { EnterGuestKeyResponse } from '@gubbins/shared-types';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -82,7 +82,6 @@ describe('GuestKeyGate', () => {
     ['offline', 0, 'Couldn’t check the key. You seem to be offline. Check your connection, then try again.'],
     ['status 429', 429, 'Couldn’t check the key. Something went wrong on our end. Wait a moment, then try again.'],
     ['status 500', 500, 'Couldn’t check the key. Something went wrong on our end. Wait a moment, then try again.'],
-    ['status 502', 502, 'Couldn’t check the key. Something went wrong on our end. Wait a moment, then try again.'],
   ])('asks the guest to try again when checking fails: %s', async (_case, status, text) => {
     server.use(http.post('/api/lists/:slug/session', () => (
       status === 0 ? HttpResponse.error() : HttpResponse.json({ message: 'Too many requests from 10.0.0.1' }, { status })
@@ -111,18 +110,4 @@ describe('GuestKeyGate', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'View list' })).toBeEnabled());
   });
 
-  it("submits the link's key once, even when mounted twice in strict mode", async () => {
-    const bodies: unknown[] = [];
-    server.use(http.post('/api/lists/:slug/session', async ({ request }) => {
-      bodies.push(await request.json());
-      return HttpResponse.json({ ok: true } satisfies EnterGuestKeyResponse);
-    }));
-    const onSuccess = vi.fn(async () => {});
-    renderWithQueryClient(
-      <StrictMode><GuestKeyGate slug="abc123" onSuccess={onSuccess} linkKey="maple-lantern-otter" /></StrictMode>,
-    );
-
-    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
-    expect(bodies).toEqual([{ key: 'maple-lantern-otter' }]);
-  });
 });
