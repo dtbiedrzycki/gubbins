@@ -1,14 +1,14 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-/** The owner creates a list and adds one item on the manage page; a second tab in the same context stands in for the guest, keyed in. */
+/** The owner creates a list and adds one item on the manage page; a second tab in the same context stands in for the guest, keyed in on the bare list path. */
 async function guestOnNewList(page: Page, context: BrowserContext): Promise<Page> {
   await page.goto('/wishlists/new');
   await page.getByLabel('List title').fill('Baby Shower');
   await page.getByLabel('Create secret').fill('e2e-create-secret');
   await page.getByRole('button', { name: 'Create list' }).click();
   const guestLink = await page.getByTestId('guest-link').getAttribute('href');
-  const guestKey = (await page.getByTestId('guest-key').textContent())?.trim();
+  const guestKey = guestLink!.split('#key=')[1];
   const ownerToken = (await page.getByTestId('owner-token').textContent())?.trim();
   await expectNoSeriousAxeViolations(page);
 
@@ -20,7 +20,7 @@ async function guestOnNewList(page: Page, context: BrowserContext): Promise<Page
   await expect(manage.getByRole('status')).toHaveText('Added "Stroller".');
 
   const guest = await context.newPage();
-  await guest.goto(guestLink!);
+  await guest.goto(guestLink!.split('#')[0]);
   await guest.getByLabel('Guest key').fill(guestKey!);
   await guest.getByRole('button', { name: 'View list' }).click();
   await expect(guest.getByRole('heading', { level: 1, name: 'Baby Shower' })).toBeVisible();

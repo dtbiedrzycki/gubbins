@@ -16,7 +16,6 @@ test('the owner moves a gift down and then to the bottom, focus stays in its blo
   await page.getByLabel('Create secret').fill('e2e-create-secret');
   await page.getByRole('button', { name: 'Create list' }).click();
   const guestLink = await page.getByTestId('guest-link').getAttribute('href');
-  const guestKey = (await page.getByTestId('guest-key').textContent())?.trim();
   const ownerToken = (await page.getByTestId('owner-token').textContent())?.trim();
 
   const [manage] = await Promise.all([context.waitForEvent('page'), page.getByRole('link', { name: 'Manage your list' }).click()]);
@@ -43,7 +42,5 @@ test('the owner moves a gift down and then to the bottom, focus stays in its blo
 
   const guest = await context.newPage();
   await guest.goto(guestLink!);
-  await guest.getByLabel('Guest key').fill(guestKey!);
-  await guest.getByRole('button', { name: 'View list' }).click();
   await expect(guest.getByRole('heading', { level: 2, name: /^(Kettle|Skillet|Cookbook)$/ })).toHaveText(['Skillet', 'Kettle', 'Cookbook']);
 });

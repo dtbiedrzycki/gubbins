@@ -16,7 +16,6 @@ test('the owner adds a single item and a group gift, and a guest sees both', asy
   await page.getByLabel('Venmo username').fill('my-venmo');
   await page.getByRole('button', { name: 'Create list' }).click();
   const guestLink = await page.getByTestId('guest-link').getAttribute('href');
-  const guestKey = (await page.getByTestId('guest-key').textContent())?.trim();
   const ownerToken = (await page.getByTestId('owner-token').textContent())?.trim();
 
   const [manage] = await Promise.all([context.waitForEvent('page'), page.getByRole('link', { name: 'Manage your list' }).click()]);
@@ -39,8 +38,6 @@ test('the owner adds a single item and a group gift, and a guest sees both', asy
 
   const guest = await context.newPage();
   await guest.goto(guestLink!);
-  await guest.getByLabel('Guest key').fill(guestKey!);
-  await guest.getByRole('button', { name: 'View list' }).click();
 
   const crib = guest.getByRole('listitem').filter({ has: guest.getByRole('heading', { name: 'Crib' }) });
   await expect(crib.getByText('Wanted: 2 more')).toBeVisible();

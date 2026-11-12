@@ -20,8 +20,8 @@ test('the owner edits their list and deletes an untouched item', async ({ page, 
   const chosenKey = (await suggestedKey.textContent())!;
   await page.getByLabel('Create secret').fill('e2e-create-secret');
   await page.getByRole('button', { name: 'Create list' }).click();
-  await expect(page.getByTestId('guest-key')).toHaveText(chosenKey);
   const guestLink = await page.getByTestId('guest-link').getAttribute('href');
+  expect(guestLink).toMatch(new RegExp(`#key=${chosenKey}$`));
   const ownerToken = (await page.getByTestId('owner-token').textContent())?.trim();
 
   const [manage] = await Promise.all([context.waitForEvent('page'), page.getByRole('link', { name: 'Manage your list' }).click()]);
@@ -52,8 +52,6 @@ test('the owner edits their list and deletes an untouched item', async ({ page, 
 
   const guest = await context.newPage();
   await guest.goto(guestLink!);
-  await guest.getByLabel('Guest key').fill(chosenKey);
-  await guest.getByRole('button', { name: 'View list' }).click();
   await expect(guest.getByRole('heading', { level: 1 })).toHaveText('Welcome Baby');
   const stroller = guest.getByRole('listitem').filter({ has: guest.getByRole('heading', { name: 'Stroller' }) });
   await expect(stroller.getByText('$120.00')).toBeVisible();
