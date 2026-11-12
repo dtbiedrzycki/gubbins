@@ -7,6 +7,9 @@ import type { paths } from './schema.gen';
 
 export type MoveTarget = MoveItemRequest['to'];
 
+/** What `unwrap` reports for an error body with no message, e.g. a proxy's HTML page. */
+export const NO_SERVER_MESSAGE = 'Request failed';
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -53,7 +56,7 @@ function unwrap<T>({ data, error, response }: FetchResult<T>): T {
     // openapi-fetch parses an error body as JSON when it can and leaves it as
     // text otherwise (e.g. a reverse proxy's HTML error page).
     const body = typeof error === 'object' && error !== null ? (error as { message?: unknown; code?: unknown }) : {};
-    const message = typeof body.message === 'string' ? body.message : 'Request failed';
+    const message = typeof body.message === 'string' ? body.message : NO_SERVER_MESSAGE;
     const code = typeof body.code === 'string' ? body.code : undefined;
     throw new ApiError(response.status, message, code);
   }

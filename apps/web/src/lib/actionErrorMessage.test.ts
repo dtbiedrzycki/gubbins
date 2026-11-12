@@ -1,8 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { ApiError } from '../../api/client';
+import { INVALID_REQUEST_MESSAGE } from '@gubbins/shared-types';
+import { ApiError, NO_SERVER_MESSAGE } from '../api/client';
 import { actionErrorMessage } from './actionErrorMessage';
 
 describe('actionErrorMessage', () => {
+  it('tells the guest to reload on a 404', () => {
+    expect(actionErrorMessage(new ApiError(404, 'Hold not found'), 'Couldn’t hold this.'))
+      .toBe('Couldn’t hold this. Reload the page to see the list as it is now.');
+  });
+
+  it.each([
+    ['malformed-request 400', new ApiError(400, INVALID_REQUEST_MESSAGE)],
+    ["proxy's 429 page with no message", new ApiError(429, NO_SERVER_MESSAGE)],
+  ])('treats a %s as our fault', (_name, error) => {
+    expect(actionErrorMessage(error, 'Couldn’t hold this.'))
+      .toBe('Couldn’t hold this. Something went wrong on our end. Wait a moment, then try again.');
+  });
+
   it.each([
     [500, 'The list could not be saved.'],
     [502, 'Request failed'],

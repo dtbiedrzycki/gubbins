@@ -9,7 +9,7 @@ import {
   hasZodFastifySchemaValidationErrors, isResponseSerializationError,
   jsonSchemaTransform, jsonSchemaTransformObject, serializerCompiler, validatorCompiler,
 } from 'fastify-type-provider-zod';
-import { errorResponseSchema } from '@gubbins/shared-types';
+import { errorResponseSchema, INVALID_REQUEST_MESSAGE } from '@gubbins/shared-types';
 import type { AppDependencies } from './compositionRoot.js';
 import { registerRoutes } from './routes.js';
 import { appVersion } from './appVersion.js';
@@ -95,7 +95,7 @@ export function buildApp(deps: AppDependencies, options: BuildAppOptions): Fasti
         path: v.instancePath === '/' ? [] : v.instancePath.slice(1).split('/'),
         message: v.message,
       }));
-      reply.code(400).send(errorResponseSchema.parse({ message: 'Invalid request', issues }));
+      reply.code(400).send(errorResponseSchema.parse({ message: INVALID_REQUEST_MESSAGE, issues }));
       return;
     }
     // Fastify rejects some requests before schema validation runs: malformed
@@ -103,11 +103,11 @@ export function buildApp(deps: AppDependencies, options: BuildAppOptions): Fasti
     // over the size limit. Those are the client's fault, not an unhandled error,
     // so they get the same 400 as a validation failure and no error-log entry.
     if ('code' in error && typeof error.code === 'string' && error.code.startsWith('FST_ERR_CTP_')) {
-      reply.code(400).send(errorResponseSchema.parse({ message: 'Invalid request' }));
+      reply.code(400).send(errorResponseSchema.parse({ message: INVALID_REQUEST_MESSAGE }));
       return;
     }
     if (error instanceof ZodError) {
-      reply.code(400).send(errorResponseSchema.parse({ message: 'Invalid request', issues: error.issues }));
+      reply.code(400).send(errorResponseSchema.parse({ message: INVALID_REQUEST_MESSAGE, issues: error.issues }));
       return;
     }
     // A handler built a body its own response schema rejects: a server bug,

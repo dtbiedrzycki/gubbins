@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { EditListDetailsRequest } from '@gubbins/shared-types';
 import { api, ApiError } from '../../api/client';
-import { actionErrorMessage } from './actionErrorMessage';
+import { actionErrorMessage } from '../../lib/actionErrorMessage';
 import { manageViewKey } from './manageViewKey';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
 
