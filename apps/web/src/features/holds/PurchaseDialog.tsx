@@ -67,7 +67,7 @@ export function PurchaseDialog({ itemTitle, status, units, purchasableUnits, isP
       {status === 'expired' && purchasableUnits < units && !recapped && <p className="mb-4">{capNote}</p>}
       <label className="mb-1 block" htmlFor="purchase-message">Message to the owner (optional)</label>
       <LimitedTextarea id="purchase-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} className="field mb-4" />
-      <p role="alert" className="mb-4 text-error empty:mb-0">{recapped ? capNote : error && actionErrorMessage(error, `Couldn't mark ${itemTitle} as purchased.`)}</p>
+      <p role="alert" className="mb-4 text-error empty:mb-0">{recapped ? capNote : error && actionErrorMessage(error, `Couldn’t mark ${itemTitle} as purchased.`)}</p>
       <div className="flex gap-2">
         <button ref={confirmButton} type="button" onClick={() => onConfirm(count, message)} disabled={isPending} className="btn-primary">
           {units > 1 ? `Mark ${count} as purchased` : 'Mark as purchased'}

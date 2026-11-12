@@ -144,7 +144,7 @@ describe('HoldDialog', () => {
   it('tells the guest a server failure was on our end, led by what could not be done', () => {
     renderDialog({ error: new ApiError(500, 'Internal server error') });
 
-    expect(screen.getByRole('alert')).toHaveTextContent("Couldn't hold Stroller. Something went wrong on our end.");
+    expect(screen.getByRole('alert')).toHaveTextContent("Couldn’t hold Stroller. Something went wrong on our end.");
   });
 
   it('holds 2 of 2 units, no more, and says "Yes, hold 2"', async () => {

@@ -34,9 +34,9 @@ const secondary = 'btn-secondary';
  */
 export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldActionsProps) {
   const couldnt: Record<HoldAction, string> = {
-    extend: `Couldn't extend your hold on ${itemTitle}.`,
-    release: `Couldn't release your hold on ${itemTitle}.`,
-    purchase: `Couldn't mark ${itemTitle} as purchased.`,
+    extend: `Couldn’t extend your hold on ${itemTitle}.`,
+    release: `Couldn’t release your hold on ${itemTitle}.`,
+    purchase: `Couldn’t mark ${itemTitle} as purchased.`,
   };
   const failed = (action: HoldAction) => (error: Error) => onOutcome({ action, ok: false, message: actionErrorMessage(error, couldnt[action]) });
   const extend = useHoldAction(slug, 'extend', {

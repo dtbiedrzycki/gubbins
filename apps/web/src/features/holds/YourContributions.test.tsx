@@ -176,7 +176,7 @@ describe('YourContributions', () => {
     await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
 
     await waitFor(() => expect(within(region).getByRole('alert'))
-      .toHaveTextContent("Couldn't extend your hold on Stroller. Reload the page to see the list as it is now."));
+      .toHaveTextContent("Couldn’t extend your hold on Stroller. Reload the page to see the list as it is now."));
   });
 
   it('clears the last announcement when the guest starts another action', async () => {
@@ -521,7 +521,7 @@ describe('YourContributions', () => {
     await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
     const sheet = within(region).getByRole('dialog');
     await user.click(within(sheet).getByRole('button', { name: 'Mark as purchased' }));
-    await waitFor(() => expect(within(sheet).getByRole('alert')).toHaveTextContent("Couldn't mark Stroller as purchased. You seem to be offline. Check your connection, then try again."));
+    await waitFor(() => expect(within(sheet).getByRole('alert')).toHaveTextContent("Couldn’t mark Stroller as purchased. You seem to be offline. Check your connection, then try again."));
     await user.click(within(sheet).getByRole('button', { name: 'Mark as purchased' }));
 
     await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Stroller is marked as purchased. Thank you!'));
@@ -552,7 +552,7 @@ describe('YourContributions', () => {
 
     await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
     await user.click(within(within(region).getByRole('dialog')).getByRole('button', { name: 'Mark as purchased' }));
-    await waitFor(() => expect(within(within(region).getByRole('dialog')).getByRole('alert')).toHaveTextContent("Couldn't mark Stroller as purchased. You seem to be offline. Check your connection, then try again."));
+    await waitFor(() => expect(within(within(region).getByRole('dialog')).getByRole('alert')).toHaveTextContent("Couldn’t mark Stroller as purchased. You seem to be offline. Check your connection, then try again."));
     await client.invalidateQueries({ queryKey: listViewKey('abc123') });
 
     await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent('You can no longer mark Stroller as purchased. Reload to see if it is still available.'));
