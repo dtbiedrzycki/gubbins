@@ -87,7 +87,7 @@ Normalise first, then compare; no length check on the typed candidate (a spaced-
 ### Network failures and timeouts (web)
 
 - The query client runs queries and mutations with `networkMode: 'always'`, so offline fails fast instead of pausing.
-- Every API request has a **7-second timeout**; a timeout is the same `ApiError` with status 0 that a network failure already is (`isNetworkFailure`).
+- Every API request has a **7-second timeout** until the response headers arrive; a timeout is the same `ApiError` with status 0 that a network failure already is (`isNetworkFailure`).
 - A request that gets no answer is not retried: the list view retries a 5xx once, but not status 0 (the page has its own Retry button).
 - Any dialog whose request fails this way (hold, chip-in, extend, release, purchase) leaves its pending state at once, re-enables Cancel and shows the offline message. The list refetch still runs, in the background; it is not awaited. After a request that got an answer, the dialog still waits for the refetch.
 - Worst case on a dead network: 7 s per flow; about 14 s if the network dies between an action's answer and its refresh.
@@ -117,7 +117,7 @@ After a key is accepted the "View list" button stays disabled ("Opening…") unt
 
 - The router gets a root `errorElement`: the site's normal header/footer frame, "Something went wrong.", and a "Reload" button. No error text or stack is shown.
 - A catch-all route (`*`) shows a plain not-found page with a link home.
-- A failed lazy-chunk import (the tab predates a deploy) **reloads the page once** automatically; a second failure in the same tab session shows the error element. Guard the "once" with `sessionStorage`, wrapped in try/catch.
+- A failed lazy-chunk import (the tab predates a deploy) **reloads the page once** automatically; if the reloaded page also fails to load, it shows the error element. Guard the "once" with `sessionStorage`, wrapped in try/catch. The guard clears once a page renders, so each later deploy gets its own reload.
 - The API returns **404** for a missing `/assets/*` file instead of `index.html`, so a stale chunk fails as a missing script, not as HTML parsed as JavaScript.
 
 ### Retrying an action that already worked
@@ -169,7 +169,7 @@ The sheet stays open, with the typed message and unit count, for: status 0, stat
 - The fragment key is prefilled on the key screen when it fails, rather than discarded.
 - Separators accepted when typing a key: whitespace and dashes only.
 - Retry-already-worked handled in the client, not the API.
-- The chunk-failure auto-reload is limited to once per tab session.
+- The chunk-failure auto-reload happens once per deploy: the guard clears once a page renders.
 - The chip-in draft expires after 24 hours.
 - A generic 400 shows the "our end" text.
 

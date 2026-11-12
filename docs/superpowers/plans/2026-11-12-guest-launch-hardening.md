@@ -27,7 +27,7 @@
 2. **Old `path: '/'` cookie alongside the new per-list cookie**: the per-list one wins because the browser sends the longer-path cookie first (RFC 6265 §5.4) and `@fastify/cookie` keeps the first of two same-named cookies. That ordering is browser behaviour, which `app.inject` cannot show; Task 2's PR description states it. A stale cookie for another list already gets the generic 404 (`accessContext.test.ts` "gives no guest credential for a session for another list").
 3. **Draft for an item the owner has since deleted or fully funded**: dialog does not reopen, draft removed. Test in Task 14.
 4. **Timeout on a purchase that actually succeeded**: a timeout is the same `ApiError(0)` as a network failure, so it takes `main`'s lost-answer path, already tested by `YourContributions.test.tsx` "thanks the guest when the refetch after a network failure shows the purchase went through". No automatic re-send (there is no retry code). No new test.
-5. **Stale-chunk reload loop**: the auto-reload fires at most once per tab session even if storage throws (then: never auto-reload, show the error page). Test in Task 5.
+5. **Stale-chunk reload loop**: the auto-reload fires once, and a failure straight after it shows the error page; the guard clears once a page renders. If storage throws, never auto-reload; show the error page. Test in Task 5.
 
 ---
 
@@ -92,7 +92,7 @@ Mechanism (decided): scope by `path`. Every list route is under `/api/lists/:slu
 - [ ] **Step 2:** Run the file → FAIL.
 - [ ] **Step 3: Implement**: use the new options in both `setCookie` calls; in `guestAccess`, after a valid access, `reply.setCookie(SESSION_COOKIE, <same payload>, guestSessionCookieOptions(slug))` — pass `reply` into `guestAccess` (change its signature to `(request, reply, slug)` and update its callers in `routes.ts`).
 - [ ] **Step 4:** File passes; full api suite green.
-- [ ] **Step 5:** Commit `fix: guest and owner cookies are per list, and the guest's renews on use`. PR description says the owner re-enters their token once after deploy, and why a leftover `path: '/'` cookie loses to the per-list one.
+- [ ] **Step 5:** Commit `fix: guest and owner cookies are per list, and the guest's renews on use`. PR description says old `/` cookies keep working and nobody re-enters the key or token, and that the browser sends the longer-path cookie first (RFC 6265 §5.4).
 
 ### Task 3: Narrow slug lookup
 
