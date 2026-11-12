@@ -87,8 +87,10 @@ Normalise first, then compare; no length check on the typed candidate (a spaced-
 ### Network failures and timeouts (web)
 
 - The query client runs queries and mutations with `networkMode: 'always'`, so offline fails fast instead of pausing.
-- Every API request has a **15-second timeout**; a timeout is the same `ApiError` with status 0 that a network failure already is (`isNetworkFailure`).
-- Any dialog whose request fails this way leaves its pending state, re-enables Cancel and shows the offline message.
+- Every API request has a **7-second timeout**; a timeout is the same `ApiError` with status 0 that a network failure already is (`isNetworkFailure`).
+- A request that gets no answer is not retried: the list view retries a 5xx once, but not status 0 (the page has its own Retry button).
+- Any dialog whose request fails this way (hold, chip-in, extend, release, purchase) leaves its pending state at once, re-enables Cancel and shows the offline message. The list refetch still runs, in the background; it is not awaited. After a request that got an answer, the dialog still waits for the refetch.
+- Worst case on a dead network: 7 s per flow; about 14 s if the network dies between an action's answer and its refresh.
 
 ### Error text on guest screens
 
@@ -163,7 +165,7 @@ The sheet stays open, with the typed message and unit count, for: status 0, stat
 
 ## Calls made in this design (check these)
 
-- The 15-second timeout.
+- The 7-second timeout, with no retry and no waiting on a refetch after a request gets no answer (owner, 2026-11-12).
 - The fragment key is prefilled on the key screen when it fails, rather than discarded.
 - Separators accepted when typing a key: whitespace and dashes only.
 - Retry-already-worked handled in the client, not the API.
