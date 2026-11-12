@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../api/client';
+import { api, isNetworkFailure } from '../../api/client';
 import { listViewKey } from './useListView';
 import type { HoldItemRequest, ListViewResponse } from '@gubbins/shared-types';
 
@@ -16,7 +16,12 @@ export function useHoldItem(slug: string, itemId: string) {
     // because someone else holds the item) also means the cached list view
     // is stale. Returning the promise keeps the mutation pending until the
     // refetch lands, so the held state comes from fresh server data rather
-    // than only from this component's own `isSuccess`.
-    onSettled: () => queryClient.invalidateQueries({ queryKey: listViewKey(slug) }),
+    // than only from this component's own `isSuccess`. After a request that got
+    // no answer the refetch still runs, but the failure is reported at once
+    // rather than after a second wait on the same dead network.
+    onSettled: (_, error) => {
+      const refetched = queryClient.invalidateQueries({ queryKey: listViewKey(slug) });
+      if (!(error && isNetworkFailure(error))) return refetched;
+    },
   });
 }

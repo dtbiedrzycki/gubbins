@@ -371,7 +371,7 @@ describe('ListPage', () => {
 
   it('shows the list once the server answers after "Try again"', async () => {
     let gets = 0;
-    server.use(http.get('/api/lists/abc123', () => (++gets <= 2 ? HttpResponse.error() : HttpResponse.json(view(false)))));
+    server.use(http.get('/api/lists/abc123', () => (++gets === 1 ? HttpResponse.error() : HttpResponse.json(view(false)))));
     const user = userEvent.setup();
     renderListPage();
 

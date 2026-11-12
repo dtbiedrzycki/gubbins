@@ -17,7 +17,9 @@ export function useListView(slug: string | undefined) {
     // missing slug means "don't run this," only that `enabled` says so.
     enabled: Boolean(slug),
     // A 4xx won't change on retry, and three backed-off retries kept a new
-    // guest (401) or a pending hold on screen for ~7 s; one retry covers a blip.
-    retry: (failures, error) => !(error instanceof ApiError && error.status >= 400 && error.status < 500) && failures < 1,
+    // guest (401) or a pending hold on screen for ~7 s; one retry covers a 5xx blip.
+    // No retry when the request got no answer: that already took the full
+    // request timeout, and the page has a Retry button.
+    retry: (failures, error) => !(error instanceof ApiError && error.status < 500) && failures < 1,
   });
 }

@@ -30,7 +30,7 @@ describe('useListView', () => {
     expect(await requestsUntilError(() => HttpResponse.json({ message: 'Unavailable' }, { status: 503 }))).toBe(2);
   });
 
-  it('retries a network failure once', async () => {
-    expect(await requestsUntilError(() => HttpResponse.error())).toBe(2);
+  it('does not retry a request that got no answer', async () => {
+    expect(await requestsUntilError(() => HttpResponse.error())).toBe(1);
   });
 });

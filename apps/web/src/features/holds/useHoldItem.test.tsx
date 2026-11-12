@@ -83,4 +83,22 @@ describe('useHoldItem', () => {
     await waitFor(() => expect(result.current.hold.isSuccess).toBe(true));
     expect(result.current.view.data?.items[0].status).toBe('held');
   });
+
+  it('reports a request that got no answer without waiting for the refetch', async () => {
+    let listViewRequests = 0;
+    server.use(
+      http.get('/api/lists/abc123', () => {
+        listViewRequests += 1;
+        return listViewRequests === 1 ? HttpResponse.json(listView('available')) : new Promise<never>(() => {});
+      }),
+      http.post('/api/lists/abc123/items/item-1/hold', () => HttpResponse.error()),
+    );
+    const { result } = renderListAndHold();
+    await waitFor(() => expect(result.current.view.data?.items[0].status).toBe('available'));
+
+    result.current.hold.mutate({ idempotencyKey: 'key-1', name: 'Ada', units: 1 });
+
+    await waitFor(() => expect(result.current.hold.isError).toBe(true));
+    expect(listViewRequests).toBe(2);
+  });
 });

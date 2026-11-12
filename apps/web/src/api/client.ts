@@ -21,6 +21,9 @@ export class ApiError extends Error {
 /** A request that never got an answer: the server may or may not have handled it. */
 export const isNetworkFailure = (error: Error): boolean => error instanceof ApiError && error.status === 0;
 
+/** A request with no answer after this long counts as a network failure. Owner's call: with no retries or chained waits after it, this is the longest a guest waits on a dead network. */
+export const REQUEST_TIMEOUT_MS = 7_000;
+
 // Paths, methods, params and bodies are typed by the OpenAPI contract
 // (apps/api/openapi.json → schema.gen.ts, ADR-0077). The server validates
 // every response against its schema before sending, so the client does not
@@ -37,9 +40,18 @@ export const isNetworkFailure = (error: Error): boolean => error instanceof ApiE
 const http = createClient<paths>({
   baseUrl: globalThis.location.origin,
   credentials: 'same-origin',
-  fetch: (request) => globalThis.fetch(request).catch(() => {
-    throw new ApiError(0, "Couldn't reach the server. Check your connection and try again.");
-  }),
+  fetch: (request) => {
+    // Stops at the headers: an abort during openapi-fetch's body read would
+    // escape the catch below as a raw AbortError. Not AbortSignal.timeout,
+    // which fake timers do not drive.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    return globalThis.fetch(new Request(request, { signal: controller.signal }))
+      .catch(() => {
+        throw new ApiError(0, "Couldn't reach the server. Check your connection and try again.");
+      })
+      .finally(() => clearTimeout(timer));
+  },
 });
 
 interface FetchResult<T> {
