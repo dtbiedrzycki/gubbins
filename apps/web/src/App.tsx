@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-router-dom';
 import { Footer } from './features/instance/Footer';
+import ErrorPage from './pages/ErrorPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 // Route-level code-splitting: each page is its own chunk.
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -25,6 +27,7 @@ function Layout() {
 const router = createBrowserRouter([
   {
     element: <Layout />,
+    errorElement: <ErrorPage />,
     children: [
       { path: '/', element: <HomePage /> },
       { path: '/privacy', element: <PrivacyPage /> },
@@ -32,6 +35,7 @@ const router = createBrowserRouter([
       { path: '/wishlists/new', element: <CreateListPage /> },
       { path: '/wishlists/:slug', element: <ListPage /> },
       { path: '/wishlists/:slug/manage', element: <ManagePage /> },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ]);

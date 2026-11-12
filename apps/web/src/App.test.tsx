@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server } from './test/msw/server';
@@ -43,5 +43,76 @@ describe('App', () => {
     expect(screen.getByText('Loading…')).toBeInTheDocument();
     expect(screen.getByRole('contentinfo')).toBeInTheDocument();
     await screen.findByRole('heading', { name: 'Create a wishlist' });
+  });
+});
+
+describe('App crashes', () => {
+  const reload = vi.fn();
+  afterEach(() => {
+    sessionStorage.clear();
+    reload.mockReset();
+    vi.restoreAllMocks();
+    vi.doUnmock('./pages/HomePage');
+    vi.doUnmock('./pages/reloadPage');
+  });
+
+  async function renderCrashingHome(error: Error) {
+    vi.doMock('./pages/reloadPage', () => ({ reloadPage: reload }));
+    vi.doMock('./pages/HomePage', () => ({
+      default: () => {
+        throw error;
+      },
+    }));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await renderApp('/');
+  }
+
+  it('shows a reload page when a page fails to render', async () => {
+    await renderCrashingHome(new Error('boom'));
+
+    expect(await screen.findByRole('heading', { name: 'Something went wrong.' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reload' })).toBeInTheDocument();
+    expect(screen.queryByText(/boom/)).not.toBeInTheDocument();
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('shows a not-found page for an unknown address', async () => {
+    vi.doMock('./pages/reloadPage', () => ({ reloadPage: reload }));
+    await renderApp('/nope');
+
+    expect(await screen.findByRole('heading', { name: 'There’s nothing at this address.' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Go to the home page' })).toHaveAttribute('href', '/');
+  });
+
+  it.each([
+    ['Chrome', 'Failed to fetch dynamically imported module: https://x.example/assets/HomePage-x.js'],
+    ['Safari', 'Importing a module script failed.'],
+    ['Firefox', 'error loading dynamically imported module: https://x.example/assets/HomePage-x.js'],
+  ])('reloads once when %s cannot load a page’s code', async (_browser, message) => {
+    await renderCrashingHome(new TypeError(message));
+
+    await vi.waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+    expect(sessionStorage.getItem('gubbins:chunk-reload')).not.toBeNull();
+  });
+
+  it('shows the reload page instead of reloading a second time in the same tab', async () => {
+    sessionStorage.setItem('gubbins:chunk-reload', '1');
+    await renderCrashingHome(new TypeError('Importing a module script failed.'));
+
+    expect(await screen.findByRole('heading', { name: 'Something went wrong.' })).toBeInTheDocument();
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('does not reload when session storage is unavailable', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('denied');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('denied');
+    });
+    await renderCrashingHome(new TypeError('Importing a module script failed.'));
+
+    expect(await screen.findByRole('heading', { name: 'Something went wrong.' })).toBeInTheDocument();
+    expect(reload).not.toHaveBeenCalled();
   });
 });

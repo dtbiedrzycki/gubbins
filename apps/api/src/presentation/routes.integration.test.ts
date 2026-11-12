@@ -55,6 +55,18 @@ describe('security headers', () => {
   });
 });
 
+describe('missing assets', () => {
+  it('answers a missing asset with 404, not the app page', async () => {
+    const webDist = await mkdtemp(path.join(tmpdir(), 'gubbins-web-'));
+    onTestFinished(() => rm(webDist, { recursive: true, force: true }));
+    await writeFile(path.join(webDist, 'index.html'), '<!doctype html><title>spa</title>');
+    const withSpa = buildApp(buildDependencies(db, undefined, {}), { cookieSecret: 'test-secret', webDist });
+    onTestFinished(() => withSpa.close());
+    const response = await withSpa.inject({ method: 'GET', url: '/assets/nope.js' });
+    expect(response.statusCode).toBe(404);
+  });
+});
+
 describe('GET /api/instance', () => {
   it('serves the source URL, privacy contact and version without a session', async () => {
     const configured = buildApp(buildDependencies(db, undefined, { instance: { sourceUrl: 'https://example.com/src', privacyContact: 'me@example.com', version: '9.9.9' } }), { cookieSecret: 'test-secret' });
