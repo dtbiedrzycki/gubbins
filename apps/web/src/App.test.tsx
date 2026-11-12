@@ -44,6 +44,13 @@ describe('App', () => {
     expect(screen.getByRole('contentinfo')).toBeInTheDocument();
     await screen.findByRole('heading', { name: 'Create a wishlist' });
   });
+
+  it('shows a not-found page for an unknown address', async () => {
+    await renderApp('/nope');
+
+    expect(await screen.findByRole('heading', { name: 'There’s nothing at this address.' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Go to the home page' })).toHaveAttribute('href', '/');
+  });
 });
 
 describe('App crashes', () => {
@@ -74,13 +81,6 @@ describe('App crashes', () => {
     expect(screen.getByRole('button', { name: 'Reload' })).toBeInTheDocument();
     expect(screen.queryByText(/boom/)).not.toBeInTheDocument();
     expect(reload).not.toHaveBeenCalled();
-  });
-
-  it('shows a not-found page for an unknown address', async () => {
-    await renderApp('/nope');
-
-    expect(await screen.findByRole('heading', { name: 'There’s nothing at this address.' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Go to the home page' })).toHaveAttribute('href', '/');
   });
 
   it.each([

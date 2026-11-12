@@ -76,6 +76,7 @@ export function buildApp(deps: AppDependencies, options: BuildAppOptions): Fasti
     const webDist = path.resolve(options.webDist);
     app.register(fastifyStatic, { root: webDist, wildcard: false });
     app.setNotFoundHandler((request, reply) => {
+      // A stale chunk must 404: served index.html, the browser parses HTML as a script and the web can't tell to reload.
       if (request.raw.method === 'GET' && !request.url.startsWith('/api/') && !request.url.startsWith('/assets/')) {
         reply.sendFile('index.html', webDist);
       } else {

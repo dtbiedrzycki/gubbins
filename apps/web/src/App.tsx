@@ -18,6 +18,7 @@ function Layout() {
     <div className="flex min-h-screen flex-col bg-paper text-ink">
       <Suspense fallback={<p className="p-6">Loading…</p>}>
         <Outlet />
+        {/* Inside the Suspense: it mounts only once the page's chunk has loaded, so a failed chunk never clears the guard. */}
         <ClearChunkReloadGuard />
       </Suspense>
       <Footer />

@@ -39,13 +39,19 @@ describe('GET /health', () => {
   });
 });
 
+// An app serving a one-file web build, closed and removed after the test.
+async function buildAppServingSpa() {
+  const webDist = await mkdtemp(path.join(tmpdir(), 'gubbins-web-'));
+  onTestFinished(() => rm(webDist, { recursive: true, force: true }));
+  await writeFile(path.join(webDist, 'index.html'), '<!doctype html><title>spa</title>');
+  const withSpa = buildApp(buildDependencies(db, undefined, {}), { cookieSecret: 'test-secret', webDist });
+  onTestFinished(() => withSpa.close());
+  return withSpa;
+}
+
 describe('security headers', () => {
   it('sends the content and referrer policies on API responses and the SPA fallback', async () => {
-    const webDist = await mkdtemp(path.join(tmpdir(), 'gubbins-web-'));
-    onTestFinished(() => rm(webDist, { recursive: true, force: true }));
-    await writeFile(path.join(webDist, 'index.html'), '<!doctype html><title>spa</title>');
-    const withSpa = buildApp(buildDependencies(db, undefined, {}), { cookieSecret: 'test-secret', webDist });
-    onTestFinished(() => withSpa.close());
+    const withSpa = await buildAppServingSpa();
     for (const url of ['/api/instance', '/wishlists/abc']) {
       const response = await withSpa.inject({ method: 'GET', url });
       expect(response.statusCode).toBe(200);
@@ -57,11 +63,7 @@ describe('security headers', () => {
 
 describe('missing assets', () => {
   it('answers a missing asset with 404, not the app page', async () => {
-    const webDist = await mkdtemp(path.join(tmpdir(), 'gubbins-web-'));
-    onTestFinished(() => rm(webDist, { recursive: true, force: true }));
-    await writeFile(path.join(webDist, 'index.html'), '<!doctype html><title>spa</title>');
-    const withSpa = buildApp(buildDependencies(db, undefined, {}), { cookieSecret: 'test-secret', webDist });
-    onTestFinished(() => withSpa.close());
+    const withSpa = await buildAppServingSpa();
     const response = await withSpa.inject({ method: 'GET', url: '/assets/nope.js' });
     expect(response.statusCode).toBe(404);
   });
