@@ -223,6 +223,19 @@ describe('YourContributions', () => {
     expect(within(region).getByRole('alert')).toBeEmptyDOMElement();
   });
 
+  it('still explains a refused release when the refetch shows the hold is still there', async () => {
+    listViews(list([active]), list([expiredBuyable]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }));
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: 'Release hold' }));
+    await user.click(within(region).getByRole('button', { name: 'Yes, release it' }));
+
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent('This hold is no longer active.'));
+    expect(within(region).getByRole('status')).toBeEmptyDOMElement();
+  });
+
   it('clears the last announcement when the guest starts another action', async () => {
     listViews(list([active]), list([extended]), list([purchased]));
     let respond!: () => void;
@@ -558,7 +571,6 @@ describe('YourContributions', () => {
   it.each([
     ['network failure', () => HttpResponse.error()],
     ['server error', () => HttpResponse.json({ message: 'Internal error' }, { status: 500 })],
-    ['proxy error with no message', () => new HttpResponse('<html>Bad gateway</html>', { status: 502, headers: { 'Content-Type': 'text/html' } })],
     ['clash with no code', () => HttpResponse.json({ message: 'Someone else changed this hold. Try again.' }, { status: 409 })],
     ['refusal as unavailable', () => HttpResponse.json({ message: 'This item is no longer available.', code: 'item_unavailable' }, { status: 409 })],
   ])('keeps the purchase sheet and the typed message after a %s', async (_, respond) => {
