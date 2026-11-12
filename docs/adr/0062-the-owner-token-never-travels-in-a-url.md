@@ -20,7 +20,7 @@ We will never carry the owner token in a URL: entry is a paste into the
 existing homepage input, setting the owner-access cookie, with no
 `?token=` link and no bookmarkable manage URL holding the credential.
 The owner-access cookie lasts the browser session (no `Max-Age`); the
-guest cookie lasts 30 days.
+guest cookie lasts 30 days from last use.
 
 ## Alternatives considered
 
