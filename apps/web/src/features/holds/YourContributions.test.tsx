@@ -476,7 +476,7 @@ describe('YourContributions', () => {
     expect(within(region).getByRole('heading', { name: 'Baby onesies' })).toHaveFocus();
   });
 
-  it('after a refusal, keeps the purchase sheet open and caps it at the units still free', async () => {
+  it('after a refusal, keeps the purchase sheet open with the typed message and caps it at the units still free', async () => {
     const expired: HoldView = { ...expiredBuyable, units: 3, purchasableUnits: 3 };
     listViews(list([expired]), list([{ ...expired, purchasableUnits: 1 }]));
     server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/purchase', 409, { message: 'This item is no longer available.', code: 'item_unavailable' }));
@@ -484,11 +484,13 @@ describe('YourContributions', () => {
     const region = await openYourContributions();
 
     await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
+    await user.type(screen.getByLabelText('Message to the owner (optional)'), 'Congrats');
     await user.click(screen.getByRole('button', { name: 'Mark 3 as purchased' }));
 
     const sheet = screen.getByRole('dialog', { name: 'How many did you buy?' });
     await waitFor(() => expect(within(sheet).getByRole('button', { name: 'Mark 1 as purchased' })).toBeEnabled());
     expect(within(sheet).getByRole('alert')).toHaveTextContent('Only 1 is still free to mark as purchased.');
+    expect(within(sheet).getByLabelText('Message to the owner (optional)')).toHaveValue('Congrats');
     expect(sheet).toContainElement(document.activeElement as HTMLElement);
   });
 
@@ -572,7 +574,6 @@ describe('YourContributions', () => {
     ['network failure', () => HttpResponse.error()],
     ['server error', () => HttpResponse.json({ message: 'Internal error' }, { status: 500 })],
     ['clash with no code', () => HttpResponse.json({ message: 'Someone else changed this hold. Try again.' }, { status: 409 })],
-    ['refusal as unavailable', () => HttpResponse.json({ message: 'This item is no longer available.', code: 'item_unavailable' }, { status: 409 })],
   ])('keeps the purchase sheet and the typed message after a %s', async (_, respond) => {
     listViews(list([active]));
     server.use(http.post('/api/lists/:slug/holds/:holdId/purchase', respond));
