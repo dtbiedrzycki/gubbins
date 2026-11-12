@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useListView } from '../features/holds/useListView';
 import { GuestKeyGate } from '../features/guest-key/GuestKeyGate';
+import { readFragmentKey } from '../features/guest-key/fragmentKey';
 import { ApiError } from '../api/client';
 import { ItemView } from '../features/holds/ItemView';
 import { HowHoldingWorks } from '../features/holds/HowHoldingWorks';
@@ -17,6 +18,16 @@ export default function ListPage() {
   // it internally disables the query via `enabled: Boolean(slug)` when slug
   // is undefined, so no request fires before the guard below returns.
   const query = useListView(slug);
+  const location = useLocation();
+  const navigate = useNavigate();
+  // An invite link carries the key in the fragment, which the browser never sends to the server (ADR-0067).
+  const [link] = useState(() => readFragmentKey(location.hash));
+  useEffect(() => {
+    // Through the router, so its location matches the address bar.
+    if (link.key) navigate({ pathname: location.pathname, search: location.search, hash: link.rest }, { replace: true });
+    // Once, on arrival: the location this sees is the one the key was read from.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // "Try again" sends the query back to pending, which unmounts the error
   // view; this outlives it so a failed retry can hand focus back.
   const [retried, setRetried] = useState(false);
@@ -53,7 +64,7 @@ export default function ListPage() {
   if (!query.data || sessionGone) {
     return (
       <main className="flex-1 bg-paper p-6 text-ink">
-        <GuestKeyGate slug={slug} onSuccess={() => query.refetch()} />
+        <GuestKeyGate slug={slug} onSuccess={() => query.refetch()} initialKey={link.key ?? undefined} autoSubmit={link.key !== null} />
       </main>
     );
   }

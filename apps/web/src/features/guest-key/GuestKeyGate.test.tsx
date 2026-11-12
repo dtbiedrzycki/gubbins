@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import { StrictMode, type ReactElement } from 'react';
 import type { EnterGuestKeyResponse } from '@gubbins/shared-types';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -109,5 +109,20 @@ describe('GuestKeyGate', () => {
     expect(await screen.findByRole('button', { name: 'Opening…' })).toBeDisabled();
     finish();
     await waitFor(() => expect(screen.getByRole('button', { name: 'View list' })).toBeEnabled());
+  });
+
+  it("submits the link's key once, even when mounted twice in strict mode", async () => {
+    const bodies: unknown[] = [];
+    server.use(http.post('/api/lists/:slug/session', async ({ request }) => {
+      bodies.push(await request.json());
+      return HttpResponse.json({ ok: true } satisfies EnterGuestKeyResponse);
+    }));
+    const onSuccess = vi.fn(async () => {});
+    renderWithQueryClient(
+      <StrictMode><GuestKeyGate slug="abc123" onSuccess={onSuccess} initialKey="maple-lantern-otter" autoSubmit /></StrictMode>,
+    );
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    expect(bodies).toEqual([{ key: 'maple-lantern-otter' }]);
   });
 });

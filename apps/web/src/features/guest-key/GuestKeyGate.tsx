@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ApiError, isNetworkFailure } from '../../api/client';
 import { actionErrorMessage, ourEndMessage } from '../../lib/actionErrorMessage';
 import { useEnterGuestKey } from './useEnterGuestKey';
@@ -15,11 +15,25 @@ function keyErrorMessage(error: Error): string {
 export interface GuestKeyGateProps {
   slug: string;
   onSuccess: () => Promise<unknown>;
+  initialKey?: string;
+  /** Sends `initialKey` on mount, showing "Loading…" rather than the form until that first try settles. */
+  autoSubmit?: boolean;
 }
 
-export function GuestKeyGate({ slug, onSuccess }: GuestKeyGateProps) {
-  const [key, setKey] = useState('');
+export function GuestKeyGate({ slug, onSuccess, initialKey = '', autoSubmit = false }: GuestKeyGateProps) {
+  const [key, setKey] = useState(initialKey);
   const { mutate, error, isPending, opening } = useEnterGuestKey(slug, onSuccess);
+  const [autoSubmitting, setAutoSubmitting] = useState(autoSubmit);
+  // Strict mode runs effects twice; the key goes once.
+  const autoSubmitted = useRef(false);
+
+  useEffect(() => {
+    if (!autoSubmit || autoSubmitted.current) return;
+    autoSubmitted.current = true;
+    mutate({ key: initialKey.trim() }, { onSettled: () => setAutoSubmitting(false) });
+  }, [autoSubmit, initialKey, mutate]);
+
+  if (autoSubmitting) return <>Loading…</>;
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
