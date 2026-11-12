@@ -7,6 +7,7 @@ export interface ContributeDraft {
   savedAt: number;
 }
 
+// Long enough to pay and come back; short enough that a later visit doesn't reopen a chip-in the guest has forgotten.
 const DAY_MS = 24 * 60 * 60 * 1000;
 // One per list, in localStorage: re-tapping the invite link opens a new tab, which sessionStorage would not reach.
 const keyFor = (slug: string) => `gubbins:contribute-draft:${slug}`;

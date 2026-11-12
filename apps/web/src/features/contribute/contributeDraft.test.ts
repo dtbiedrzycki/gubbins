@@ -12,15 +12,21 @@ describe('contributeDraft', () => {
   it('gives back the draft saved for the list, until it is cleared', () => {
     saveDraft('abc123', draft);
 
-    expect(loadDraft('abc123', draft.savedAt + DAY_MS)).toEqual(draft);
-    expect(loadDraft('other', draft.savedAt)).toBeNull();
+    expect(loadDraft('abc123', draft.savedAt)).toEqual(draft);
     clearDraft('abc123');
     expect(loadDraft('abc123', draft.savedAt)).toBeNull();
   });
 
-  it('forgets a draft saved more than 24 hours ago', () => {
+  it('keeps one draft per list', () => {
     saveDraft('abc123', draft);
 
+    expect(loadDraft('other', draft.savedAt)).toBeNull();
+  });
+
+  it('keeps a draft for 24 hours and forgets it 1 ms later', () => {
+    saveDraft('abc123', draft);
+
+    expect(loadDraft('abc123', draft.savedAt + DAY_MS)).toEqual(draft);
     expect(loadDraft('abc123', draft.savedAt + DAY_MS + 1)).toBeNull();
     expect(localStorage.getItem('gubbins:contribute-draft:abc123')).toBeNull();
   });

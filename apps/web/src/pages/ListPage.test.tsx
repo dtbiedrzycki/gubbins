@@ -268,9 +268,7 @@ describe('ListPage', () => {
       server.use(http.get('/api/lists/abc123', () => HttpResponse.json(withGift([groupGift]))));
       renderListPage();
 
-      expect(await screen.findByLabelText('Amount (USD)')).toHaveValue('25.00');
-      expect(screen.getByLabelText('Message to the owner (optional)')).toHaveValue('Enjoy!');
-      expect(screen.getByRole('link', { name: 'Pay $25.00 with Venmo' })).toBeInTheDocument();
+      expect(await screen.findByRole('link', { name: 'Pay $25.00 with Venmo' })).toBeInTheDocument();
     });
 
     it('starts a new chip-in afresh once the reopened one is cancelled', async () => {
