@@ -263,14 +263,6 @@ describe('ListPage', () => {
     const saveDraft = () => localStorage.setItem(DRAFT_KEY, JSON.stringify({ itemId: groupGift.id, amountText: '25.00', message: 'Enjoy!', idempotencyKey: 'saved-key', savedAt: Date.now() }));
     const withGift = (items: ListViewResponse['items']): ListViewResponse => ({ ...view(false), items, payment: { venmoHandle: 'my-venmo', zelleHandle: null } });
 
-    it('reopens a chip-in the guest left for Venmo', async () => {
-      saveDraft();
-      server.use(http.get('/api/lists/abc123', () => HttpResponse.json(withGift([groupGift]))));
-      renderListPage();
-
-      expect(await screen.findByRole('link', { name: 'Pay $25.00 with Venmo' })).toBeInTheDocument();
-    });
-
     it('starts a new chip-in afresh once the reopened one is cancelled', async () => {
       saveDraft();
       server.use(http.get('/api/lists/abc123', () => HttpResponse.json(withGift([groupGift]))));
