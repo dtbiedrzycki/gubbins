@@ -21,7 +21,7 @@ export class ApiError extends Error {
 /** A request that never got an answer: the server may or may not have handled it. */
 export const isNetworkFailure = (error: Error): boolean => error instanceof ApiError && error.status === 0;
 
-/** A request with no answer after this long counts as a network failure. */
+/** A request with no answer after this long counts as a network failure. Owner's call: with no retries or chained waits after it, this is the longest a guest waits on a dead network. */
 export const REQUEST_TIMEOUT_MS = 7_000;
 
 // Paths, methods, params and bodies are typed by the OpenAPI contract
