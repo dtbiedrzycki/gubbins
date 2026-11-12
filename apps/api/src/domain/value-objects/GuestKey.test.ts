@@ -20,9 +20,7 @@ describe('GuestKey', () => {
     expect(stored.matches(typed, comparer)).toBe(false),
   );
 
-  it('compares a key that is not three words exactly as typed, spaces included', () => {
-    const old = GuestKey.from('abc_d-0123456789abcdefghijklmnop');
-    expect(old.matches('abc_d 0123456789abcdefghijklmnop', comparer)).toBe(false);
-    expect(old.matches('ABC_D-0123456789abcdefghijklmnop', comparer)).toBe(false);
+  it('holds Maple  Lantern-Otter as maple-lantern-otter', () => {
+    expect(GuestKey.from('Maple  Lantern-Otter').value).toBe('maple-lantern-otter');
   });
 });

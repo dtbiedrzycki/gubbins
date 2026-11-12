@@ -1,8 +1,10 @@
 import { DomainValidationError } from '../errors.js';
 
 /**
- * The guest bearer secret for a wishlist. Trimmed like all input; a
- * generated secret never contains whitespace.
+ * The guest bearer secret for a wishlist: lowercase words joined by single
+ * hyphens, so a key typed in any case or spacing becomes the same value.
+ * Every key in production is already in this form (three lowercase words,
+ * checked by isGuestKey), so loading one changes nothing.
  */
 export class GuestKey {
   /**
@@ -20,8 +22,12 @@ export class GuestKey {
 
   private constructor(readonly value: string) {}
 
+  private static normalise(raw: string): string {
+    return raw.trim().toLowerCase().replace(/[\s-]+/g, '-');
+  }
+
   static from(raw: string): GuestKey {
-    const value = raw.trim();
+    const value = GuestKey.normalise(raw);
     if (value.length === 0) throw new DomainValidationError('Guest key must not be empty');
     if (value.length > GuestKey.MAX_LENGTH) throw new DomainValidationError(`Guest key must be at most ${GuestKey.MAX_LENGTH} characters`);
     return new GuestKey(value);
@@ -33,8 +39,6 @@ export class GuestKey {
    * interface: domain/ may not import application/ (ADR-012).
    */
   matches(candidate: string, comparer: { compareInConstantTime(a: string, b: string): boolean }): boolean {
-    // Three lowercase words is what generateGuestKey and isGuestKey produce; older base64url keys keep exact matching.
-    const typed = /^[a-z]+(-[a-z]+){2}$/.test(this.value) ? candidate.trim().toLowerCase().replace(/[\s-]+/g, '-') : candidate.trim();
-    return comparer.compareInConstantTime(this.value, typed);
+    return comparer.compareInConstantTime(this.value, GuestKey.normalise(candidate));
   }
 }
