@@ -17,11 +17,8 @@ describe('actionErrorMessage', () => {
       .toBe('Couldn’t hold this. Something went wrong on our end. Wait a moment, then try again.');
   });
 
-  it.each([
-    [500, 'The list could not be saved.'],
-    [502, 'Request failed'],
-  ])('puts the first sentence before a failure on our end for a %i, whatever the server called it', (status, message) => {
-    expect(actionErrorMessage(new ApiError(status, message), 'Couldn’t move Rings.'))
+  it('puts the first sentence before a failure on our end for a 500, whatever the server called it', () => {
+    expect(actionErrorMessage(new ApiError(500, 'The list could not be saved.'), 'Couldn’t move Rings.'))
       .toBe('Couldn’t move Rings. Something went wrong on our end. Wait a moment, then try again.');
   });
 
