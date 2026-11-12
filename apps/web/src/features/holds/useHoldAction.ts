@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { HoldView, ListViewResponse } from '@gubbins/shared-types';
-import { api } from '../../api/client';
+import { api, isNetworkFailure } from '../../api/client';
 import { listViewKey } from './useListView';
 
 export type HoldAction = 'extend' | 'release' | 'purchase';
@@ -23,9 +23,10 @@ const call: { [A in HoldAction]: (slug: string, input: HoldActionInputs[A]) => P
  * success the item's status changed, and after a 409 the page was stale —
  * the hold lapsed, or another tab acted — so the refetch is what shows the
  * guest the real state. Stays pending until that refetch lands, like
- * useHoldItem. A failure is reported after that refetch, with this hold as it
+ * useHoldItem. A refusal is reported after that refetch, with this hold as it
  * now stands (undefined once it has left the list), so the caller can tell a
- * repeat of an action that already worked from a real refusal.
+ * repeat of an action that already worked from a real refusal. A request that
+ * got no answer is reported at once, with the hold as cached.
  *
  * `onSuccess` and `onError` are hook-level options rather than `mutate`
  * callbacks on purpose: a released hold drops out of the refetched list and
@@ -46,7 +47,10 @@ export function useHoldAction<A extends HoldAction>(
       await refetch();
     },
     onError: async (error, { holdId }) => {
-      await refetch();
+      // No answer: the refetch would likely wait on the same dead network, so
+      // report now with the cached hold; the list catches up in the background.
+      if (isNetworkFailure(error)) void refetch();
+      else await refetch();
       onError?.(error, queryClient.getQueryData<ListViewResponse>(listViewKey(slug))?.myHolds.find((hold) => hold.holdId === holdId));
     },
   });

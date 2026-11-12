@@ -179,6 +179,21 @@ describe('YourContributions', () => {
       .toHaveTextContent("Couldn’t extend your hold on Stroller. Reload the page to see the list as it is now."));
   });
 
+  it('reports an action that got no answer without waiting for the refetch', async () => {
+    let gets = 0;
+    server.use(
+      http.get('/api/lists/abc123', () => (++gets === 1 ? HttpResponse.json(list([active])) : new Promise<never>(() => {}))),
+      http.post('/api/lists/:slug/holds/:holdId/extend', () => HttpResponse.error()),
+    );
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
+
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent(/^Couldn’t extend your hold on Stroller\. /));
+    expect(gets).toBe(2);
+  });
+
   it('reports an extension that already went through as extended', async () => {
     // The first tap's answer was lost; the guest's second tap finds it already extended.
     listViews(list([active]), list([extended]));
