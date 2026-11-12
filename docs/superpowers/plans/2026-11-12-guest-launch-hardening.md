@@ -41,7 +41,7 @@
 | 3 | Narrow slug lookup | Task 2 |
 | 4 | Items index migration | `main` |
 | 5 | Crash and not-found pages | `main` |
-| 6 | Offline fails fast, 15 s timeout | `main` |
+| 6 | Offline fails fast, 7 s timeout | `main` |
 | 7 | Shared error text in `lib/` | `main` |
 | 8 | Key screen errors and "Opening…" | Task 7 |
 | 9 | Sign in from the link fragment | Task 8 |
@@ -135,15 +135,15 @@ Mechanism (decided): scope by `path`. Every list route is under `/api/lists/:slu
 - [ ] **Step 4:** Green.
 - [ ] **Step 5:** Commit `feat: reload and not-found pages replace the router's crash screen`.
 
-### Task 6: Offline fails fast, 15 s timeout
+### Task 6: Offline fails fast, 7 s timeout
 
-**Files:** Create `apps/web/src/api/queryClient.ts`, `apps/web/src/api/queryClient.test.ts`; Modify `apps/web/src/main.tsx`, `apps/web/src/api/client.ts`; Test `apps/web/src/api/client.test.ts`
+**Files:** Create `apps/web/src/api/queryClient.ts`, `apps/web/src/api/queryClient.test.ts`; Modify `apps/web/src/main.tsx`, `apps/web/src/api/client.ts`, `apps/web/src/features/holds/useListView.ts`, `apps/web/src/features/holds/useHoldItem.ts`; Test `apps/web/src/api/client.test.ts`, `useListView.test.tsx`, `useHoldItem.test.tsx`, `apps/web/src/pages/ListPage.test.tsx` (10 files)
 
-**Interfaces:** Produces `queryClient` (exported `QueryClient`, `staleTime: 30_000` kept, `networkMode: 'always'` for queries and mutations); `REQUEST_TIMEOUT_MS = 15_000` in `client.ts`.
+**Interfaces:** Produces `queryClient` (exported `QueryClient`, `staleTime: 30_000` kept, `networkMode: 'always'` for queries and mutations); `REQUEST_TIMEOUT_MS = 7_000` in `client.ts`.
 
-- [ ] **Step 1: Failing tests**: `queryClient.test.ts` `it('fails a mutation at once when the browser says it is offline')` (`onlineManager.setOnline(false)`, mutation whose fn rejects with `ApiError(0, …)` → settles as error, not paused); `client.test.ts` `it('gives up on a request after 15 seconds')` (`vi.useFakeTimers()`, MSW handler returning `new Promise(() => {})`, `await vi.advanceTimersByTimeAsync(15_000)` → rejects with `ApiError` status 0; restore real timers after).
+- [ ] **Step 1: Failing tests**: `queryClient.test.ts` `it('fails a mutation at once when the browser says it is offline')` (`onlineManager.setOnline(false)`, mutation whose fn rejects with `ApiError(0, …)` → settles as error, not paused); `client.test.ts` `it('gives up on a request after 7 seconds')` (`vi.useFakeTimers()`, MSW handler returning `new Promise(() => {})`, `await vi.advanceTimersByTimeAsync(6_999)` → still pending, then `advanceTimersByTimeAsync(1)` → rejects with `ApiError` status 0; restore real timers after); `useListView.test.tsx` `it('does not retry a request that got no answer')`; `useHoldItem.test.tsx` `it('reports a request that got no answer without waiting for the refetch')`.
 - [ ] **Step 2:** FAIL.
-- [ ] **Step 3: Implement** in `client.ts`'s `fetch` option: a `new AbortController()` per request, `setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)`, `globalThis.fetch(new Request(request, { signal: controller.signal }))`, and the timer cleared once the fetch settles (headers arrived or failed). The existing `.catch` maps the abort to status 0. Not `AbortSignal.timeout`: it runs on Node's internal timers, which fake timers do not drive (checked: under fake timers the test waited the full 15 s). The timer stops at the headers because an abort during openapi-fetch's body read rejects outside this `.catch` as a raw `AbortError` (checked), and the spec's timeout is about a request that gets no answer. No caller passes its own signal, so there is nothing to merge. `main.tsx` imports `queryClient`.
+- [ ] **Step 3: Implement** in `client.ts`'s `fetch` option: a `new AbortController()` per request, `setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)`, `globalThis.fetch(new Request(request, { signal: controller.signal }))`, and the timer cleared once the fetch settles (headers arrived or failed). The existing `.catch` maps the abort to status 0. Not `AbortSignal.timeout`: it runs on Node's internal timers, which fake timers do not drive (checked: under fake timers the test waited the full timeout). The timer stops at the headers because an abort during openapi-fetch's body read rejects outside this `.catch` as a raw `AbortError` (checked), and the spec's timeout is about a request that gets no answer. No caller passes its own signal, so there is nothing to merge. `main.tsx` imports `queryClient`. `useListView` retry: no retry for status 0 (a 5xx still gets one). `useHoldItem` `onSettled`: don't return the refetch after a network failure, so the error shows at once.
 - [ ] **Step 4:** Green.
 - [ ] **Step 5:** Commit `fix: offline and unanswered requests fail instead of hanging`.
 
@@ -229,7 +229,7 @@ Mechanism (decided): scope by `path`. Every list route is under `/api/lists/:slu
 **Files:** Modify `apps/web/src/features/contribute/ContributeDialog.tsx`, `apps/web/src/pages/ListPage.tsx`; Test `ContributeDialog.test.tsx`, `ListPage.test.tsx`
 
 - [ ] **Step 1: Failing tests**: ContributeDialog 500 → "our end" text. In `ListPage.test.tsx`, change the rows of the existing `it.each` "shows the error, not the guest key, when the first load %s": "cannot reach the server" expects "Couldn't load the list. You seem to be offline…", "gets a 503" expects "Couldn't load the list. Something went wrong on our end…". ListPage 404 still shows the key screen (existing test kept).
-- [ ] **Step 2–4:** FAIL → implement → green.
+- [ ] **Step 2–4:** FAIL → implement → green. In `ContributeDialog`'s `onSettled`, after a status-0 failure, start the refetch but don't await it.
 - [ ] **Step 5:** Commit `fix: chip-in and list errors tell guests what to do`.
 
 ### Task 13: Already-worked retries; purchase sheet keeps the message
@@ -245,7 +245,7 @@ Mechanism (decided): scope by `path`. Every list route is under `/api/lists/:slu
   - `it.each([['network failure', …], ['server error', 500], ['proxy error with no message', 502], ['clash with no code', 409], ['refusal as unavailable', 409 item_unavailable]])('keeps the purchase sheet and the typed message after a %s')`: sheet open, message box still holds the typed text. It replaces "keeps the purchase sheet open after a network failure, so a second tap can buy it" and "keeps the typed message when the purchase is refused as unavailable".
   - A timed-out purchase that went through is already covered by "thanks the guest when the refetch after a network failure shows the purchase went through"; no new test.
 - [ ] **Step 2:** FAIL.
-- [ ] **Step 3: Implement**: on those codes, await the list refetch and decide from the refetched hold; sheet `onError` keeps open for status 0, ≥ 500, non-`ApiError`, code-less 409 and `item_unavailable`.
+- [ ] **Step 3: Implement**: on those codes, await the list refetch and decide from the refetched hold; in `useHoldAction`'s `onError`, after a status-0 failure, start the refetch but don't await it; sheet `onError` keeps open for status 0, ≥ 500, non-`ApiError`, code-less 409 and `item_unavailable`.
 - [ ] **Step 4:** Green.
 - [ ] **Step 5:** Commit `fix: a hold action that already worked is reported as done`.
 
