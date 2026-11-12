@@ -75,9 +75,10 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
     },
     // The sheet, with the typed message, stays for a failure the guest can
     // retry: no answer, our end, a clash, or fewer units free (re-capped by the
-    // refetch). Any other closes it and goes up.
+    // refetch). Any other, or a refetch that removed the hold and the sheet with
+    // it, closes it and goes up.
     onError: (error, refetched) => {
-      if (purchaseSheetOpen && canRetryPurchase(error)) return;
+      if (purchaseSheetOpen && refetched && canRetryPurchase(error)) return;
       flushSync(() => setPurchaseSheetOpen(false));
       if (refusedAs(error, 'hold_not_active') && refetched?.status === 'purchased') {
         onOutcome({ action: 'purchase', ok: true, message: purchasedMessage(refetched.purchasedUnits) });
