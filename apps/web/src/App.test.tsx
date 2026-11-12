@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server } from './test/msw/server';
 import { mock } from './test/msw/mock';
@@ -77,7 +77,6 @@ describe('App crashes', () => {
   });
 
   it('shows a not-found page for an unknown address', async () => {
-    vi.doMock('./pages/reloadPage', () => ({ reloadPage: reload }));
     await renderApp('/nope');
 
     expect(await screen.findByRole('heading', { name: 'There’s nothing at this address.' })).toBeInTheDocument();
@@ -101,6 +100,17 @@ describe('App crashes', () => {
 
     expect(await screen.findByRole('heading', { name: 'Something went wrong.' })).toBeInTheDocument();
     expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('reloads again for a later deploy once a page has rendered since the last reload', async () => {
+    sessionStorage.setItem('gubbins:chunk-reload', '1');
+    await renderApp('/');
+    await screen.findByRole('heading', { level: 1, name: 'Gubbins' });
+    cleanup();
+
+    await renderCrashingHome(new TypeError('Importing a module script failed.'));
+
+    await vi.waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
   });
 
   it('does not reload when session storage is unavailable', async () => {

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useRouteError } from 'react-router-dom';
 import { Footer } from '../features/instance/Footer';
 import { reloadPage } from './reloadPage';
@@ -7,7 +8,7 @@ const RELOAD_GUARD = 'gubbins:chunk-reload';
 // Chrome, Firefox and Safari each word a failed dynamic import differently.
 const CHUNK_FAILURE = /dynamically imported module|Importing a module script failed/;
 
-// A failed page chunk means this tab predates a deploy: reload once per tab session, then give up.
+// A failed page chunk means this tab predates a deploy: reload once, then give up until a page has rendered.
 function reloadOnceForStaleChunk(error: unknown): boolean {
   if (!(error instanceof Error) || !CHUNK_FAILURE.test(error.message)) return false;
   try {
@@ -18,6 +19,18 @@ function reloadOnceForStaleChunk(error: unknown): boolean {
   }
   reloadPage();
   return true;
+}
+
+// Rendered beside the page: once a page shows, the next deploy's stale chunk may reload again.
+export function ClearChunkReloadGuard() {
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem(RELOAD_GUARD);
+    } catch {
+      // Storage blocked: the guard was never set either.
+    }
+  }, []);
+  return null;
 }
 
 export default function ErrorPage() {

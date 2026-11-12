@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-router-dom';
 import { Footer } from './features/instance/Footer';
-import ErrorPage from './pages/ErrorPage';
+import ErrorPage, { ClearChunkReloadGuard } from './pages/ErrorPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 // Route-level code-splitting: each page is its own chunk.
@@ -18,6 +18,7 @@ function Layout() {
     <div className="flex min-h-screen flex-col bg-paper text-ink">
       <Suspense fallback={<p className="p-6">Loading…</p>}>
         <Outlet />
+        <ClearChunkReloadGuard />
       </Suspense>
       <Footer />
     </div>
