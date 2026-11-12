@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ListViewResponse, PledgeRequest } from '@gubbins/shared-types';
 import { api } from '../../api/client';
@@ -11,6 +11,7 @@ import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
 import { readGifterNames, writeGifterNames } from '../../lib/gifterNames';
 import { actionErrorMessage } from '../../lib/actionErrorMessage';
 import { useModalDialog } from '../../lib/useModalDialog';
+import { clearDraft, saveDraft, type ContributeDraft } from './contributeDraft';
 
 export interface ContributeDialogProps {
   slug: string;
@@ -20,6 +21,8 @@ export interface ContributeDialogProps {
   payment: ListViewResponse['payment'];
   onPledged: (amountMinor: number) => void;
   onClose: () => void;
+  /** A chip-in the guest left to pay: the dialog starts from it, on the pay step. */
+  draft?: ContributeDraft;
 }
 
 /** The longest name and message the API takes. */
@@ -35,16 +38,17 @@ const PAY_METHOD_LABEL: Record<PayMethod, string> = { venmo: 'Venmo', zelle: 'Ze
  * wifi records one pledge. The first send locks the amount, name and message,
  * so a retry carries exactly what the key was first sent with; the server
  * would keep the first pledge anyway. It cannot be dismissed while the pledge
- * is in flight.
+ * is in flight. On the pay step it keeps a draft, key included, so a guest
+ * whose tab is dropped while paying can finish without pledging twice.
  */
-export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, payment, onPledged, onClose }: ContributeDialogProps) {
-  const [idempotencyKey] = useState(() => crypto.randomUUID());
-  const [step, setStep] = useState<'amount' | 'pay'>('amount');
+export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, payment, onPledged, onClose, draft }: ContributeDialogProps) {
+  const [idempotencyKey] = useState(() => draft?.idempotencyKey ?? crypto.randomUUID());
+  const [step, setStep] = useState<'amount' | 'pay'>(draft ? 'pay' : 'amount');
   const [coverRest, setCoverRest] = useState(false);
   const [other, setOther] = useState('');
-  const [amountText, setAmountText] = useState('');
+  const [amountText, setAmountText] = useState(draft?.amountText ?? '');
   const [name, setName] = useState(readGifterNames);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(draft?.message ?? '');
   const [copied, setCopied] = useState('');
   const [chosenMethod, setChosenMethod] = useState<PayMethod | null>(readPreferredPayMethod);
   const queryClient = useQueryClient();
@@ -55,7 +59,16 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
     onSettled: () => queryClient.invalidateQueries({ queryKey: listViewKey(slug) }),
   });
 
-  const { ref, onCancel, onClose: handleClose } = useModalDialog({ isPending, onClose });
+  useEffect(() => {
+    if (step === 'pay') saveDraft(slug, { itemId, amountText, message, idempotencyKey, savedAt: Date.now() });
+  }, [step, slug, itemId, amountText, message, idempotencyKey]);
+
+  function cancel() {
+    clearDraft(slug);
+    onClose();
+  }
+
+  const { ref, onCancel, onClose: handleClose } = useModalDialog({ isPending, onClose: cancel });
 
   const sent = !isIdle;
   const lockedHint = sent && 'contribute-locked';
@@ -70,7 +83,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
     const trimmedMessage = message.trim();
     mutate(
       { idempotencyKey, amountMinor: amount, name: name.trim(), ...(trimmedMessage && { message: trimmedMessage }) },
-      { onSuccess: (pledge) => onPledged(pledge.amountMinor) },
+      { onSuccess: (pledge) => { clearDraft(slug); onPledged(pledge.amountMinor); } },
     );
   }
 
@@ -96,7 +109,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           <p id="contribute-other-error" className="mb-4 text-sm text-error">{other.trim() && chosen === null ? invalidAmount : ''}</p>
           <div className="flex gap-2">
             <button type="button" disabled={chosen === null} onClick={() => { setAmountText((chosen! / 100).toFixed(2)); setStep('pay'); }} className="btn-primary">Continue</button>
-            <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
+            <button type="button" onClick={cancel} className="btn-secondary">Cancel</button>
           </div>
         </>
       ) : (
@@ -151,7 +164,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           <p role="alert" className="mb-4 text-error empty:mb-0">{error && actionErrorMessage(error, "Couldn't record your contribution.")}</p>
           <div className="flex gap-2">
             <button type="button" onClick={send} disabled={isPending || amount === null || !name.trim()} className="btn-primary">I&apos;ve sent it</button>
-            <button type="button" onClick={onClose} disabled={isPending} className="btn-secondary">Cancel</button>
+            <button type="button" onClick={cancel} disabled={isPending} className="btn-secondary">Cancel</button>
           </div>
         </>
       )}

@@ -258,6 +258,47 @@ describe('ListPage', () => {
     expect(screen.getByRole('button', { name: 'All · 1' })).toHaveFocus();
   });
 
+  describe('a chip-in the guest left to pay', () => {
+    const DRAFT_KEY = 'gubbins:contribute-draft:abc123';
+    const saveDraft = () => localStorage.setItem(DRAFT_KEY, JSON.stringify({ itemId: groupGift.id, amountText: '25.00', message: 'Enjoy!', idempotencyKey: 'saved-key', savedAt: Date.now() }));
+    const withGift = (items: ListViewResponse['items']): ListViewResponse => ({ ...view(false), items, payment: { venmoHandle: 'my-venmo', zelleHandle: null } });
+
+    it('reopens a chip-in the guest left for Venmo', async () => {
+      saveDraft();
+      server.use(http.get('/api/lists/abc123', () => HttpResponse.json(withGift([groupGift]))));
+      renderListPage();
+
+      expect(await screen.findByLabelText('Amount (USD)')).toHaveValue('25.00');
+      expect(screen.getByLabelText('Message to the owner (optional)')).toHaveValue('Enjoy!');
+      expect(screen.getByRole('link', { name: 'Pay $25.00 with Venmo' })).toBeInTheDocument();
+    });
+
+    it('starts a new chip-in afresh once the reopened one is cancelled', async () => {
+      saveDraft();
+      server.use(http.get('/api/lists/abc123', () => HttpResponse.json(withGift([groupGift]))));
+      const user = userEvent.setup();
+      renderListPage();
+      await screen.findByLabelText('Amount (USD)');
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+      await user.click(screen.getByRole('button', { name: 'Chip in' }));
+
+      expect(screen.getByLabelText('Another amount')).toHaveValue('');
+    });
+
+    it.each([
+      ['deleted', []],
+      ['fully funded', [{ ...groupGift, pledgedMinor: 50000 }]],
+    ] satisfies [string, ListViewResponse['items']][])('drops a draft for a gift that is %s', async (_, items) => {
+      saveDraft();
+      server.use(http.get('/api/lists/abc123', () => HttpResponse.json(withGift(items))));
+      renderListPage();
+
+      await screen.findByRole('heading', { level: 1, name: 'Baby Shower' });
+      await waitFor(() => expect(localStorage.getItem(DRAFT_KEY)).toBeNull());
+      expect(screen.queryByLabelText('Amount (USD)')).not.toBeInTheDocument();
+    });
+  });
+
   it('says "1 day" for a one-day hold', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), capabilities: { holdDurationDays: 1 } })));
     renderListPage();

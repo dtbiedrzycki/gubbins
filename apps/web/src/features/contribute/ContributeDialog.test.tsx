@@ -298,6 +298,55 @@ describe('ContributeDialog', () => {
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
   });
 
+  describe('a chip-in left to pay', () => {
+    const DRAFT_KEY = 'gubbins:contribute-draft:abc123';
+    const draft = { itemId: 'item-1', amountText: '25.00', message: 'Enjoy!', idempotencyKey: 'saved-key', savedAt: Date.now() };
+    const stored = () => JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null') as typeof draft | null;
+
+    it('saves the amount, message and pledge key while on the pay step', async () => {
+      const user = userEvent.setup();
+      renderDialog();
+      await continueWithTheRest(user);
+      await user.type(screen.getByLabelText('Message to the owner (optional)'), 'Enjoy!');
+
+      expect(stored()).toEqual({ itemId: 'item-1', amountText: '287.50', message: 'Enjoy!', idempotencyKey: expect.any(String), savedAt: expect.any(Number) });
+    });
+
+    it('sends the saved pledge key so a pledge already made is not doubled', async () => {
+      const bodies = pledgeEndpoint();
+      const user = userEvent.setup();
+      const { props } = renderDialog({ draft });
+      expect(screen.getByLabelText('Amount (USD)')).toHaveValue('25.00');
+      expect(screen.getByLabelText('Message to the owner (optional)')).toHaveValue('Enjoy!');
+      await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+      await user.click(screen.getByRole('button', { name: "I've sent it" }));
+
+      await vi.waitFor(() => expect(props.onPledged).toHaveBeenCalledWith(2500));
+      expect(bodies).toEqual([{ idempotencyKey: 'saved-key', amountMinor: 2500, name: 'Amara', message: 'Enjoy!' }]);
+    });
+
+    it('clears the draft on cancel', async () => {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      const user = userEvent.setup();
+      const { props } = renderDialog({ draft });
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+      expect(props.onClose).toHaveBeenCalled();
+      expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    });
+
+    it('clears the draft once the pledge is recorded', async () => {
+      pledgeEndpoint();
+      const user = userEvent.setup();
+      const { props } = renderDialog({ draft });
+      await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+      await user.click(screen.getByRole('button', { name: "I've sent it" }));
+
+      await vi.waitFor(() => expect(props.onPledged).toHaveBeenCalled());
+      expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    });
+  });
+
   it('tells the guest what to do when the server fails', async () => {
     server.use(http.post('/api/lists/:slug/items/:itemId/contributions', () => HttpResponse.json({ message: 'boom' }, { status: 500 })));
     const user = userEvent.setup();

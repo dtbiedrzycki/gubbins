@@ -12,6 +12,7 @@ import { ItemFilter, filterKey, type ItemFilterValue } from '../features/holds/I
 import { ClampedText } from '../lib/ClampedText';
 import { Markdown } from '../lib/Markdown';
 import { YourContributions } from '../features/holds/YourContributions';
+import { clearDraft, loadDraft } from '../features/contribute/contributeDraft';
 
 export default function ListPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -37,6 +38,13 @@ export default function ListPage() {
   // The ids are fixed when the guest picks a filter, so a gift that changes state stays shown (with any open dialog) until they pick again.
   const [filter, setFilter] = useState<{ value: ItemFilterValue; ids?: Set<string> }>({ value: 'all' });
   const title = useRef<HTMLHeadingElement>(null);
+  // A chip-in the guest left to pay, by this tab or another; read once, on arrival.
+  const [draft, setDraft] = useState(() => (slug ? loadDraft(slug, Date.now()) : null));
+  // Only a gift still on the list and taking pledges can be chipped in to.
+  const resumeDraft = query.isSuccess && draft && query.data.items.some((i) => i.id === draft.itemId && i.type === 'group' && filterKey(i) === 'available') ? draft : null;
+  useEffect(() => {
+    if (query.isSuccess && draft && !resumeDraft && slug) clearDraft(slug);
+  }, [query.isSuccess, draft, resumeDraft, slug]);
   if (!slug) return null;
 
   if (query.status === 'pending') {
@@ -134,6 +142,9 @@ export default function ListPage() {
                 payment={query.data.payment}
                 heldUnits={query.data.myHolds.filter((h) => h.itemId === item.id && h.status === 'active').reduce((sum, h) => sum + h.units, 0)}
                 chippedInMinor={query.data.myContributions.filter((c) => c.itemId === item.id).reduce((sum, c) => sum + c.amountMinor, 0)}
+                draft={resumeDraft?.itemId === item.id ? resumeDraft : undefined}
+                // Done with once its chip-in closes: the next one, or the gift shown again, starts afresh.
+                onChipInClosed={() => setDraft(null)}
               />
             </li>
           ))}
