@@ -3,6 +3,7 @@ import { useHoldCredential, type HoldCredential } from './useHoldCredential';
 import { LimitedInput } from '../../lib/LimitedField';
 import { Stepper } from '../../lib/Stepper';
 import { ApiError } from '../../api/client';
+import { actionErrorMessage } from '../../lib/actionErrorMessage';
 import { readGifterNames, writeGifterNames } from '../../lib/gifterNames';
 import { useModalDialog } from '../../lib/useModalDialog';
 
@@ -70,7 +71,7 @@ export function HoldDialog({ itemTitle, holdDurationDays, availableUnits, isPend
       <p id="hold-name-hint" className="text-sm text-muted">Include everyone the gift is from, e.g. Sam &amp; Alex Smith.</p>
       <p id="hold-name-privacy" className="mb-4 text-sm text-muted">Names are only shared with the list owner.</p>
       {locked && <p id="hold-details-locked" className="mb-4 text-sm text-muted">To change your details, cancel and start again.</p>}
-      <p role="alert" className="mb-4 text-error empty:mb-0">{tooFew ? `Only ${availableUnits} still wanted now.` : error?.message}</p>
+      <p role="alert" className="mb-4 text-error empty:mb-0">{tooFew ? `Only ${availableUnits} still wanted now.` : error && actionErrorMessage(error, `Couldn't hold ${itemTitle}.`)}</p>
       <div className="flex gap-2">
         <button type="button" onClick={() => { setSent(true); onConfirm(credential, { name: name.trim(), units }); }} disabled={isPending || !name.trim()} className="btn-primary">
           {isPending ? 'Holding…' : `Yes, hold ${units > 1 ? units : 'it'}`}

@@ -5,6 +5,7 @@ import { useHoldAction, type HoldAction } from './useHoldAction';
 import { formatExpiry } from './formatExpiry';
 import { PurchaseDialog } from './PurchaseDialog';
 import { ApiError, isNetworkFailure } from '../../api/client';
+import { actionErrorMessage } from '../../lib/actionErrorMessage';
 
 export interface HoldActionsProps {
   slug: string;
@@ -24,14 +25,6 @@ export interface HoldOutcome {
 const primary = 'btn-primary';
 const secondary = 'btn-secondary';
 
-// The API answers a generic 404 for an unknown hold, another session's hold
-// or a lapsed session alike; a reload shows which (the key gate, or the list).
-function failureMessage(error: Error): string {
-  return error instanceof ApiError && error.status === 404
-    ? "We couldn't find this hold. Reload the page to see your holds."
-    : error.message;
-}
-
 /**
  * The buttons one hold offers — exactly the server's `actions`, never
  * re-derived here, so the client cannot disagree with the rules it enforces.
@@ -40,7 +33,12 @@ function failureMessage(error: Error): string {
  * because a refetch can remove this hold, and these buttons with it.
  */
 export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldActionsProps) {
-  const failed = (action: HoldAction) => (error: Error) => onOutcome({ action, ok: false, message: failureMessage(error) });
+  const couldnt: Record<HoldAction, string> = {
+    extend: `Couldn't extend your hold on ${itemTitle}.`,
+    release: `Couldn't release your hold on ${itemTitle}.`,
+    purchase: `Couldn't mark ${itemTitle} as purchased.`,
+  };
+  const failed = (action: HoldAction) => (error: Error) => onOutcome({ action, ok: false, message: actionErrorMessage(error, couldnt[action]) });
   const extend = useHoldAction(slug, 'extend', {
     onSuccess: (view) => onOutcome({ action: 'extend', ok: true, message: `Hold extended until ${formatExpiry(view.expiresAt)}.` }),
     onError: failed('extend'),
@@ -99,7 +97,7 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
       ok: false,
       // A kept network failure says nothing about why the purchase went away.
       message: purchase.error && !isNetworkFailure(purchase.error)
-        ? failureMessage(purchase.error)
+        ? actionErrorMessage(purchase.error, couldnt.purchase)
         : `You can no longer mark ${itemTitle} as purchased. Reload to see if ${hold.units > 1 ? 'they are' : 'it is'} still available.`,
     });
   }
