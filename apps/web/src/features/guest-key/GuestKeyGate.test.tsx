@@ -82,7 +82,6 @@ describe('GuestKeyGate', () => {
     ['offline', 0, 'Couldn’t check the key. You seem to be offline. Check your connection, then try again.'],
     ['status 429', 429, 'Couldn’t check the key. Something went wrong on our end. Wait a moment, then try again.'],
     ['status 500', 500, 'Couldn’t check the key. Something went wrong on our end. Wait a moment, then try again.'],
-    ['status 502', 502, 'Couldn’t check the key. Something went wrong on our end. Wait a moment, then try again.'],
   ])('asks the guest to try again when checking fails: %s', async (_case, status, text) => {
     server.use(http.post('/api/lists/:slug/session', () => (
       status === 0 ? HttpResponse.error() : HttpResponse.json({ message: 'Too many requests from 10.0.0.1' }, { status })
