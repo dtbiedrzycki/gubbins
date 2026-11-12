@@ -79,11 +79,11 @@ describe('GuestKeyGate', () => {
   });
 
   it.each([
-    [0, 'Couldn’t check the key. You seem to be offline. Check your connection, then try again.'],
-    [429, 'Couldn’t check the key. Something went wrong on our end. Wait a moment, then try again.'],
-    [500, 'Couldn’t check the key. Something went wrong on our end. Wait a moment, then try again.'],
-    [502, 'Couldn’t check the key. Something went wrong on our end. Wait a moment, then try again.'],
-  ])('asks the guest to try again when checking fails with %i', async (status, text) => {
+    ['offline', 0, 'Couldn’t check the key. You seem to be offline. Check your connection, then try again.'],
+    ['status 429', 429, 'Couldn’t check the key. Something went wrong on our end. Wait a moment, then try again.'],
+    ['status 500', 500, 'Couldn’t check the key. Something went wrong on our end. Wait a moment, then try again.'],
+    ['status 502', 502, 'Couldn’t check the key. Something went wrong on our end. Wait a moment, then try again.'],
+  ])('asks the guest to try again when checking fails: %s', async (_case, status, text) => {
     server.use(http.post('/api/lists/:slug/session', () => (
       status === 0 ? HttpResponse.error() : HttpResponse.json({ message: 'Too many requests from 10.0.0.1' }, { status })
     )));
@@ -119,7 +119,7 @@ describe('GuestKeyGate', () => {
     }));
     const onSuccess = vi.fn(async () => {});
     renderWithQueryClient(
-      <StrictMode><GuestKeyGate slug="abc123" onSuccess={onSuccess} initialKey="maple-lantern-otter" autoSubmit /></StrictMode>,
+      <StrictMode><GuestKeyGate slug="abc123" onSuccess={onSuccess} linkKey="maple-lantern-otter" /></StrictMode>,
     );
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
