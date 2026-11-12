@@ -509,7 +509,7 @@ describe('YourContributions', () => {
   it.each([
     ['refusal', mock('post', '/api/lists/{slug}/holds/{holdId}/purchase', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }), 'This hold is no longer active.'],
     ['server error', http.post('/api/lists/:slug/holds/:holdId/purchase', () => HttpResponse.json({ message: 'Internal error' }, { status: 500 })), "Couldn’t mark Stroller as purchased. Something went wrong on our end. Wait a moment, then try again."],
-  ])('closes the purchase sheet on a %s for a hold the refetch removes, and shows why beside the sheet\'s heading', async (_, failure, why) => {
+  ])('closes the purchase sheet on a %s for a hold the refetch removes, and shows why under the Your contributions heading', async (_, failure, why) => {
     // Released in another tab while the sheet was open, so the refetch drops it.
     listViews(list([{ ...active, units: 2, purchasableUnits: 2 }], [pledge]), list([], [pledge]));
     server.use(failure);
@@ -524,7 +524,7 @@ describe('YourContributions', () => {
     expect(within(region).getByRole('heading', { name: 'Your contributions' })).toHaveFocus();
   });
 
-  it('closes the purchase sheet when the refusal leaves nothing to buy, and shows why beside the sheet\'s heading', async () => {
+  it('closes the purchase sheet when the refusal leaves nothing to buy, and shows why under the Your contributions heading', async () => {
     const expired: HoldView = { ...expiredBuyable, units: 3, purchasableUnits: 3 };
     const lapsed: HoldView = { ...expired, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false } };
     // Another guest then releases a unit, so the hold can be bought again.
