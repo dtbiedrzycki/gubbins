@@ -13,6 +13,12 @@ function renderDialog(overrides: Partial<PurchaseDialogProps> = {}) {
 }
 
 describe('PurchaseDialog', () => {
+  it('tells the guest a server failure was on our end, led by what could not be done', () => {
+    renderDialog({ error: new ApiError(500, 'Internal server error') });
+
+    expect(screen.getByRole('alert')).toHaveTextContent("Couldn’t mark Stroller as purchased. Something went wrong on our end.");
+  });
+
   it('hands focus back to the confirm button when a refusal lands and keeps the sheet open', () => {
     const networkFailure = new ApiError(0, "Couldn't reach the server. Check your connection and try again.");
     const { props, rerender } = renderDialog({ units: 1, purchasableUnits: 1, isPending: true });

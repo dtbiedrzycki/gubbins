@@ -135,10 +135,16 @@ describe('HoldDialog', () => {
     const alert = screen.getByRole('alert');
     expect(alert).toBeEmptyDOMElement();
 
-    rerender(<HoldDialog {...props} error={new Error('This item is no longer available.')} />);
+    rerender(<HoldDialog {...props} error={new ApiError(409, 'This item is no longer available.')} />);
 
     expect(screen.getByRole('alert')).toBe(alert);
     expect(alert).toHaveTextContent('This item is no longer available.');
+  });
+
+  it('tells the guest a server failure was on our end, led by what could not be done', () => {
+    renderDialog({ error: new ApiError(500, 'Internal server error') });
+
+    expect(screen.getByRole('alert')).toHaveTextContent("Couldn’t hold Stroller. Something went wrong on our end.");
   });
 
   it('holds 2 of 2 units, no more, and says "Yes, hold 2"', async () => {
