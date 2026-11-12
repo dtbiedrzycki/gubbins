@@ -127,8 +127,11 @@ describe('request timeout', () => {
     vi.useFakeTimers();
     server.use(http.get('/api/instance', () => new Promise(() => {})));
 
-    const result = api.getInstance().catch((e: unknown) => e);
-    await vi.advanceTimersByTimeAsync(15_000);
+    let settled = false;
+    const result = api.getInstance().catch((e: unknown) => e).finally(() => { settled = true; });
+    await vi.advanceTimersByTimeAsync(14_999);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
 
     expect(await result).toMatchObject({ status: 0 });
     expect(await result).toBeInstanceOf(ApiError);
