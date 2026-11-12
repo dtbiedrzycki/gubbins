@@ -119,7 +119,7 @@ describe('GuestKeyGate', () => {
     }));
     const onSuccess = vi.fn(async () => {});
     renderWithQueryClient(
-      <StrictMode><GuestKeyGate slug="abc123" onSuccess={onSuccess} initialKey="maple-lantern-otter" autoSubmit /></StrictMode>,
+      <StrictMode><GuestKeyGate slug="abc123" onSuccess={onSuccess} linkKey="maple-lantern-otter" /></StrictMode>,
     );
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
