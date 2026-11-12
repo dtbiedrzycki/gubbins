@@ -297,4 +297,15 @@ describe('ContributeDialog', () => {
     }
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
   });
+
+  it('tells the guest what to do when the server fails', async () => {
+    server.use(http.post('/api/lists/:slug/items/:itemId/contributions', () => HttpResponse.json({ message: 'boom' }, { status: 500 })));
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: "I've sent it" }));
+
+    await vi.waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/^Couldn't record your contribution\. Something went wrong on our end\./));
+  });
 });
