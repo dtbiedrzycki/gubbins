@@ -355,6 +355,6 @@ describe('ContributeDialog', () => {
     await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: "I've sent it" }));
 
-    await vi.waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/^Couldn't record your contribution\. Something went wrong on our end\./));
+    await vi.waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/^Couldn’t record your contribution\. Something went wrong on our end\./));
   });
 });

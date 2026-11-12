@@ -161,7 +161,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           <label className="mb-1 block" htmlFor="contribute-message">Message to the owner (optional)</label>
           <LimitedTextarea id="contribute-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} readOnly={sent} describedBy={[lockedHint]} className="field mb-4" />
           {sent && <p id="contribute-locked" className="mb-4 text-sm text-muted">To change your details, cancel and start again.</p>}
-          <p role="alert" className="mb-4 text-error empty:mb-0">{error && actionErrorMessage(error, "Couldn't record your contribution.")}</p>
+          <p role="alert" className="mb-4 text-error empty:mb-0">{error && actionErrorMessage(error, "Couldn’t record your contribution.")}</p>
           <div className="flex gap-2">
             <button type="button" onClick={send} disabled={isPending || amount === null || !name.trim()} className="btn-primary">I&apos;ve sent it</button>
             <button type="button" onClick={cancel} disabled={isPending} className="btn-secondary">Cancel</button>
