@@ -70,8 +70,7 @@ export default function ListPage() {
         <GuestKeyGate
           slug={slug}
           onSuccess={() => { setLinkKey(null); return query.refetch(); }}
-          initialKey={linkKey ?? undefined}
-          autoSubmit={linkKey !== null}
+          linkKey={linkKey ?? undefined}
         />
       </main>
     );

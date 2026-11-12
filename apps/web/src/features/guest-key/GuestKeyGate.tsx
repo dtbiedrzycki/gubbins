@@ -15,23 +15,22 @@ function keyErrorMessage(error: Error): string {
 export interface GuestKeyGateProps {
   slug: string;
   onSuccess: () => Promise<unknown>;
-  initialKey?: string;
-  /** Sends `initialKey` on mount, showing "Loading…" rather than the form until that first try settles. */
-  autoSubmit?: boolean;
+  /** The invite link's key: fills the input and is sent on mount, showing "Loading…" rather than the form until that first try settles. */
+  linkKey?: string;
 }
 
-export function GuestKeyGate({ slug, onSuccess, initialKey = '', autoSubmit = false }: GuestKeyGateProps) {
-  const [key, setKey] = useState(initialKey);
+export function GuestKeyGate({ slug, onSuccess, linkKey }: GuestKeyGateProps) {
+  const [key, setKey] = useState(linkKey ?? '');
   const { mutate, error, isPending, opening } = useEnterGuestKey(slug, onSuccess);
-  const [autoSubmitting, setAutoSubmitting] = useState(autoSubmit);
+  const [autoSubmitting, setAutoSubmitting] = useState(linkKey !== undefined);
   // Strict mode runs effects twice; the key goes once.
   const autoSubmitted = useRef(false);
 
   useEffect(() => {
-    if (!autoSubmit || autoSubmitted.current) return;
+    if (linkKey === undefined || autoSubmitted.current) return;
     autoSubmitted.current = true;
-    mutate({ key: initialKey.trim() }, { onSettled: () => setAutoSubmitting(false) });
-  }, [autoSubmit, initialKey, mutate]);
+    mutate({ key: linkKey.trim() }, { onSettled: () => setAutoSubmitting(false) });
+  }, [linkKey, mutate]);
 
   if (autoSubmitting) return <>Loading…</>;
 
