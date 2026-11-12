@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ManageViewResponse } from '@gubbins/shared-types';
 import { api, ApiError, type MoveTarget } from '../../api/client';
 import { formatMoney } from '../../lib/formatMoney';
-import { actionErrorMessage } from './actionErrorMessage';
+import { actionErrorMessage } from '../../lib/actionErrorMessage';
 import { manageViewKey } from './manageViewKey';
 import { EditItemForm } from './EditItemForm';
 import { MoveItemButtons } from './MoveItemButtons';

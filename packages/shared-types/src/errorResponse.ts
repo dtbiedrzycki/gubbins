@@ -14,3 +14,6 @@ export const errorResponseSchema = z.object({
   issues: z.array(z.unknown()).optional(),
 });
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
+
+/** The message of a 400 that has no domain wording; the web treats it as a fault on our end. */
+export const INVALID_REQUEST_MESSAGE = 'Invalid request';

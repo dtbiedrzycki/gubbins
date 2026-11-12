@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { EditItemRequest, ManageViewResponse } from '@gubbins/shared-types';
 import { api, ApiError } from '../../api/client';
-import { actionErrorMessage } from './actionErrorMessage';
+import { actionErrorMessage } from '../../lib/actionErrorMessage';
 import { manageViewKey } from './manageViewKey';
 import { parseUsd } from '../../lib/parseUsd';
 import { formatMoney } from '../../lib/formatMoney';
