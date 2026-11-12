@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import type { FastifyRequest } from 'fastify';
-import { accessContextFor, OWNER_COOKIE, readOwnerSession, readSignedSession, SESSION_COOKIE } from './accessContext.js';
+import { accessContextFor, guestSessionCookieOptions, OWNER_COOKIE, readOwnerSession, readSignedSession, SESSION_COOKIE } from './accessContext.js';
 import { HasherSha256 } from '../infrastructure/HasherSha256.js';
 
 const list = { id: '11111111-1111-7111-8111-111111111111', keyGen: 1 };
@@ -79,5 +79,11 @@ describe('accessContextFor — the one place a session becomes credentials', () 
 
   it('ignores an owner cookie for another list', () => {
     expect(accessContextFor({ guest: null, owner: { wishlistId: 'other' } }, list, new HasherSha256()).owner).toBe(false);
+  });
+});
+
+describe('guestSessionCookieOptions', () => {
+  it('keeps the guest cookie 40 days when holds last 20 days, so it outlasts a hold plus its one extension', () => {
+    expect(guestSessionCookieOptions('abc123', { durationDays: 20 }).maxAge).toBe(40 * 24 * 60 * 60);
   });
 });

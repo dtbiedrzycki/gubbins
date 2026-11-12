@@ -58,7 +58,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     if (!wishlist) return null;
     const access = accessContextFor({ guest: session, owner: null }, { id: wishlist.id.value, keyGen: wishlist.keyGen }, deps.hasher);
     if (!access.guestSession) return null;
-    reply.setCookie(SESSION_COOKIE, JSON.stringify(session), guestSessionCookieOptions(slug));
+    reply.setCookie(SESSION_COOKIE, JSON.stringify(session), guestSessionCookieOptions(slug, deps.holdPolicy));
     return { wishlist, access };
   }
 
@@ -116,7 +116,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     try {
       const result = await deps.enterGuestKey.execute({ slug, key: request.body.key });
       const payload: SessionPayload = { wishlistId: result.wishlistId, keyGen: result.keyGen, sessionId: result.sessionId };
-      reply.setCookie(SESSION_COOKIE, JSON.stringify(payload), guestSessionCookieOptions(slug));
+      reply.setCookie(SESSION_COOKIE, JSON.stringify(payload), guestSessionCookieOptions(slug, deps.holdPolicy));
       return reply.code(200).send({ ok: true });
     } catch (err) {
       // Same generic response for "no such list" and "wrong key" —
