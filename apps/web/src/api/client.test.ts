@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '../test/msw/server';
 import { mock } from '../test/msw/mock';
@@ -117,5 +117,20 @@ describe('network failures', () => {
 
     await expect(api.getListView('abc123'))
       .rejects.toMatchObject({ status: 0, message: "Couldn't reach the server. Check your connection and try again." });
+  });
+});
+
+describe('request timeout', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('gives up on a request after 15 seconds', async () => {
+    vi.useFakeTimers();
+    server.use(http.get('/api/instance', () => new Promise(() => {})));
+
+    const result = api.getInstance().catch((e: unknown) => e);
+    await vi.advanceTimersByTimeAsync(15_000);
+
+    expect(await result).toMatchObject({ status: 0 });
+    expect(await result).toBeInstanceOf(ApiError);
   });
 });
