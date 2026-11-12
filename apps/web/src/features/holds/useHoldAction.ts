@@ -22,11 +22,13 @@ const call: { [A in HoldAction]: (slug: string, input: HoldActionInputs[A]) => P
  * One action on one hold. Settles by refetching the list view: after a
  * success the item's status changed, and after a 409 the page was stale —
  * the hold lapsed, or another tab acted — so the refetch is what shows the
- * guest the real state. Stays pending until that refetch lands, like
- * useHoldItem. A refusal is reported after that refetch, with this hold as it
- * now stands (undefined once it has left the list), so the caller can tell a
- * repeat of an action that already worked from a real refusal. A request that
- * got no answer is reported at once, with the hold as cached.
+ * guest the real state. After a success or an answered refusal it stays
+ * pending until that refetch lands, like useHoldItem: a refusal is reported
+ * with this hold as it now stands (undefined once it has left the list), so
+ * the caller can tell a repeat of an action that already worked from a real
+ * refusal. After a request that got no answer it does not wait: the refetch
+ * would most likely hang on the same network, so the failure is reported at
+ * once with the hold as cached, and the refetch finishes in the background.
  *
  * `onSuccess` and `onError` are hook-level options rather than `mutate`
  * callbacks on purpose: a released hold drops out of the refetched list and
