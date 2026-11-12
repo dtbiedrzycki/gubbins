@@ -1,19 +1,29 @@
 import type { FormEvent } from 'react';
 import { useState } from 'react';
+import { ApiError, isNetworkFailure } from '../../api/client';
+import { actionErrorMessage, ourEndMessage } from '../../lib/actionErrorMessage';
 import { useEnterGuestKey } from './useEnterGuestKey';
+
+const COULDNT_CHECK = 'Couldn’t check the key.';
+
+// Only a 404 blames the list or key (ADR-016/054); any other status, whatever the server said, is not the key's fault.
+function keyErrorMessage(error: Error): string {
+  if (error instanceof ApiError && error.status === 404) return 'This list could not be found.';
+  return isNetworkFailure(error) ? actionErrorMessage(error, COULDNT_CHECK) : ourEndMessage(COULDNT_CHECK);
+}
 
 export interface GuestKeyGateProps {
   slug: string;
-  onSuccess: () => void;
+  onSuccess: () => Promise<unknown>;
 }
 
 export function GuestKeyGate({ slug, onSuccess }: GuestKeyGateProps) {
   const [key, setKey] = useState('');
-  const { mutate, error, isPending } = useEnterGuestKey(slug);
+  const { mutate, error, isPending, opening } = useEnterGuestKey(slug, onSuccess);
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    mutate({ key: key.trim() }, { onSuccess });
+    mutate({ key: key.trim() });
   }
 
   return (
@@ -42,10 +52,9 @@ export function GuestKeyGate({ slug, onSuccess }: GuestKeyGateProps) {
           />
           <p id="guest-key-hint" className="mt-1.5 text-sm text-muted">The list owner sent it with your invite: three words joined by dashes.</p>
         </div>
-        {/* Deliberately generic regardless of the underlying reason — ADR-016/054: no distinguishing "wrong key" from "no such list." */}
-        <p role="alert" className="text-error empty:mb-0">{error ? 'This list could not be found.' : ''}</p>
+        <p role="alert" className="text-error empty:mb-0">{error ? keyErrorMessage(error) : ''}</p>
         <button type="submit" disabled={isPending} className="btn-primary w-full">
-          {isPending ? 'Checking…' : 'View list'}
+          {opening ? 'Opening…' : isPending ? 'Checking…' : 'View list'}
         </button>
       </form>
     </div>

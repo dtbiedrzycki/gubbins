@@ -62,10 +62,10 @@ describe('GuestKeyGate', () => {
     expect(body).toEqual({ key: 'correct-key' });
   });
 
-  it('shows the same generic not-found message on a wrong key as on any other failure', async () => {
+  it('says the list could not be found when the key is refused', async () => {
     server.use(mock('post', '/api/lists/{slug}/session', 404, { message: 'Not found' }));
     const user = userEvent.setup();
-    renderWithQueryClient(<GuestKeyGate slug="abc123" onSuccess={() => {}} />);
+    renderWithQueryClient(<GuestKeyGate slug="abc123" onSuccess={async () => {}} />);
 
     // Screen readers miss a live region that arrives already holding its text.
     const alert = screen.getByRole('alert');
@@ -76,5 +76,37 @@ describe('GuestKeyGate', () => {
 
     await waitFor(() => expect(alert).toHaveTextContent('This list could not be found.'));
     expect(screen.getByRole('alert')).toBe(alert);
+  });
+
+  it.each([
+    ['offline', 0, 'Couldn’t check the key. You seem to be offline. Check your connection, then try again.'],
+    ['status 429', 429, 'Couldn’t check the key. Something went wrong on our end. Wait a moment, then try again.'],
+    ['status 500', 500, 'Couldn’t check the key. Something went wrong on our end. Wait a moment, then try again.'],
+  ])('asks the guest to try again when checking fails: %s', async (_case, status, text) => {
+    server.use(http.post('/api/lists/:slug/session', () => (
+      status === 0 ? HttpResponse.error() : HttpResponse.json({ message: 'Too many requests from 10.0.0.1' }, { status })
+    )));
+    const user = userEvent.setup();
+    renderWithQueryClient(<GuestKeyGate slug="abc123" onSuccess={async () => {}} />);
+
+    await user.type(screen.getByLabelText('Guest key'), 'some-key');
+    await user.click(screen.getByRole('button', { name: 'View list' }));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(text));
+  });
+
+  it('keeps the button busy until the list has loaded', async () => {
+    server.use(mock('post', '/api/lists/{slug}/session', 200, { ok: true }));
+    let finish!: () => void;
+    const onSuccess = vi.fn(() => new Promise<void>((resolve) => { finish = resolve; }));
+    const user = userEvent.setup();
+    renderWithQueryClient(<GuestKeyGate slug="abc123" onSuccess={onSuccess} />);
+
+    await user.type(screen.getByLabelText('Guest key'), 'correct-key');
+    await user.click(screen.getByRole('button', { name: 'View list' }));
+
+    expect(await screen.findByRole('button', { name: 'Opening…' })).toBeDisabled();
+    finish();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'View list' })).toBeEnabled());
   });
 });
