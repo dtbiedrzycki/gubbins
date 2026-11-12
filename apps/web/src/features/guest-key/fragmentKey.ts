@@ -5,5 +5,5 @@ export function readFragmentKey(hash: string): { key: string | null; rest: strin
   params.delete('key');
   const rest = params.toString();
   // URLSearchParams never throws: bad percent-encoding decodes to U+FFFD, which no real key contains.
-  return { key: key && !key.includes('�') ? key : null, rest: rest && `#${rest}` };
+  return { key: key && !key.includes('\uFFFD') ? key : null, rest: rest && `#${rest}` };
 }
