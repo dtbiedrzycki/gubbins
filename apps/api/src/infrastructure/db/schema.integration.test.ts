@@ -30,6 +30,16 @@ function holdRow(overrides: Partial<Insertable<HoldsTable>> = {}): Insertable<Ho
   };
 }
 
+describe('0003 items index', () => {
+  it('indexes items by list and position', async () => {
+    const indexes = (await sql<{ name: string }>`select name from pragma_index_list('items')`.execute(db)).rows.map((r) => r.name);
+    expect(indexes).toContain('items_wishlist_position');
+
+    const columns = (await sql<{ name: string }>`select name from pragma_index_info('items_wishlist_position') order by seqno`.execute(db)).rows.map((r) => r.name);
+    expect(columns).toEqual(['wishlist_id', 'position']);
+  });
+});
+
 describe('0001_init schema', () => {
   it("stores a hold's lifecycle timestamps, each null until set", async () => {
     await db.insertInto('holds').values(holdRow()).execute();
@@ -119,7 +129,7 @@ describe('migrateToLatest on a database an older build created', () => {
     await migrateToLatest(released);
 
     expect(await released.selectFrom('wishlists').select(['id', 'slug']).execute()).toEqual([{ id: W1, slug: 's' }]);
-    expect((await sql`select name from kysely_migration`.execute(released)).rows).toEqual([{ name: '0001_init' }, { name: '0002_item_positions' }]);
+    expect((await sql`select name from kysely_migration`.execute(released)).rows).toEqual([{ name: '0001_init' }, { name: '0002_item_positions' }, { name: '0003_items_wishlist_index' }]);
     await released.destroy();
   });
 
