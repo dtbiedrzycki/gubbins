@@ -20,7 +20,7 @@ export default function PrivacyPage() {
       <section className="space-y-2">
         <h2 className="text-2xl font-semibold">Cookies</h2>
         <p>
-          Guests get a cookie when they enter the guest key. It lets you see the list and remembers your holds,
+          Guests get a cookie when they open the invite link or enter the guest key. It lets you see the list and remembers your holds,
           and it lasts 30 days from your last visit. List owners get a separate cookie that keeps them signed in until the browser
           closes. Your browser also remembers, on this device only, the gifter names you last gave, whether you
           last chose Venmo or Zelle, whether you dismissed “How holding a gift works”, and whether you
