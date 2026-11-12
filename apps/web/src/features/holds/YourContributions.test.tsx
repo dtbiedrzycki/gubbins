@@ -176,7 +176,7 @@ describe('YourContributions', () => {
     await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
 
     await waitFor(() => expect(within(region).getByRole('alert'))
-      .toHaveTextContent("Couldn't extend your hold on Stroller. Reload the page to see the list as it is now."));
+      .toHaveTextContent("Couldn’t extend your hold on Stroller. Reload the page to see the list as it is now."));
   });
 
   it('reports an extension that already went through as extended', async () => {
@@ -466,7 +466,7 @@ describe('YourContributions', () => {
 
   it.each([
     ['refusal', mock('post', '/api/lists/{slug}/holds/{holdId}/purchase', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }), 'This hold is no longer active.'],
-    ['server error', http.post('/api/lists/:slug/holds/:holdId/purchase', () => HttpResponse.json({ message: 'Internal error' }, { status: 500 })), "Couldn't mark Stroller as purchased. Something went wrong on our end. Wait a moment, then try again."],
+    ['server error', http.post('/api/lists/:slug/holds/:holdId/purchase', () => HttpResponse.json({ message: 'Internal error' }, { status: 500 })), "Couldn’t mark Stroller as purchased. Something went wrong on our end. Wait a moment, then try again."],
   ])('closes the purchase sheet on a %s for a hold the refetch removes, and shows why beside the sheet\'s heading', async (_, failure, why) => {
     // Released in another tab while the sheet was open, so the refetch drops it.
     listViews(list([{ ...active, units: 2, purchasableUnits: 2 }], [pledge]), list([], [pledge]));
@@ -590,7 +590,7 @@ describe('YourContributions', () => {
 
     await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
     await user.click(within(within(region).getByRole('dialog')).getByRole('button', { name: 'Mark as purchased' }));
-    await waitFor(() => expect(within(within(region).getByRole('dialog')).getByRole('alert')).toHaveTextContent(/^Couldn't mark Stroller as purchased\. /));
+    await waitFor(() => expect(within(within(region).getByRole('dialog')).getByRole('alert')).toHaveTextContent(/^Couldn’t mark Stroller as purchased\. /));
     await client.invalidateQueries({ queryKey: listViewKey('abc123') });
 
     await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent('You can no longer mark Stroller as purchased. Reload to see if it is still available.'));
