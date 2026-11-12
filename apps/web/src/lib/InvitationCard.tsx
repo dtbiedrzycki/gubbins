@@ -1,4 +1,4 @@
-import { listPath } from './links';
+import { invitePath } from './links';
 import { CopyButton } from './CopyButton';
 
 export interface InvitationCardProps {
@@ -8,19 +8,15 @@ export interface InvitationCardProps {
   linked?: boolean;
 }
 
-/** What the host hands out: the guest key and the guest link, each with a copy button. */
+/** What the host hands out: one guest link, with the key in its fragment, and a copy button. */
 export function InvitationCard({ guestKey, slug, linked = false }: InvitationCardProps) {
-  const guestLink = window.location.origin + listPath(slug);
+  const guestLink = window.location.origin + invitePath(slug, guestKey);
   return (
     <div className="invite">
-      <p className="text-center font-display text-[1.05rem] italic text-muted">Guests open the list with</p>
-      <p id="invite-key" data-testid="guest-key" className="text-center text-[1.75rem] leading-tight font-bold wrap-anywhere">{guestKey}</p>
-      <div className="flex flex-wrap justify-center gap-2 justify-self-center text-center">
-        <CopyButton text={guestKey} noun="key" selectTargetId="invite-key" />
-      </div>
-      <div className="flex flex-wrap items-center gap-2.5 border-t-[1.5px] border-dashed border-line pt-3.5">
+      <p className="text-center font-display text-[1.05rem] italic text-muted">Send guests this link</p>
+      <div className="flex flex-wrap items-center gap-2.5">
         {linked
-          ? <a id="invite-link" data-testid="guest-link" href={listPath(slug)} className="min-w-0 flex-1 text-[0.95rem] text-moss underline wrap-anywhere">{guestLink}</a>
+          ? <a id="invite-link" data-testid="guest-link" href={invitePath(slug, guestKey)} className="min-w-0 flex-1 text-[0.95rem] text-moss underline wrap-anywhere">{guestLink}</a>
           : <p id="invite-link" className="min-w-0 flex-1 text-[0.95rem] text-moss wrap-anywhere">{guestLink}</p>}
         <CopyButton text={guestLink} noun="link" selectTargetId="invite-link" />
       </div>
