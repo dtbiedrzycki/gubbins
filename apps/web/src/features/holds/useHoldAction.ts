@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { HoldView } from '@gubbins/shared-types';
+import type { HoldView, ListViewResponse } from '@gubbins/shared-types';
 import { api } from '../../api/client';
 import { listViewKey } from './useListView';
 
@@ -23,7 +23,9 @@ const call: { [A in HoldAction]: (slug: string, input: HoldActionInputs[A]) => P
  * success the item's status changed, and after a 409 the page was stale —
  * the hold lapsed, or another tab acted — so the refetch is what shows the
  * guest the real state. Stays pending until that refetch lands, like
- * useHoldItem.
+ * useHoldItem. A failure is reported after that refetch, with this hold as it
+ * now stands (undefined once it has left the list), so the caller can tell a
+ * repeat of an action that already worked from a real refusal.
  *
  * `onSuccess` and `onError` are hook-level options rather than `mutate`
  * callbacks on purpose: a released hold drops out of the refetched list and
@@ -33,13 +35,19 @@ const call: { [A in HoldAction]: (slug: string, input: HoldActionInputs[A]) => P
 export function useHoldAction<A extends HoldAction>(
   slug: string,
   action: A,
-  { onSuccess, onError }: { onSuccess?: (view: HoldView) => void; onError?: (error: Error) => void } = {},
+  { onSuccess, onError }: { onSuccess?: (view: HoldView) => void; onError?: (error: Error, refetched: HoldView | undefined) => void } = {},
 ) {
   const queryClient = useQueryClient();
+  const refetch = () => queryClient.invalidateQueries({ queryKey: listViewKey(slug) });
   return useMutation({
     mutationFn: (input: HoldActionInputs[A]) => call[action](slug, input),
-    onSuccess,
-    onError,
-    onSettled: () => queryClient.invalidateQueries({ queryKey: listViewKey(slug) }),
+    onSuccess: async (view) => {
+      onSuccess?.(view);
+      await refetch();
+    },
+    onError: async (error, { holdId }) => {
+      await refetch();
+      onError?.(error, queryClient.getQueryData<ListViewResponse>(listViewKey(slug))?.myHolds.find((hold) => hold.holdId === holdId));
+    },
   });
 }
