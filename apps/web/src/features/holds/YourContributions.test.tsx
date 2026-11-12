@@ -179,6 +179,75 @@ describe('YourContributions', () => {
       .toHaveTextContent("Couldn’t extend your hold on Stroller. Reload the page to see the list as it is now."));
   });
 
+  it('reports an action that got no answer without waiting for the refetch', async () => {
+    let gets = 0;
+    server.use(
+      http.get('/api/lists/abc123', () => (++gets === 1 ? HttpResponse.json(list([active])) : new Promise<never>(() => {}))),
+      http.post('/api/lists/:slug/holds/:holdId/extend', () => HttpResponse.error()),
+    );
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
+
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent(/^Couldn’t extend your hold on Stroller\. /));
+    expect(gets).toBe(2);
+  });
+
+  it('reports an extension that already went through as extended', async () => {
+    // The first tap's answer was lost; the guest's second tap finds it already extended.
+    listViews(list([active]), list([extended]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 409, { message: 'This hold has already been extended.', code: 'hold_already_extended' }));
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
+
+    await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent(`Hold extended until ${formatExpiry(EXTENDED_EXPIRES)}.`));
+    expect(within(region).getByRole('alert')).toBeEmptyDOMElement();
+  });
+
+  it('still explains a refused extension when the refetch shows the hold was not extended', async () => {
+    listViews(list([active]), list([active]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 409, { message: 'This hold has already been extended.', code: 'hold_already_extended' }));
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
+
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent('This hold has already been extended.'));
+    expect(within(region).getByRole('status')).toBeEmptyDOMElement();
+  });
+
+  it.each([
+    ['409 hold_not_active', mock('post', '/api/lists/{slug}/holds/{holdId}/release', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' })],
+    ['404', mock('post', '/api/lists/{slug}/holds/{holdId}/release', 404, { message: 'Not found' })],
+  ])('reports a release that already went through as released after a %s', async (_, refusal) => {
+    listViews(list([active], [pledge]), list([], [pledge]));
+    server.use(refusal);
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: 'Release hold' }));
+    await user.click(within(region).getByRole('button', { name: 'Yes, release it' }));
+
+    await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Your hold on Stroller is released.'));
+    expect(within(region).getByRole('alert')).toBeEmptyDOMElement();
+  });
+
+  it('still explains a refused release when the refetch shows the hold is still there', async () => {
+    listViews(list([active]), list([expiredBuyable]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }));
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: 'Release hold' }));
+    await user.click(within(region).getByRole('button', { name: 'Yes, release it' }));
+
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent('This hold is no longer active.'));
+    expect(within(region).getByRole('status')).toBeEmptyDOMElement();
+  });
+
   it('clears the last announcement when the guest starts another action', async () => {
     listViews(list([active]), list([extended]), list([purchased]));
     let respond!: () => void;
@@ -397,22 +466,6 @@ describe('YourContributions', () => {
     expect(within(region).queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('keeps the typed message when the purchase is refused as unavailable', async () => {
-    const expired: HoldView = { ...expiredBuyable, units: 3, purchasableUnits: 3 };
-    listViews(list([expired]), list([{ ...expired, purchasableUnits: 1 }]));
-    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/purchase', 409, { message: 'This item is no longer available.', code: 'item_unavailable' }));
-    const user = userEvent.setup();
-    const region = await openYourContributions();
-
-    await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
-    await user.type(screen.getByLabelText('Message to the owner (optional)'), 'Congrats');
-    await user.click(screen.getByRole('button', { name: 'Mark 3 as purchased' }));
-
-    const sheet = screen.getByRole('dialog', { name: 'How many did you buy?' });
-    await waitFor(() => expect(within(sheet).getByRole('button', { name: 'Mark 1 as purchased' })).toBeEnabled());
-    expect(within(sheet).getByLabelText('Message to the owner (optional)')).toHaveValue('Congrats');
-  });
-
   it('says "Baby onesies: 1 marked as purchased. Thank you!"', async () => {
     const two: HoldView = { ...active, units: 2, purchasableUnits: 2 };
     const bought: HoldView = { ...purchased, units: 2, purchasedUnits: 1, purchasableUnits: 0 };
@@ -435,7 +488,7 @@ describe('YourContributions', () => {
     expect(within(region).getByRole('heading', { name: 'Baby onesies' })).toHaveFocus();
   });
 
-  it('after a refusal, keeps the purchase sheet open and caps it at the units still free', async () => {
+  it('after a refusal, keeps the purchase sheet open with the typed message and caps it at the units still free', async () => {
     const expired: HoldView = { ...expiredBuyable, units: 3, purchasableUnits: 3 };
     listViews(list([expired]), list([{ ...expired, purchasableUnits: 1 }]));
     server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/purchase', 409, { message: 'This item is no longer available.', code: 'item_unavailable' }));
@@ -443,30 +496,35 @@ describe('YourContributions', () => {
     const region = await openYourContributions();
 
     await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
+    await user.type(screen.getByLabelText('Message to the owner (optional)'), 'Congrats');
     await user.click(screen.getByRole('button', { name: 'Mark 3 as purchased' }));
 
     const sheet = screen.getByRole('dialog', { name: 'How many did you buy?' });
     await waitFor(() => expect(within(sheet).getByRole('button', { name: 'Mark 1 as purchased' })).toBeEnabled());
     expect(within(sheet).getByRole('alert')).toHaveTextContent('Only 1 is still free to mark as purchased.');
+    expect(within(sheet).getByLabelText('Message to the owner (optional)')).toHaveValue('Congrats');
     expect(sheet).toContainElement(document.activeElement as HTMLElement);
   });
 
-  it('closes the purchase sheet on a refusal for a hold the refetch removes, and shows why beside the sheet\'s heading', async () => {
+  it.each([
+    ['refusal', mock('post', '/api/lists/{slug}/holds/{holdId}/purchase', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }), 'This hold is no longer active.'],
+    ['server error', http.post('/api/lists/:slug/holds/:holdId/purchase', () => HttpResponse.json({ message: 'Internal error' }, { status: 500 })), "Couldn’t mark Stroller as purchased. Something went wrong on our end. Wait a moment, then try again."],
+  ])('closes the purchase sheet on a %s for a hold the refetch removes, and shows why under the Your contributions heading', async (_, failure, why) => {
     // Released in another tab while the sheet was open, so the refetch drops it.
     listViews(list([{ ...active, units: 2, purchasableUnits: 2 }], [pledge]), list([], [pledge]));
-    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/purchase', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }));
+    server.use(failure);
     const user = userEvent.setup();
     const region = await openYourContributions();
 
     await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
     await user.click(screen.getByRole('button', { name: 'Mark 2 as purchased' }));
 
-    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent('This hold is no longer active.'));
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent(why));
     expect(within(region).queryByRole('dialog')).not.toBeInTheDocument();
     expect(within(region).getByRole('heading', { name: 'Your contributions' })).toHaveFocus();
   });
 
-  it('closes the purchase sheet when the refusal leaves nothing to buy, and shows why beside the sheet\'s heading', async () => {
+  it('closes the purchase sheet when the refusal leaves nothing to buy, and shows why under the Your contributions heading', async () => {
     const expired: HoldView = { ...expiredBuyable, units: 3, purchasableUnits: 3 };
     const lapsed: HoldView = { ...expired, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false } };
     // Another guest then releases a unit, so the hold can be bought again.
@@ -511,20 +569,37 @@ describe('YourContributions', () => {
     expect(within(region).getByRole('heading', { name: 'Your contributions' })).toHaveFocus();
   });
 
-  it('keeps the purchase sheet open after a network failure, so a second tap can buy it', async () => {
-    listViews(list([expiredBuyable]), list([expiredBuyable]), list([purchased]));
-    let attempts = 0;
-    server.use(http.post('/api/lists/:slug/holds/:holdId/purchase', () => (++attempts === 1 ? HttpResponse.error() : HttpResponse.json(purchased))));
+  it('reports a purchase the server already has as purchased', async () => {
+    listViews(list([active]), list([purchased]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/purchase', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }));
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
+    await user.click(within(within(region).getByRole('dialog')).getByRole('button', { name: 'Mark as purchased' }));
+
+    await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Stroller is marked as purchased. Thank you!'));
+    expect(within(region).getByRole('alert')).toBeEmptyDOMElement();
+  });
+
+  it.each([
+    ['network failure', () => HttpResponse.error()],
+    ['server error', () => HttpResponse.json({ message: 'Internal error' }, { status: 500 })],
+    ['clash with no code', () => HttpResponse.json({ message: 'Someone else changed this hold. Try again.' }, { status: 409 })],
+  ])('keeps the purchase sheet and the typed message after a %s', async (_, respond) => {
+    listViews(list([active]));
+    server.use(http.post('/api/lists/:slug/holds/:holdId/purchase', respond));
     const user = userEvent.setup();
     const region = await openYourContributions();
 
     await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
     const sheet = within(region).getByRole('dialog');
-    await user.click(within(sheet).getByRole('button', { name: 'Mark as purchased' }));
-    await waitFor(() => expect(within(sheet).getByRole('alert')).toHaveTextContent(/^Couldn’t mark Stroller as purchased\. /));
+    await user.type(within(sheet).getByLabelText('Message to the owner (optional)'), 'Congrats');
     await user.click(within(sheet).getByRole('button', { name: 'Mark as purchased' }));
 
-    await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Stroller is marked as purchased. Thank you!'));
+    await waitFor(() => expect(within(sheet).getByRole('alert')).not.toBeEmptyDOMElement());
+    expect(within(sheet).getByRole('button', { name: 'Mark as purchased' })).toBeEnabled();
+    expect(within(sheet).getByLabelText('Message to the owner (optional)')).toHaveValue('Congrats');
   });
 
   it('thanks the guest when the refetch after a network failure shows the purchase went through', async () => {
@@ -541,12 +616,15 @@ describe('YourContributions', () => {
     expect(within(region).getByRole('alert')).toBeEmptyDOMElement();
   });
 
-  it('says to reload, not repeat a network failure, when a later refetch takes away the purchase', async () => {
+  it.each([
+    ['network failure', () => HttpResponse.error()],
+    ['server error', () => HttpResponse.json({ message: 'Internal error' }, { status: 500 })],
+  ])('says to reload, not repeat a %s, when a later refetch takes away the purchase', async (_, respond) => {
     const lapsed: HoldView = { ...expiredBuyable, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false } };
     // 1: the page loads; 2: the failed request's own refetch still offers the purchase;
     // 3: a later background refetch doesn't.
     listViews(list([expiredBuyable]), list([expiredBuyable]), list([lapsed]));
-    server.use(http.post('/api/lists/:slug/holds/:holdId/purchase', () => HttpResponse.error()));
+    server.use(http.post('/api/lists/:slug/holds/:holdId/purchase', respond));
     const user = userEvent.setup();
     const region = await openYourContributions();
 

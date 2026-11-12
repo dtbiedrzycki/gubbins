@@ -4,7 +4,7 @@ import type { HoldView } from '@gubbins/shared-types';
 import { useHoldAction, type HoldAction } from './useHoldAction';
 import { formatExpiry } from './formatExpiry';
 import { PurchaseDialog } from './PurchaseDialog';
-import { ApiError, isNetworkFailure } from '../../api/client';
+import { ApiError } from '../../api/client';
 import { actionErrorMessage } from '../../lib/actionErrorMessage';
 
 export interface HoldActionsProps {
@@ -21,6 +21,13 @@ export interface HoldOutcome {
   ok: boolean;
   message: string;
 }
+
+const refusedAs = (error: Error, code: string) => error instanceof ApiError && error.status === 409 && error.code === code;
+
+/** No answer, a failure on our end, a clash with no code, or fewer units free: trying again can work. */
+const canRetryPurchase = (error: Error) =>
+  !(error instanceof ApiError) || error.status === 0 || error.status >= 500
+  || (error.status === 409 && (!error.code || error.code === 'item_unavailable'));
 
 const primary = 'btn-primary';
 const secondary = 'btn-secondary';
@@ -39,13 +46,22 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
     purchase: `Couldn’t mark ${itemTitle} as purchased.`,
   };
   const failed = (action: HoldAction) => (error: Error) => onOutcome({ action, ok: false, message: actionErrorMessage(error, couldnt[action]) });
+  const extended = (view: HoldView) => onOutcome({ action: 'extend', ok: true, message: `Hold extended until ${formatExpiry(view.expiresAt)}.` });
+  const released = () => onOutcome({ action: 'release', ok: true, message: `Your hold on ${itemTitle} is released.` });
+  // A repeat of an action whose first answer was lost is refused; the refetched hold shows whether it worked.
   const extend = useHoldAction(slug, 'extend', {
-    onSuccess: (view) => onOutcome({ action: 'extend', ok: true, message: `Hold extended until ${formatExpiry(view.expiresAt)}.` }),
-    onError: failed('extend'),
+    onSuccess: extended,
+    onError: (error, refetched) => {
+      if (refusedAs(error, 'hold_already_extended') && refetched?.extendedAt) extended(refetched);
+      else failed('extend')(error);
+    },
   });
   const release = useHoldAction(slug, 'release', {
-    onSuccess: () => onOutcome({ action: 'release', ok: true, message: `Your hold on ${itemTitle} is released.` }),
-    onError: failed('release'),
+    onSuccess: released,
+    onError: (error, refetched) => {
+      if ((refusedAs(error, 'hold_not_active') || (error instanceof ApiError && error.status === 404)) && !refetched) released();
+      else failed('release')(error);
+    },
   });
   const [purchaseSheetOpen, setPurchaseSheetOpen] = useState(false);
   const purchaseButton = useRef<HTMLButtonElement>(null);
@@ -57,13 +73,16 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
       flushSync(() => setPurchaseSheetOpen(false));
       onOutcome({ action: 'purchase', ok: true, message: purchasedMessage(view.purchasedUnits) });
     },
-    // The sheet keeps a refusal it can retry: a network failure, or fewer units
-    // free (re-capped by the refetch). Any other can come with a refetch that
-    // removes this hold and the sheet with it, so it closes the sheet and goes up now.
-    onError: (error) => {
-      if (purchaseSheetOpen && (isNetworkFailure(error) || (error instanceof ApiError && error.code === 'item_unavailable'))) return;
+    // The sheet, with the typed message, stays for a failure the guest can
+    // retry: no answer, our end, a clash, or fewer units free (re-capped by the
+    // refetch). Any other, or a refetch that removed the hold and the sheet with
+    // it, closes it and goes up.
+    onError: (error, refetched) => {
+      if (purchaseSheetOpen && refetched && canRetryPurchase(error)) return;
       flushSync(() => setPurchaseSheetOpen(false));
-      failed('purchase')(error);
+      if (refusedAs(error, 'hold_not_active') && refetched?.status === 'purchased') {
+        onOutcome({ action: 'purchase', ok: true, message: purchasedMessage(refetched.purchasedUnits) });
+      } else failed('purchase')(error);
     },
   });
   const [confirmingRelease, setConfirmingRelease] = useState(false);
@@ -95,8 +114,8 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
     if (hold.status === 'purchased') setLostPurchase({ ok: true, message: purchasedMessage(hold.purchasedUnits) });
     else setLostPurchase({
       ok: false,
-      // A kept network failure says nothing about why the purchase went away.
-      message: purchase.error && !isNetworkFailure(purchase.error)
+      // Only an unavailable refusal explains why the purchase went away; any other kept failure doesn't.
+      message: purchase.error && refusedAs(purchase.error, 'item_unavailable')
         ? actionErrorMessage(purchase.error, couldnt.purchase)
         : `You can no longer mark ${itemTitle} as purchased. Reload to see if ${hold.units > 1 ? 'they are' : 'it is'} still available.`,
     });
