@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ApiError, isNetworkFailure } from '../../api/client';
 import { actionErrorMessage, ourEndMessage } from '../../lib/actionErrorMessage';
 import { useEnterGuestKey } from './useEnterGuestKey';
@@ -23,12 +23,9 @@ export function GuestKeyGate({ slug, onSuccess, linkKey }: GuestKeyGateProps) {
   const [key, setKey] = useState(linkKey ?? '');
   const { mutate, error, isPending, opening } = useEnterGuestKey(slug, onSuccess);
   const [autoSubmitting, setAutoSubmitting] = useState(linkKey !== undefined);
-  // Strict mode runs effects twice; the key goes once.
-  const autoSubmitted = useRef(false);
 
   useEffect(() => {
-    if (linkKey === undefined || autoSubmitted.current) return;
-    autoSubmitted.current = true;
+    if (linkKey === undefined) return;
     mutate({ key: linkKey.trim() }, { onSettled: () => setAutoSubmitting(false) });
   }, [linkKey, mutate]);
 
