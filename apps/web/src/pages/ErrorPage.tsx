@@ -41,7 +41,7 @@ export default function ErrorPage() {
       <main className="mx-auto w-full max-w-prose flex-1 space-y-5 p-6 pt-12">
         <h1 className="text-4xl font-semibold">Something went wrong.</h1>
         <p>Reloading the page usually fixes it.</p>
-        <button type="button" className="min-h-11 rounded bg-moss px-5 text-paper" onClick={reloadPage}>
+        <button type="button" className="btn-primary" onClick={reloadPage}>
           Reload
         </button>
       </main>
