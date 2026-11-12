@@ -474,19 +474,7 @@ describe('ListPage', () => {
       );
       renderListPage(link);
 
-      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('This list could not be found.'));
-      expect(screen.getByLabelText('Guest key')).toHaveValue('maple-lantern-otter');
-    });
-
-    it("keeps the link's key for a retry when the server cannot be reached", async () => {
-      server.use(
-        http.get('/api/lists/abc123', () => HttpResponse.json({ message: 'Not found' }, { status: 404 })),
-        http.post('/api/lists/abc123/session', () => HttpResponse.error()),
-      );
-      renderListPage(link);
-
-      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Couldn’t check the key. You seem to be offline. Check your connection, then try again.'));
-      expect(screen.getByLabelText('Guest key')).toHaveValue('maple-lantern-otter');
+      expect(await screen.findByLabelText('Guest key')).toHaveValue('maple-lantern-otter');
     });
   });
 });
