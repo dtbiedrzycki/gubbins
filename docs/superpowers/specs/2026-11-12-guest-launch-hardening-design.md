@@ -45,7 +45,7 @@ Success: a guest taps the email link and is on the list without typing anything;
 
 - Invite link shape: `https://<host>/wishlists/{slug}#key={key}`. The key is URL-encoded in the fragment.
 - On load of the list page, if the fragment has `key`:
-  1. Remove it from the address bar at once with `history.replaceState` (keep path and any other fragment content; there is none today).
+  1. Remove it from the address bar at once (replace the history entry through the router, so its location stays in step; keep path and any other fragment content; there is none today).
   2. If the guest already has a valid session for this list (the list view loads), ignore the fragment key.
   3. Otherwise POST it to `POST /api/lists/{slug}/session`, exactly as the key form does, and on success show the list.
   4. If that POST returns 404 (wrong or rotated key, or no such list), show the normal key screen with the fragment key **prefilled** and the usual "This list could not be found." message.
@@ -134,9 +134,9 @@ The sheet stays open, with the typed message and unit count, for: status 0, stat
 ### Chip-in survives Venmo
 
 - The guest may come back either way (owner, 2026-11-12): by switching back to the same tab, or by re-tapping the email link, which opens a new tab or in-app browser. So the draft goes in `localStorage`, keyed per list, not `sessionStorage`.
-- While the contribute dialog is open, save the draft: item id, step, amount text, message, the pledge's idempotency key, and when it was saved. Wrap every read and write in try/catch; without storage it behaves as today.
+- While the contribute dialog is on its pay step (the step that links to Venmo or Zelle), save the draft: item id, amount text, message, the pledge's idempotency key, and when it was saved. A guest who never reached that step has nothing to resume. Wrap every read and write in try/catch; without storage it behaves as today.
 - A draft older than **24 hours** is ignored and removed (my call). One draft per list; a new chip-in replaces it.
-- On loading the list page, if a draft exists for an item that is still on the list and still open for contributions, reopen the contribute dialog at the saved step with the saved values.
+- On loading the list page, if a draft exists for an item that is still on the list and still open for contributions, reopen the contribute dialog on its pay step with the saved values.
 - Clear the draft when the pledge succeeds (including a replay), when the guest cancels, or when the item is gone or closed to contributions.
 - If two tabs have the same list open, the one that loads the list last reopens the draft; finishing it in either tab clears it. No cross-tab syncing.
 - Reusing the saved idempotency key means a pledge that did go through before the tab was dropped is replayed, not doubled.

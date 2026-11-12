@@ -87,7 +87,7 @@ Retarget each stacked PR to `main` before its base branch is deleted. 10a and 10
 Mechanism (decided): scope by `path`. Every list route is under `/api/lists/:slug`, so names and readers stay as they are.
 
 - [ ] **Step 1: Failing integration tests** in `routes.integration.test.ts` (`app.inject` has no cookie jar, so only what the server sets is testable here; which cookie a browser sends is not):
-  - `it.each([['guest', '/session'], ['owner', '/owner-session']])('scopes the %s cookie to its list's API path')`: the `set-cookie` has `Path=/api/lists/<slug>`. Where it reads cleanly, fold the guest row into the existing "sets a session cookie for the correct key" instead.
+  - `it.each([['guest', '/session'], ['owner', '/owner-session']])('scopes the %s cookie to its list's API path')`: the `set-cookie` has `Path=/api/lists/<slug>`. Both rows stay in this `it.each`; the existing "sets a session cookie for the correct key" is left alone.
   - `it('renews the guest session cookie on every accepted request')`: `GET /api/lists/:slug` with a valid session → response has `set-cookie` for `gubbins_session` with `Max-Age=2592000` and `Path=/api/lists/<slug>`.
 - [ ] **Step 2:** Run the file → FAIL.
 - [ ] **Step 3: Implement**: use the new options in both `setCookie` calls; in `guestAccess`, after a valid access, `reply.setCookie(SESSION_COOKIE, <same payload>, guestSessionCookieOptions(slug))` — pass `reply` into `guestAccess` (change its signature to `(request, reply, slug)` and update its callers in `routes.ts`).
@@ -123,7 +123,7 @@ Mechanism (decided): scope by `path`. Every list route is under `/api/lists/:slu
 **Interfaces:** Produces `ErrorPage` (router `errorElement` on the layout route), `NotFoundPage` (`path: '*'`) and `reloadPage(): void` (`window.location.reload()` in its own module: jsdom's `location.reload` cannot be spied on, and a function in `ErrorPage`'s own module cannot be mocked for its internal call).
 
 - [ ] **Step 1: Failing tests**:
-  - API: `it('answers a missing asset with 404, not the app page')`: `GET /assets/nope.js` with `webDist` → 404; `GET /wishlists/x` → 200 HTML (existing).
+  - API: `it('answers a missing asset with 404, not the app page')`: `GET /assets/nope.js` with `webDist` → 404. (The SPA-fallback 200 is already asserted by "sends the content and referrer policies on API responses and the SPA fallback".)
   - Web `App.test.tsx`. Each test sets up the page with `vi.doMock('./pages/HomePage', …)` before `renderApp`'s fresh import, and `vi.doMock('./pages/reloadPage', () => ({ reloadPage: reload }))` with a `vi.fn()`; `sessionStorage` is cleared after each test. The failed chunk is simulated by the page component throwing the browser's `TypeError`: `ErrorPage` sees the same `useRouteError()` value either way, while a mock factory that throws reaches the router wrapped in vitest's own "error when mocking a module" error.
     - `it('shows a reload page when a page fails to render')`: the page throws `new Error('boom')` → heading "Something went wrong." and a "Reload" button; "boom" not shown; `reload` not called.
     - `it('shows a not-found page for an unknown address')`: `/nope` → link home.
