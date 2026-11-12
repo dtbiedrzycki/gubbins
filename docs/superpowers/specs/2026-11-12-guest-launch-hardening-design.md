@@ -82,7 +82,7 @@ Normalise first, then compare; no length check on the typed candidate (a spaced-
 
 - **Renewal:** every request that `guestAccess` accepts re-sets the guest session cookie with a fresh 30-day `maxAge` and the same payload. A guest who keeps visiting never loses their session; one who stays away for 30 days does (unchanged).
 - **One cookie per list:** a guest's session for list A is never replaced by entering list B's key. The same for the owner cookie. Builder's choice of mechanism (cookie `path` scoped to `/api/lists/{slug}`, or the list in the cookie name); either must keep `HttpOnly`, `Secure`, `SameSite=Strict`, signing, and the generic 404 for a missing or foreign session.
-- **Existing cookies:** production has no guests yet, so old `path: '/'` cookies need no migration; a stale one simply stops being accepted and the guest re-enters the key (or re-taps the link). The owner re-enters their token once after deploy. Say so in the PR description.
+- **Existing cookies:** old `path: '/'` cookies need no migration and keep working: the browser still sends them to `/api/lists/{slug}`, and they are still validly signed. A guest's old cookie is renewed as a path-scoped one, which the browser sends first from then on; an owner's lasts until the browser closes. Nobody re-enters the key or the token. Say so in the PR description.
 
 ### Network failures and timeouts (web)
 

@@ -61,8 +61,8 @@
   records it covers. *(ADR-[058](../adr/0058-guest-self-service-data-access-erasure-via-guestdataaccess.md))*
 - Owner token rotatable; rotation preserves all claim history
 - Creation flow includes an explicit **"save your owner token"**
-  acknowledgement screen, presenting the owner token, the guest key, and
-  the list URL, with a "Copy" affordance on each. Named for the token
+  acknowledgement screen, presenting the owner token and one guest invite
+  link that carries the guest key, with a "Copy" affordance on each. Named for the token
   rather than a link because the token is the credential and no
   full-control link exists to save (ADR-[062](../adr/0062-the-owner-token-never-travels-in-a-url.md)).
 - The "save your owner token" screen also states plainly that the owner is
@@ -120,9 +120,12 @@
   forced.
 - Failed attempts return the same generic message, per ADR-[016](../adr/0016-no-public-list-directory-lookups-fail-generically.md) and
   ADR-[054](../adr/0054-post-purgeat-lookups-return-the-same-generic-not-found.md), unchanged by this transport change.
-- Guest session cookie lifetime: 30 days (`Max-Age`); the list itself is
-  deleted at `purgeAt`. A guest who returns within the month is not asked for the key
-  again; a longer absence costs one re-entry of the key from the invitation.
+- Guest session cookie lifetime: 30 days (`Max-Age`) from last use: every
+  request the session is accepted on renews it. Both access cookies are
+  scoped to the list's API path (`/api/lists/{slug}`), so each list keeps
+  its own. The list itself is deleted at `purgeAt`. A guest who returns
+  within a month of their last visit is not asked for the key again; a
+  longer absence costs one re-entry of the key from the invitation.
   Key rotation is the revocation mechanism (above), not expiry.
 - Owner-access cookie lifetime: the browser session (no `Max-Age`); the list
   itself is deleted at `purgeAt`. Closing the browser signs the owner out;
