@@ -63,9 +63,6 @@ To upgrade, pull the new code and rerun the `up -d --build` command. The volume
 persists and migrations run at start-up, so your data is kept.
 Never run `down -v` on production: it deletes the database volume.
 
-Stop the server before running the `migrate` or `rebuild-projections` scripts
-against the live database.
-
 ## Go-live checklist (manual)
 
 - [ ] The container runs behind the tunnel.
