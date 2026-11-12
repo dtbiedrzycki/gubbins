@@ -22,6 +22,8 @@ export default function ListPage() {
   const navigate = useNavigate();
   // An invite link carries the key in the fragment, which the browser never sends to the server (ADR-0067).
   const [link] = useState(() => readFragmentKey(location.hash));
+  // One try per page load: once the key is accepted, a later key screen (session ended, cookies blocked) starts empty.
+  const [linkKey, setLinkKey] = useState(link.key);
   useEffect(() => {
     // Through the router, so its location matches the address bar.
     if (link.key) navigate({ pathname: location.pathname, search: location.search, hash: link.rest }, { replace: true });
@@ -64,7 +66,12 @@ export default function ListPage() {
   if (!query.data || sessionGone) {
     return (
       <main className="flex-1 bg-paper p-6 text-ink">
-        <GuestKeyGate slug={slug} onSuccess={() => query.refetch()} initialKey={link.key ?? undefined} autoSubmit={link.key !== null} />
+        <GuestKeyGate
+          slug={slug}
+          onSuccess={() => { setLinkKey(null); return query.refetch(); }}
+          initialKey={linkKey ?? undefined}
+          autoSubmit={linkKey !== null}
+        />
       </main>
     );
   }

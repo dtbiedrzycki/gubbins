@@ -436,6 +436,25 @@ describe('ListPage', () => {
       expect(location.hash).toBe('');
     });
 
+    it("asks for the key, without sending the link's again, when the session ends after the list opened", async () => {
+      let gets = 0;
+      let posts = 0;
+      server.use(
+        http.get('/api/lists/abc123', () => (++gets === 2 ? HttpResponse.json(view(false)) : HttpResponse.json({ message: 'Not found' }, { status: 404 }))),
+        http.post('/api/lists/abc123/session', () => { posts++; return HttpResponse.json({ ok: true }); }),
+        http.post('/api/lists/abc123/items/item-1/hold', () => HttpResponse.json(hold, { status: 201 })),
+      );
+      const user = userEvent.setup();
+      renderListPage(link);
+
+      await user.click(await screen.findByRole('button', { name: /^Hold this item/ }));
+      await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+      await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+      expect(await screen.findByLabelText('Guest key')).toHaveValue('');
+      expect(posts).toBe(1);
+    });
+
     it("ignores the link's key when the guest is already in", async () => {
       let posts = 0;
       server.use(
