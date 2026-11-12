@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ListViewResponse, PledgeRequest } from '@gubbins/shared-types';
-import { api } from '../../api/client';
+import { api, isNetworkFailure } from '../../api/client';
 import { listViewKey } from '../holds/useListView';
 import { formatMoney } from '../../lib/formatMoney';
 import { parseUsd } from '../../lib/parseUsd';
@@ -51,8 +51,13 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   const { mutate, isPending, isIdle, error } = useMutation({
     mutationFn: (input: PledgeRequest) => api.pledgeContribution(slug, itemId, input),
     // Settled, not success: a 409 also means the pledged total moved. Returning
-    // the promise keeps the mutation pending until the fresh total lands.
-    onSettled: () => queryClient.invalidateQueries({ queryKey: listViewKey(slug) }),
+    // the promise keeps the mutation pending until the fresh total lands, except
+    // after a request that got no answer: that is reported at once, and the
+    // refetch runs in the background.
+    onSettled: (_, error) => {
+      const refetched = queryClient.invalidateQueries({ queryKey: listViewKey(slug) });
+      if (!(error && isNetworkFailure(error))) return refetched;
+    },
   });
 
   const { ref, onCancel, onClose: handleClose } = useModalDialog({ isPending, onClose });
