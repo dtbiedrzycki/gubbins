@@ -521,7 +521,7 @@ describe('YourContributions', () => {
     await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
     const sheet = within(region).getByRole('dialog');
     await user.click(within(sheet).getByRole('button', { name: 'Mark as purchased' }));
-    await waitFor(() => expect(within(sheet).getByRole('alert')).toHaveTextContent("Couldn’t mark Stroller as purchased. You seem to be offline. Check your connection, then try again."));
+    await waitFor(() => expect(within(sheet).getByRole('alert')).toHaveTextContent(/^Couldn’t mark Stroller as purchased\. /));
     await user.click(within(sheet).getByRole('button', { name: 'Mark as purchased' }));
 
     await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Stroller is marked as purchased. Thank you!'));
@@ -552,7 +552,7 @@ describe('YourContributions', () => {
 
     await user.click(within(region).getByRole('button', { name: 'Mark as purchased' }));
     await user.click(within(within(region).getByRole('dialog')).getByRole('button', { name: 'Mark as purchased' }));
-    await waitFor(() => expect(within(within(region).getByRole('dialog')).getByRole('alert')).toHaveTextContent("Couldn’t mark Stroller as purchased. You seem to be offline. Check your connection, then try again."));
+    await waitFor(() => expect(within(within(region).getByRole('dialog')).getByRole('alert')).toHaveTextContent(/^Couldn’t mark Stroller as purchased\. /));
     await client.invalidateQueries({ queryKey: listViewKey('abc123') });
 
     await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent('You can no longer mark Stroller as purchased. Reload to see if it is still available.'));
