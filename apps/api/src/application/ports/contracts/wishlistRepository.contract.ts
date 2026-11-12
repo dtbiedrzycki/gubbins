@@ -63,12 +63,12 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
     it('returns null for an unknown slug or id', async () => {
       expect(await fx.wishlists.findBySlug('no-such-list', NOW)).toBeNull();
       expect(await fx.wishlists.findById('00000000-0000-7000-8000-999999999999', NOW)).toBeNull();
+      expect(await fx.wishlists.findAccessBySlug('no-such-list')).toBeNull();
     });
 
-    it("looks a list up by slug for just its id and key generation, or null for an unknown slug", async () => {
+    it('looks a list up by slug for just its id and key generation', async () => {
       await fx.wishlists.insert(Wishlist.reconstitute({ id: LIST_C, slug: 'list-c', title: 'List C', ownerToken: 'o', key: 'k-c', keyGen: 3, asOf: NOW, items: [] }));
       expect(await fx.wishlists.findAccessBySlug('list-c')).toEqual({ id: LIST_C, keyGen: 3 });
-      expect(await fx.wishlists.findAccessBySlug('no-such-list')).toBeNull();
     });
 
     it('loads every hold on the list, whatever its state, and none from another list', async () => {
