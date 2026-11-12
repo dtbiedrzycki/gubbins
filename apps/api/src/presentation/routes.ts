@@ -15,7 +15,6 @@ import {
 import type { AppDependencies } from './compositionRoot.js';
 import type { AccessContext } from '../application/AccessContext.js';
 import type { HoldCommand } from '../application/use-cases/holdCommand.js';
-import type { Wishlist } from '../domain/entities/Wishlist.js';
 import { WishlistNotFoundError, InvalidGuestKeyError } from '../domain/errors.js';
 import { OWNER_COOKIE, SESSION_COOKIE, accessContextFor, guestSessionCookieOptions, ownerCookieOptions, readOwnerSession, readSignedSession, type OwnerSessionPayload, type SessionPayload } from './accessContext.js';
 import { instanceResponseSchema } from './instanceConfig.js';
@@ -44,32 +43,32 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
   const app = fastify.withTypeProvider<ZodTypeProvider>();
 
   /**
-   * The URL's list and the guest session presented for it, or null — which
+   * The URL's list id and the guest session presented for it, or null — which
    * every guest route answers with the same generic 404 as an unknown slug:
    * a caller must not tell "no such list" from "list exists, you're not in
    * it", or slugs could be enumerated (ADR-0016/0054). A request without a
    * validly signed session is refused before any list is loaded. An
    * accepted session's cookie is re-set, so it lasts 30 days from last use.
    */
-  async function guestAccess(request: FastifyRequest, reply: FastifyReply, slug: string): Promise<{ wishlist: Wishlist; access: AccessContext } | null> {
+  async function guestAccess(request: FastifyRequest, reply: FastifyReply, slug: string): Promise<{ wishlistId: string; access: AccessContext } | null> {
     const session = readSignedSession(request);
     if (!session) return null;
-    const wishlist = await deps.wishlists.findBySlug(slug, deps.clock.now());
-    if (!wishlist) return null;
-    const access = accessContextFor({ guest: session, owner: null }, { id: wishlist.id.value, keyGen: wishlist.keyGen }, deps.hasher);
+    const list = await deps.wishlists.findAccessBySlug(slug);
+    if (!list) return null;
+    const access = accessContextFor({ guest: session, owner: null }, list, deps.hasher);
     if (!access.guestSession) return null;
     reply.setCookie(SESSION_COOKIE, JSON.stringify(session), guestSessionCookieOptions(slug));
-    return { wishlist, access };
+    return { wishlistId: list.id, access };
   }
 
-  /** Like guestAccess, for the owner cookie: the list, or null for the same generic 404. */
-  async function ownerAccess(request: FastifyRequest, slug: string): Promise<{ wishlist: Wishlist; access: AccessContext } | null> {
+  /** Like guestAccess, for the owner cookie: the list id, or null for the same generic 404. */
+  async function ownerAccess(request: FastifyRequest, slug: string): Promise<{ wishlistId: string; access: AccessContext } | null> {
     const owner = readOwnerSession(request);
     if (!owner) return null;
-    const wishlist = await deps.wishlists.findBySlug(slug, deps.clock.now());
-    if (!wishlist) return null;
-    const access = accessContextFor({ guest: readSignedSession(request), owner }, { id: wishlist.id.value, keyGen: wishlist.keyGen }, deps.hasher);
-    return access.owner ? { wishlist, access } : null;
+    const list = await deps.wishlists.findAccessBySlug(slug);
+    if (!list) return null;
+    const access = accessContextFor({ guest: readSignedSession(request), owner }, list, deps.hasher);
+    return access.owner ? { wishlistId: list.id, access } : null;
   }
 
   /** Answers a domain error with its mapped status, or rethrows it for the generic 500 handler. */
@@ -178,7 +177,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     const guest = await guestAccess(request, reply, request.params.slug);
     if (!guest) return reply.code(404).send(NOT_FOUND);
     try {
-      const view = await deps.getListView.execute({ wishlistId: guest.wishlist.id.value }, guest.access);
+      const view = await deps.getListView.execute({ wishlistId: guest.wishlistId }, guest.access);
       return reply.code(200).send(view);
     } catch (err) {
       return sendDomainError(reply, err);
@@ -200,7 +199,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     const owner = await ownerAccess(request, request.params.slug);
     if (!owner) return reply.code(404).send(NOT_FOUND);
     try {
-      await deps.editListDetails.execute({ ...request.body, wishlistId: owner.wishlist.id.value }, owner.access);
+      await deps.editListDetails.execute({ ...request.body, wishlistId: owner.wishlistId }, owner.access);
       return reply.code(200).send({ ok: true });
     } catch (err) {
       return sendDomainError(reply, err);
@@ -223,7 +222,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     const owner = await ownerAccess(request, request.params.slug);
     if (!owner) return reply.code(404).send(NOT_FOUND);
     try {
-      const result = await deps.addItem.execute({ ...request.body, wishlistId: owner.wishlist.id.value }, owner.access);
+      const result = await deps.addItem.execute({ ...request.body, wishlistId: owner.wishlistId }, owner.access);
       return reply.code(201).send(result);
     } catch (err) {
       return sendDomainError(reply, err);
@@ -244,7 +243,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     const owner = await ownerAccess(request, request.params.slug);
     if (!owner) return reply.code(404).send(NOT_FOUND);
     try {
-      const view = await deps.getManageView.execute({ wishlistId: owner.wishlist.id.value }, owner.access);
+      const view = await deps.getManageView.execute({ wishlistId: owner.wishlistId }, owner.access);
       return reply.code(200).send(view);
     } catch (err) {
       return sendDomainError(reply, err);
@@ -266,7 +265,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     const owner = await ownerAccess(request, request.params.slug);
     if (!owner) return reply.code(404).send(NOT_FOUND);
     try {
-      await deps.editItem.execute({ ...request.body, wishlistId: owner.wishlist.id.value, itemId: request.params.itemId }, owner.access);
+      await deps.editItem.execute({ ...request.body, wishlistId: owner.wishlistId, itemId: request.params.itemId }, owner.access);
       return reply.code(200).send({ ok: true });
     } catch (err) {
       return sendDomainError(reply, err);
@@ -288,7 +287,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     const owner = await ownerAccess(request, request.params.slug);
     if (!owner) return reply.code(404).send(NOT_FOUND);
     try {
-      await deps.deleteItem.execute({ wishlistId: owner.wishlist.id.value, itemId: request.params.itemId }, owner.access);
+      await deps.deleteItem.execute({ wishlistId: owner.wishlistId, itemId: request.params.itemId }, owner.access);
       return reply.code(200).send({ ok: true });
     } catch (err) {
       return sendDomainError(reply, err);
@@ -310,7 +309,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     const owner = await ownerAccess(request, request.params.slug);
     if (!owner) return reply.code(404).send(NOT_FOUND);
     try {
-      await deps.moveItem.execute({ wishlistId: owner.wishlist.id.value, itemId: request.params.itemId, to: request.body.to }, owner.access);
+      await deps.moveItem.execute({ wishlistId: owner.wishlistId, itemId: request.params.itemId, to: request.body.to }, owner.access);
       return reply.code(200).send({ ok: true });
     } catch (err) {
       return sendDomainError(reply, err);
@@ -336,7 +335,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     try {
       // The use case loads the wishlist this slug resolved to and asks it for
       // the item, so another list's item id is ItemNotFoundError — a 404.
-      const view = await deps.holdItem.execute({ wishlistId: guest.wishlist.id.value, itemId, idempotencyKey: request.body.idempotencyKey, name: request.body.name, units: request.body.units }, guest.access);
+      const view = await deps.holdItem.execute({ wishlistId: guest.wishlistId, itemId, idempotencyKey: request.body.idempotencyKey, name: request.body.name, units: request.body.units }, guest.access);
       return reply.code(201).send(view);
     } catch (err) {
       return sendDomainError(reply, err);
@@ -360,7 +359,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     const guest = await guestAccess(request, reply, slug);
     if (!guest) return reply.code(404).send(NOT_FOUND);
     try {
-      const result = await deps.pledgeContribution.execute({ ...request.body, wishlistId: guest.wishlist.id.value, itemId }, guest.access);
+      const result = await deps.pledgeContribution.execute({ ...request.body, wishlistId: guest.wishlistId, itemId }, guest.access);
       return reply.code(201).send(result);
     } catch (err) {
       return sendDomainError(reply, err);
@@ -396,7 +395,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     const guest = await guestAccess(request, reply, request.params.slug);
     if (!guest) return reply.code(404).send(NOT_FOUND);
     try {
-      const view = await deps.markHoldPurchased.execute({ wishlistId: guest.wishlist.id.value, holdId: request.params.holdId, units: request.body.units, message: request.body.message }, guest.access);
+      const view = await deps.markHoldPurchased.execute({ wishlistId: guest.wishlistId, holdId: request.params.holdId, units: request.body.units, message: request.body.message }, guest.access);
       return reply.code(200).send(view);
     } catch (err) {
       return sendDomainError(reply, err);
@@ -420,7 +419,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       const guest = await guestAccess(request, reply, request.params.slug);
       if (!guest) return reply.code(404).send(NOT_FOUND);
       try {
-        const view = await command.execute({ wishlistId: guest.wishlist.id.value, holdId: request.params.holdId }, guest.access);
+        const view = await command.execute({ wishlistId: guest.wishlistId, holdId: request.params.holdId }, guest.access);
         return reply.code(200).send(view);
       } catch (err) {
         return sendDomainError(reply, err);

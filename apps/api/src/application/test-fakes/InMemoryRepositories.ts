@@ -87,6 +87,11 @@ export class InMemoryWishlistRepository implements WishlistRepository {
     return this.hydrate([...this.store.wishlists.values()].find((w) => w.slug.value === slug), now);
   }
 
+  async findAccessBySlug(slug: string): Promise<{ id: string; keyGen: number } | null> {
+    const list = [...this.store.wishlists.values()].find((w) => w.slug.value === slug);
+    return list ? { id: list.id.value, keyGen: list.keyGen } : null;
+  }
+
   async findById(id: string, now: Date): Promise<Wishlist | null> {
     return this.hydrate(this.store.wishlists.get(id), now);
   }

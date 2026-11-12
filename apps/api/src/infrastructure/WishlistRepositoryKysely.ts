@@ -41,6 +41,11 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     return row ? this.hydrate(row, now) : null;
   }
 
+  async findAccessBySlug(slug: string): Promise<{ id: string; keyGen: number } | null> {
+    const row = await this.db.selectFrom('wishlists').select(['id', 'key_gen']).where('slug', '=', slug).executeTakeFirst();
+    return row ? { id: row.id, keyGen: row.key_gen } : null;
+  }
+
   async findById(id: string, now: Date): Promise<Wishlist | null> {
     const row = await this.db.selectFrom('wishlists').selectAll().where('id', '=', id).executeTakeFirst();
     return row ? this.hydrate(row, now) : null;
