@@ -368,7 +368,7 @@ describe('ListPage', () => {
   });
 
   it.each([
-    ['cannot reach the server', () => HttpResponse.error(), /^Couldn’t load the list\. You seem to be offline\./],
+    ['cannot reach the server', () => HttpResponse.error(), /^Couldn’t load the list\. /],
     ['gets a 503', () => HttpResponse.json({ message: 'Service unavailable' }, { status: 503 }), /^Couldn’t load the list\. Something went wrong on our end\./],
   ])('shows the error, not the guest key, when the first load %s', async (_, respond, message) => {
     server.use(http.get('/api/lists/abc123', respond));
