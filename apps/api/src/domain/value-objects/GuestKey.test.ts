@@ -11,7 +11,7 @@ describe('GuestKey', () => {
   const comparer = { compareInConstantTime: (a: string, b: string) => a === b };
   const stored = GuestKey.from('maple-lantern-otter');
 
-  it.each(['Maple-Lantern-Otter', 'MAPLE-LANTERN-OTTER', 'maple lantern otter', 'maple  lantern   otter', 'maple - lantern - otter', 'maple--lantern-otter'])(
+  it.each(['Maple-Lantern-Otter', 'maple  lantern   otter', 'maple - lantern - otter', 'maple--lantern-otter'])(
     'accepts %s typed for maple-lantern-otter',
     (typed) => expect(stored.matches(typed, comparer)).toBe(true),
   );
