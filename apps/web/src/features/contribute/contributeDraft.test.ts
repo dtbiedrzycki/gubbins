@@ -17,7 +17,7 @@ describe('contributeDraft', () => {
     expect(loadDraft('abc123', draft.savedAt)).toBeNull();
   });
 
-  it('keeps one draft per list', () => {
+  it("gives a list's draft to that list only", () => {
     saveDraft('abc123', draft);
 
     expect(loadDraft('other', draft.savedAt)).toBeNull();
