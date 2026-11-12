@@ -1,7 +1,7 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-/** The owner creates a list and adds one item on the manage page; a second tab in the same context stands in for the guest, keyed in on the bare list path. */
+/** The owner creates a list and adds one item on the manage page; a second tab in the same context stands in for the guest, who types the key on the bare list path, so the key screen keeps one end-to-end journey. */
 async function guestOnNewList(page: Page, context: BrowserContext): Promise<Page> {
   await page.goto('/wishlists/new');
   await page.getByLabel('List title').fill('Baby Shower');
