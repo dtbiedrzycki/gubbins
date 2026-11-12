@@ -94,7 +94,7 @@ describe('App crashes', () => {
     expect(sessionStorage.getItem('gubbins:chunk-reload')).not.toBeNull();
   });
 
-  it('shows the reload page instead of reloading a second time in the same tab', async () => {
+  it('shows the reload page when the page fails again straight after a reload', async () => {
     sessionStorage.setItem('gubbins:chunk-reload', '1');
     await renderCrashingHome(new TypeError('Importing a module script failed.'));
 
