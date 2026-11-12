@@ -97,9 +97,10 @@ One shared function decides guest-facing error text (move `features/manage/actio
 | Failure | Text |
 |---|---|
 | status 0 (offline, timeout) | "‹couldn't…› You seem to be offline. Check your connection, then try again." (existing) |
-| status ≥ 500, or not an `ApiError` (includes a proxy's HTML error page) | "‹couldn't…› Something went wrong on our end. Wait a moment, then try again." (existing) |
+| status ≥ 500, or not an `ApiError` | "‹couldn't…› Something went wrong on our end. Wait a moment, then try again." (existing) |
 | 404 on a hold, purchase or contribute action | "‹couldn't…› Reload the page to see the list as it is now." (new) |
-| 400 with no domain message (the generic "Invalid request") | the 5xx text (the guest can't fix a malformed request) |
+| 400 with no domain message (the generic "Invalid request", one constant in `@gubbins/shared-types` shared by the API and the web) | the 5xx text (the guest can't fix a malformed request) |
+| any other status whose body had no message (a proxy's HTML error page, e.g. a 403, 413 or 429, which the client reports as "Request failed") | the 5xx text |
 | any other 4xx | the server's message (the domain's own wording, as today) |
 
 Applies to: `ListPage` error view, `HoldDialog`, `PurchaseDialog`, `ContributeDialog`, `HoldActions` outcomes, `YourContributions` actions. The "‹couldn't…›" lead-in is per screen (builder's wording, short).
