@@ -638,7 +638,7 @@ describe('PUT /api/lists/:slug', () => {
 
   it('the owner edits the list, and guests see the new title', async () => {
     const list = await createList();
-    const response = await edit(list.slug, await ownerOn(list), { title: 'Welcome Baby', description: 'Thank you!' });
+    const response = await edit(list.slug, await ownerOn(list), { title: 'Welcome Baby', description: 'Thank you!', theme: 'storybook' });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ ok: true });
 
@@ -648,7 +648,7 @@ describe('PUT /api/lists/:slug', () => {
 
   it('answers a guest session without the owner cookie with the generic 404', async () => {
     const list = await createList();
-    const response = await edit(list.slug, await guestOn(list), { title: 'Welcome Baby', description: null });
+    const response = await edit(list.slug, await guestOn(list), { title: 'Welcome Baby', description: null, theme: 'storybook' });
     expect(response.statusCode).toBe(404);
     expect(response.json()).toEqual({ message: 'Not found' });
   });

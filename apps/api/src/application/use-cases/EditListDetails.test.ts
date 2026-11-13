@@ -14,7 +14,7 @@ async function makeUseCase() {
   return { useCase: new EditListDetails(unitOfWork, new FixedClock(NOW)), wishlists };
 }
 
-const input = { wishlistId: WISHLIST_ID, title: 'New title', description: 'New note' };
+const input = { wishlistId: WISHLIST_ID, title: 'New title', description: 'New note', theme: 'groovy' };
 
 describe('EditListDetails', () => {
   it("saves the owner's edit", async () => {
@@ -23,7 +23,7 @@ describe('EditListDetails', () => {
     await useCase.execute(input, { guestSession: null, owner: true });
 
     const loaded = await wishlists.findById(WISHLIST_ID, NOW);
-    expect([loaded?.title, loaded?.description]).toEqual(['New title', 'New note']);
+    expect([loaded?.title, loaded?.description, loaded?.theme]).toEqual(['New title', 'New note', 'groovy']);
   });
 
   it('treats a caller who is not the owner as no list', async () => {

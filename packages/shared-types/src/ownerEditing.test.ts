@@ -3,8 +3,12 @@ import { editListDetailsRequestSchema, moveItemRequestSchema } from './ownerEdit
 
 describe('editListDetailsRequestSchema', () => {
   it('requires the description, with null to clear it, so a forgotten field is refused rather than wiped', () => {
-    expect(editListDetailsRequestSchema.safeParse({ title: 'Baby Shower', description: null }).success).toBe(true);
-    expect(editListDetailsRequestSchema.safeParse({ title: 'Baby Shower' }).success).toBe(false);
+    expect(editListDetailsRequestSchema.safeParse({ title: 'Baby Shower', description: null, theme: 'groovy' }).success).toBe(true);
+    expect(editListDetailsRequestSchema.safeParse({ title: 'Baby Shower', theme: 'groovy' }).success).toBe(false);
+  });
+
+  it.each([['missing', undefined], ['"disco"', 'disco']])('refuses a style that is %s', (_name, theme) => {
+    expect(editListDetailsRequestSchema.safeParse({ title: 'Baby Shower', description: null, theme }).success).toBe(false);
   });
 });
 
