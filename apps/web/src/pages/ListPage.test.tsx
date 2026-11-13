@@ -467,7 +467,7 @@ describe('ListPage', () => {
       expect(posts).toBe(0);
     });
 
-    it("shows the key screen with the link's key filled in when it is refused", async () => {
+    it("shows the key screen with the link's key filled in, saying the list could not be found, when the key is refused", async () => {
       server.use(
         http.get('/api/lists/abc123', () => HttpResponse.json({ message: 'Not found' }, { status: 404 })),
         http.post('/api/lists/abc123/session', () => HttpResponse.json({ message: 'Not found' }, { status: 404 })),
@@ -475,6 +475,7 @@ describe('ListPage', () => {
       renderListPage(link);
 
       expect(await screen.findByLabelText('Guest key')).toHaveValue('maple-lantern-otter');
+      expect(screen.getByRole('alert')).toHaveTextContent('This list could not be found.');
     });
   });
 });
