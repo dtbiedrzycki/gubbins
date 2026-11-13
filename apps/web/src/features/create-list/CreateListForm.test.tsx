@@ -28,13 +28,12 @@ async function fillAndSubmit(beforeSubmit: (user: ReturnType<typeof userEvent.se
 }
 
 describe('CreateListForm', () => {
-  it('shows the guest link, guest key, and owner token after a successful submit', async () => {
+  it('shows the guest link and owner token after a successful submit', async () => {
     server.use(mock('post', '/api/lists', 201, { slug: 'abc123', ownerToken: 'owner-secret-token', key: 'guest-key-value' }));
     await fillAndSubmit();
 
-    expect(await screen.findByText('guest-key-value')).toBeInTheDocument();
-    expect(screen.getByText('owner-secret-token')).toBeInTheDocument();
-    expect(screen.getByTestId('guest-link')).toHaveAttribute('href', '/wishlists/abc123');
+    expect(await screen.findByText('owner-secret-token')).toBeInTheDocument();
+    expect(screen.getByTestId('guest-link')).toHaveAttribute('href', '/wishlists/abc123#key=guest-key-value');
   });
 
   it('never renders the owner token inside a link href (ADR-062)', async () => {
@@ -74,7 +73,7 @@ describe('CreateListForm', () => {
     await user.type(screen.getByLabelText('Venmo username'), ' @my-venmo ');
     await user.type(screen.getByLabelText('Zelle email or US phone'), ' me@example.com ');
     await user.click(screen.getByRole('button', { name: 'Create list' }));
-    await screen.findByText('k');
+    await screen.findByTestId('guest-link');
     expect(body).toMatchObject({
       listTitle: 'Baby Shower', createSecret: 'the-secret', venmoHandle: '@my-venmo', zelleHandle: 'me@example.com',
     });
@@ -101,10 +100,10 @@ describe('CreateListForm', () => {
       return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: 'k' } satisfies CreateListResponse, { status: 201 });
     }));
     await fillAndSubmit((user) => user.type(screen.getByLabelText('About this list (optional)'), '  12 Elm St  '));
-    await screen.findByText('k');
+    await screen.findByTestId('guest-link');
     cleanup();
     await fillAndSubmit((user) => user.type(screen.getByLabelText('About this list (optional)'), '   '));
-    await screen.findByText('k');
+    await screen.findByTestId('guest-link');
     expect(bodies[0]).toMatchObject({ listDescription: '12 Elm St' });
     expect(bodies[1]).not.toHaveProperty('listDescription');
   });
@@ -134,14 +133,14 @@ describe('CreateListForm', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Your list is ready' })).toHaveFocus());
   });
 
-  it('sends the suggested key with the list and shows it on the ready screen', async () => {
+  it('sends the suggested key with the list', async () => {
     let body: unknown;
     server.use(http.post('/api/lists', async ({ request }) => {
       body = await request.json();
       return HttpResponse.json({ slug: 'abc123', ownerToken: 'o', key: (body as { key: string }).key } satisfies CreateListResponse, { status: 201 });
     }));
     await fillAndSubmit();
-    expect(await screen.findByTestId('guest-key')).toHaveTextContent('maple-lantern-otter');
+    await screen.findByTestId('guest-link');
     expect(body).toMatchObject({ key: 'maple-lantern-otter' });
   });
 
@@ -161,7 +160,7 @@ describe('CreateListForm', () => {
     await user.type(screen.getByLabelText('List title'), 'Baby Shower');
     await user.type(screen.getByLabelText('Create secret'), 'the-secret');
     await user.click(screen.getByRole('button', { name: 'Create list' }));
-    await screen.findByTestId('guest-key');
+    await screen.findByTestId('guest-link');
     expect(body).toMatchObject({ key: 'cedar-pocket-wren' });
   });
 

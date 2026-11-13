@@ -7,15 +7,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ListDetails } from './ListDetails';
 
 describe('ListDetails', () => {
-  it('shows the title, description, key and guest link', () => {
+  it('shows the title, description and guest link', () => {
     render(
       <ListDetails slug="abc123" onUnauthorized={() => {}} view={{ title: 'Baby Shower', description: 'Ship to **Elm Row**', key: 'maple-lantern-otter', items: [] }} />,
     );
 
     expect(screen.getByRole('heading', { name: 'Baby Shower' })).toBeInTheDocument();
     expect(screen.getByText('Elm Row').tagName).toBe('STRONG');
-    expect(screen.getByText('maple-lantern-otter')).toBeInTheDocument();
-    expect(screen.getByText(`${window.location.origin}/wishlists/abc123`)).toBeInTheDocument();
+    expect(screen.getByText(`${window.location.origin}/wishlists/abc123#key=maple-lantern-otter`)).toBeInTheDocument();
   });
 
   it('opens the edit form under the saved title, and Cancel puts focus back on Edit', async () => {

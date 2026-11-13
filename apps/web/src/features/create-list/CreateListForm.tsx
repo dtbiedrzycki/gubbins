@@ -88,7 +88,7 @@ export function CreateListForm() {
             Regenerate
           </button>
         </div>
-        <p className="mt-1 text-sm text-muted">Guests type this to open your list. You can’t change it once the list is created.</p>
+        <p className="mt-1 text-sm text-muted">It’s in the invite link; guests type it only if the link doesn’t work or their session has ended. You can’t change it once the list is created.</p>
       </section>
       <div>
         <label htmlFor="list-description" className="block font-bold">About this list (optional)</label>
