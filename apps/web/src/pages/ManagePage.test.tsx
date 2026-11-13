@@ -95,6 +95,7 @@ describe('ManagePage', () => {
     server.use(http.post('/api/lists/:slug/items', () => HttpResponse.json({ message: 'Not found' }, { status: 404 })));
     const user = await enterToken();
     await screen.findByText('Rings');
+    expect(document.documentElement.dataset.listTheme).toBe('groovy');
 
     await user.type(screen.getByLabelText('Title'), 'Cot');
     await user.type(screen.getByLabelText('Price (USD)'), '100');
