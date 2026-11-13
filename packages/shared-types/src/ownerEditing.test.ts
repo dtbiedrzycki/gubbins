@@ -7,7 +7,7 @@ describe('editListDetailsRequestSchema', () => {
     expect(editListDetailsRequestSchema.safeParse({ title: 'Baby Shower', theme: 'groovy' }).success).toBe(false);
   });
 
-  it.each([['missing', undefined], ['"disco"', 'disco']])('refuses a style that is %s', (_name, theme) => {
+  it.each([['missing', undefined], ['not storybook or groovy', 'disco']])('refuses a style that is %s', (_name, theme) => {
     expect(editListDetailsRequestSchema.safeParse({ title: 'Baby Shower', description: null, theme }).success).toBe(false);
   });
 });

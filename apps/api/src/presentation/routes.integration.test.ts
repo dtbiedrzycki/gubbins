@@ -646,6 +646,12 @@ describe('PUT /api/lists/:slug', () => {
     expect(view.json()).toMatchObject({ title: 'Welcome Baby', description: 'Thank you!' });
   });
 
+  it('answers 400 for an unknown style', async () => {
+    const list = await createList();
+    const response = await edit(list.slug, await ownerOn(list), { title: 'Welcome Baby', description: null, theme: 'disco' });
+    expect(response.statusCode).toBe(400);
+  });
+
   it('answers a guest session without the owner cookie with the generic 404', async () => {
     const list = await createList();
     const response = await edit(list.slug, await guestOn(list), { title: 'Welcome Baby', description: null, theme: 'storybook' });
