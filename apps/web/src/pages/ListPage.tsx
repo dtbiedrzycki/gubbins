@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useListView } from '../features/holds/useListView';
+import { useListTheme } from '../lib/useListTheme';
 import { GuestKeyGate } from '../features/guest-key/GuestKeyGate';
 import { readFragmentKey } from '../features/guest-key/fragmentKey';
 import { ApiError } from '../api/client';
@@ -20,6 +21,7 @@ export default function ListPage() {
   // it internally disables the query via `enabled: Boolean(slug)` when slug
   // is undefined, so no request fires before the guard below returns.
   const query = useListView(slug);
+  useListTheme(query.data?.theme);
   const location = useLocation();
   const navigate = useNavigate();
   // An invite link carries the key in the fragment, which the browser never sends to the server (ADR-0067).

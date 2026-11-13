@@ -6,6 +6,7 @@ import { AddItemForm } from '../features/manage/AddItemForm';
 import { manageViewKey } from '../features/manage/manageViewKey';
 import { ListDetails } from '../features/manage/ListDetails';
 import { ManageItems } from '../features/manage/ManageItems';
+import { useListTheme } from '../lib/useListTheme';
 import { api, ApiError } from '../api/client';
 
 export default function ManagePage() {
@@ -22,6 +23,7 @@ export default function ManagePage() {
     enabled: entered && Boolean(slug),
     retry: false,
   });
+  useListTheme(query.data?.theme);
   const queryClient = useQueryClient();
   // The owner cookie no longer works (404): back to the gate.
   const gone = query.error instanceof ApiError && query.error.status === 404;

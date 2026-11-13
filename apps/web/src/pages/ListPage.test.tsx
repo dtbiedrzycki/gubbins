@@ -62,6 +62,14 @@ describe('ListPage', () => {
     expect(screen.getAllByRole('button', { name: /^Hold this item/ })).toHaveLength(2);
   });
 
+  it("shows a groovy list in the list's style", async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), theme: 'groovy' })));
+    renderListPage();
+
+    await screen.findByRole('heading', { level: 1, name: 'Baby Shower' });
+    expect(document.documentElement.dataset.listTheme).toBe('groovy');
+  });
+
   it("shows the list's description in full, above the gifts", async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), description: 'Shipping: **12 Elm Street**' })));
     renderListPage();
