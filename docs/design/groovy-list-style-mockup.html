@@ -1,0 +1,173 @@
+<title>Gubbins Groovy List Style</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* Layout: rationale beside two phone frames. Fonts come from the repo's own Fontsource packages (run npm ci first); without them the Georgia and system-ui fallbacks show. */
+@font-face { font-family: "Shrikhand"; font-style: normal; font-weight: 400; src: url(../../node_modules/@fontsource/shrikhand/files/shrikhand-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-style: normal; font-weight: 400; src: url(../../node_modules/@fontsource/alegreya-sans/files/alegreya-sans-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-style: normal; font-weight: 700; src: url(../../node_modules/@fontsource/alegreya-sans/files/alegreya-sans-latin-700-normal.woff2) format("woff2"); }
+:root {
+  --page: #EFEBE4; --page-fg: #2A1D14; --page-muted: #6B5A4C; --page-line: #D8CFC2; --frame: #2A1D14; --focus: #B4441A;
+  --f-page: "Alegreya Sans", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page: #1E1712; --page-fg: #F1E6D6; --page-muted: #B9A48E; --page-line: #3E3127; --frame: #0A0705; --focus: #F2A65A; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --page: #1E1712; --page-fg: #F1E6D6; --page-muted: #B9A48E; --page-line: #3E3127; --frame: #0A0705; --focus: #F2A65A; color-scheme: dark }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--page-fg); font: 17px/1.5 var(--f-page); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.intro h1 { font: 400 2rem/1.15 "Shrikhand", Georgia, serif; margin: 0 0 8px; text-wrap: balance; }
+.intro p { margin: 0 0 28px; color: var(--page-muted); max-width: 62ch; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.theme { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+@media (min-width: 900px) { .theme { grid-template-columns: minmax(0, 300px) minmax(0, 1fr); align-items: start; } }
+.why { min-width: 0; }
+.why p { margin: 0 0 14px; max-width: 60ch; }
+.why h2 { font-size: 1.05rem; margin: 22px 0 6px; }
+.why h2:first-child { margin-top: 0; }
+.why ul { margin: 0; padding-left: 1.1em; }
+.why li { margin-bottom: 4px; }
+.why code { font-size: .9em; }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin: 4px 0 0; padding: 0; list-style: none; font-size: .9rem; }
+.swatches li { display: flex; align-items: center; gap: 8px; }
+.swatches span { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--page-line); }
+.phones { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; min-width: 0; }
+.shot { display: flex; flex-direction: column; gap: 8px; width: min(100%, 360px); margin: 0; }
+.shot figcaption { font-size: .9rem; color: var(--page-muted); }
+.phone { border: 9px solid var(--frame); border-radius: 34px; overflow: hidden; }
+.screen { min-height: 560px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ===== Groovy: the proposed values for the @theme block in apps/web/src/index.css ===== */
+.groovy {
+  --paper: #FBEBC8; --ink: #3A2212; --muted: #7A5232; --line: #E9CF98;
+  --moss: #5C6B1A; --wax: #B4441A; --gold: #E8A317; --petal: #F4B183; --brass: #8A4B1C;
+  --f-display: "Shrikhand", Georgia, serif; --f-body: "Alegreya Sans", system-ui, sans-serif;
+  background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5;
+}
+.groovy .top { padding: 30px 20px 6px; text-align: center; }
+.groovy .top h1 { font: 400 2rem/1.1 var(--f-display); margin: 0 0 10px; text-wrap: balance; color: var(--wax); }
+.groovy .top p { margin: 0 auto; max-width: 30ch; color: var(--muted); }
+/* The vine becomes three rounded stripes. */
+.groovy .stripes { display: block; width: 70%; height: 18px; margin: 16px auto 0; border-radius: 9px;
+  background: linear-gradient(var(--wax) 0 6px, var(--gold) 6px 12px, var(--moss) 12px 18px); }
+.groovy .list { list-style: none; margin: 0; padding: 8px 20px 0; }
+.groovy .item { padding: 20px 0; border-bottom: 2px solid var(--line); display: grid; gap: 12px; }
+.groovy .item h2 { font: 400 1.25rem/1.2 var(--f-display); margin: 0; text-wrap: balance; }
+.groovy .item p { margin: 0; }
+.groovy .price { font-weight: 700; font-variant-numeric: tabular-nums; }
+.groovy a { color: var(--moss); font-weight: 700; }
+.groovy .act { display: flex; flex-wrap: wrap; gap: 8px; }
+.groovy .btn { font: 700 1rem var(--f-body); min-height: 44px; padding: 8px 20px; border-radius: 999px; border: 0; background: var(--moss); color: #fff; cursor: pointer; }
+.groovy .btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
+.groovy .status { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+/* Seals become sunbursts: orange when held, avocado when purchased. */
+.groovy .sun { flex: none; width: 40px; height: 40px; border-radius: 50%;
+  background: radial-gradient(circle, var(--gold) 0 7px, transparent 7.5px), repeating-conic-gradient(var(--wax) 0 15deg, var(--petal) 15deg 30deg);
+  box-shadow: 0 0 0 2px var(--ink); }
+.groovy .sun.done { background: radial-gradient(circle, var(--gold) 0 7px, transparent 7.5px), repeating-conic-gradient(var(--moss) 0 15deg, #A9B46A 15deg 30deg); }
+.groovy .sun.stamp { animation: spin-in .6s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes spin-in { from { transform: scale(.2) rotate(-180deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+.groovy .wish { display: flex; gap: 14px; align-items: flex-end; }
+.groovy .jar { flex: none; width: 46px; height: 58px; border: 2.5px solid var(--ink); border-radius: 10px 10px 14px 14px; position: relative; overflow: hidden; background: #fff; }
+.groovy .jar::before { content: ""; position: absolute; top: -2px; left: 8px; right: 8px; height: 7px; background: var(--wax); border-radius: 0 0 3px 3px; z-index: 1; }
+.groovy .jar i { position: absolute; inset: auto 0 0 0; background: linear-gradient(var(--wax) 0 33%, var(--gold) 33% 66%, var(--moss) 66%); }
+.groovy .holds { margin: 22px 14px 26px; padding: 16px; background: #FFF8E8; border-radius: 24px; border: 2px solid var(--ink); }
+.groovy .holds h2 { font: 400 1.4rem var(--f-display); margin: 0 0 10px; }
+.groovy .holds ul { list-style: none; margin: 0; padding: 0; }
+.groovy .hold { display: grid; gap: 8px; padding-top: 12px; margin-top: 12px; border-top: 2px solid var(--line); }
+.groovy .hold:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+.groovy .hold p { margin: 0; }
+.groovy .hold-title { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.groovy .gate { padding: 52px 20px 34px; text-align: center; }
+/* The bold thing: the round door sits inside a rainbow arch. */
+.groovy .door { width: 140px; height: 170px; margin: 0 auto 50px; border-radius: 70px 70px 6px 6px; position: relative;
+  background: repeating-linear-gradient(90deg, var(--moss) 0 26px, #4B5815 26px 28px);
+  box-shadow: 0 0 0 3px var(--ink), 0 0 0 11px var(--gold), 0 0 0 19px var(--petal), 0 0 0 27px var(--wax), 0 0 0 35px var(--brass), 0 0 0 37px var(--ink); }
+.groovy .door::after { content: ""; position: absolute; left: 50%; top: 32px; width: 36px; height: 36px; margin-left: -18px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 4px var(--ink); }
+.groovy .door::before { content: ""; position: absolute; right: 20px; top: 92px; width: 14px; height: 14px; border-radius: 50%; background: var(--petal); box-shadow: 0 0 0 2px var(--ink); }
+.groovy .gate h1 { font: 400 2.1rem/1.05 var(--f-display); margin: 0 0 8px; color: var(--wax); }
+.groovy .gate p { color: var(--muted); margin: 0 auto 22px; max-width: 30ch; }
+.groovy .gate form { text-align: left; }
+.groovy .gate label { display: block; font-weight: 700; margin-bottom: 6px; }
+.groovy input { width: 100%; font: 700 1.1rem var(--f-body); letter-spacing: .06em; padding: 10px 16px; min-height: 48px; border: 2px solid var(--ink); border-radius: 999px; background: #fff; color: var(--ink); }
+.groovy .gate .btn { margin-top: 16px; width: 100%; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+<div class="wrap">
+  <header class="intro">
+    <h1>Gubbins, but groovy</h1>
+    <p>The same guest screens as the Storybook mockup, with only the theme tokens and a few shapes swapped. Tap “Hold this item” to see the one bit of motion: a sunburst spinning in under “Your holds”.</p>
+  </header>
+  <section class="theme">
+    <div class="why">
+      <h2>The bold thing</h2>
+      <p>The round green door now sits inside a 70s rainbow arch of gold, peach, burnt orange and rust. Everything else stays quiet: cream paper, chocolate text, pill buttons.</p>
+      <h2>Not built</h2>
+      <p>The owner picks this style per list. Only the colours and the heading font ship. The rainbow arch, the stripes, the sunbursts and the striped jar are mockup-only, and the guest key screen stays Storybook because it shows before the list is known.</p>
+      <h2>What changes in the code</h2>
+      <ul>
+        <li>New values in the <code>@theme</code> block of <code>index.css</code>. The token names stay the same, so no component changes.</li>
+        <li>Shrikhand replaces IM Fell English for headings. Alegreya Sans stays for body text.</li>
+        <li>The door gets extra rings, the vine becomes stripes, and the wax seals become sunbursts.</li>
+      </ul>
+      <h2>Palette</h2>
+      <ul class="swatches">
+        <li><span style="background:#FBEBC8"></span>Cream</li>
+        <li><span style="background:#3A2212"></span>Chocolate</li>
+        <li><span style="background:#5C6B1A"></span>Avocado</li>
+        <li><span style="background:#B4441A"></span>Burnt orange</li>
+        <li><span style="background:#E8A317"></span>Harvest gold</li>
+        <li><span style="background:#F4B183"></span>Peach</li>
+        <li><span style="background:#8A4B1C"></span>Rust</li>
+      </ul>
+    </div>
+    <div class="phones" data-mock></div>
+  </section>
+</div>
+<script>
+const LIST = "Mira & Theo’s housewarming";
+const DAYS = 3;
+const ITEMS = [
+  { id: 'oven', t: 'Cast-iron Dutch oven, 5.5 qt', price: '$189.00', url: true, state: 'available' },
+  { id: 'coffee', t: 'Pour-over coffee set', price: '$48.00', left: 3, state: 'available' },
+  { id: 'drill', t: 'Cordless drill and driver kit', price: '$129.00', url: true, state: 'held' },
+  { id: 'trip', t: 'Two nights in the Catskills', group: { pledged: 412, of: 640 } },
+  { id: 'duvet', t: 'Linen duvet cover, queen', price: '$210.00', state: 'purchased' },
+];
+const pct = (g) => Math.floor(g.pledged * 100 / g.of);
+const sun = ({ stamp = false, done = false } = {}) => `<span class="sun${done ? ' done' : ''}${stamp ? ' stamp' : ''}" aria-hidden="true"></span>`;
+const statusLine = (i) => i.state === 'held' ? `${i.t} is held.` : `${i.t} has been purchased.`;
+const store = (i) => i.url ? `<p><a href="#" onclick="return false">View in store<span class="sr-only"> for ${i.t} (opens in a new tab)</span></a></p>` : '';
+const holdActions = () => `<div class="act"><button type="button" class="btn">Mark as purchased</button><button type="button" class="btn ghost">Extend hold</button><button type="button" class="btn ghost">Release hold</button></div>`;
+const holdCard = (title, { stamp = false, purchased = false } = {}) => `<li class="hold"><div class="hold-title">${sun({ stamp, done: purchased })}<span>${title}</span></div><p>${purchased ? 'Marked as purchased.' : 'Held until Mon, Nov 16.'}</p>${purchased ? '' : holdActions()}</li>`;
+const gate = () => `<div class="gate"><div class="door" aria-hidden="true"></div><h1>Knock, knock.</h1><p>Enter the guest key from your invite.</p>
+  <form onsubmit="event.preventDefault()"><label for="groovy-key">Guest key</label><input id="groovy-key" value="BRASS-HINGE-42" autocomplete="off"><button class="btn" type="submit">View list</button></form></div>`;
+const item = (i) => {
+  if (i.group) {
+    const line = `$${i.group.pledged} of $${i.group.of} pledged (${pct(i.group)}%)`;
+    return `<li class="item"><h2>${i.t}</h2><progress class="sr-only" max="${i.group.of}" value="${i.group.pledged}" aria-label="${line}"></progress>
+      <div class="wish"><div class="jar" aria-hidden="true"><i style="height:${Math.min(pct(i.group), 100)}%"></i></div><p>${line}</p></div>
+      <div class="act"><button type="button" class="btn">Chip in</button></div></li>`;
+  }
+  const status = i.state === 'available' ? '' : `<div class="status">${sun({ done: i.state === 'purchased' })}<p>${statusLine(i)}</p></div>`;
+  const left = i.left > 1 && i.state === 'available' ? `<p>${i.left} left</p>` : '';
+  const act = i.state === 'available' ? `<div class="act"><button type="button" class="btn" data-hold="${i.id}">Hold this item<span class="sr-only">: ${i.t}</span></button></div>` : '';
+  return `<li class="item" data-item="${i.id}"><h2>${i.t}</h2><p class="price">${i.price}</p>${store(i)}${left}${status}${act}</li>`;
+};
+const list = () => `<div class="top"><h1>${LIST}</h1><p>When you hold an item, it’s held for you for ${DAYS} days.</p><span class="stripes" aria-hidden="true"></span></div>
+  <ul class="list" role="list">${ITEMS.map(item).join('')}</ul>
+  <section class="holds"><h2>Your holds</h2><ul data-holds>${holdCard('Cordless drill and driver kit')}${holdCard('Linen duvet cover, queen', { purchased: true })}</ul></section>`;
+const host = document.querySelector('[data-mock]');
+host.innerHTML = `
+  <figure class="shot"><div class="phone"><div class="screen groovy">${gate()}</div></div><figcaption>Guest key screen</figcaption></figure>
+  <figure class="shot"><div class="phone"><div class="screen groovy">${list()}</div></div><figcaption>The list, with two holds of your own</figcaption></figure>`;
+host.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-hold]');
+  if (!b) return;
+  const i = ITEMS.find((x) => x.id === b.dataset.hold);
+  const li = b.closest('.item');
+  li.querySelector('.act').outerHTML = `<div class="status">${sun()}<p>${i.t} is held.</p></div>`;
+  host.querySelector('[data-holds]').insertAdjacentHTML('afterbegin', holdCard(i.t, { stamp: true }));
+});
+</script>

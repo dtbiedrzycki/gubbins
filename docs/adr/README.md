@@ -124,6 +124,7 @@ one-time renumbering documented in the restructuring history.
 | [084](0084-a-hold-covers-one-or-more-units.md) | A hold covers one or more units; buying fewer releases the rest | Accepted |
 | [085](0085-releases-are-tagged-0x-versions-and-shipped-migrations-are-never-edited.md) | Releases are tagged 0.x versions, and shipped migrations are never edited | Accepted |
 | [086](0086-the-owner-sets-the-order-guests-see.md) | The owner sets the order guests see, and new gifts go first | Accepted |
+| [087](0087-the-owner-picks-the-list-style-from-a-fixed-set.md) | The owner picks the list's style from a fixed set | Accepted |
 
 ## Imported ADRs (0001–0070)
 
