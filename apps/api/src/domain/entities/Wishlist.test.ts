@@ -19,7 +19,7 @@ const T0 = new Date('2026-01-01T00:00:00.000Z');
 const at = (ms: number) => new Date(T0.getTime() + ms);
 
 const validProps = { id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0 };
-const persisted = { ...validProps, keyGen: 3 };
+const persisted = { ...validProps, keyGen: 3, theme: 'storybook' };
 const tokens = (holdId = '55555555-5555-7555-8555-555555555555') => ({ generateEntityId: () => holdId, generateHoldSecret: () => 'hold-secret' });
 const hasher = { hash: () => 'f'.repeat(64) };
 
@@ -41,7 +41,7 @@ function holdOn(itemId: string, overrides: Partial<Parameters<typeof Hold.recons
 function loaded(options: { quantity?: number; seq?: number; holds?: Hold[]; asOf?: Date } = {}): Wishlist {
   const { holds = [], asOf = T0, ...itemOverrides } = options;
   const item = itemOf(WISHLIST_ID, { ...itemOverrides, asOf, holds });
-  return Wishlist.reconstitute({ ...validProps, asOf, keyGen: 1, items: [item] });
+  return Wishlist.reconstitute({ theme: 'storybook', ...validProps, asOf, keyGen: 1, items: [item] });
 }
 
 /** Every `can…` answer for `hold`, asked of a wishlist that loaded it. */
@@ -152,7 +152,26 @@ describe('Wishlist.editDetails', () => {
   });
 });
 
+describe('Wishlist.changeTheme', () => {
+  it('starts in the storybook style and changes to groovy', () => {
+    const wishlist = Wishlist.create(validProps);
+    expect(wishlist.theme).toBe('storybook');
+    wishlist.changeTheme('groovy');
+    expect(wishlist.theme).toBe('groovy');
+  });
+
+  it('refuses an unknown style, keeping the one it had', () => {
+    const wishlist = Wishlist.create(validProps);
+    expect(() => wishlist.changeTheme('disco')).toThrow(DomainValidationError);
+    expect(wishlist.theme).toBe('storybook');
+  });
+});
+
 describe('Wishlist.reconstitute', () => {
+  it('refuses to rebuild a list stored with an unknown style', () => {
+    expect(() => Wishlist.reconstitute({ ...persisted, theme: 'disco' })).toThrow(DomainValidationError);
+  });
+
   it('enforces the title invariant on persisted rows too', () => {
     expect(() => Wishlist.reconstitute({ ...persisted, title: '' })).toThrow(DomainValidationError);
     expect(() => Wishlist.reconstitute({ ...persisted, title: '   ' })).toThrow(DomainValidationError);
@@ -181,7 +200,7 @@ describe('Wishlist.reconstitute', () => {
 
   it('rejects an item loaded at a different instant from the wishlist', () => {
     const item = itemOf(WISHLIST_ID, { asOf: at(1) });
-    expect(() => Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [item] })).toThrow(DomainValidationError);
+    expect(() => Wishlist.reconstitute({ theme: 'storybook', ...validProps, keyGen: 1, items: [item] })).toThrow(DomainValidationError);
   });
 
   it('keeps its own copy of the instant it was loaded at', () => {
@@ -265,7 +284,7 @@ describe('Wishlist.moveItem', () => {
 describe('Wishlist.editItem', () => {
   it('puts the edited item back at its old position in the list order', () => {
     const second = Item.reconstitute({ id: OTHER_ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Crib', quantity: 1, seq: 0, asOf: T0 });
-    const wishlist = Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [itemOf(), second] });
+    const wishlist = Wishlist.reconstitute({ theme: 'storybook', ...validProps, keyGen: 1, items: [itemOf(), second] });
 
     const edited = wishlist.editItem(ITEM_ID, { title: 'Cot mattress', quantity: 1, priceMinor: null, url: null, description: null });
 
@@ -277,7 +296,7 @@ describe('Wishlist.editItem', () => {
 describe('Wishlist.removeItem', () => {
   it('removes an item no guest has acted on', () => {
     const second = Item.reconstitute({ id: OTHER_ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Crib', quantity: 1, seq: 0, asOf: T0 });
-    const wishlist = Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [itemOf(), second] });
+    const wishlist = Wishlist.reconstitute({ theme: 'storybook', ...validProps, keyGen: 1, items: [itemOf(), second] });
 
     wishlist.removeItem(ITEM_ID);
 
@@ -285,7 +304,7 @@ describe('Wishlist.removeItem', () => {
   });
 
   it('refuses to remove an item with guest history, keeping it', () => {
-    const wishlist = Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [itemOf(WISHLIST_ID, { seq: 1 })] });
+    const wishlist = Wishlist.reconstitute({ theme: 'storybook', ...validProps, keyGen: 1, items: [itemOf(WISHLIST_ID, { seq: 1 })] });
 
     expect(() => wishlist.removeItem(ITEM_ID)).toThrow(ItemHasGuestHistoryError);
     expect(wishlist.items.map((i) => i.id.value)).toEqual([ITEM_ID]);
@@ -416,7 +435,7 @@ describe('Wishlist hold questions', () => {
 describe('Wishlist.itemStatus', () => {
   it('decides availability per item: a hold on one leaves the other available', () => {
     const second = Item.reconstitute({ id: OTHER_ITEM_ID, wishlistId: WISHLIST_ID, type: 'single', title: 'Crib', quantity: 1, seq: 0, asOf: T0 });
-    const wishlist = Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [itemOf(WISHLIST_ID, { holds: [holdOn(ITEM_ID)] }), second] });
+    const wishlist = Wishlist.reconstitute({ theme: 'storybook', ...validProps, keyGen: 1, items: [itemOf(WISHLIST_ID, { holds: [holdOn(ITEM_ID)] }), second] });
     expect(wishlist.itemStatus(ITEM_ID)).toBe('held');
     expect(wishlist.itemStatus(OTHER_ITEM_ID)).toBe('available');
   });
@@ -439,7 +458,7 @@ describe('Wishlist.findHoldForReplay', () => {
       holds: [holdOn(OTHER_ITEM_ID, { idempotencyKey: 'tap-1' })],
     });
     const here = itemOf(WISHLIST_ID, { holds: [holdOn(ITEM_ID, { idempotencyKey: 'tap-2' })] });
-    const wishlist = Wishlist.reconstitute({ ...validProps, keyGen: 1, items: [here, elsewhere] });
+    const wishlist = Wishlist.reconstitute({ theme: 'storybook', ...validProps, keyGen: 1, items: [here, elsewhere] });
     expect(wishlist.findHoldForReplay(ITEM_ID, 'tap-1', SESSION)).toBeNull();
   });
 
@@ -454,7 +473,7 @@ describe('Wishlist.findContributionForReplay', () => {
     idempotencyKey: 'p-1', piiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
   });
   const withPledge = () => Wishlist.reconstitute({
-    ...validProps, keyGen: 1,
+    theme: 'storybook', ...validProps, keyGen: 1,
     items: [Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'group', title: 'Mixer', quantity: 1, priceMinor: 10_000, seq: 1, asOf: T0, contributions: [pledged] })],
   });
 
@@ -476,7 +495,7 @@ describe('Wishlist.findContributionForReplay', () => {
       idempotencyKey: 'p-1', piiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
     });
     const wishlist = Wishlist.reconstitute({
-      ...validProps, keyGen: 1,
+      theme: 'storybook', ...validProps, keyGen: 1,
       items: [
         Item.reconstitute({ id: ITEM_ID, wishlistId: WISHLIST_ID, type: 'group', title: 'Mixer', quantity: 1, priceMinor: 10_000, seq: 1, asOf: T0, contributions: [here] }),
         Item.reconstitute({ id: OTHER_ITEM_ID, wishlistId: WISHLIST_ID, type: 'group', title: 'Pram', quantity: 1, priceMinor: 10_000, seq: 2, asOf: T0, contributions: [elsewhere] }),
@@ -506,7 +525,7 @@ describe('Wishlist.contributionsForSession', () => {
     const group = (id: string, title: string, seq: number, contributions: Contribution[]) =>
       Item.reconstitute({ id, wishlistId: WISHLIST_ID, type: 'group', title, quantity: 1, priceMinor: 10_000, seq, asOf: T0, contributions });
     const wishlist = Wishlist.reconstitute({
-      ...validProps, keyGen: 1,
+      theme: 'storybook', ...validProps, keyGen: 1,
       items: [group(ITEM_ID, 'Mixer', 1, [onMixer, theirs]), group(OTHER_ITEM_ID, 'Pram', 2, [onPram])],
     });
     expect(wishlist.contributionsForSession(SESSION)).toEqual([onMixer, onPram]);
