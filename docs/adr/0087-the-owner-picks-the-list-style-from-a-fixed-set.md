@@ -34,7 +34,9 @@ too. The design is in the
 
 ## Consequences
 
-- A new style is a new token block in `index.css` and a new value in the
-  set. It needs no migration.
+- A new style needs no migration. It is a new value in four places: the
+  domain set (`LIST_THEMES`), the wire enum (`listThemeSchema`, then
+  `npm run gen:api`), the edit form's labelled options, and a token block
+  in `index.css`.
 - Decorations with hard-coded colours (the seals' highlights, the door)
   keep their Storybook colours in every style.

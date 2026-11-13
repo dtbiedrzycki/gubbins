@@ -28,7 +28,7 @@
 ## Review Focus
 
 1. **Deploy onto the live database.** Every existing list reads back as `storybook`. Test: Task 1's adoption test.
-2. **A bad value from storage or the wire.** `reconstitute` with an unknown theme throws; the edit request with an unknown theme answers 400. Tests: Task 2 and Task 6.
+2. **A bad value from storage or the wire.** `reconstitute` with an unknown theme throws; the edit request with an unknown theme answers 400. Tests: Task 2's `reconstitute` test, Task 6's schema table and its route test.
 3. **Leaving a Groovy page.** Going from a Groovy list to the home page puts the Storybook look back. Test: Task 5's hook test.
 
 ---
@@ -62,12 +62,14 @@
 - Produces, from `Wishlist.ts`: `export const LIST_THEMES = ['storybook', 'groovy'] as const; export type ListTheme = (typeof LIST_THEMES)[number];`, a `theme: ListTheme` getter, `changeTheme(theme: string): void`. `reconstitute` takes a required `theme: string`.
 
 - [ ] **Step 1: Write the failing tests:**
-  - `Wishlist.test.ts`: `it('starts in the storybook style and changes to groovy')`. *(Protects: `create`'s starting value and `changeTheme`.)*
+  - `Wishlist.test.ts`, under `Wishlist.create`: `it('starts a new list in the storybook style')`. *(Protects: `create`'s starting value.)*
+  - `it('changes the style to groovy')`. *(Protects: `changeTheme`'s assignment.)*
   - `it('refuses an unknown style, keeping the one it had')`: `changeTheme('disco')` throws `DomainValidationError`; `theme` is still `storybook`. *(Protects: the check in `changeTheme`.)*
   - `it('refuses to rebuild a list stored with an unknown style')`: `reconstitute({ …, theme: 'disco' })` throws. *(Protects: the constructor's check.)*
-  - Contract: `it('save stores a changed style')`: a new list loads as `storybook`; after `changeTheme('groovy')` and save it loads as `groovy`. *(Protects: both adapters' insert, save and load of `theme`.)*
+  - Contract: `it('insert stores the style the list has')`: a list rebuilt as `groovy` and inserted loads as `groovy`. *(Protects: both adapters' insert of `theme`; the column default would hide a dropped value otherwise.)*
+  - Contract: `it('save stores a changed style')`: a list loads as `storybook`; after `changeTheme('groovy')` and save it loads as `groovy`. *(Protects: both adapters' save and load of `theme`.)*
 - [ ] **Step 2: Run** `verify.sh --quick apps/api src/domain/entities/Wishlist.test.ts src/application/test-fakes/InMemoryRepositories.contract.test.ts src/infrastructure/contracts.integration.test.ts`. Expected: FAIL.
-- [ ] **Step 3: Implement.** One private check used by the constructor and `changeTheme`. `save` updates `theme` alongside title and description when it changed. Pass `theme` at every `reconstitute` call.
+- [ ] **Step 3: Implement.** One private check used by the constructor and `changeTheme`. `create` passes `'storybook'` by name, not `LIST_THEMES[0]`. `save` updates `theme` alongside title and description when it changed. Pass `theme` at every `reconstitute` call.
 - [ ] **Step 4: Run** `verify.sh --quick apps/api`. Expected: PASS.
 - [ ] **Step 5: Commit** `feat(api): a list has a style, storybook or groovy`.
 
@@ -78,7 +80,7 @@
 - Modify: `apps/api/src/application/use-cases/GetListView.ts`
 - Modify: `apps/api/src/application/use-cases/GetListView.test.ts`
 - Modify: `apps/api/openapi.json`, `apps/web/src/api/schema.gen.ts` (generated)
-- Modify: web fixtures typed by the contract: `apps/web/src/pages/ListPage.test.tsx`, `apps/web/src/features/holds/useHoldItem.test.tsx` (and any other the typecheck names).
+- Modify: fixtures and exact-shape tests: `apps/web/src/pages/ListPage.test.tsx`, `apps/web/src/features/holds/useHoldItem.test.tsx`, `apps/web/src/features/holds/YourContributions.test.tsx`, `packages/shared-types/src/holdView.test.ts`, `apps/api/src/presentation/routes.integration.test.ts`. This makes 10 files, the cap: any further fixture means a split.
 
 - [ ] **Step 1:** Extend `carries the list's description` to `carries the list's description and style`, with the list changed to `groovy`. *(Protects: `GetListView` mapping `theme`.)*
 - [ ] **Step 2: Run**, expect FAIL; **implement**; `npm run gen:api`; fix fixtures (`theme: 'storybook'`); **run** `verify.sh --quick`. Expected: PASS.
@@ -91,7 +93,7 @@
 - Modify: `apps/api/src/application/use-cases/GetManageView.ts`
 - Modify: `apps/api/src/application/use-cases/GetManageView.test.ts`
 - Modify: `apps/api/openapi.json`, `apps/web/src/api/schema.gen.ts` (generated)
-- Modify: manage fixtures the typecheck names (expected: `apps/web/src/pages/ManagePage.test.tsx`, `apps/web/src/features/manage/ListDetails.test.tsx`).
+- Modify: manage fixtures: `apps/web/src/pages/ManagePage.test.tsx`, `apps/web/src/features/manage/ListDetails.test.tsx`, `apps/web/src/features/manage/ManageItems.test.tsx`.
 
 - [ ] **Step 1:** Add the style to the existing manage-view mapping test, with the list changed to `groovy`. *(Protects: `GetManageView` mapping `theme`.)*
 - [ ] **Step 2:** As Task 3.
@@ -114,7 +116,7 @@
   - `ListPage.test.tsx`: `it("shows a groovy list in the list's style")`. *(Protects: `ListPage` passing `view.theme`.)* `ManagePage` is one line of the same wiring; no separate test.
 - [ ] **Step 2: Run** `verify.sh --quick apps/web src/lib/useListTheme.test.ts src/pages/ListPage.test.tsx`. Expected: FAIL.
 - [ ] **Step 3: Implement.** Call the hook at the top of each page, unconditionally, with `query.data?.theme`.
-- [ ] **Step 4: Run** `verify.sh --quick apps/web`. Expected: PASS. Take one screenshot of a Groovy list page (seed the DB by hand) and compare with the mockup.
+- [ ] **Step 4: Run** `verify.sh --quick apps/web`. Expected: PASS. Take one screenshot of a Groovy list page and compare its colours and heading font with the mockup; the mockup's shapes are not built (see its "Not built" note).
 - [ ] **Step 5: Commit** `feat(web): list and manage pages show the list's style`.
 
 ### Task 6: The owner picks the style
@@ -129,9 +131,10 @@
 - Modify: `apps/web/src/features/manage/ListDetails.tsx` (pass `theme={view.theme}`)
 
 - [ ] **Step 1: Write the failing tests:**
-  - `ownerEditing.test.ts`: extend the existing test so a body without `theme`, and one with `theme: 'disco'`, are refused. *(Protects: the schema's required enum.)*
+  - `ownerEditing.test.ts`: `it.each(…)('refuses a style that is %s')` for a missing `theme` and `'disco'`; the description test's bodies only gain `theme`. *(Protects: the schema's required enum.)*
+  - `routes.integration.test.ts`: `it('answers 400 for an unknown style')`, the route's one schema refusal. *(Protects: the route validating its body with the schema.)*
   - `EditListDetails.test.ts`: `saves the owner's edit` also saves `theme: 'groovy'`. *(Protects: the use case calling `changeTheme`.)*
-  - `EditListDetailsForm.test.tsx`: extend the first test: the current style is checked, the owner picks Groovy, and the exact payload includes `theme: 'groovy'`. *(Protects: the radio group's state and the payload.)*
+  - `EditListDetailsForm.test.tsx`: `it("starts on the list's current style and sends the one the owner picks")`: Storybook is checked, the owner picks Groovy, and the exact payload has `theme: 'groovy'`. The first test's expected body only gains `theme: 'storybook'`. *(Protects: the radio group's state and the payload.)*
 - [ ] **Step 2: Run**, expect FAIL.
 - [ ] **Step 3: Implement.** The form gets a `<fieldset>` with legend "List style" and two radios (`id="edit-list-theme-storybook"`, `id="edit-list-theme-groovy"`), below the description field. The use case calls `changeTheme` before `editDetails`, in the same unit of work.
 - [ ] **Step 4:** `npm run gen:api`; **run** `verify.sh --quick`. Expected: PASS.

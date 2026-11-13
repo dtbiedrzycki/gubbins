@@ -17,7 +17,7 @@ Every list looks the same: the Storybook look (lilac paper, plum ink, moss butto
 
 - Picking a style when creating a list. New lists are Storybook; the owner can change it afterwards.
 - The guest key screen. It shows before the guest has entered a key, so the page doesn't know the list yet. It stays Storybook.
-- Groovy-only shapes from the mockup: the rainbow arch round the door, the striped rule under the list title, the sunburst seals and the striped jar. Only colours and the heading font change. The seals, the vine and the jar keep their shapes and pick up the Groovy colours where they already use theme colours.
+- Groovy-only shapes and treatments from the mockup: the rainbow arch round the door, the striped rule under the list title, the sunburst seals, the striped jar, pill-shaped buttons and inputs, wax-coloured list titles, and the cream "Your holds" panel. Only colours and the heading font change. The seals, the vine and the jar keep their shapes and pick up the Groovy colours where they already use theme colours.
 - Pages that aren't about one list (home, create, privacy, not found).
 - More styles, custom colours, or a per-guest style.
 
@@ -57,4 +57,4 @@ The list details edit form (`EditListDetailsForm`) gains a **List style** choice
 
 ## Open decisions for the owner
 
-None. The owner ruled on 2026-11-13: pick the style only when editing (not on create), both the guest and manage pages show it, the picker label is "Groovy", and Storybook is the default.
+None. The owner ruled on 2026-11-13: pick the style only when editing (not on create), both the guest and manage pages show it, the picker is labelled "List style" with options "Storybook" and "Groovy", and Storybook is the default.
