@@ -10,7 +10,7 @@ import { server } from '../test/msw/server';
 import ManagePage from './ManagePage';
 
 const view = (titles: string[]): ManageViewResponse => ({
-  title: 'Baby Shower', description: null, key: 'maple-lantern-otter',
+  title: 'Baby Shower', description: null, theme: 'storybook', key: 'maple-lantern-otter',
   items: titles.map((title, n) => ({
     id: `i${n}`, type: 'single', title, quantity: 1, priceMinor: 2400, url: null, description: null,
     deletable: true, committedUnits: 0, pledgedMinor: null,

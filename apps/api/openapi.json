@@ -882,6 +882,13 @@
                       "nullable": true,
                       "type": "string"
                     },
+                    "theme": {
+                      "type": "string",
+                      "enum": [
+                        "storybook",
+                        "groovy"
+                      ]
+                    },
                     "key": {
                       "type": "string"
                     },
@@ -957,6 +964,7 @@
                   "required": [
                     "title",
                     "description",
+                    "theme",
                     "key",
                     "items"
                   ],
