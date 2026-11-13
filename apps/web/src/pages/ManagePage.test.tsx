@@ -9,8 +9,8 @@ import { mock } from '../test/msw/mock';
 import { server } from '../test/msw/server';
 import ManagePage from './ManagePage';
 
-const view = (titles: string[]): ManageViewResponse => ({
-  title: 'Baby Shower', description: null, theme: 'storybook', key: 'maple-lantern-otter',
+const view = (titles: string[], theme: ManageViewResponse['theme'] = 'storybook'): ManageViewResponse => ({
+  title: 'Baby Shower', description: null, theme, key: 'maple-lantern-otter',
   items: titles.map((title, n) => ({
     id: `i${n}`, type: 'single', title, quantity: 1, priceMinor: 2400, url: null, description: null,
     deletable: true, committedUnits: 0, pledgedMinor: null,
@@ -85,6 +85,23 @@ describe('ManagePage', () => {
     await user.click(screen.getByRole('button', { name: 'Add item' }));
 
     expect(await screen.findByText('Your owner session has ended. Enter your owner token to keep managing your list.')).toBeInTheDocument();
+  });
+
+  it('shows the token screen in the default style once the owner session has ended', async () => {
+    server.use(
+      mock('post', '/api/lists/{slug}/owner-session', 200, { ok: true }),
+      http.get('/api/lists/:slug/manage', () => HttpResponse.json(view(['Rings'], 'groovy'))),
+    );
+    server.use(http.post('/api/lists/:slug/items', () => HttpResponse.json({ message: 'Not found' }, { status: 404 })));
+    const user = await enterToken();
+    await screen.findByText('Rings');
+
+    await user.type(screen.getByLabelText('Title'), 'Cot');
+    await user.type(screen.getByLabelText('Price (USD)'), '100');
+    await user.click(screen.getByRole('button', { name: 'Add item' }));
+
+    expect(await screen.findByText('Your owner session has ended. Enter your owner token to keep managing your list.')).toBeInTheDocument();
+    expect(document.documentElement.dataset.listTheme).toBeUndefined();
   });
 
   it("says the gift may be gone when a gift's own action answers 404", async () => {
