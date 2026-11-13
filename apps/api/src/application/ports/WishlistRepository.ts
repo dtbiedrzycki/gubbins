@@ -16,6 +16,8 @@ export interface WishlistRepository {
    * decision share `now`.
    */
   findBySlug(slug: string, now: Date): Promise<Wishlist | null>;
+  /** Just the list's id and key generation, for deciding access before anything loads it; null if no such slug. */
+  findAccessBySlug(slug: string): Promise<{ id: string; keyGen: number } | null>;
   findById(id: string, now: Date): Promise<Wishlist | null>;
   /**
    * Stores what the domain decided on a list already inserted: its title

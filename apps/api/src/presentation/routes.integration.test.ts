@@ -570,12 +570,12 @@ describe('guest access is checked before any list is loaded', () => {
     const db = createDb(':memory:');
     await migrateToLatest(db);
     const deps = buildDependencies(db, undefined, { createSecret: 'test-create-secret' });
-    const findBySlug = vi.spyOn(deps.wishlists, 'findBySlug');
+    const findAccessBySlug = vi.spyOn(deps.wishlists, 'findAccessBySlug');
     const guarded = buildApp(deps, { cookieSecret: 'test-secret' });
     disposeWithApp(guarded, db);
     onTestFinished(() => guarded.close());
     const list = await createList(guarded);
-    findBySlug.mockClear();
+    findAccessBySlug.mockClear();
 
     const forged = { cookie: 'gubbins_session=forged.signature' };
     const requests = [
@@ -591,7 +591,7 @@ describe('guest access is checked before any list is loaded', () => {
       expect(response.statusCode).toBe(404);
       expect(response.json()).toEqual({ message: 'Not found' });
     }
-    expect(findBySlug).not.toHaveBeenCalled();
+    expect(findAccessBySlug).not.toHaveBeenCalled();
   });
 });
 
