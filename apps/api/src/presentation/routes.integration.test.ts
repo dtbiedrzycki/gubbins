@@ -650,6 +650,7 @@ describe('PUT /api/lists/:slug', () => {
     const list = await createList();
     const response = await edit(list.slug, await ownerOn(list), { title: 'Welcome Baby', description: null, theme: 'disco' });
     expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ message: 'Invalid request' });
   });
 
   it('answers a guest session without the owner cookie with the generic 404', async () => {
