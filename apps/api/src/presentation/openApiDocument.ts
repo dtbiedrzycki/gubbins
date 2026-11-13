@@ -32,6 +32,7 @@ const noDependencies: AppDependencies = {
   clock: unusedDependency('clock'),
   hasher: unusedDependency('hasher'),
   tokenGenerator: unusedDependency('tokenGenerator'),
+  holdPolicy: unusedDependency('holdPolicy'),
   instance: unusedDependency('instance'),
   logger: { logInfo: () => {}, logWarn: () => {}, logError: () => {} },
 };

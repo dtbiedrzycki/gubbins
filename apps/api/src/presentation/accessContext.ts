@@ -1,13 +1,29 @@
 import type { FastifyRequest } from 'fastify';
 import type { AccessContext } from '../application/AccessContext.js';
 import type { Hasher } from '../application/ports/Hasher.js';
+import type { HoldPolicy } from '../application/HoldPolicy.js';
 
 export const SESSION_COOKIE = 'gubbins_session';
 export const OWNER_COOKIE = 'gubbins_owner';
+
+/** Every route for a list sits under this path, so a cookie scoped to it is one per list: entering another list's key or token doesn't replace it. */
+export function listCookiePath(slug: string): string {
+  return `/api/lists/${encodeURIComponent(slug)}`;
+}
+
 // Browsers keep Secure cookies only over HTTPS (localhost is exempt); deployments sit behind TLS.
-export const SIGNED_COOKIE_OPTIONS = { path: '/', httpOnly: true, signed: true, sameSite: 'strict', secure: true } as const;
-// 30 days (seconds): outlasts the default hold plus its one extension (3 + 3 days), so a returning guest can still mark a gift purchased.
-export const GUEST_SESSION_COOKIE_OPTIONS = { ...SIGNED_COOKIE_OPTIONS, maxAge: 30 * 24 * 60 * 60 } as const;
+export function ownerCookieOptions(slug: string) {
+  return { path: listCookiePath(slug), httpOnly: true, signed: true, sameSite: 'strict', secure: true } as const;
+}
+
+/**
+ * Renewed on every accepted request, for 30 days or twice the hold duration
+ * if longer: a hold belongs to the session that placed it, so the cookie must
+ * outlast a hold plus its one extension (ADR-0002) for the guest to manage it.
+ */
+export function guestSessionCookieOptions(slug: string, holdPolicy: HoldPolicy) {
+  return { ...ownerCookieOptions(slug), maxAge: Math.max(30, 2 * holdPolicy.durationDays) * 24 * 60 * 60 } as const;
+}
 
 export interface OwnerSessionPayload {
   wishlistId: string;

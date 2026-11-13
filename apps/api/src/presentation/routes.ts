@@ -17,7 +17,7 @@ import type { AccessContext } from '../application/AccessContext.js';
 import type { HoldCommand } from '../application/use-cases/holdCommand.js';
 import type { Wishlist } from '../domain/entities/Wishlist.js';
 import { WishlistNotFoundError, InvalidGuestKeyError } from '../domain/errors.js';
-import { GUEST_SESSION_COOKIE_OPTIONS, OWNER_COOKIE, SESSION_COOKIE, SIGNED_COOKIE_OPTIONS, accessContextFor, readOwnerSession, readSignedSession, type OwnerSessionPayload, type SessionPayload } from './accessContext.js';
+import { OWNER_COOKIE, SESSION_COOKIE, accessContextFor, guestSessionCookieOptions, ownerCookieOptions, readOwnerSession, readSignedSession, type OwnerSessionPayload, type SessionPayload } from './accessContext.js';
 import { instanceResponseSchema } from './instanceConfig.js';
 import { NOT_FOUND, domainErrorResponse } from './domainErrorResponse.js';
 
@@ -48,15 +48,18 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
    * every guest route answers with the same generic 404 as an unknown slug:
    * a caller must not tell "no such list" from "list exists, you're not in
    * it", or slugs could be enumerated (ADR-0016/0054). A request without a
-   * validly signed session is refused before any list is loaded.
+   * validly signed session is refused before any list is loaded. An
+   * accepted session's cookie is re-set, so it lasts 30 days from last use.
    */
-  async function guestAccess(request: FastifyRequest, slug: string): Promise<{ wishlist: Wishlist; access: AccessContext } | null> {
+  async function guestAccess(request: FastifyRequest, reply: FastifyReply, slug: string): Promise<{ wishlist: Wishlist; access: AccessContext } | null> {
     const session = readSignedSession(request);
     if (!session) return null;
     const wishlist = await deps.wishlists.findBySlug(slug, deps.clock.now());
     if (!wishlist) return null;
     const access = accessContextFor({ guest: session, owner: null }, { id: wishlist.id.value, keyGen: wishlist.keyGen }, deps.hasher);
-    return access.guestSession ? { wishlist, access } : null;
+    if (!access.guestSession) return null;
+    reply.setCookie(SESSION_COOKIE, JSON.stringify(session), guestSessionCookieOptions(slug, deps.holdPolicy));
+    return { wishlist, access };
   }
 
   /** Like guestAccess, for the owner cookie: the list, or null for the same generic 404. */
@@ -113,7 +116,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     try {
       const result = await deps.enterGuestKey.execute({ slug, key: request.body.key });
       const payload: SessionPayload = { wishlistId: result.wishlistId, keyGen: result.keyGen, sessionId: result.sessionId };
-      reply.setCookie(SESSION_COOKIE, JSON.stringify(payload), GUEST_SESSION_COOKIE_OPTIONS);
+      reply.setCookie(SESSION_COOKIE, JSON.stringify(payload), guestSessionCookieOptions(slug, deps.holdPolicy));
       return reply.code(200).send({ ok: true });
     } catch (err) {
       // Same generic response for "no such list" and "wrong key" —
@@ -154,7 +157,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     try {
       const { wishlistId } = await deps.enterOwnerToken.execute({ slug: request.params.slug, ownerToken: request.body.ownerToken });
       const payload: OwnerSessionPayload = { wishlistId };
-      reply.setCookie(OWNER_COOKIE, JSON.stringify(payload), SIGNED_COOKIE_OPTIONS);
+      reply.setCookie(OWNER_COOKIE, JSON.stringify(payload), ownerCookieOptions(request.params.slug));
       return reply.code(200).send({ ok: true });
     } catch (err) {
       return sendDomainError(reply, err);
@@ -172,7 +175,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       },
     },
   }, async (request, reply) => {
-    const guest = await guestAccess(request, request.params.slug);
+    const guest = await guestAccess(request, reply, request.params.slug);
     if (!guest) return reply.code(404).send(NOT_FOUND);
     try {
       const view = await deps.getListView.execute({ wishlistId: guest.wishlist.id.value }, guest.access);
@@ -328,7 +331,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     },
   }, async (request, reply) => {
     const { slug, itemId } = request.params;
-    const guest = await guestAccess(request, slug);
+    const guest = await guestAccess(request, reply, slug);
     if (!guest) return reply.code(404).send(NOT_FOUND);
     try {
       // The use case loads the wishlist this slug resolved to and asks it for
@@ -354,7 +357,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     },
   }, async (request, reply) => {
     const { slug, itemId } = request.params;
-    const guest = await guestAccess(request, slug);
+    const guest = await guestAccess(request, reply, slug);
     if (!guest) return reply.code(404).send(NOT_FOUND);
     try {
       const result = await deps.pledgeContribution.execute({ ...request.body, wishlistId: guest.wishlist.id.value, itemId }, guest.access);
@@ -390,7 +393,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       },
     },
   }, async (request, reply) => {
-    const guest = await guestAccess(request, request.params.slug);
+    const guest = await guestAccess(request, reply, request.params.slug);
     if (!guest) return reply.code(404).send(NOT_FOUND);
     try {
       const view = await deps.markHoldPurchased.execute({ wishlistId: guest.wishlist.id.value, holdId: request.params.holdId, units: request.body.units, message: request.body.message }, guest.access);
@@ -414,7 +417,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
         },
       },
     }, async (request, reply) => {
-      const guest = await guestAccess(request, request.params.slug);
+      const guest = await guestAccess(request, reply, request.params.slug);
       if (!guest) return reply.code(404).send(NOT_FOUND);
       try {
         const view = await command.execute({ wishlistId: guest.wishlist.id.value, holdId: request.params.holdId }, guest.access);

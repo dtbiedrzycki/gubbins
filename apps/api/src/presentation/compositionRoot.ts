@@ -64,6 +64,7 @@ export interface AppDependencies {
   clock: Clock;
   hasher: Hasher;
   tokenGenerator: TokenGenerator;
+  holdPolicy: HoldPolicy;
   instance: InstanceConfig;
 }
 
@@ -97,6 +98,7 @@ export function buildDependencies(db: Kysely<Database>, logger: Logger = new Con
     clock,
     hasher,
     tokenGenerator,
+    holdPolicy,
     instance: options.instance ?? DEFAULT_INSTANCE_CONFIG,
   };
 }

@@ -237,7 +237,24 @@ describe('POST /api/lists/:slug/owner-session', () => {
   });
 });
 
+describe('session cookies', () => {
+  it.each([['guest', '/session', 'key'], ['owner', '/owner-session', 'ownerToken']] as const)("scopes the %s cookie to its list's API path", async (_who, route, field) => {
+    const list = await createList();
+    const response = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}${route}`, payload: { [field]: list[field] } });
+    expect(response.cookies).toEqual([expect.objectContaining({ path: `/api/lists/${list.slug}` })]);
+  });
+});
+
 describe('GET /api/lists/:slug', () => {
+  it('renews the guest session cookie on every accepted request', async () => {
+    const list = await createList();
+    const sessionResponse = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } });
+
+    const response = await app.inject({ method: 'GET', url: `/api/lists/${list.slug}`, headers: { cookie: extractCookieHeader(sessionResponse) } });
+
+    expect(response.cookies).toEqual([expect.objectContaining({ name: 'gubbins_session', value: sessionResponse.cookies[0].value, maxAge: 2592000, path: `/api/lists/${list.slug}` })]);
+  });
+
   it('returns the list view for a valid session, with the item available', async () => {
     const list = await createList();
     const sessionResponse = await app.inject({ method: 'POST', url: `/api/lists/${list.slug}/session`, payload: { key: list.key } });
