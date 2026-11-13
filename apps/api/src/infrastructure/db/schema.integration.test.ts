@@ -120,7 +120,7 @@ describe('migrateToLatest on a database an older build created', () => {
     await stale.destroy();
   });
 
-  it('adopts a database the first release created, keeping its rows and recording every migration', async () => {
+  it('adopts a database the first release created, keeping its rows as storybook lists and recording every migration', async () => {
     const released = createDb(':memory:');
     // The first release ran 0001_init's up on every start and recorded nothing.
     await up(released as unknown as Kysely<unknown>);
@@ -128,8 +128,10 @@ describe('migrateToLatest on a database an older build created', () => {
 
     await migrateToLatest(released);
 
-    expect(await released.selectFrom('wishlists').select(['id', 'slug']).execute()).toEqual([{ id: W1, slug: 's' }]);
-    expect((await sql`select name from kysely_migration`.execute(released)).rows).toEqual([{ name: '0001_init' }, { name: '0002_item_positions' }, { name: '0003_items_wishlist_index' }]);
+    expect(await released.selectFrom('wishlists').select(['id', 'slug', 'theme']).execute()).toEqual([{ id: W1, slug: 's', theme: 'storybook' }]);
+    expect((await sql`select name from kysely_migration`.execute(released)).rows).toEqual([
+      { name: '0001_init' }, { name: '0002_item_positions' }, { name: '0003_items_wishlist_index' }, { name: '0004_wishlist_theme' },
+    ]);
     await released.destroy();
   });
 
