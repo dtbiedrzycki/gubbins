@@ -10,7 +10,6 @@ test('a guest covers the rest of a group gift with Venmo, and the card shows it 
   await page.getByLabel('Venmo username').fill('my-venmo');
   await page.getByRole('button', { name: 'Create list' }).click();
   const guestLink = await page.getByTestId('guest-link').getAttribute('href');
-  const guestKey = (await page.getByTestId('guest-key').textContent())?.trim();
   const ownerToken = (await page.getByTestId('owner-token').textContent())?.trim();
 
   const [manage] = await Promise.all([context.waitForEvent('page'), page.getByRole('link', { name: 'Manage your list' }).click()]);
@@ -24,8 +23,6 @@ test('a guest covers the rest of a group gift with Venmo, and the card shows it 
 
   const guest = await context.newPage();
   await guest.goto(guestLink!);
-  await guest.getByLabel('Guest key').fill(guestKey!);
-  await guest.getByRole('button', { name: 'View list' }).click();
 
   const mixer = guest.getByRole('listitem').filter({ has: guest.getByRole('heading', { name: 'Stand mixer' }) });
   await mixer.getByRole('button', { name: 'Chip in' }).click();

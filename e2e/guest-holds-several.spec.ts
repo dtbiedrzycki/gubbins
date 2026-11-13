@@ -2,13 +2,12 @@ import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 /** The owner creates a list and adds 5 baby onesies on the manage page. */
-async function listOfFiveOnesies(page: Page): Promise<{ guestLink: string; guestKey: string }> {
+async function listOfFiveOnesies(page: Page): Promise<{ guestLink: string }> {
   await page.goto('/wishlists/new');
   await page.getByLabel('List title').fill('Baby Shower');
   await page.getByLabel('Create secret').fill('e2e-create-secret');
   await page.getByRole('button', { name: 'Create list' }).click();
   const guestLink = await page.getByTestId('guest-link').getAttribute('href');
-  const guestKey = (await page.getByTestId('guest-key').textContent())?.trim();
   const ownerToken = (await page.getByTestId('owner-token').textContent())?.trim();
 
   const [manage] = await Promise.all([page.context().waitForEvent('page'), page.getByRole('link', { name: 'Manage your list' }).click()]);
@@ -18,15 +17,13 @@ async function listOfFiveOnesies(page: Page): Promise<{ guestLink: string; guest
   await manage.getByLabel('Quantity').fill('5');
   await manage.getByRole('button', { name: 'Add item' }).click();
   await expect(manage.getByRole('status')).toHaveText('Added "Baby onesies".');
-  return { guestLink: guestLink!, guestKey: guestKey! };
+  return { guestLink: guestLink! };
 }
 
-/** A guest keyed in on a new tab; each browser context has its own guest session. */
-async function guestKeyedIn(context: BrowserContext, { guestLink, guestKey }: { guestLink: string; guestKey: string }): Promise<Page> {
+/** A guest who opens the invite link in a new tab; each browser context has its own guest session. */
+async function guestFromLink(context: BrowserContext, { guestLink }: { guestLink: string }): Promise<Page> {
   const guest = await context.newPage();
   await guest.goto(guestLink);
-  await guest.getByLabel('Guest key').fill(guestKey);
-  await guest.getByRole('button', { name: 'View list' }).click();
   await expect(guest.getByRole('heading', { level: 1, name: 'Baby Shower' })).toBeVisible();
   return guest;
 }
@@ -39,7 +36,7 @@ async function expectNoSeriousAxeViolations(page: Page): Promise<void> {
 
 test('a guest holds 2 of 5, buys 1, and another guest sees "Wanted: 4 more"', async ({ page, context, browser, baseURL }) => {
   const list = await listOfFiveOnesies(page);
-  const guest = await guestKeyedIn(context, list);
+  const guest = await guestFromLink(context, list);
   const yourContributions = guest.getByRole('dialog', { name: 'Your contributions' });
 
   await guest.getByRole('button', { name: 'Hold this item' }).click();
@@ -89,7 +86,7 @@ test('a guest holds 2 of 5, buys 1, and another guest sees "Wanted: 4 more"', as
 
   const otherContext = await browser.newContext({ baseURL });
   try {
-    const other = await guestKeyedIn(otherContext, list);
+    const other = await guestFromLink(otherContext, list);
     await expect(other.getByText('Wanted: 4 more')).toBeVisible();
   } finally {
     await otherContext.close();
