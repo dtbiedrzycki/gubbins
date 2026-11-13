@@ -13,7 +13,7 @@ import { aHoldView } from '../test/holdView';
 
 const hold = aHoldView();
 const view = (held: boolean): ListViewResponse => ({
-  title: 'Baby Shower', description: null,
+  title: 'Baby Shower', description: null, theme: 'storybook',
   items: [aListItem({ status: held ? 'held' : 'available', availableUnits: held ? 0 : 1 })],
   payment: { venmoHandle: null, zelleHandle: null },
   myHolds: held ? [hold] : [],

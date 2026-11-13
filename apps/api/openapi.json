@@ -372,6 +372,13 @@
                       "nullable": true,
                       "type": "string"
                     },
+                    "theme": {
+                      "type": "string",
+                      "enum": [
+                        "storybook",
+                        "groovy"
+                      ]
+                    },
                     "items": {
                       "type": "array",
                       "items": {
@@ -583,6 +590,7 @@
                   "required": [
                     "title",
                     "description",
+                    "theme",
                     "items",
                     "payment",
                     "myHolds",

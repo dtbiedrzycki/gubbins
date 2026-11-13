@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { holdViewSchema } from './holdView.js';
 
+/** The list's style, which the owner picks. */
+export const listThemeSchema = z.enum(['storybook', 'groovy']);
+export type ListTheme = z.infer<typeof listThemeSchema>;
+
 export const itemStatusSchema = z.enum(['available', 'held', 'purchased']);
 export type ItemStatus = z.infer<typeof itemStatusSchema>;
 
@@ -31,6 +35,7 @@ export const contributionViewSchema = z.object({
 export const listViewResponseSchema = z.object({
   title: z.string(),
   description: z.string().nullable(),
+  theme: listThemeSchema,
   items: z.array(listItemSchema),
   /** How guests pay for a group gift. */
   payment: z.object({ venmoHandle: z.string().nullable(), zelleHandle: z.string().nullable() }),

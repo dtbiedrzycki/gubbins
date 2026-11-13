@@ -1,4 +1,5 @@
 import type { ItemStatus, ItemType } from '../../domain/entities/Item.js';
+import type { ListTheme } from '../../domain/entities/Wishlist.js';
 import { WishlistNotFoundError } from '../../domain/errors.js';
 import type { AccessContext } from '../AccessContext.js';
 import type { HoldPolicy } from '../HoldPolicy.js';
@@ -9,6 +10,7 @@ import { toHoldView, type HoldView } from '../views/HoldView.js';
 export interface ListView {
   title: string;
   description: string | null;
+  theme: ListTheme;
   items: {
     id: string; title: string; type: ItemType; status: ItemStatus; availableUnits: number; url: string | null; description: string | null; priceMinor: number | null;
     /** Sum of pledges for a group gift; null for a single. */
@@ -45,6 +47,7 @@ export class GetListView {
       return {
         title: wishlist.title,
         description: wishlist.description,
+        theme: wishlist.theme,
         items: wishlist.items.map((i) => ({
           id: i.id.value, title: i.title, type: i.type, status: wishlist.itemStatus(i.id.value),
           availableUnits: wishlist.availableUnitsOf(i.id.value), url: i.url, description: i.description, priceMinor: i.priceMinor,
