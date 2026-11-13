@@ -116,7 +116,7 @@
   - `useListTheme.test.ts`: `it('puts the style on the page, and takes it off when the page goes')`, using `renderHook` with `groovy`, then `unmount`. *(Protects: the effect and its cleanup.)*
   - `ListPage.test.tsx`: `it("shows a groovy list in the list's style")`. *(Protects: `ListPage` passing `view.theme`.)*
   - `ListPage.test.tsx`: extend `goes back to the guest key when a refetch says the session is gone` with a Groovy first view; the key screen has no style attribute. *(Protects: passing no style while `sessionGone`.)*
-  - `ManagePage.test.tsx`: `it('shows the token screen in the default style once the owner session has ended')`. *(Protects: passing no style unless `entered && !gone`.)*
+  - `ManagePage.test.tsx`: `it('shows the token screen in the default style once the owner session has ended')`: Groovy while the list shows, none once the owner is sent back to the token screen. *(Protects: the manage page's wiring, and passing no style once `entered` is false.)*
 - [ ] **Step 2: Run** `verify.sh --quick apps/web src/lib/useListTheme.test.ts src/pages/ListPage.test.tsx`. Expected: FAIL.
 - [ ] **Step 3: Implement.** Call the hook in each page before any early return. Pass `undefined` while a gate shows (the cached view outlives the session).
 - [ ] **Step 4: Run** `verify.sh --quick apps/web`. Expected: PASS. Take one screenshot of a Groovy list page and compare its colours and heading font with the mockup; the mockup's shapes are not built (see its "Not built" note).
@@ -135,9 +135,9 @@
 
 - [ ] **Step 1: Write the failing tests:**
   - `ownerEditing.test.ts`: `it.each(…)('refuses a style that is %s')` for a missing `theme` and `'disco'`; the description test's bodies only gain `theme`. *(Protects: the schema's required enum.)*
-  - `routes.integration.test.ts`: `it('answers 400 for an unknown style')`, the route's one schema refusal. *(Protects: the route validating its body with the schema.)*
+  - `routes.integration.test.ts`: `it('answers 400 for an unknown style')`, the route's one schema refusal, checking the `Invalid request` body (the domain's refusal is also a 400, with a different message). *(Protects: the route validating its body with the schema.)*
   - `EditListDetails.test.ts`: `saves the owner's edit` also saves `theme: 'groovy'`. *(Protects: the use case calling `changeTheme`.)*
-  - `EditListDetailsForm.test.tsx`: `it("starts on the list's current style and sends the one the owner picks")`: Storybook is checked, the owner picks Groovy, and the exact payload has `theme: 'groovy'`. The first test's expected body only gains `theme: 'storybook'`. *(Protects: the radio group's state and the payload.)*
+  - `EditListDetailsForm.test.tsx`: `it("starts on the list's current style and sends the one the owner picks")`: rendered with `groovy`, Groovy is checked, the owner picks Storybook, and the exact payload has `theme: 'storybook'`. Starting off the default shows the form uses the current style. The first test's expected body only gains `theme: 'storybook'`. *(Protects: the radio group's state and the payload.)*
 - [ ] **Step 2: Run**, expect FAIL.
 - [ ] **Step 3: Implement.** The form gets a `<fieldset>` with legend "List style" and two radios (`id="edit-list-theme-storybook"`, `id="edit-list-theme-groovy"`), below the description field. The use case calls `changeTheme` before `editDetails`, in the same unit of work.
 - [ ] **Step 4:** `npm run gen:api`; **run** `verify.sh --quick`. Expected: PASS.

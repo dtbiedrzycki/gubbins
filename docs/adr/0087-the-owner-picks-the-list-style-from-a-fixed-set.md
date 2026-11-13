@@ -21,7 +21,8 @@ too. The design is in the
 - A style is a set of values for the existing theme tokens and the display
   font. Components never branch on the style.
 - The list page and the manage page show the list's style. The guest key
-  screen can't, because it shows before the list is known.
+  screen and the owner token screen keep the default style, even when the
+  page still holds the list from before a session ended.
 
 ## Alternatives considered
 
