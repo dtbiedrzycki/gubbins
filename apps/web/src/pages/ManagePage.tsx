@@ -23,10 +23,11 @@ export default function ManagePage() {
     enabled: entered && Boolean(slug),
     retry: false,
   });
-  useListTheme(query.data?.theme);
   const queryClient = useQueryClient();
   // The owner cookie no longer works (404): back to the gate.
   const gone = query.error instanceof ApiError && query.error.status === 404;
+  // The token screen keeps the default look, even with an earlier view still cached.
+  useListTheme(entered && !gone ? query.data?.theme : undefined);
   const unauthorized = () => { setEntered(false); setExpired('session'); };
   const giftUnauthorized = () => { setEntered(false); setExpired('gift'); };
   if (!slug) return null;

@@ -670,7 +670,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The list's title and description were changed.",
+            "description": "The list's details were changed.",
             "content": {
               "application/json": {
                 "schema": {

@@ -99,6 +99,10 @@ describe('Wishlist.create', () => {
     expect(() => Wishlist.create({ ...validProps, key: '' })).toThrow(DomainValidationError);
     expect(() => Wishlist.create({ ...validProps, id: 'w1' })).toThrow(DomainValidationError);
   });
+
+  it('starts a new list in the storybook style', () => {
+    expect(Wishlist.create(validProps).theme).toBe('storybook');
+  });
 });
 
 describe('Wishlist.editDetails', () => {
@@ -153,9 +157,8 @@ describe('Wishlist.editDetails', () => {
 });
 
 describe('Wishlist.changeTheme', () => {
-  it('starts in the storybook style and changes to groovy', () => {
+  it('changes the style to groovy', () => {
     const wishlist = Wishlist.create(validProps);
-    expect(wishlist.theme).toBe('storybook');
     wishlist.changeTheme('groovy');
     expect(wishlist.theme).toBe('groovy');
   });

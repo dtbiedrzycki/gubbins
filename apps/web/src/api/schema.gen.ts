@@ -564,7 +564,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The list's title and description were changed. */
+            /** @description The list's details were changed. */
             200: {
                 headers: {
                     [name: string]: unknown;
