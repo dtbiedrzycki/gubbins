@@ -8,7 +8,7 @@ out/
 coverage/
 *.tsbuildinfo
 
-# Playwright's per-run output (traces, screenshots of failures)
+# Playwright's per-run output (last-run state, failure artifacts)
 test-results/
 
 # Environment — .env.example is committed, .env and variants are not
