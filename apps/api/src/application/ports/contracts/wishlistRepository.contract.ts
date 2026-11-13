@@ -228,6 +228,12 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect((await fx.wishlists.findById(LIST_A, NOW))?.description).toBeNull();
     });
 
+    it('insert stores the style the list has', async () => {
+      await fx.wishlists.insert(Wishlist.reconstitute({ theme: 'groovy', id: LIST_C, slug: 'list-c', title: 'List C', ownerToken: 'o', key: 'k-c', keyGen: 1, asOf: NOW }));
+
+      expect((await fx.wishlists.findById(LIST_C, NOW))?.theme).toBe('groovy');
+    });
+
     it('save stores a changed style', async () => {
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
       expect(wishlist.theme).toBe('storybook');

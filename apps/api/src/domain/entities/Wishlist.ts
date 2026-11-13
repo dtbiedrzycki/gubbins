@@ -15,7 +15,7 @@ import { cleanDescription, Item, type ItemEdit, type ItemStatus } from './Item.j
 
 const WISHLIST_DESCRIPTION_MAX = 2000; // room for an address and delivery notes; bounds stored input
 
-/** The looks a list can have; the first is where every new list starts. */
+/** The looks a list can have. */
 export const LIST_THEMES = ['storybook', 'groovy'] as const;
 export type ListTheme = (typeof LIST_THEMES)[number];
 
@@ -119,7 +119,7 @@ export class Wishlist {
     return new Wishlist(
       UuidId.from(props.id), Slug.from(props.slug), props.title.trim(),
       OwnerToken.from(props.ownerToken), GuestKey.from(props.key), 1, new Date(props.asOf.getTime()), props.paymentMethods,
-      cleanDescription(props.description), LIST_THEMES[0],
+      cleanDescription(props.description), 'storybook',
     );
   }
 
