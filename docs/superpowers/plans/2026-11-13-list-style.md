@@ -93,6 +93,7 @@
 - Modify: `apps/api/src/application/use-cases/GetManageView.ts`
 - Modify: `apps/api/src/application/use-cases/GetManageView.test.ts`
 - Modify: `apps/api/openapi.json`, `apps/web/src/api/schema.gen.ts` (generated)
+- Modify: `apps/api/src/presentation/routes.ts`: the edit route's 200 description says "details", since the style joins them in Task 6 (Task 6 is at the cap).
 - Modify: manage fixtures: `apps/web/src/pages/ManagePage.test.tsx`, `apps/web/src/features/manage/ListDetails.test.tsx`, `apps/web/src/features/manage/ManageItems.test.tsx`.
 
 - [ ] **Step 1:** Add the style to the existing manage-view mapping test, with the list changed to `groovy`. *(Protects: `GetManageView` mapping `theme`.)*
@@ -107,15 +108,17 @@
 - Modify: `apps/web/package.json`, `package-lock.json` (`@fontsource/shrikhand@^5.3.0`)
 - Create: `apps/web/src/lib/useListTheme.ts`, `apps/web/src/lib/useListTheme.test.ts`
 - Modify: `apps/web/src/pages/ListPage.tsx`, `apps/web/src/pages/ManagePage.tsx`
-- Modify: `apps/web/src/pages/ListPage.test.tsx`
+- Modify: `apps/web/src/pages/ListPage.test.tsx`, `apps/web/src/pages/ManagePage.test.tsx`
 
 **Interfaces:** `useListTheme(theme: ListTheme | undefined): void`. Sets `document.documentElement.dataset.listTheme` to the theme while mounted and while defined; deletes it on unmount or when the theme becomes undefined.
 
 - [ ] **Step 1: Write the failing tests:**
   - `useListTheme.test.ts`: `it('puts the style on the page, and takes it off when the page goes')`, using `renderHook` with `groovy`, then `unmount`. *(Protects: the effect and its cleanup.)*
-  - `ListPage.test.tsx`: `it("shows a groovy list in the list's style")`. *(Protects: `ListPage` passing `view.theme`.)* `ManagePage` is one line of the same wiring; no separate test.
+  - `ListPage.test.tsx`: `it("shows a groovy list in the list's style")`. *(Protects: `ListPage` passing `view.theme`.)*
+  - `ListPage.test.tsx`: extend `goes back to the guest key when a refetch says the session is gone` with a Groovy first view; the key screen has no style attribute. *(Protects: passing no style while `sessionGone`.)*
+  - `ManagePage.test.tsx`: `it('shows the token screen in the default style once the owner session has ended')`. *(Protects: passing no style unless `entered && !gone`.)*
 - [ ] **Step 2: Run** `verify.sh --quick apps/web src/lib/useListTheme.test.ts src/pages/ListPage.test.tsx`. Expected: FAIL.
-- [ ] **Step 3: Implement.** Call the hook at the top of each page, unconditionally, with `query.data?.theme`.
+- [ ] **Step 3: Implement.** Call the hook in each page before any early return. Pass `undefined` while a gate shows (the cached view outlives the session).
 - [ ] **Step 4: Run** `verify.sh --quick apps/web`. Expected: PASS. Take one screenshot of a Groovy list page and compare its colours and heading font with the mockup; the mockup's shapes are not built (see its "Not built" note).
 - [ ] **Step 5: Commit** `feat(web): list and manage pages show the list's style`.
 
