@@ -339,7 +339,7 @@ describe('ListPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Your contributions · 1' }));
     expect(within(screen.getByRole('dialog', { name: 'Your contributions' })).getByRole('button', { name: 'Extend hold' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Guest key')).not.toBeInTheDocument();
-    expect(statuses).toContain(screen.getByText("Couldn't refresh the list, so it may be out of date."));
+    expect(statuses).toContain(screen.getByText("Couldn’t refresh the list, so it may be out of date."));
     expect(gets).toBe(3);
   });
 
@@ -368,8 +368,8 @@ describe('ListPage', () => {
   });
 
   it.each([
-    ['cannot reach the server', () => HttpResponse.error(), "Couldn't reach the server. Check your connection and try again."],
-    ['gets a 503', () => HttpResponse.json({ message: 'Service unavailable' }, { status: 503 }), 'Service unavailable'],
+    ['cannot reach the server', () => HttpResponse.error(), /^Couldn’t load the list\. /],
+    ['gets a 503', () => HttpResponse.json({ message: 'Service unavailable' }, { status: 503 }), /^Couldn’t load the list\. Something went wrong on our end\./],
   ])('shows the error, not the guest key, when the first load %s', async (_, respond, message) => {
     server.use(http.get('/api/lists/abc123', respond));
     renderListPage();

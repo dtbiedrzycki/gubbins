@@ -6,15 +6,21 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { server } from '../../test/msw/server';
 import { mock } from '../../test/msw/mock';
 import { ContributeDialog, type ContributeDialogProps } from './ContributeDialog';
+import { useListView } from '../holds/useListView';
 
-function renderDialog(overrides: Partial<ContributeDialogProps> = {}) {
+/** Mounts the list view query, as the page does, so a pledge's refetch has something to refetch. */
+function ListViewQuery() {
+  return useListView('abc123').isSuccess ? <p>List loaded</p> : null;
+}
+
+function renderDialog(overrides: Partial<ContributeDialogProps> = {}, { withListView = false } = {}) {
   const props: ContributeDialogProps = {
     slug: 'abc123', itemId: 'item-1', itemTitle: 'Stand mixer', remainingMinor: 28750,
     payment: { venmoHandle: 'my-venmo', zelleHandle: 'me@example.com' },
     onPledged: vi.fn(), onClose: vi.fn(), ...overrides,
   };
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
-  return { props, ...render(<QueryClientProvider client={client}><ContributeDialog {...props} /></QueryClientProvider>) };
+  return { props, ...render(<QueryClientProvider client={client}>{withListView && <ListViewQuery />}<ContributeDialog {...props} /></QueryClientProvider>) };
 }
 
 /** Records every pledge request body; answers 201 after an optional delay. */
@@ -296,5 +302,34 @@ describe('ContributeDialog', () => {
       expect(screen.getByLabelText(label)).toHaveAccessibleDescription(expect.stringContaining('To change your details, cancel and start again.'));
     }
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
+  });
+
+  it('tells the guest a server failure was on our end, led by what could not be done', async () => {
+    server.use(http.post('/api/lists/:slug/items/:itemId/contributions', () => HttpResponse.json({ message: 'boom' }, { status: 500 })));
+    const user = userEvent.setup();
+    renderDialog();
+    await continueWithTheRest(user);
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: "I've sent it" }));
+
+    await vi.waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/^Couldn’t record your contribution\. Something went wrong on our end\./));
+  });
+
+  it('reports a pledge that got no answer without waiting for the refetch', async () => {
+    let gets = 0;
+    server.use(
+      // The list loads, then its refetch never answers. Any body will do: the dialog doesn't read it.
+      http.get('/api/lists/abc123', () => (++gets === 1 ? HttpResponse.json({}) : new Promise<never>(() => {}))),
+      http.post('/api/lists/:slug/items/:itemId/contributions', () => HttpResponse.error()),
+    );
+    const user = userEvent.setup();
+    renderDialog({}, { withListView: true });
+    await screen.findByText('List loaded');
+    await continueWithTheRest(user);
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: "I've sent it" }));
+
+    await vi.waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/^Couldn’t record your contribution\. /));
+    expect(gets).toBe(2);
   });
 });

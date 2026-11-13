@@ -4,6 +4,7 @@ import { useListView } from '../features/holds/useListView';
 import { GuestKeyGate } from '../features/guest-key/GuestKeyGate';
 import { readFragmentKey } from '../features/guest-key/fragmentKey';
 import { ApiError } from '../api/client';
+import { actionErrorMessage } from '../lib/actionErrorMessage';
 import { ItemView } from '../features/holds/ItemView';
 import { HowHoldingWorks } from '../features/holds/HowHoldingWorks';
 import { HowGroupGiftsWork } from '../features/contribute/HowGroupGiftsWork';
@@ -55,7 +56,7 @@ export default function ListPage() {
     return (
       <main className="flex-1 bg-paper p-6 text-ink">
         <div className="mx-auto max-w-sm space-y-4">
-          <p role="alert" className="text-error">{query.error.message}</p>
+          <p role="alert" className="text-error">{actionErrorMessage(query.error, "Couldn’t load the list.")}</p>
           <button type="button" autoFocus={retried} onClick={() => { setRetried(true); void query.refetch(); }} className="btn-primary">
             Try again
           </button>
@@ -116,7 +117,7 @@ export default function ListPage() {
           />
         )}
         {canChipIn && <HowGroupGiftsWork onDismiss={focusFilter} />}
-        <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn't refresh the list, so it may be out of date." : ''}</p>
+        <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn’t refresh the list, so it may be out of date." : ''}</p>
         <ItemFilter items={items} value={filter.value} onChange={chooseFilter} />
         {/* explicit role: Safari/VoiceOver drops list semantics under list-style none */}
         {shown.length === 0 ? (

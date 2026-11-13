@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ListViewResponse, PledgeRequest } from '@gubbins/shared-types';
-import { api } from '../../api/client';
+import { api, isNetworkFailure } from '../../api/client';
 import { listViewKey } from '../holds/useListView';
 import { formatMoney } from '../../lib/formatMoney';
 import { parseUsd } from '../../lib/parseUsd';
@@ -9,6 +9,7 @@ import { venmoPayLink } from './paymentLinks';
 import { readPreferredPayMethod, writePreferredPayMethod, type PayMethod } from './preferredPayMethod';
 import { LimitedInput, LimitedTextarea } from '../../lib/LimitedField';
 import { readGifterNames, writeGifterNames } from '../../lib/gifterNames';
+import { actionErrorMessage } from '../../lib/actionErrorMessage';
 import { useModalDialog } from '../../lib/useModalDialog';
 
 export interface ContributeDialogProps {
@@ -50,8 +51,13 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   const { mutate, isPending, isIdle, error } = useMutation({
     mutationFn: (input: PledgeRequest) => api.pledgeContribution(slug, itemId, input),
     // Settled, not success: a 409 also means the pledged total moved. Returning
-    // the promise keeps the mutation pending until the fresh total lands.
-    onSettled: () => queryClient.invalidateQueries({ queryKey: listViewKey(slug) }),
+    // the promise keeps the mutation pending until the fresh total lands, except
+    // after a request that got no answer: that is reported at once, and the
+    // refetch runs in the background.
+    onSettled: (_, error) => {
+      const refetched = queryClient.invalidateQueries({ queryKey: listViewKey(slug) });
+      if (!(error && isNetworkFailure(error))) return refetched;
+    },
   });
 
   const { ref, onCancel, onClose: handleClose } = useModalDialog({ isPending, onClose });
@@ -147,7 +153,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           <label className="mb-1 block" htmlFor="contribute-message">Message to the owner (optional)</label>
           <LimitedTextarea id="contribute-message" value={message} onChange={(e) => setMessage(e.target.value)} max={MESSAGE_MAX} disabled={isPending} readOnly={sent} describedBy={[lockedHint]} className="field mb-4" />
           {sent && <p id="contribute-locked" className="mb-4 text-sm text-muted">To change your details, cancel and start again.</p>}
-          <p role="alert" className="mb-4 text-error empty:mb-0">{error?.message}</p>
+          <p role="alert" className="mb-4 text-error empty:mb-0">{error && actionErrorMessage(error, "Couldn’t record your contribution.")}</p>
           <div className="flex gap-2">
             <button type="button" onClick={send} disabled={isPending || amount === null || !name.trim()} className="btn-primary">I&apos;ve sent it</button>
             <button type="button" onClick={onClose} disabled={isPending} className="btn-secondary">Cancel</button>
