@@ -9,6 +9,7 @@ import { formatMoney } from '../../lib/formatMoney';
 import { ClampedText } from '../../lib/ClampedText';
 import { Markdown } from '../../lib/Markdown';
 import { ContributeDialog } from '../contribute/ContributeDialog';
+import type { ContributeDraft } from '../contribute/contributeDraft';
 
 export interface ItemViewProps {
   slug: string;
@@ -19,11 +20,15 @@ export interface ItemViewProps {
   heldUnits: number;
   /** What this guest has pledged to the item, in minor units. */
   chippedInMinor: number;
+  /** A chip-in to this gift the guest left to pay: it opens again on arrival. */
+  draft?: ContributeDraft;
+  /** The chip-in closed, so a draft it opened from is done with. */
+  onChipInClosed?: () => void;
 }
 
-export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chippedInMinor }: ItemViewProps) {
+export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chippedInMinor, draft, onChipInClosed }: ItemViewProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [chipInOpen, setChipInOpen] = useState(false);
+  const [chipInOpen, setChipInOpen] = useState(Boolean(draft));
   const [thanks, setThanks] = useState('');
   const chipInButton = useRef<HTMLButtonElement>(null);
   // The Chip in button outlives the dialog, so focus goes back to it either way.
@@ -36,6 +41,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chi
   function closeChipIn() {
     chipInClosed.current = true;
     setChipInOpen(false);
+    onChipInClosed?.();
   }
   const { mutate, isPending, error, reset } = useHoldItem(slug, item.id);
   const holdButton = useRef<HTMLButtonElement>(null);
@@ -112,6 +118,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chi
           payment={payment}
           onPledged={(amountMinor) => { setThanks(`Thank you! Your pledge of ${formatMoney(amountMinor)} is recorded.`); closeChipIn(); }}
           onClose={closeChipIn}
+          draft={draft}
         />
       )}
       {item.type === 'single' && item.status === 'available' && (

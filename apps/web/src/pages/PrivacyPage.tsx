@@ -23,8 +23,9 @@ export default function PrivacyPage() {
           Guests get a cookie when they open the invite link or enter the guest key. It lets you see the list and remembers your holds,
           and it lasts 30 days from your last visit, or twice as long as a hold if this site’s holds last longer than 15 days. List owners get a separate cookie that keeps them signed in until the browser
           closes. Your browser also remembers, on this device only, the gifter names you last gave, whether you
-          last chose Venmo or Zelle, whether you dismissed “How holding a gift works”, and whether you
-          last chose to show list descriptions in full. None of this leaves your device except the cookies, which
+          last chose Venmo or Zelle, whether you dismissed “How holding a gift works”, whether you
+          last chose to show list descriptions in full, and, for up to 24 hours, the amount and message of a
+          chip-in you haven’t yet finished or cancelled. None of this leaves your device except the cookies, which
           go only to this site.
         </p>
       </section>
