@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ApiError, isNetworkFailure } from '../../api/client';
 import { actionErrorMessage, ourEndMessage } from '../../lib/actionErrorMessage';
 import { useEnterGuestKey } from './useEnterGuestKey';
@@ -15,11 +15,21 @@ function keyErrorMessage(error: Error): string {
 export interface GuestKeyGateProps {
   slug: string;
   onSuccess: () => Promise<unknown>;
+  /** The invite link's key: fills the input and is sent on mount, showing "Loading…" rather than the form until that first try settles. */
+  linkKey?: string;
 }
 
-export function GuestKeyGate({ slug, onSuccess }: GuestKeyGateProps) {
-  const [key, setKey] = useState('');
+export function GuestKeyGate({ slug, onSuccess, linkKey }: GuestKeyGateProps) {
+  const [key, setKey] = useState(linkKey ?? '');
   const { mutate, error, isPending, opening } = useEnterGuestKey(slug, onSuccess);
+  const [autoSubmitting, setAutoSubmitting] = useState(linkKey !== undefined);
+
+  useEffect(() => {
+    if (linkKey === undefined) return;
+    mutate({ key: linkKey.trim() }, { onSettled: () => setAutoSubmitting(false) });
+  }, [linkKey, mutate]);
+
+  if (autoSubmitting) return <>Loading…</>;
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();

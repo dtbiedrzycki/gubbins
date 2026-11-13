@@ -109,4 +109,5 @@ describe('GuestKeyGate', () => {
     finish();
     await waitFor(() => expect(screen.getByRole('button', { name: 'View list' })).toBeEnabled());
   });
+
 });

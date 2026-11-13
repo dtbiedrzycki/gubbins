@@ -1,9 +1,10 @@
+import { useEffect } from 'react';
 import { describe, expect, it } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, type Location } from 'react-router-dom';
 import type { ListViewResponse } from '@gubbins/shared-types';
 import { server } from '../test/msw/server';
 import ListPage from './ListPage';
@@ -20,13 +21,21 @@ const view = (held: boolean): ListViewResponse => ({
   capabilities: { holdDurationDays: 3 },
 });
 
-function renderListPage() {
+let location: Location;
+function CurrentLocation() {
+  const current = useLocation();
+  useEffect(() => { location = current; });
+  return null;
+}
+
+function renderListPage(entry = '/abc123') {
   // useListView's own retry wins over these defaults; retryDelay: 0 keeps its one retry instant.
   const client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/abc123']}>
+      <MemoryRouter initialEntries={[entry]}>
         <Routes><Route path="/:slug" element={<ListPage />} /></Routes>
+        <CurrentLocation />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -395,5 +404,78 @@ describe('ListPage', () => {
     await waitFor(() => expect(gets).toBe(4));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Try again' })).toHaveFocus());
     expect(screen.getByRole('button', { name: 'Try again' })).not.toBe(first);
+  });
+
+  describe('opened from the invite link', () => {
+    const link = '/abc123#key=maple-lantern-otter';
+
+    it('opens the list from the invite link without asking for the key', async () => {
+      let gets = 0;
+      let body: unknown;
+      // Checked at each request after the first load, the moments the key screen would otherwise show.
+      const keyScreenShown: boolean[] = [];
+      const keyScreen = () => screen.queryByLabelText('Guest key') !== null;
+      server.use(
+        http.get('/api/lists/abc123', () => {
+          if (++gets === 1) return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+          keyScreenShown.push(keyScreen());
+          return HttpResponse.json(view(false));
+        }),
+        http.post('/api/lists/abc123/session', async ({ request }) => {
+          keyScreenShown.push(keyScreen());
+          body = await request.json();
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+      renderListPage(link);
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Baby Shower' })).toBeInTheDocument();
+      expect(body).toEqual({ key: 'maple-lantern-otter' });
+      expect(keyScreenShown).toEqual([false, false]);
+      expect(location.pathname).toBe('/abc123');
+      expect(location.hash).toBe('');
+    });
+
+    it("asks for the key, without sending the link's again, when the session ends after the list opened", async () => {
+      let gets = 0;
+      let posts = 0;
+      server.use(
+        http.get('/api/lists/abc123', () => (++gets === 2 ? HttpResponse.json(view(false)) : HttpResponse.json({ message: 'Not found' }, { status: 404 }))),
+        http.post('/api/lists/abc123/session', () => { posts++; return HttpResponse.json({ ok: true }); }),
+        http.post('/api/lists/abc123/items/item-1/hold', () => HttpResponse.json(hold, { status: 201 })),
+      );
+      const user = userEvent.setup();
+      renderListPage(link);
+
+      await user.click(await screen.findByRole('button', { name: /^Hold this item/ }));
+      await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+      await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+      expect(await screen.findByLabelText('Guest key')).toHaveValue('');
+      expect(posts).toBe(1);
+    });
+
+    it("ignores the link's key when the guest is already in", async () => {
+      let posts = 0;
+      server.use(
+        http.get('/api/lists/abc123', () => HttpResponse.json(view(false))),
+        http.post('/api/lists/abc123/session', () => { posts++; return HttpResponse.json({ ok: true }); }),
+      );
+      renderListPage(link);
+
+      await screen.findByRole('heading', { level: 1, name: 'Baby Shower' });
+      expect(posts).toBe(0);
+    });
+
+    it("shows the key screen with the link's key filled in, saying the list could not be found, when the key is refused", async () => {
+      server.use(
+        http.get('/api/lists/abc123', () => HttpResponse.json({ message: 'Not found' }, { status: 404 })),
+        http.post('/api/lists/abc123/session', () => HttpResponse.json({ message: 'Not found' }, { status: 404 })),
+      );
+      renderListPage(link);
+
+      expect(await screen.findByLabelText('Guest key')).toHaveValue('maple-lantern-otter');
+      expect(screen.getByRole('alert')).toHaveTextContent('This list could not be found.');
+    });
   });
 });
