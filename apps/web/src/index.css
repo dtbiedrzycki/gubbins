@@ -35,6 +35,9 @@
   --color-wax: #B4441A;
   --color-brass: #8A4B1C;
   --font-display: "Shrikhand", Georgia, serif;
+  /* The rule under the list title: three stripes in place of the vine, sized for .vine's 18px height (radius is half). */
+  --list-rule: linear-gradient(var(--color-wax) 0 6px, var(--color-gold) 6px 12px, var(--color-moss) 12px 18px);
+  --list-rule-radius: 9px;
 }
 
 @utility btn-primary {
@@ -174,14 +177,15 @@
     box-shadow: 0 0 0 3px var(--color-brass);
   }
 
-  /* A moss rule with a petal flower at its centre, under the list title. */
+  /* A moss rule with a petal flower at its centre, under the list title; a style may draw its own (--list-rule). */
   .vine {
     display: block;
     width: 70%;
     height: 18px;
     margin: 1rem auto 0;
-    background:
+    border-radius: var(--list-rule-radius, 0);
+    background: var(--list-rule,
       radial-gradient(circle, var(--color-petal) 0 4px, var(--color-wax) 4px 5px, transparent 5.5px) center / 18px 18px no-repeat,
-      linear-gradient(var(--color-moss), var(--color-moss)) center / 100% 1.5px no-repeat;
+      linear-gradient(var(--color-moss), var(--color-moss)) center / 100% 1.5px no-repeat);
   }
 }
