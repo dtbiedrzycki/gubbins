@@ -57,4 +57,4 @@ The list details edit form (`EditListDetailsForm`) gains a **List style** choice
 
 ## Open decisions for the owner
 
-None. The owner ruled on 2026-11-13: pick the style only when editing (not on create), both the guest and manage pages show it, the picker is labelled "List style" with options "Storybook" and "Groovy", and Storybook is the default.
+None. The owner ruled on 2026-11-13: pick the style only when editing (not on create), both the guest and manage pages show it, the picker is labelled "List style" with options "Storybook" and "Groovy", and Storybook is the default. On 2026-11-14 the owner added the striped line under the list title for Groovy.

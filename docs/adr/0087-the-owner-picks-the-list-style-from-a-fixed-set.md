@@ -19,9 +19,10 @@ too. The design is in the
 - The owner changes it when editing the list's details. A new list starts as
   Storybook. Changing it is an owner edit, not a ledger event.
 - A style is a set of values for the existing theme tokens and the display
-  font. It may also draw a decoration its own way through a CSS variable
-  that the decoration's rule falls back from (the rule under the list
-  title is `--list-rule`). Components never branch on the style.
+  font. It may also draw a decoration its own way by setting CSS variables
+  that the decoration's CSS falls back from: the line under the list title
+  uses `--list-rule` and `--list-rule-radius`. Components never branch on
+  the style.
 - The list page and the manage page show the list's style. The guest key
   screen and the owner token screen keep the default style, even when the
   page still holds the list from before a session ended.
