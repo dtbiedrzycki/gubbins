@@ -62,6 +62,14 @@ describe('ListPage', () => {
     expect(screen.getAllByRole('button', { name: /^Hold this item/ })).toHaveLength(2);
   });
 
+  it("shows a groovy list in the list's style", async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), theme: 'groovy' })));
+    renderListPage();
+
+    await screen.findByRole('heading', { level: 1, name: 'Baby Shower' });
+    expect(document.documentElement.dataset.listTheme).toBe('groovy');
+  });
+
   it("shows the list's description in full, above the gifts", async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), description: 'Shipping: **12 Elm Street**' })));
     renderListPage();
@@ -374,10 +382,10 @@ describe('ListPage', () => {
     expect(gets).toBe(3);
   });
 
-  it('goes back to the guest key when a refetch says the session is gone', async () => {
+  it('goes back to the guest key, in the default style, when a refetch says the session is gone', async () => {
     let gets = 0;
     server.use(
-      http.get('/api/lists/abc123', () => (++gets === 1 ? HttpResponse.json(view(false)) : HttpResponse.json({ message: 'Not found' }, { status: 404 }))),
+      http.get('/api/lists/abc123', () => (++gets === 1 ? HttpResponse.json({ ...view(false), theme: 'groovy' }) : HttpResponse.json({ message: 'Not found' }, { status: 404 }))),
       http.post('/api/lists/abc123/items/item-1/hold', () => HttpResponse.json(hold, { status: 201 })),
     );
     const user = userEvent.setup();
@@ -388,6 +396,7 @@ describe('ListPage', () => {
     await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
 
     expect(await screen.findByLabelText('Guest key')).toBeInTheDocument();
+    expect(document.documentElement.dataset.listTheme).toBeUndefined();
   });
 
   it.each([401, 404])('asks for the guest key when the first load answers %i', async (status) => {

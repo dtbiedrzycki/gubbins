@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useListView } from '../features/holds/useListView';
+import { useListTheme } from '../lib/useListTheme';
 import { GuestKeyGate } from '../features/guest-key/GuestKeyGate';
 import { readFragmentKey } from '../features/guest-key/fragmentKey';
 import { ApiError } from '../api/client';
@@ -20,6 +21,14 @@ export default function ListPage() {
   // it internally disables the query via `enabled: Boolean(slug)` when slug
   // is undefined, so no request fires before the guard below returns.
   const query = useListView(slug);
+  // 401 (no session yet) and 404 (unknown slug) both mean "enter the key":
+  // the backend already collapses them into the same generic shape
+  // (ADR-016/054), so this doesn't (and mustn't) distinguish further. Any
+  // other error on the first load is the server or network, which a key
+  // can't fix. Once the list has loaded, a failed background refetch keeps it.
+  const sessionGone = query.error instanceof ApiError && (query.error.status === 401 || query.error.status === 404);
+  // The key screen keeps the default look, even with the list still cached.
+  useListTheme(sessionGone ? undefined : query.data?.theme);
   const location = useLocation();
   const navigate = useNavigate();
   // An invite link carries the key in the fragment, which the browser never sends to the server (ADR-0067).
@@ -51,12 +60,6 @@ export default function ListPage() {
     return <main className="flex-1 bg-paper p-6 text-ink">Loading…</main>;
   }
 
-  // 401 (no session yet) and 404 (unknown slug) both mean "enter the key":
-  // the backend already collapses them into the same generic shape
-  // (ADR-016/054), so this doesn't (and mustn't) distinguish further. Any
-  // other error on the first load is the server or network, which a key
-  // can't fix. Once the list has loaded, a failed background refetch keeps it.
-  const sessionGone = query.error instanceof ApiError && (query.error.status === 401 || query.error.status === 404);
   if (!query.data && query.error && !sessionGone) {
     // The alert is this view's content, mounted with it, so it is announced
     // on arrival; focus stays put the first time, since the guest didn't ask

@@ -23,6 +23,20 @@
   }
 }
 
+/* The Groovy list style (ADR-0087): the same tokens with 70s values. Decorations with literal colours keep them. */
+:root[data-list-theme="groovy"] {
+  --color-paper: #FBEBC8;
+  --color-ink: #3A2212;
+  --color-muted: #7A5232;
+  --color-line: #E9CF98;
+  --color-moss: #5C6B1A;
+  --color-petal: #F4B183;
+  --color-gold: #E8A317;
+  --color-wax: #B4441A;
+  --color-brass: #8A4B1C;
+  --font-display: "Shrikhand", Georgia, serif;
+}
+
 @utility btn-primary {
   min-height: 2.75rem;
   padding: 0.5rem 1.25rem;

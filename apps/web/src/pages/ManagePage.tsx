@@ -6,6 +6,7 @@ import { AddItemForm } from '../features/manage/AddItemForm';
 import { manageViewKey } from '../features/manage/manageViewKey';
 import { ListDetails } from '../features/manage/ListDetails';
 import { ManageItems } from '../features/manage/ManageItems';
+import { useListTheme } from '../lib/useListTheme';
 import { api, ApiError } from '../api/client';
 
 export default function ManagePage() {
@@ -25,6 +26,8 @@ export default function ManagePage() {
   const queryClient = useQueryClient();
   // The owner cookie no longer works (404): back to the gate.
   const gone = query.error instanceof ApiError && query.error.status === 404;
+  // The token screen keeps the default look, even with an earlier view still cached.
+  useListTheme(entered && !gone ? query.data?.theme : undefined);
   const unauthorized = () => { setEntered(false); setExpired('session'); };
   const giftUnauthorized = () => { setEntered(false); setExpired('gift'); };
   if (!slug) return null;
