@@ -190,7 +190,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       params: slugParams,
       body: editListDetailsRequestSchema,
       response: {
-        200: json("The list's title and description were changed.", editedResponseSchema),
+        200: json("The list's details were changed.", editedResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
         404: json('No such list, or no owner cookie for it. Deliberately indistinguishable.', errorResponseSchema),
       },

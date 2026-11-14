@@ -1,4 +1,5 @@
 import type { ItemType } from '../../domain/entities/Item.js';
+import type { ListTheme } from '../../domain/entities/Wishlist.js';
 import { WishlistNotFoundError } from '../../domain/errors.js';
 import type { AccessContext } from '../AccessContext.js';
 import type { Clock } from '../ports/Clock.js';
@@ -7,6 +8,7 @@ import type { UnitOfWork } from '../ports/UnitOfWork.js';
 export interface ManageView {
   title: string;
   description: string | null;
+  theme: ListTheme;
   key: string;
   items: {
     id: string; type: ItemType; title: string; quantity: number; priceMinor: number | null; url: string | null; description: string | null;
@@ -36,6 +38,7 @@ export class GetManageView {
       return {
         title: wishlist.title,
         description: wishlist.description,
+        theme: wishlist.theme,
         key: wishlist.key.value,
         items: wishlist.items.map((i) => ({
           id: i.id.value, type: i.type, title: i.title, quantity: i.quantity, priceMinor: i.priceMinor, url: i.url, description: i.description,

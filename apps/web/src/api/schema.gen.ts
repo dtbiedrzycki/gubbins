@@ -562,7 +562,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The list's title and description were changed. */
+            /** @description The list's details were changed. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -687,6 +687,8 @@ export interface operations {
                     "application/json": {
                         title: string;
                         description: string | null;
+                        /** @enum {string} */
+                        theme: "storybook" | "groovy";
                         key: string;
                         items: {
                             id: string;

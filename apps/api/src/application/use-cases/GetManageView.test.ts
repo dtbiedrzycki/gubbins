@@ -20,6 +20,7 @@ async function setup() {
   const wishlist = aWishlist().withId(WISHLIST_ID).withKey('the-key').withPaymentMethods(PaymentMethods.from({ venmoHandle: 'my-venmo' }))
     .withItem({ id: ITEM_ID, title: 'Stroller' }).withItem({ id: OTHER_ITEM_ID, title: 'Toaster' }).build();
   wishlist.addItem({ type: 'group', title: 'Pram', priceMinor: 50_000 }, { generateEntityId: () => GROUP_ITEM_ID });
+  wishlist.changeTheme('groovy');
   await persistence.wishlists.insert(wishlist);
   const tokens = new SequentialTokenGenerator();
   await new HoldItem(persistence.unitOfWork, tokens, clock, new FakeHasher(), { durationDays: 3 })
@@ -30,11 +31,11 @@ async function setup() {
 }
 
 describe('GetManageView', () => {
-  it('shows the owner the list, its key and each item with what editing needs', async () => {
+  it('shows the owner the list, its style, its key and each item with what editing needs', async () => {
     const shown = await (await setup()).execute({ wishlistId: WISHLIST_ID }, OWNER);
 
     expect(shown).toEqual({
-      title: 'Baby Shower', description: null, key: 'the-key',
+      title: 'Baby Shower', description: null, theme: 'groovy', key: 'the-key',
       items: [
         { id: GROUP_ITEM_ID, type: 'group', title: 'Pram', quantity: 1, priceMinor: 50_000, url: null, description: null, deletable: false, committedUnits: 0, pledgedMinor: 2_500 },
         { id: ITEM_ID, type: 'single', title: 'Stroller', quantity: 1, priceMinor: null, url: null, description: null, deletable: true, committedUnits: 0, pledgedMinor: null },

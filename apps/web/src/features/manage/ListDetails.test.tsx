@@ -9,7 +9,7 @@ import { ListDetails } from './ListDetails';
 describe('ListDetails', () => {
   it('shows the title, description and guest link', () => {
     render(
-      <ListDetails slug="abc123" onUnauthorized={() => {}} view={{ title: 'Baby Shower', description: 'Ship to **Elm Row**', key: 'maple-lantern-otter', items: [] }} />,
+      <ListDetails slug="abc123" onUnauthorized={() => {}} view={{ title: 'Baby Shower', description: 'Ship to **Elm Row**', theme: 'storybook', key: 'maple-lantern-otter', items: [] }} />,
     );
 
     expect(screen.getByRole('heading', { name: 'Baby Shower' })).toBeInTheDocument();
@@ -21,7 +21,7 @@ describe('ListDetails', () => {
     const user = userEvent.setup();
     render(
       <QueryClientProvider client={new QueryClient()}>
-        <ListDetails slug="abc123" onUnauthorized={() => {}} view={{ title: 'Baby Shower', description: null, key: 'maple-lantern-otter', items: [] }} />
+        <ListDetails slug="abc123" onUnauthorized={() => {}} view={{ title: 'Baby Shower', description: null, theme: 'storybook', key: 'maple-lantern-otter', items: [] }} />
       </QueryClientProvider>,
     );
 
@@ -40,7 +40,7 @@ describe('ListDetails', () => {
     const user = userEvent.setup();
     render(
       <QueryClientProvider client={new QueryClient()}>
-        <ListDetails slug="abc123" onUnauthorized={() => {}} view={{ title: 'Baby Shower', description: null, key: 'maple-lantern-otter', items: [] }} />
+        <ListDetails slug="abc123" onUnauthorized={() => {}} view={{ title: 'Baby Shower', description: null, theme: 'storybook', key: 'maple-lantern-otter', items: [] }} />
       </QueryClientProvider>,
     );
 

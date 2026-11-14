@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { listThemeSchema } from './listView.js';
 
 export const manageItemSchema = z.object({
   id: z.string(),
@@ -18,6 +19,7 @@ export const manageItemSchema = z.object({
 export const manageViewResponseSchema = z.object({
   title: z.string(),
   description: z.string().nullable(),
+  theme: listThemeSchema,
   /** The guest key, shown to the owner so they can share it. */
   key: z.string(),
   items: z.array(manageItemSchema),

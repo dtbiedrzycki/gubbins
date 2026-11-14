@@ -26,7 +26,7 @@ function renderItems(items: ManageViewResponse['items']) {
 }
 
 type Items = ManageViewResponse['items'];
-const view = (items: Items): ManageViewResponse => ({ title: 'Baby Shower', description: null, key: 'k', items });
+const view = (items: Items): ManageViewResponse => ({ title: 'Baby Shower', description: null, theme: 'storybook', key: 'k', items });
 const abc = () => [item({ id: 'a', title: 'A' }), item({ id: 'b', title: 'B' }), item({ id: 'c', title: 'C' })];
 
 /** Renders the items from a live manage-view query, as the page does: the list refetches after each move. */
