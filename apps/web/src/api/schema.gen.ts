@@ -558,6 +558,8 @@ export interface operations {
                 "application/json": {
                     title: string;
                     description: string | null;
+                    /** @enum {string} */
+                    theme: "storybook" | "groovy";
                 };
             };
         };

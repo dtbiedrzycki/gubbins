@@ -34,7 +34,7 @@ export function ListDetails({ slug, view, onUnauthorized }: ListDetailsProps) {
         </div>
         {editing ? (
           <EditListDetailsForm
-            slug={slug} title={view.title} description={view.description ?? ''} onUnauthorized={onUnauthorized}
+            slug={slug} title={view.title} description={view.description ?? ''} theme={view.theme} onUnauthorized={onUnauthorized}
             onDone={() => { restoreFocus.current = true; setEditing(false); }}
           />
         ) : (

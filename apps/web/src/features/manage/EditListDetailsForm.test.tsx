@@ -10,7 +10,7 @@ import { EditListDetailsForm } from './EditListDetailsForm';
 function renderForm(props: Partial<Parameters<typeof EditListDetailsForm>[0]> = {}) {
   return render(
     <QueryClientProvider client={new QueryClient()}>
-      <EditListDetailsForm slug="abc123" title="Baby Shower" description="Ship to Elm Row" onDone={() => {}} onUnauthorized={() => {}} {...props} />
+      <EditListDetailsForm slug="abc123" title="Baby Shower" description="Ship to Elm Row" theme="storybook" onDone={() => {}} onUnauthorized={() => {}} {...props} />
     </QueryClientProvider>,
   );
 }
@@ -38,7 +38,25 @@ describe('EditListDetailsForm', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(onDone).toHaveBeenCalled());
-    expect(bodies).toEqual([{ title: 'Shower', description: null }]);
+    expect(bodies).toEqual([{ title: 'Shower', description: null, theme: 'storybook' }]);
+  });
+
+  it("starts on the list's current style and sends the one the owner picks", async () => {
+    const bodies: unknown[] = [];
+    server.use(http.put('/api/lists/:slug', async ({ request }) => {
+      bodies.push(await request.json());
+      return HttpResponse.json({ ok: true });
+    }));
+    const onDone = vi.fn();
+    const user = userEvent.setup();
+    renderForm({ theme: 'groovy', onDone });
+
+    expect(screen.getByRole('radio', { name: 'Groovy' })).toBeChecked();
+    await user.click(screen.getByRole('radio', { name: 'Storybook' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onDone).toHaveBeenCalled());
+    expect(bodies).toEqual([{ title: 'Baby Shower', description: 'Ship to Elm Row', theme: 'storybook' }]);
   });
 
   it('returns to the token gate when the save answers 404', async () => {

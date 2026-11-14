@@ -640,11 +640,19 @@
                   "description": {
                     "nullable": true,
                     "type": "string"
+                  },
+                  "theme": {
+                    "type": "string",
+                    "enum": [
+                      "storybook",
+                      "groovy"
+                    ]
                   }
                 },
                 "required": [
                   "title",
-                  "description"
+                  "description",
+                  "theme"
                 ]
               }
             }
