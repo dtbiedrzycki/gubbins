@@ -106,7 +106,7 @@ export default function ListPage() {
     <main className={`flex-1 bg-paper p-6 text-ink ${hasContributions ? 'pb-24 [&_*]:scroll-mb-24' : ''}`}>
       <div className="mx-auto max-w-sm space-y-8">
         <header className="text-center">
-          <h1 ref={title} tabIndex={-1} className="font-display text-[2.05rem] leading-tight text-balance break-words">{query.data.title}</h1>
+          <h1 ref={title} tabIndex={-1} className="font-display text-[2.05rem] leading-tight text-balance break-words text-title">{query.data.title}</h1>
           <span className="vine" aria-hidden="true" />
           {/* Here, so an outcome that empties the sheet shows beside the title that takes focus. */}
           <YourContributions slug={slug} holds={query.data.myHolds} contributions={query.data.myContributions}
