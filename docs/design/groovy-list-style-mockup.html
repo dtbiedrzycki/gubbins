@@ -104,12 +104,12 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
       <h2>The bold thing</h2>
       <p>The round green door now sits inside a 70s rainbow arch of gold, peach, burnt orange and rust. Everything else stays quiet: cream paper, chocolate text, pill buttons.</p>
       <h2>Not built</h2>
-      <p>The owner picks this style per list. Only the colours and the heading font ship. Mockup-only: the rainbow arch, the stripes, the sunbursts, the striped jar, pill buttons and inputs, wax list titles and the cream holds panel. The guest key and owner token screens keep the default style.</p>
+      <p>The owner picks this style per list. Only the colours, the heading font, the burnt-orange list name and the stripes under it ship. Mockup-only: the rainbow arch, the sunbursts, the striped jar, pill buttons and inputs, and the cream holds panel. The guest key and owner token screens keep the default style.</p>
       <h2>What changes in the code</h2>
       <ul>
-        <li>New values in the <code>@theme</code> block of <code>index.css</code>. The token names stay the same, so no component changes.</li>
+        <li>New values in the <code>@theme</code> block of <code>index.css</code>. The token names stay the same, plus one token for the list's name, which only the list page's heading picks up.</li>
         <li>Shrikhand replaces IM Fell English for headings. Alegreya Sans stays for body text.</li>
-        <li>The door gets extra rings, the vine becomes stripes, and the wax seals become sunbursts.</li>
+        <li>The vine becomes three rounded stripes (<code>--list-rule</code>). The door and the wax seals keep their shapes.</li>
       </ul>
       <h2>Palette</h2>
       <ul class="swatches">

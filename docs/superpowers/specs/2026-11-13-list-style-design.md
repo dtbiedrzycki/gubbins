@@ -17,13 +17,13 @@ Every list looks the same: the Storybook look (lilac paper, plum ink, moss butto
 
 - Picking a style when creating a list. New lists are Storybook; the owner can change it afterwards.
 - The guest key screen and the owner token screen. The key screen shows before the guest has entered a key, so the page doesn't know the list yet. Both stay Storybook, including when a session ends and the page still holds the list it showed before.
-- Groovy-only shapes and treatments from the mockup: the rainbow arch round the door, the striped rule under the list title, the sunburst seals, the striped jar, pill-shaped buttons and inputs, wax-coloured list titles, and the cream "Your holds" panel. Only colours and the heading font change. The seals, the vine and the jar keep their shapes and pick up the Groovy colours where they already use theme colours.
+- Groovy-only shapes and treatments from the mockup: the rainbow arch round the door, the sunburst seals, the striped jar, pill-shaped buttons and inputs, and the cream "Your holds" panel. Only colours, the heading font, the list's name and the rule under it change: a Groovy list shows its name in burnt orange (wax) and draws that rule as three rounded stripes (burnt orange, gold, avocado) in place of the vine. The seals and the jar keep their shapes and pick up the Groovy colours where they already use theme colours.
 - Pages that aren't about one list (home, create, privacy, not found).
 - More styles, custom colours, or a per-guest style.
 
 ## How it looks
 
-The Groovy values replace the Storybook values of the same names in `apps/web/src/index.css`. Components keep using the same classes (`bg-paper`, `text-moss` and so on), so no component changes.
+The Groovy values replace the Storybook values of the same names in `apps/web/src/index.css`. Components keep using the same classes (`bg-paper`, `text-moss` and so on). The one addition is a `list-title` token for the list's name on the guest page (ink in Storybook), so a style can colour it.
 
 | Token | Storybook | Groovy |
 |---|---|---|
@@ -37,9 +37,10 @@ The Groovy values replace the Storybook values of the same names in `apps/web/sr
 | wax | `#9E2A45` | `#B4441A` |
 | brass | `#8C6A4A` | `#8A4B1C` |
 | error | `#B42335` | `#B42335` (unchanged) |
+| list-title (the list's name on the guest page) | ink | wax |
 | display font | IM Fell English | Shrikhand |
 
-White text on moss and wax, ink and muted on paper, and moss links on paper all meet WCAG AA (4.5:1) in both styles. Shrikhand is self-hosted from `@fontsource/shrikhand`, like the other fonts, so guests' browsers never contact a font CDN.
+White text on moss and wax, ink and muted on paper, moss links on paper, and the list's name on paper (wax on Groovy paper is 4.71:1) all meet WCAG AA (4.5:1) in both styles. Shrikhand is self-hosted from `@fontsource/shrikhand`, like the other fonts, so guests' browsers never contact a font CDN.
 
 The style applies to the whole page, footer included: the page sets `data-list-theme="groovy"` on the `<html>` element while the list or manage page is shown, and removes it when the owner or guest leaves that page.
 
@@ -57,4 +58,4 @@ The list details edit form (`EditListDetailsForm`) gains a **List style** choice
 
 ## Open decisions for the owner
 
-None. The owner ruled on 2026-11-13: pick the style only when editing (not on create), both the guest and manage pages show it, the picker is labelled "List style" with options "Storybook" and "Groovy", and Storybook is the default.
+None. The owner ruled on 2026-11-13: pick the style only when editing (not on create), both the guest and manage pages show it, the picker is labelled "List style" with options "Storybook" and "Groovy", and Storybook is the default. On 2026-11-14 the owner added the striped line under the list title, and the list's name in wax, for Groovy.
