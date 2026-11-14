@@ -23,7 +23,7 @@ Every list looks the same: the Storybook look (lilac paper, plum ink, moss butto
 
 ## How it looks
 
-The Groovy values replace the Storybook values of the same names in `apps/web/src/index.css`. Components keep using the same classes (`bg-paper`, `text-moss` and so on), so no component changes.
+The Groovy values replace the Storybook values of the same names in `apps/web/src/index.css`. Components keep using the same classes (`bg-paper`, `text-moss` and so on). The one addition is a `list-title` token for the list's name on the guest page (ink in Storybook), so a style can colour it.
 
 | Token | Storybook | Groovy |
 |---|---|---|
@@ -37,10 +37,10 @@ The Groovy values replace the Storybook values of the same names in `apps/web/sr
 | wax | `#9E2A45` | `#B4441A` |
 | brass | `#8C6A4A` | `#8A4B1C` |
 | error | `#B42335` | `#B42335` (unchanged) |
-| title (the list's name on the guest page) | ink | wax |
+| list-title (the list's name on the guest page) | ink | wax |
 | display font | IM Fell English | Shrikhand |
 
-White text on moss and wax, ink and muted on paper, and moss links on paper all meet WCAG AA (4.5:1) in both styles. Shrikhand is self-hosted from `@fontsource/shrikhand`, like the other fonts, so guests' browsers never contact a font CDN.
+White text on moss and wax, ink and muted on paper, moss links on paper, and the list's name on paper (wax on Groovy paper is 4.71:1) all meet WCAG AA (4.5:1) in both styles. Shrikhand is self-hosted from `@fontsource/shrikhand`, like the other fonts, so guests' browsers never contact a font CDN.
 
 The style applies to the whole page, footer included: the page sets `data-list-theme="groovy"` on the `<html>` element while the list or manage page is shown, and removes it when the owner or guest leaves that page.
 
