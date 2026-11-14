@@ -23,7 +23,7 @@ type Pledge = ListViewResponse['myContributions'][number];
 const pledge: Pledge = { contributionId: 'pledge-1', itemId: 'item-2', amountMinor: 4000, pledgedAt: '2026-01-02T00:00:00.000Z' };
 
 const list = (myHolds: HoldView[], myContributions: Pledge[] = []): ListViewResponse => ({
-  title: 'Baby Shower', description: null,
+  title: 'Baby Shower', description: null, theme: 'storybook',
   items: [aListItem({ status: myHolds.length ? 'held' : 'available', availableUnits: myHolds.length ? 0 : 1 })],
   payment: { venmoHandle: null, zelleHandle: null },
   myHolds, myContributions, capabilities: { holdDurationDays: 3 },
