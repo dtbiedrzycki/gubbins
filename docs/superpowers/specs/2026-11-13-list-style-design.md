@@ -17,7 +17,7 @@ Every list looks the same: the Storybook look (lilac paper, plum ink, moss butto
 
 - Picking a style when creating a list. New lists are Storybook; the owner can change it afterwards.
 - The guest key screen and the owner token screen. The key screen shows before the guest has entered a key, so the page doesn't know the list yet. Both stay Storybook, including when a session ends and the page still holds the list it showed before.
-- Groovy-only shapes and treatments from the mockup: the rainbow arch round the door, the striped rule under the list title, the sunburst seals, the striped jar, pill-shaped buttons and inputs, wax-coloured list titles, and the cream "Your holds" panel. Only colours and the heading font change. The seals, the vine and the jar keep their shapes and pick up the Groovy colours where they already use theme colours.
+- Groovy-only shapes and treatments from the mockup: the rainbow arch round the door, the sunburst seals, the striped jar, pill-shaped buttons and inputs, wax-coloured list titles, and the cream "Your holds" panel. Only colours, the heading font and the rule under the list title change: a Groovy list draws that rule as three rounded stripes (burnt orange, gold, avocado) in place of the vine. The seals and the jar keep their shapes and pick up the Groovy colours where they already use theme colours.
 - Pages that aren't about one list (home, create, privacy, not found).
 - More styles, custom colours, or a per-guest style.
 
