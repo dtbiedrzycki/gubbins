@@ -50,7 +50,7 @@ export class WishlistBuilder {
       id, wishlistId: this.props.id, type: 'single', title: this.itemProps[0].title, quantity: 1, seq: 0, asOf: this.instant, holds,
     });
     return Wishlist.reconstitute({
-      ...this.props, keyGen: wishlist.keyGen, asOf: this.instant, paymentMethods: this.paymentMethods, items: [rebuilt, ...items.slice(1)],
+      ...this.props, keyGen: wishlist.keyGen, theme: wishlist.theme, asOf: this.instant, paymentMethods: this.paymentMethods, items: [rebuilt, ...items.slice(1)],
     });
   }
 }

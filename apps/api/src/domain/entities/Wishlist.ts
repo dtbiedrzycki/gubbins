@@ -15,6 +15,10 @@ import { cleanDescription, Item, type ItemEdit, type ItemStatus } from './Item.j
 
 const WISHLIST_DESCRIPTION_MAX = 2000; // room for an address and delivery notes; bounds stored input
 
+/** The looks a list can have. */
+export const LIST_THEMES = ['storybook', 'groovy'] as const;
+export type ListTheme = (typeof LIST_THEMES)[number];
+
 /** Where a move sends a gift: one place up or down, or to either end. */
 export type MoveTarget = 'top' | 'up' | 'down' | 'bottom';
 
@@ -43,6 +47,7 @@ export class Wishlist {
   private _items: Item[] = [];
   private _title: string;
   private _description: string | null;
+  private _theme: ListTheme;
 
   /**
    * Enforces the aggregate's own invariants, so neither `create` nor
@@ -59,11 +64,19 @@ export class Wishlist {
     readonly keyGen: number,
     private readonly asOf: Date,
     readonly paymentMethods: PaymentMethods = PaymentMethods.none,
-    description: string | null = null,
+    description: string | null,
+    theme: string,
   ) {
     Wishlist.checkDetails(title, description);
     this._title = title;
     this._description = description;
+    this._theme = Wishlist.checkTheme(theme);
+  }
+
+  private static checkTheme(theme: string): ListTheme {
+    const known = LIST_THEMES.find((t) => t === theme);
+    if (known === undefined) throw new DomainValidationError(`Unknown list style: ${theme}`);
+    return known;
   }
 
   private static checkDetails(title: string, description: string | null): void {
@@ -82,6 +95,15 @@ export class Wishlist {
     return this._description;
   }
 
+  get theme(): ListTheme {
+    return this._theme;
+  }
+
+  /** Changes the list's style; an unknown one is refused and the old style kept. */
+  changeTheme(theme: string): void {
+    this._theme = Wishlist.checkTheme(theme);
+  }
+
   /** Replaces the title and description, trimmed as at creation; a refused edit leaves the old details. */
   editDetails(props: { title: string; description: string | null }): void {
     const title = props.title.trim();
@@ -97,7 +119,7 @@ export class Wishlist {
     return new Wishlist(
       UuidId.from(props.id), Slug.from(props.slug), props.title.trim(),
       OwnerToken.from(props.ownerToken), GuestKey.from(props.key), 1, new Date(props.asOf.getTime()), props.paymentMethods,
-      cleanDescription(props.description),
+      cleanDescription(props.description), 'storybook',
     );
   }
 
@@ -108,7 +130,7 @@ export class Wishlist {
    */
   static reconstitute(props: {
     id: string; slug: string; title: string; ownerToken: string; key: string; keyGen: number; asOf: Date; paymentMethods?: PaymentMethods; description?: string | null;
-    items?: readonly Item[];
+    theme: string; items?: readonly Item[];
   }): Wishlist {
     const items = props.items ?? [];
     if (items.some((item) => item.wishlistId.value !== props.id)) {
@@ -120,7 +142,7 @@ export class Wishlist {
     const wishlist = new Wishlist(
       UuidId.from(props.id), Slug.from(props.slug), props.title,
       OwnerToken.from(props.ownerToken), GuestKey.from(props.key), props.keyGen, new Date(props.asOf.getTime()), props.paymentMethods,
-      props.description ?? null,
+      props.description ?? null, props.theme,
     );
     wishlist._items = [...items];
     return wishlist;

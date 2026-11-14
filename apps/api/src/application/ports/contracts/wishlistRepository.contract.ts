@@ -49,7 +49,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       const gift = (id: string, listId: string, title: string) => Item.reconstitute({ id, wishlistId: listId, type: 'single', title, quantity: 1, seq: 0, asOf: NOW });
       const LIST_D = '55555555-5555-7555-8555-555555555600';
       const D_IDS = ['55555555-5555-7555-8555-555555555602', '55555555-5555-7555-8555-555555555601'];
-      const list = (id: string, slug: string, items: Item[]) => Wishlist.reconstitute({ id, slug, title: slug, ownerToken: 'o', key: `k-${slug}`, keyGen: 1, asOf: NOW, items });
+      const list = (id: string, slug: string, items: Item[]) => Wishlist.reconstitute({ theme: 'storybook', id, slug, title: slug, ownerToken: 'o', key: `k-${slug}`, keyGen: 1, asOf: NOW, items });
       await fx.wishlists.insert(list(LIST_C, 'list-c', [gift(ITEM_C1, LIST_C, 'One'), gift(ITEM_C2, LIST_C, 'Two')]));
       await fx.wishlists.insert(list(LIST_D, 'list-d', [gift(D_IDS[0], LIST_D, 'Three'), gift(D_IDS[1], LIST_D, 'Four')]));
       const c = (await fx.wishlists.findById(LIST_C, NOW))!;
@@ -67,7 +67,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
     });
 
     it('looks a list up by slug for just its id and key generation', async () => {
-      await fx.wishlists.insert(Wishlist.reconstitute({ id: LIST_C, slug: 'list-c', title: 'List C', ownerToken: 'o', key: 'k-c', keyGen: 3, asOf: NOW, items: [] }));
+      await fx.wishlists.insert(Wishlist.reconstitute({ theme: 'storybook', id: LIST_C, slug: 'list-c', title: 'List C', ownerToken: 'o', key: 'k-c', keyGen: 3, asOf: NOW, items: [] }));
       expect(await fx.wishlists.findAccessBySlug('list-c')).toEqual({ id: LIST_C, keyGen: 3 });
     });
 
@@ -228,6 +228,21 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect((await fx.wishlists.findById(LIST_A, NOW))?.description).toBeNull();
     });
 
+    it('insert stores the style the list has', async () => {
+      await fx.wishlists.insert(Wishlist.reconstitute({ theme: 'groovy', id: LIST_C, slug: 'list-c', title: 'List C', ownerToken: 'o', key: 'k-c', keyGen: 1, asOf: NOW }));
+
+      expect((await fx.wishlists.findById(LIST_C, NOW))?.theme).toBe('groovy');
+    });
+
+    it('save stores a changed style', async () => {
+      const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
+      expect(wishlist.theme).toBe('storybook');
+      wishlist.changeTheme('groovy');
+      await fx.wishlists.save(wishlist);
+
+      expect((await fx.wishlists.findById(LIST_A, NOW))?.theme).toBe('groovy');
+    });
+
     it('save stores an edited title and description', async () => {
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
       wishlist.editDetails({ title: 'Renamed', description: 'New note' });
@@ -274,7 +289,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
 
     it('save refuses to delete an item with guest history, writing nothing: the item and title are as they were', async () => {
       const item = (seq: number) => Item.reconstitute({ id: ITEM_C1, wishlistId: LIST_C, type: 'single', title: 'Pram', quantity: 1, seq, asOf: NOW });
-      const list = (items: Item[]) => Wishlist.reconstitute({ id: LIST_C, slug: 'list-c', title: 'C', ownerToken: 'o', key: 'k', keyGen: 1, asOf: NOW, items });
+      const list = (items: Item[]) => Wishlist.reconstitute({ theme: 'storybook', id: LIST_C, slug: 'list-c', title: 'C', ownerToken: 'o', key: 'k', keyGen: 1, asOf: NOW, items });
       await fx.wishlists.insert(list([item(1)]));
 
       const refused = list([]);

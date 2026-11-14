@@ -28,6 +28,7 @@ function copyWishlist(wishlist: Wishlist): Wishlist {
   return Wishlist.reconstitute({
     id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title, ownerToken: wishlist.ownerToken.value,
     key: wishlist.key.value, keyGen: wishlist.keyGen, asOf: new Date(0), paymentMethods: wishlist.paymentMethods, description: wishlist.description,
+    theme: wishlist.theme,
   });
 }
 
@@ -128,7 +129,7 @@ export class InMemoryWishlistRepository implements WishlistRepository {
     return Wishlist.reconstitute({
       id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
       ownerToken: wishlist.ownerToken.value, key: wishlist.key.value, keyGen: wishlist.keyGen, asOf: now,
-      paymentMethods: wishlist.paymentMethods, description: wishlist.description,
+      paymentMethods: wishlist.paymentMethods, description: wishlist.description, theme: wishlist.theme,
       items,
     });
   }

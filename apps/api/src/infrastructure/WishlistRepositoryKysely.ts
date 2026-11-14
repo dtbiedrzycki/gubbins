@@ -30,7 +30,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
       id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
       owner_token: wishlist.ownerToken.value, key: wishlist.key.value, key_gen: wishlist.keyGen,
       venmo_handle: wishlist.paymentMethods.venmoHandle, zelle_handle: wishlist.paymentMethods.zelleHandle,
-      description: wishlist.description,
+      description: wishlist.description, theme: wishlist.theme,
       created_at: new Date().toISOString(),
     }).execute();
     for (const [index, item] of wishlist.items.entries()) await this.items.insert(item, index);
@@ -52,7 +52,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
   }
 
   async save(wishlist: Wishlist): Promise<void> {
-    const list = await this.db.selectFrom('wishlists').select(['id', 'title', 'description']).where('id', '=', wishlist.id.value).executeTakeFirst();
+    const list = await this.db.selectFrom('wishlists').select(['id', 'title', 'description', 'theme']).where('id', '=', wishlist.id.value).executeTakeFirst();
     if (list === undefined) throw new WishlistNotFoundError(wishlist.id.value);
     const stored = new Map((await this.items.findAllByWishlistId(wishlist.id.value)).map((row) => [row.id, row]));
     // Assumes the aggregate holds the list's full set of items, as findById/findBySlug always load.
@@ -61,8 +61,8 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     const removed = [...stored.values()].filter((row) => !kept.has(row.id));
     // The stored seq is the guard: event_log has no foreign key to items; only holds and contributions do.
     if (removed.some((row) => row.seq !== 0)) throw new ItemHasGuestHistoryError(removed.find((row) => row.seq !== 0)!.id);
-    if (list.title !== wishlist.title || list.description !== wishlist.description) {
-      await this.db.updateTable('wishlists').set({ title: wishlist.title, description: wishlist.description }).where('id', '=', wishlist.id.value).execute();
+    if (list.title !== wishlist.title || list.description !== wishlist.description || list.theme !== wishlist.theme) {
+      await this.db.updateTable('wishlists').set({ title: wishlist.title, description: wishlist.description, theme: wishlist.theme }).where('id', '=', wishlist.id.value).execute();
     }
     // Writes only items the domain added, edited, reordered or whose stream advanced, so an untouched row keeps its updated_at.
     for (const [index, item] of wishlist.items.entries()) {
@@ -111,7 +111,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     }));
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
-      ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now, description: row.description,
+      ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now, description: row.description, theme: row.theme,
       paymentMethods: PaymentMethods.from({ venmoHandle: row.venmo_handle, zelleHandle: row.zelle_handle }),
       items,
     });
