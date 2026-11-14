@@ -12,6 +12,8 @@ export interface WishlistsTable {
   zelle_handle: string | null;
   description: string | null;
   created_at: string;
+  /** The list's style; defaulted by the database, so typed inserts may leave it out. */
+  theme: Generated<string>;
 }
 
 export interface ItemsTable {
