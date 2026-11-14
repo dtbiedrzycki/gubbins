@@ -13,7 +13,7 @@
   --color-brass: #8C6A4A;
   --color-error: #B42335;
   /* The list's name on the guest page; ink unless a style sets it. */
-  --color-title: var(--color-ink);
+  --color-list-title: var(--color-ink);
 
   --font-display: "IM Fell English", Georgia, serif;
   --font-sans: "Alegreya Sans", system-ui, sans-serif;
@@ -36,7 +36,7 @@
   --color-gold: #E8A317;
   --color-wax: #B4441A;
   --color-brass: #8A4B1C;
-  --color-title: var(--color-wax);
+  --color-list-title: var(--color-wax);
   --font-display: "Shrikhand", Georgia, serif;
   /* The rule under the list title: three stripes in place of the vine, sized for .vine's 18px height (radius is half). */
   --list-rule: linear-gradient(var(--color-wax) 0 6px, var(--color-gold) 6px 12px, var(--color-moss) 12px 18px);
