@@ -9,6 +9,10 @@ share a link, and your guests hold gifts so nobody buys the same thing twice.
 - **Direct payments.** Guests chip in on group gifts by paying you directly
   with Venmo or Zelle.
 
+> **Status: early development.** gubbins is on 0.x releases and still
+> changing quickly. Expect rough edges, and back up your database before
+> upgrading.
+
 ## Using it
 
 Open `/wishlists/new` on a running instance and enter its `CREATE_SECRET` to
