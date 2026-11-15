@@ -26,8 +26,10 @@ scripts/verify.sh --quick apps/api src/domain/entities/Hold.test.ts   # one file
 ```
 
 Run it on a clean tree. A branch is green only when it prints
-`verify: all ... checks passed`. It can't run CI's container smoke test
-(needs Docker): say so when a change touches the `Dockerfile`.
+`verify: all ... checks passed for <sha>`; on a dirty tree it says nothing
+was recorded. It doesn't run CI's container smoke test, which needs
+Docker: run `scripts/container-smoke.sh` where you have Docker, or say it
+didn't run when a change touches the `Dockerfile` or that script.
 
 ## Keep PRs small
 
@@ -52,8 +54,8 @@ The reviewer reads the PR without the plan or the branch, so the body
 stands alone. In this order, under about 150 words:
 
 1. One to three sentences on what changes, in behaviour terms.
-2. **Where it fits:** the larger change in product terms, and its base
-   ("Targets main" or "Builds on #n").
+2. **Where it fits:** the larger change in product terms, its base
+   ("Targets main" or "Builds on #n"), and what uses it later, if anything.
 3. **How to review:** numbered steps, core file first, then the test that
    states the behaviour, then mechanical churn to skim.
 4. **Review tier:** **Decide** (changes what a guest or owner sees),
@@ -61,10 +63,16 @@ stands alone. In this order, under about 150 words:
    (mechanical).
 5. **Decisions for you:** product choices the PR made, each with the
    alternative. Leave out if none.
+6. **Heads-up:** an action the reviewer or deployer must take, code with
+   no caller yet, or a follow-up left out on purpose. Leave out if none.
+
+Describe the end state, not how review got there. When review fixes change
+what a PR does, update its body.
 
 No branch names, task numbers or plan paths in a PR body, commit, test name
 or code comment. Describe the behaviour instead. ADR citations are fine,
-except in text users see.
+except in text users see: error messages, startup errors and OpenAPI
+descriptions.
 
 ## Tests: one rule, one test, at the layer that owns it
 
@@ -92,8 +100,7 @@ A layer above tests only what it adds.
 - Don't test test helpers, and don't test that removed code is gone.
 - Before deleting a test as a repeat, break each behaviour it checked and
   show another test fails.
-- Time-based tests use explicit UTC instants. A domain instant parameter
-  is `at`, not `now`.
+- Time-based tests use explicit UTC instants.
 
 ## Code: what reviewers look for
 
@@ -101,11 +108,16 @@ A layer above tests only what it adds.
   objects with `from()`. Invariants live in the private constructor so
   every path enforces them. The aggregate (Wishlist → Item → Hold /
   Contribution, ADR-0078) mints ids and decides; use cases only
-  orchestrate. Derive counters and statuses; adapters write what the
+  orchestrate. The exception is `piiRef`, which the use case mints beside
+  the `guest_pii` insert (ADR-0057). Domain commands and queries take no
+  date: load the aggregate as of an instant (`asOf`). An instant parameter
+  is `at`, not `now`. Derive counters and statuses; adapters write what the
   domain decided. Domain commands return their ledger events.
-- **Simplest shape that works.** No code without a caller yet. No
-  near-identical types. No compatibility code for situations that can't
-  occur. Name a repeated expression once.
+- **Simplest shape that works.** No code without a caller yet, unless a
+  later PR in the stack uses it and folding it in would break the 10-file
+  cap; then the PR body names that PR. No near-identical types. No
+  compatibility code for situations that can't occur. Name a repeated
+  expression once.
 - **Names say what things do.** Port methods are verbs; domain naming
   follows ADR-0079.
 - **Answer "why?" in the code.** Every non-obvious constant, technique or
