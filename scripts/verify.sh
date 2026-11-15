@@ -17,13 +17,12 @@ fi
 case ${1:-} in "") level=tests ;; --e2e) level=e2e ;; --fast) level=fast ;; *) echo "verify: unknown option $1" >&2; exit 2 ;; esac
 
 # Only a clean tree's result describes the commit, so only then is it recorded.
-# The record (.git/gubbins-verified) lets an optional local pre-push hook skip re-running checks.
+# The record (gubbins-verified in the git common dir) lets a pre-push hook you install yourself skip re-running checks.
 clean=$([ -z "$(git status --porcelain --untracked-files=no)" ] && echo yes || echo no)
 sha=$(git rev-parse HEAD)
 
 python3 scripts/check_adr_links.py
-# Branches cut before the guard existed don't have it.
-if [ -x scripts/check-shipped-migrations.sh ]; then scripts/check-shipped-migrations.sh; fi
+scripts/check-shipped-migrations.sh
 npm run build -w @gubbins/shared-types   # dist is git-ignored and stale after a branch switch
 npm run build -w apps/api                # tsc: the only step that typechecks the tests
 npm run build -w apps/web                # tsc --noEmit && vite build
