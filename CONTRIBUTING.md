@@ -14,8 +14,9 @@ docker compose exec app bash
 ## Signed commits are required
 
 Every commit must carry a valid SSH signature from a key listed in
-[`.allowed_signers`](.allowed_signers). This is enforced in CI and can
-be verified by anyone, offline, with no dependency on GitHub. See
+[`.allowed_signers`](.allowed_signers). The repo's pre-commit and
+pre-push hooks check it, as does a pre-receive hook on a self-hosted
+remote, and anyone can verify it offline, with no dependency on GitHub. See
 [`docs/commit-signing.md`](docs/commit-signing.md) for the full model.
 
 One-time setup per clone:
@@ -114,18 +115,23 @@ that copy (or another backup) and deploy the previous tag
 
 ## Stack
 
-The front-end/back-end structure and framework choices are not settled
-yet. Please raise them as ADRs rather than introducing them ad hoc.
+TypeScript throughout: a Fastify API
+(ADR-[071](docs/adr/0071-fastify-as-the-backend-http-framework.md)) using
+Kysely on SQLite
+(ADR-[072](docs/adr/0072-kysely-as-the-query-builder.md)), and a Vite +
+React front-end served by the API
+(ADR-[073](docs/adr/0073-vite-react-spa-served-by-the-backend.md)) styled
+with Tailwind
+(ADR-[074](docs/adr/0074-tailwind-css-for-styling.md)). Raise a new
+framework or library as an ADR rather than introducing it ad hoc.
 
 ## Tests
 
-The shell tooling has a `bats` suite:
-
 ```sh
-npm test            # runs: bats scripts/test
+npm test            # bats, then every workspace's unit tests
+npm run lint        # ESLint across the workspaces
+npm run test:e2e    # Playwright end-to-end suite
 ```
-
-CI runs it as part of the `build` job.
 
 ## Commit messages
 
