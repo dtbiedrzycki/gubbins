@@ -1,9 +1,10 @@
 import { useEffect, useRef, type RefObject, type SyntheticEvent } from 'react';
 
 /**
- * Opens a real <dialog> (ADR-0024) as a modal when it mounts, and keeps it
- * open while a request is in flight so the outcome lands where the guest is
- * looking. Spread `ref`, `onCancel` and `onClose` onto the <dialog>.
+ * Opens a real <dialog> (ADR-0024) as a modal when it mounts, with focus on
+ * the title its aria-labelledby names, and keeps it open while a request is in
+ * flight so the outcome lands where the guest is looking. Spread `ref`,
+ * `onCancel` and `onClose` onto the <dialog>.
  */
 export function useModalDialog({ isPending, onClose }: { isPending: boolean; onClose: () => void }): {
   ref: RefObject<HTMLDialogElement | null>;
@@ -16,6 +17,13 @@ export function useModalDialog({ isPending, onClose }: { isPending: boolean; onC
     const dialog = ref.current;
     if (!dialog || dialog.open) return;
     if (typeof dialog.showModal === 'function') {
+      // Start on the title, not the first field, so a phone keyboard doesn't open over the card.
+      // Chromium ignores autofocus on the <dialog> itself, so it goes on the title.
+      const title = document.getElementById(dialog.getAttribute('aria-labelledby') ?? '');
+      if (title) {
+        title.tabIndex = -1;
+        title.autofocus = true;
+      }
       dialog.showModal();
     } else {
       dialog.open = true; // jsdom test environment only — showModal isn't implemented there
