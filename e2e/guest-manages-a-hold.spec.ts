@@ -39,6 +39,8 @@ test('a guest holds the item, extends the hold once, and marks it purchased', as
 
   await guest.getByRole('button', { name: 'Hold this item' }).click();
   await expect(guest.getByRole('dialog').getByText('Other guests will see it\u2019s taken while you buy it.')).toBeVisible();
+  // Focus starts on the title, not the name field, so a phone keyboard doesn't open over the card.
+  await expect(guest.getByRole('dialog').getByText('Hold \u201cStroller\u201d for yourself?')).toBeFocused();
   await expectNoSeriousAxeViolations(guest);
   await guest.getByLabel('Gifter name(s)').fill('Amara');
   await guest.getByRole('button', { name: 'Yes, hold it' }).click();
