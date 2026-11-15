@@ -10,10 +10,12 @@ describe('HowGroupGiftsWork', () => {
     vi.restoreAllMocks();
   });
 
-  it('says guests pay the host and the host buys the gift', () => {
+  it('says guests pay the host, come back to record it, and the host buys the gift', () => {
     render(<HowGroupGiftsWork />);
     expect(screen.getByText('Chip in any amount.')).toBeInTheDocument();
     expect(screen.getByText('Send it straight to the host.')).toBeInTheDocument();
+    expect(screen.getByText('Come back and record it.')).toBeInTheDocument();
+    expect(card()).toHaveTextContent('Once you’ve paid, return here to record what you paid.');
     expect(screen.getByText('The host buys the gift.')).toBeInTheDocument();
     expect(card()).toHaveTextContent('When you chip in, we’ll show you how to pay the host with Venmo or Zelle.');
   });
