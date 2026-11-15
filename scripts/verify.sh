@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Runs CI's checks locally, tuned for the dev container. Run it on a clean tree before pushing.
 # Usage (from anywhere in the repo): scripts/verify.sh [--fast | --e2e | --quick <workspace> [vitest args]]
-#   (none)   CI's docs-links and build jobs: link check, builds, lint, bats and every unit test ("tests" level)
+#   (none)   CI's docs-links and build jobs (link check, builds, lint, bats, every unit test), plus the
+#            shipped-migration guard, which CI doesn't run ("tests" level)
 #   --e2e    the same plus the e2e suite ("e2e" level); run it before pushing to main or a PR into main
 #   --fast   builds and lint only; records nothing
 #   --quick <workspace> [vitest args]   rebuild shared-types, run only the given tests; records nothing
 # Not covered: CI's container-smoke job (needs Docker) and its signature job (the repo's pre-push hook runs that).
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
-# --quick <workspace> [vitest args]: rebuild shared-types, then run only those tests. Records nothing.
 if [ "${1:-}" = --quick ]; then
   ws=${2:?usage: verify.sh --quick <apps/api|apps/web|packages/shared-types> [vitest args]}; shift 2
   npm run build -w @gubbins/shared-types >/dev/null   # dist is git-ignored and stale after a branch switch
