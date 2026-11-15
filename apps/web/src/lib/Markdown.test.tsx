@@ -51,8 +51,9 @@ describe('Markdown', () => {
   });
 
   it('separates a list from the text before it with the paragraph gap', () => {
-    const { container } = render(<Markdown text={'Ideas:\n\n- one'} />);
+    const { container } = render(<Markdown text={'Ideas:\n\n- one\n\nSteps:\n\n1. first'} />);
     expect(container.querySelector('ul')?.className).toContain('mt-3');
+    expect(container.querySelector('ol')?.className).toContain('mt-3');
   });
 
   it('keeps the starting number of an ordered list', () => {
