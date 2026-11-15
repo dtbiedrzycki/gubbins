@@ -14,8 +14,9 @@ docker compose exec app bash
 ## Signed commits are required
 
 Every commit must carry a valid SSH signature from a key listed in
-[`.allowed_signers`](.allowed_signers). This is enforced by the repo's git hooks and can
-be verified by anyone, offline, with no dependency on GitHub. See
+[`.allowed_signers`](.allowed_signers). The repo's pre-commit and
+pre-push hooks check it, as does a pre-receive hook on a self-hosted
+remote, and anyone can verify it offline, with no dependency on GitHub. See
 [`docs/commit-signing.md`](docs/commit-signing.md) for the full model.
 
 One-time setup per clone:
