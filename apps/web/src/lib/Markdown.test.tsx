@@ -41,10 +41,14 @@ describe('Markdown', () => {
     expect(first.className).toContain('first:mt-0');
   });
 
-  it('shows bullets on unordered lists and numbers on ordered lists, spaced from the text before', () => {
-    const { container } = render(<Markdown text={'Ideas:\n\n- one\n- two\n\n1. first\n2. second'} />);
+  it('shows bullets on unordered lists and numbers on ordered lists', () => {
+    const { container } = render(<Markdown text={'- one\n\n1. first'} />);
     expect(container.querySelector('ul')?.className).toContain('list-disc');
     expect(container.querySelector('ol')?.className).toContain('list-decimal');
+  });
+
+  it('separates a list from the text before it with the paragraph gap', () => {
+    const { container } = render(<Markdown text={'Ideas:\n\n- one\n\n1. first'} />);
     for (const list of container.querySelectorAll('ul, ol')) expect(list.className).toContain('mt-3');
   });
 
