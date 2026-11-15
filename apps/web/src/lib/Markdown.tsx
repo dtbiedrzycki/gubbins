@@ -1,6 +1,7 @@
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
+import { rehypePlainBlocks } from './rehypePlainBlocks';
 
 const allowedElements = ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'a'];
 
@@ -13,6 +14,7 @@ export function Markdown({ text }: { text: string }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkBreaks]}
+      rehypePlugins={[rehypePlainBlocks]}
       allowedElements={allowedElements}
       unwrapDisallowed
       urlTransform={httpOnly}

@@ -61,6 +61,36 @@ describe('Markdown', () => {
     expect(container.querySelector('ol')?.getAttribute('start')).toBe('3');
   });
 
+  it('gives a heading its own paragraph', () => {
+    const { container } = render(<Markdown text={'# Shipping\n\nJane Doe'} />);
+    expect([...container.querySelectorAll('p')].map((p) => p.textContent)).toEqual(['Shipping', 'Jane Doe']);
+  });
+
+  it('keeps a link inside a heading', () => {
+    render(<Markdown text="# See [site](https://example.com)" />);
+    expect(screen.getByRole('link', { name: 'site' }).closest('p')).not.toBeNull();
+  });
+
+  it('shows a code block as a paragraph with one line per code line', () => {
+    const { container } = render(<Markdown text={'```\nline one\nline two\n```'} />);
+    expect(container.querySelector('p')?.innerHTML).toBe('line one<br>line two');
+  });
+
+  it('shows a table as a paragraph with one row per line and cells separated by a dot', () => {
+    const { container } = render(<Markdown text={'| Size | Colour |\n|---|---|\n| M | Red |'} />);
+    expect(container.querySelector('p')?.innerHTML).toBe('Size · Colour<br>M · Red');
+  });
+
+  it('marks checklist items as ticked or unticked', () => {
+    const { container } = render(<Markdown text={'- [ ] socks\n- [x] books'} />);
+    expect([...container.querySelectorAll('li')].map((li) => li.textContent)).toEqual(['☐ socks', '☑ books']);
+  });
+
+  it('leaves [x] in ordinary text as typed', () => {
+    render(<Markdown text="Tick [x] when done" />);
+    expect(screen.getByText('Tick [x] when done')).toBeTruthy();
+  });
+
   it('renders no image and shows raw HTML as inert text', () => {
     const { container } = render(
       <Markdown text={'![x](http://e.com/a.png)\n\n<img src=x>\n\nT-shirt size <L> <script>alert(1)</script>'} />,
