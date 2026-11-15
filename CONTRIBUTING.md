@@ -61,8 +61,8 @@ an edit to an existing one
    taking the next number, and list it in `migrations/index.ts`.
 2. A migration that is in a release tag is never edited. Fix it with
    another new migration. `scripts/check-shipped-migrations.sh` fails
-   when one is changed or deleted. Run it before pushing (the local gate
-   runs it).
+   when one is changed or deleted. Run it before pushing
+   (`scripts/verify.sh` runs it).
 3. An event payload shape change needs a version bump and an upcaster
    (ADR-[032](docs/adr/0032-migrations-are-forward-only-rollback-restore-from-backup.md)),
    not an in-place edit.
