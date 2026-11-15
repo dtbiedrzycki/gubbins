@@ -17,7 +17,11 @@ export function Markdown({ text }: { text: string }) {
       unwrapDisallowed
       urlTransform={httpOnly}
       components={{
-        a: ({ href, children }) =>
+        // Tailwind's preflight strips paragraph gaps and list markers; restore them for owner text.
+        p: ({ children }) => <p className="mt-3 first:mt-0">{children}</p>,
+        ul: ({ children }) => <ul className="mt-3 first:mt-0 list-disc pl-5">{children}</ul>,
+        ol: ({ children, start }) => <ol start={start} className="mt-3 first:mt-0 list-decimal pl-5">{children}</ol>,
+        a:({ href, children }) =>
           href ? (
             <a href={href} className="text-moss underline" target="_blank" rel="noopener noreferrer nofollow ugc">
               {children}

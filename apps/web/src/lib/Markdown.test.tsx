@@ -34,6 +34,25 @@ describe('Markdown', () => {
     expect(container.querySelector('li')?.textContent).toBe('one');
   });
 
+  it('separates paragraphs split by a blank line with a gap', () => {
+    const { container } = render(<Markdown text={'Hello\n\nShip to:\n1 Main St'} />);
+    const [first, second] = container.querySelectorAll('p');
+    expect(second.className).toContain('mt-3');
+    expect(first.className).toContain('first:mt-0');
+  });
+
+  it('shows bullets on unordered lists and numbers on ordered lists, spaced from the text before', () => {
+    const { container } = render(<Markdown text={'Ideas:\n\n- one\n- two\n\n1. first\n2. second'} />);
+    expect(container.querySelector('ul')?.className).toContain('list-disc');
+    expect(container.querySelector('ol')?.className).toContain('list-decimal');
+    for (const list of container.querySelectorAll('ul, ol')) expect(list.className).toContain('mt-3');
+  });
+
+  it('keeps the starting number of an ordered list', () => {
+    const { container } = render(<Markdown text={'3. third\n4. fourth'} />);
+    expect(container.querySelector('ol')?.getAttribute('start')).toBe('3');
+  });
+
   it('renders no image and shows raw HTML as inert text', () => {
     const { container } = render(
       <Markdown text={'![x](http://e.com/a.png)\n\n<img src=x>\n\nT-shirt size <L> <script>alert(1)</script>'} />,
