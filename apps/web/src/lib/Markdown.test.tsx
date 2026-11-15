@@ -56,9 +56,51 @@ describe('Markdown', () => {
     expect(container.querySelector('ol')?.className).toContain('mt-3');
   });
 
+  it('hides the bullet on checklist items and keeps it on ordinary items in the same list', () => {
+    const { container } = render(<Markdown text={'- [ ] socks\n- books'} />);
+    const [task, plain] = container.querySelectorAll('li');
+    expect(task.className).toContain('list-none');
+    expect(plain.className).not.toContain('list-none');
+  });
+
+  it('puts a sub-list directly under its item', () => {
+    const { container } = render(<Markdown text={'- **a**\n  - b'} />);
+    expect(container.querySelector('li ul')?.className).toContain('[li>&]:mt-0');
+  });
+
+  it('separates the items of a list written with blank lines by the paragraph gap', () => {
+    const { container } = render(<Markdown text={'- a\n\n- b'} />);
+    expect(container.querySelector('ul')?.className).toContain('[&>li:has(>p)+li]:mt-3');
+  });
+
   it('keeps the starting number of an ordered list', () => {
     const { container } = render(<Markdown text={'3. third\n4. fourth'} />);
     expect(container.querySelector('ol')?.getAttribute('start')).toBe('3');
+  });
+
+  it('gives a heading its own paragraph', () => {
+    const { container } = render(<Markdown text={'# Shipping\n\nJane Doe'} />);
+    expect([...container.querySelectorAll('p')].map((p) => p.textContent)).toEqual(['Shipping', 'Jane Doe']);
+  });
+
+  it('renders a link inside a heading as a link', () => {
+    render(<Markdown text="# See [site](https://example.com)" />);
+    expect(screen.getByRole('link', { name: 'site' }).getAttribute('href')).toBe('https://example.com');
+  });
+
+  it('shows a code block as a paragraph with one line per code line', () => {
+    const { container } = render(<Markdown text={'```\nline one\nline two\n```'} />);
+    expect(container.querySelector('p')?.innerHTML).toBe('line one<br>line two');
+  });
+
+  it('shows a table as a paragraph with one row per line and cells separated by a dot', () => {
+    const { container } = render(<Markdown text={'| Size | Colour |\n|---|---|\n| M | Red |'} />);
+    expect(container.querySelector('p')?.innerHTML).toBe('Size · Colour<br>M · Red');
+  });
+
+  it('marks checklist items as ticked or unticked', () => {
+    const { container } = render(<Markdown text={'- [ ] socks\n- [x] books'} />);
+    expect([...container.querySelectorAll('li')].map((li) => li.textContent)).toEqual(['☐ socks', '☑ books']);
   });
 
   it('renders no image and shows raw HTML as inert text', () => {
@@ -70,10 +112,9 @@ describe('Markdown', () => {
     expect(container.textContent).toContain('T-shirt size <L> <script>alert(1)</script>');
   });
 
-  it('keeps the text of headings, code and quotes without their elements', () => {
-    const { container } = render(<Markdown text={'# Title\n\n> quoted\n\n`code`'} />);
-    expect(container.querySelector('h1, blockquote, code')).toBeNull();
-    expect(container.textContent).toContain('Title');
+  it('shows quotes and inline code as plain text', () => {
+    const { container } = render(<Markdown text={'> quoted\n\n`code`'} />);
+    expect(container.querySelector('blockquote, code')).toBeNull();
     expect(container.textContent).toContain('quoted');
     expect(container.textContent).toContain('code');
   });

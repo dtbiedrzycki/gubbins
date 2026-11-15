@@ -1,6 +1,7 @@
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
+import { rehypePlainBlocks } from './rehypePlainBlocks';
 
 const allowedElements = ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'a'];
 
@@ -13,14 +14,18 @@ export function Markdown({ text }: { text: string }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkBreaks]}
+      rehypePlugins={[rehypePlainBlocks]}
       allowedElements={allowedElements}
       unwrapDisallowed
       urlTransform={httpOnly}
       components={{
         // Tailwind's preflight strips paragraph gaps and list markers; restore them for owner text.
         p: ({ children }) => <p className="mt-3 first:mt-0">{children}</p>,
-        ul: ({ children }) => <ul className="mt-3 first:mt-0 list-disc pl-5">{children}</ul>,
-        ol: ({ children, start }) => <ol start={start} className="mt-3 first:mt-0 list-decimal pl-5">{children}</ol>,
+        // Sub-lists sit tight under their item; items written with blank lines (holding a p) get the paragraph gap.
+        ul: ({ children }) => <ul role="list" className="mt-3 first:mt-0 list-disc pl-5 [li>&]:mt-0 [&>li:has(>p)+li]:mt-3">{children}</ul>,
+        ol: ({ children, start }) => <ol role="list" start={start} className="mt-3 first:mt-0 list-decimal pl-5 [li>&]:mt-0 [&>li:has(>p)+li]:mt-3">{children}</ol>,
+        // Checklist items start with ☐/☑ instead of a bullet; role="list" above keeps Safari announcing a bullet-less list.
+        li: ({ className, children }) => <li className={className?.includes('task-list-item') ? 'list-none' : undefined}>{children}</li>,
         a: ({ href, children }) =>
           href ? (
             <a href={href} className="text-moss underline" target="_blank" rel="noopener noreferrer nofollow ugc">
