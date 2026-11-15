@@ -42,6 +42,10 @@ keyboard-operable move-up/move-down alternative.
   navigation full-screen item detail uses, unlike `<dialog>`'s native
   modal focus handling — so that focus management has to be implemented
   explicitly rather than assumed to come free.
+- A dialog opens with focus on its title, not its first field: on a phone,
+  focusing a text field opens the keyboard, which covers the card before the
+  guest has read it. Chromium ignores `autofocus` on the `<dialog>` itself,
+  so the title carries it.
 - `<dialog>`'s well-supported browser matrix ([accessibility & browser
   support](../spec/accessibility-and-browser-support.md)) means this doesn't reopen the browser-support question
   (ADR-[027](./0027-browser-support-matrix-widened-for-the-guest-facing-surface.md)).
