@@ -1,5 +1,8 @@
 # Contributing to gubbins
 
+The rules for PR size, tests, code review and PR descriptions are in
+[`AGENTS.md`](AGENTS.md). They apply to people and AI agents alike.
+
 ## Development environment
 
 Use the dev container in `.devcontainer/` — it pins Node 24.17 and the
@@ -126,6 +129,10 @@ with Tailwind
 framework or library as an ADR rather than introducing it ad hoc.
 
 ## Tests
+
+Before pushing, run `scripts/verify.sh` on a clean tree (add `--e2e` for
+`main` or a PR into `main`). It runs CI's checks locally, since CI is
+turned off for now. The individual commands:
 
 ```sh
 npm test            # bats, then every workspace's unit tests
