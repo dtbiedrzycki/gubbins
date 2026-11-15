@@ -56,6 +56,16 @@ describe('Markdown', () => {
     expect(container.querySelector('ol')?.className).toContain('mt-3');
   });
 
+  it('puts a sub-list directly under its item', () => {
+    const { container } = render(<Markdown text={'- **a**\n  - b'} />);
+    expect(container.querySelector('li ul')?.className).toContain('[li>&]:mt-0');
+  });
+
+  it('separates the items of a list written with blank lines by the paragraph gap', () => {
+    const { container } = render(<Markdown text={'- a\n\n- b'} />);
+    expect(container.querySelector('ul')?.className).toContain('[&>li:has(>p)+li]:mt-3');
+  });
+
   it('keeps the starting number of an ordered list', () => {
     const { container } = render(<Markdown text={'3. third\n4. fourth'} />);
     expect(container.querySelector('ol')?.getAttribute('start')).toBe('3');
