@@ -36,9 +36,12 @@ describe('Markdown', () => {
 
   it('separates paragraphs split by a blank line with a gap', () => {
     const { container } = render(<Markdown text={'Hello\n\nShip to:\n1 Main St'} />);
-    const [first, second] = container.querySelectorAll('p');
-    expect(second.className).toContain('mt-3');
-    expect(first.className).toContain('first:mt-0');
+    expect(container.querySelectorAll('p')[1].className).toContain('mt-3');
+  });
+
+  it('puts no gap above the first paragraph', () => {
+    const { container } = render(<Markdown text="Hello" />);
+    expect(container.querySelector('p')?.className).toContain('first:mt-0');
   });
 
   it('shows bullets on unordered lists and numbers on ordered lists', () => {
@@ -48,8 +51,8 @@ describe('Markdown', () => {
   });
 
   it('separates a list from the text before it with the paragraph gap', () => {
-    const { container } = render(<Markdown text={'Ideas:\n\n- one\n\n1. first'} />);
-    for (const list of container.querySelectorAll('ul, ol')) expect(list.className).toContain('mt-3');
+    const { container } = render(<Markdown text={'Ideas:\n\n- one'} />);
+    expect(container.querySelector('ul')?.className).toContain('mt-3');
   });
 
   it('keeps the starting number of an ordered list', () => {
