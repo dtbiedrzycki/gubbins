@@ -1,55 +1,41 @@
 # gubbins
 
-A wishlist application, written in TypeScript on both the front-end and
-the back-end.
+A self-hosted wishlist for birthdays, weddings and holidays. You make a list,
+share a link, and your guests hold gifts so nobody buys the same thing twice.
 
-> **Status: early scaffolding.** The repository currently holds only
-> project meta, tooling, and the development environment. The front-end
-> and back-end structure and the framework stack have not been chosen
-> yet — see `docs/adr/` as those decisions land.
+- **Private.** No ads, no tracking.
+- **No accounts.** Not for guests, not for you.
+- **Gifts from anywhere.** Add a link from any shop, or describe the thing.
+- **Direct payments.** Guests chip in on group gifts by paying you directly
+  with Venmo or Zelle.
 
 ## Using it
 
 Open `/wishlists/new` on a running instance and enter its `CREATE_SECRET` to
-create a list. Guests open the list's invitation link (`/wishlists/:slug`) and
-enter the three-word guest key the owner gives them; the owner manages it at
-`/wishlists/:slug/manage`. See [`docs/deploy.md`](docs/deploy.md) to run one.
+create a list. Share the list's invitation link (`/wishlists/:slug`) and its
+three-word guest key with your guests. Manage the list at
+`/wishlists/:slug/manage`.
+
+## Running your own
+
+gubbins runs as one Docker container with SQLite, aimed at Raspberry
+Pi-class home servers behind an HTTPS tunnel. See
+[`docs/deploy.md`](docs/deploy.md).
 
 ## Development
 
+TypeScript throughout: a Fastify + Kysely API on SQLite, and a Vite + React
+front-end styled with Tailwind, served by the API. Design decisions are
+recorded in [`docs/adr/`](docs/adr/README.md).
+
 The supported environment is the dev container in `.devcontainer/`
-(Node 24.17, SQLite via `better-sqlite3`, ESLint + Prettier + Vitest).
+(Node 24.17). Open the folder in an editor with dev-container support and
+"Reopen in Container", or run
+`docker compose up -d && docker compose exec app bash`. Dependencies install
+on start.
 
-- **VS Code / editors with dev containers:** open the folder and
-  "Reopen in Container".
-- **Plain Docker:** `docker compose up -d && docker compose exec app bash`.
-
-The container entrypoint runs `npm ci` on start whenever `node_modules`
-is out of sync with `package-lock.json`, so dependencies are ready
-either way — no manual install step.
-
-Then, once per clone, configure commit signing (required — see below):
-
-```sh
-cp .devcontainer/secrets/signing.env.example .devcontainer/secrets/signing.env
-# edit signing.env with the name and email your commits are signed under
-bash scripts/setup-signing.sh
-```
-
-## Signed commits
-
-Every commit in this repository must carry a valid SSH signature from a
-key listed in [`.allowed_signers`](.allowed_signers). Verification is
-offline and does not depend on GitHub or any other forge:
-
-```sh
-bash scripts/verify-signatures.sh        # verify all of HEAD
-git verify-commit HEAD                    # verify one commit
-```
-
-See [`docs/commit-signing.md`](docs/commit-signing.md) for the trust
-model and enforcement details, and
-[`CONTRIBUTING.md`](CONTRIBUTING.md) to get set up.
+Every commit must be SSH-signed. See [`CONTRIBUTING.md`](CONTRIBUTING.md) to
+get set up.
 
 ## License
 
