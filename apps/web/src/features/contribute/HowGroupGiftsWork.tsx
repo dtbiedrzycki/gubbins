@@ -43,6 +43,7 @@ export function HowGroupGiftsWork({ onDismiss }: {
       <ol className="mt-3 list-decimal space-y-2 pl-6">
         <li><strong>Chip in any amount.</strong> Guests pool money toward one bigger gift.</li>
         <li><strong>Send it straight to the host.</strong> When you chip in, we&rsquo;ll show you how to pay the host with Venmo or Zelle.</li>
+        <li><strong>Come back and record it.</strong> Once you&rsquo;ve paid, return here to record what you paid.</li>
         <li><strong>The host buys the gift.</strong> They use what everyone sent to buy it.</li>
       </ol>
     </section>
