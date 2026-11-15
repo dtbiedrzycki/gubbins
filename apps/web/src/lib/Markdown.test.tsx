@@ -56,7 +56,7 @@ describe('Markdown', () => {
     expect(container.querySelector('ol')?.className).toContain('mt-3');
   });
 
-  it('shows no bullet on checklist items, only on ordinary items of the same list', () => {
+  it('hides the bullet on checklist items and keeps it on ordinary items in the same list', () => {
     const { container } = render(<Markdown text={'- [ ] socks\n- books'} />);
     const [task, plain] = container.querySelectorAll('li');
     expect(task.className).toContain('list-none');
@@ -85,7 +85,7 @@ describe('Markdown', () => {
 
   it('renders a link inside a heading as a link', () => {
     render(<Markdown text="# See [site](https://example.com)" />);
-    expect(screen.getByRole('link', { name: 'site' }).closest('p')).not.toBeNull();
+    expect(screen.getByRole('link', { name: 'site' }).getAttribute('href')).toBe('https://example.com');
   });
 
   it('shows a code block as a paragraph with one line per code line', () => {

@@ -22,8 +22,9 @@ made the remaining rough edges in owner descriptions visible:
   like any other paragraph.
 - A sub-list sits directly under its item, whatever the item's markup.
   Items of a loose list are separated by the paragraph gap.
-- A checklist item starts with ☐ (unticked) or ☑ (ticked). Nothing is
-  clickable.
+- A checklist item starts with ☐ (unticked) or ☑ (ticked) and has no
+  bullet (owner ruling, 2026-11-15); ordinary items in the same list keep
+  theirs. Nothing is clickable.
 
 ## Non-goals
 
