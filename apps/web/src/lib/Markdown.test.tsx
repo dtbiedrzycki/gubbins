@@ -56,6 +56,13 @@ describe('Markdown', () => {
     expect(container.querySelector('ol')?.className).toContain('mt-3');
   });
 
+  it('shows no bullet on checklist items, only on ordinary items of the same list', () => {
+    const { container } = render(<Markdown text={'- [ ] socks\n- books'} />);
+    const [task, plain] = container.querySelectorAll('li');
+    expect(task.className).toContain('list-none');
+    expect(plain.className).not.toContain('list-none');
+  });
+
   it('puts a sub-list directly under its item', () => {
     const { container } = render(<Markdown text={'- **a**\n  - b'} />);
     expect(container.querySelector('li ul')?.className).toContain('[li>&]:mt-0');

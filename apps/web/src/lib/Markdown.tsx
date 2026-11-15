@@ -23,6 +23,8 @@ export function Markdown({ text }: { text: string }) {
         p: ({ children }) => <p className="mt-3 first:mt-0">{children}</p>,
         ul: ({ children }) => <ul className="mt-3 first:mt-0 list-disc pl-5 [li>&]:mt-0 [&>li:has(>p)+li]:mt-3">{children}</ul>,
         ol: ({ children, start }) => <ol start={start} className="mt-3 first:mt-0 list-decimal pl-5 [li>&]:mt-0 [&>li:has(>p)+li]:mt-3">{children}</ol>,
+        // Checklist items start with ☐/☑ instead of a bullet.
+        li: ({ className, children }) => <li className={className?.includes('task-list-item') ? 'list-none' : undefined}>{children}</li>,
         a: ({ href, children }) =>
           href ? (
             <a href={href} className="text-moss underline" target="_blank" rel="noopener noreferrer nofollow ugc">
