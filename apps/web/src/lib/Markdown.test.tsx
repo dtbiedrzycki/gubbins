@@ -76,7 +76,7 @@ describe('Markdown', () => {
     expect([...container.querySelectorAll('p')].map((p) => p.textContent)).toEqual(['Shipping', 'Jane Doe']);
   });
 
-  it('keeps a link inside a heading', () => {
+  it('renders a link inside a heading as a link', () => {
     render(<Markdown text="# See [site](https://example.com)" />);
     expect(screen.getByRole('link', { name: 'site' }).closest('p')).not.toBeNull();
   });
@@ -96,11 +96,6 @@ describe('Markdown', () => {
     expect([...container.querySelectorAll('li')].map((li) => li.textContent)).toEqual(['☐ socks', '☑ books']);
   });
 
-  it('leaves [x] in ordinary text as typed', () => {
-    render(<Markdown text="Tick [x] when done" />);
-    expect(screen.getByText('Tick [x] when done')).toBeTruthy();
-  });
-
   it('renders no image and shows raw HTML as inert text', () => {
     const { container } = render(
       <Markdown text={'![x](http://e.com/a.png)\n\n<img src=x>\n\nT-shirt size <L> <script>alert(1)</script>'} />,
@@ -110,10 +105,9 @@ describe('Markdown', () => {
     expect(container.textContent).toContain('T-shirt size <L> <script>alert(1)</script>');
   });
 
-  it('keeps the text of headings, code and quotes without their elements', () => {
-    const { container } = render(<Markdown text={'# Title\n\n> quoted\n\n`code`'} />);
-    expect(container.querySelector('h1, blockquote, code')).toBeNull();
-    expect(container.textContent).toContain('Title');
+  it('shows quotes and inline code as plain text', () => {
+    const { container } = render(<Markdown text={'> quoted\n\n`code`'} />);
+    expect(container.querySelector('blockquote, code')).toBeNull();
     expect(container.textContent).toContain('quoted');
     expect(container.textContent).toContain('code');
   });

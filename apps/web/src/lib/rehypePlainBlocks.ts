@@ -1,7 +1,7 @@
 import type { Element, ElementContent, Root, RootContent } from 'hast';
 
 const HEADINGS = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
-const BR: Element = { type: 'element', tagName: 'br', properties: {}, children: [] };
+const br = (): Element => ({ type: 'element', tagName: 'br', properties: {}, children: [] });
 
 const text = (value: string): ElementContent => ({ type: 'text', value });
 const paragraph = (children: ElementContent[]): Element => ({ type: 'element', tagName: 'p', properties: {}, children });
@@ -10,7 +10,7 @@ const elements = (nodes: ElementContent[], ...tags: string[]) =>
 
 /** Lines joined by line breaks. */
 function lines(rows: ElementContent[][]): ElementContent[] {
-  return rows.flatMap((row, i) => (i === 0 ? row : [{ ...BR }, ...row]));
+  return rows.flatMap((row, i) => (i === 0 ? row : [br(), ...row]));
 }
 
 function textOf(node: ElementContent): string {
