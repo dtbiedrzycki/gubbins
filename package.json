@@ -1,6 +1,6 @@
 {
   "name": "gubbins",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "private": true,
   "description": "A wishlist application (early scaffolding — stack undecided).",
   "license": "AGPL-3.0-or-later",
