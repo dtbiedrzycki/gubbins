@@ -165,7 +165,7 @@ Item decides, Hold records.
   transaction.
 - **Route:** `POST /api/lists/:slug/items/:itemId/buy`. Body: `idempotencyKey`,
   `name`, `units`, `message?`. Response: 201 with the purchased `HoldView`,
-  since it creates a hold, as the hold route does *(my call)*. Errors as the
+  since it creates a hold, as the hold route's 201 does. Errors as the
   hold route: 409 `item_unavailable`, 409 with no code when concurrent
   writes outlast the retries, 400 validation, 404 unknown item.
   *(My call: its own route rather than a flag on the hold request, so the
@@ -217,9 +217,11 @@ Item decides, Hold records.
   would otherwise fall through to `HoldLapsedError`.
 - **Undoing twice** (two tabs) answers 200 with the current view, not an
   error *(my call: the guest's intent is already true)*. The undo use case
-  owns this: when the hold is already voided, it answers the current view
-  without calling the domain and appends nothing. `Hold` itself refuses a
-  second void with `HoldNotActiveError`.
+  owns this: after the permission check, when the hold is already voided,
+  it answers the current view without calling the domain and appends
+  nothing. Another session's voided hold is the generic 404, as for any
+  hold of theirs. `Hold` itself refuses a second void with
+  `HoldNotActiveError`.
 
 ### Domain, events, storage and API
 
@@ -230,6 +232,11 @@ Item decides, Hold records.
 - **`Hold` records `voidedAt`.** The constructor enforces that it is set only
   on a purchased hold. `statusAt` reports a new status for it (name per
   ADR-0079, e.g. `voided`), and the web shows it as above.
+- **`Item` gains the undo command,** at its `asOf` and advancing the stream
+  as `releaseHold` does, reached through a matching `Wishlist` method
+  (ADR-0078). Beside it, a `can…` question shares the command's guard, as
+  `canReleaseHold` does, and `toHoldView` reads it for the new action
+  flag.
 - **Migration `0005`** adds `holds.voided_at` (nullable text) with a
   structural CHECK: `voided_at` is null unless `purchased_at` is set
   (ADR-0083). Shipped migrations are never edited (ADR-0085).
@@ -237,12 +244,13 @@ Item decides, Hold records.
 - **Route:** `POST /api/lists/:slug/holds/:holdId/void`, following the
   existing per-action hold routes, with no body. Response: 200 with the
   `HoldView`. Errors: 404 (generic) for an unknown hold or another
-  session's, 409 `hold_not_active` for a hold that isn't purchased
-  *(my call)*. `HoldView.actions` gains a
-  flag for it, true exactly when the hold is purchased and not voided.
+  session's, 409 `hold_not_active` for a hold that isn't purchased, as
+  the existing hold commands answer. `HoldView.actions` gains a flag for
+  it, from the `Item` question above.
 - **`HoldView` and the shared status enum** gain the new status.
 - **Docs in the same release:** `docs/spec/holds.md` ("Purchase is terminal;
-  only the owner can undo it") and the comment on `ItemPurchasedEvent` change
+  only the owner can undo it"), `docs/spec/domain-model.md` ("Purchase
+  single only — terminal") and the comment on `ItemPurchasedEvent` change
   to say the guest can undo it.
 
 ## Concurrency
@@ -278,8 +286,8 @@ No new kinds of input; each field keeps the rules it already has *(my call)*.
 - In release 1: `docs/spec/guest-ux.md` ("Hold flow") and
   `docs/spec/holds.md`'s opening rules, which still describe holding as the
   guest's way in, lead with "I'm buying this".
-- ADR-0075 amendment and `docs/spec/holds.md`'s terminal-purchase rule: in
-  release 2, as above.
+- ADR-0075 amendment, `docs/spec/holds.md`'s terminal-purchase rule and
+  `docs/spec/domain-model.md`'s purchase line: in release 2, as above.
 
 ## Tests (at the owning layer)
 
@@ -291,14 +299,17 @@ protects.
     at one instant, and returns both events (the new `Item` command). Unit
     and group-gift refusals are `placeHold`'s and stay tested there.
 - **Domain, release 2:**
-  - `Hold`: voiding needs a purchased hold (the void command's guard).
-  - `Hold`: a voided hold can't be voided again, `HoldNotActiveError` (the
-    same guard).
+  - `Hold`: voiding refuses a hold that isn't purchased, with
+    `HoldNotActiveError`, as one table: active, expired, released, voided
+    (the void command's guard).
   - `Hold`: reconstituting with `voidedAt` but no `purchasedAt` is refused
     (the private constructor's invariant).
-  - `Hold`: `statusAt` reports the voided status.
-  - `Item`: an undone purchase counts in neither `committedUnits()` nor
-    `purchasedCount()` (the counters).
+  - `Hold`: `statusAt` reports a voided purchase as voided, not purchased
+    (`statusAt`'s check order: voided before purchased). The counters
+    filter by status, so this also drops it from `committedUnits()` and
+    `purchasedCount()`.
+  - `Item`: can undo a purchase exactly when the hold is purchased (the
+    `can…` question), beside the `canExtendHold`/`canReleaseHold` tests.
   - `Item`: `purchaseHold` refuses a voided hold with `HoldNotActiveError`
     (its status list).
 - **Application, release 1:**
@@ -315,8 +326,9 @@ protects.
     nothing (the replay step).
   - `GetListView` leaves voided holds out of `myHolds` (its filter).
 - **Request schema:** if the buy schema extends `holdItemRequestSchema`,
-  its rows in `packages/shared-types` cover only `message`; otherwise one
-  row per required field, beside `holdItem.test.ts`.
+  it needs no new rows (`message` is optional with no limit); otherwise one
+  row per required field (`idempotencyKey`, `name`, `units`), beside
+  `holdItem.test.ts`.
 - **Routes:**
   - The buy route: one success path (201), and one schema refusal whose
     request lacks only `name`.
@@ -324,11 +336,15 @@ protects.
   - The undo command joins the existing tables: `HoldPermissions.test.ts`
     (placing session, other session, no session), the IDOR tables in
     `routes.integration.test.ts`, and the ledger actor matrix in
-    `ledgerActors.integration.test.ts`.
+    `ledgerActors.integration.test.ts`. In the IDOR table of holds closed
+    by their owner, the undo joins both the actions and the closing
+    actions, which pins "another session undoes a hold its owner undid →
+    the generic 404".
 - **Repository contract and rebuild** (release 2): `voided_at` round-trips,
   and a rebuild re-folds it.
 - **Web, release 1:**
-  - The card shows "I'm buying this" first, exactly when holding is offered.
+  - The card shows "I'm buying this" exactly when holding is offered.
+  - "I'm buying this" comes before "Hold this item".
   - The sheet's note quotes "Yes, I'm buying 2" with 2 picked.
   - The confirm button reads "Yes, I'm buying 2" with 2 picked.
   - `ItemView` announces "{title} is marked as purchased. Thank you!" after
@@ -340,7 +356,8 @@ protects.
 - **Web, release 2:**
   - "I didn't buy it" asks first.
   - After the undo, the outcome message says "{title} is available to other
-    guests again.", and focus moves as after a release.
+    guests again."
+  - After the undo, focus moves as after a release.
 - **e2e:** one journey. Release 1: buy 2 of a quantity-5 gift, and another
   guest sees "Wanted: 3 more". Release 2 extends that same test: undo it,
   and the other guest sees "Wanted: 5 more".
@@ -353,5 +370,7 @@ protects.
 - The PR split within the 10-file cap. A natural order:
   1. Release 1: domain and use case; route and contract; the web card and
      sheet; the explainer and e2e.
-  2. Release 2: domain and event; migration, projection and contract;
-     route; web; docs.
+  2. Release 2: domain (`voidedAt`, the undo command and its event type);
+     the event's `LedgerEvent` union entry with the migration and
+     projection fold, since `rebuildProjections` switches exhaustively over
+     the union; contract; route; web; docs.
