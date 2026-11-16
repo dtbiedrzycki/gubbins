@@ -201,7 +201,7 @@ rename.
   message, it clears when a new hold appears, which would contradict it
   (owner, 2026-11-16).
 - **The status line** (`statusLine` in `YourContributions.tsx`) switches over
-  every status, so it gains a `buyUndone` case, "Undone." *(my call)*,
+  every status, so it gains a `buyUndone` case, "Buy undone." (owner, 2026-11-16),
   though the list view never sends an undone hold.
 - **The buying sheet's note** (`HoldDialog.tsx`, in its buy mode) changes its
   second line. The first line is unchanged. Exactly:
