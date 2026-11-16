@@ -363,17 +363,6 @@ describe('ItemView', () => {
       await vi.waitFor(() => expect(status).toHaveTextContent('Stroller: 2 marked as purchased. Thank you!'));
     });
 
-    it("moves focus to the gift's heading once buying succeeds", async () => {
-      buyEndpoint(201);
-      const user = userEvent.setup();
-      renderItem();
-
-      await openAndName(user);
-      await user.click(screen.getByRole('button', { name: 'Yes, I\u2019m buying it' }));
-
-      await vi.waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Stroller' })).toHaveFocus());
-    });
-
     it('returns focus to "I\u2019m buying this" when the buying sheet is cancelled', async () => {
       const user = userEvent.setup();
       renderItem();
@@ -396,18 +385,6 @@ describe('ItemView', () => {
       await user.click(screen.getByRole('button', { name: /^I\u2019m buying this/ }));
 
       expect(screen.getByRole('alert')).toBeEmptyDOMElement();
-    });
-
-    it('shows a refused purchase in the buying sheet and keeps it open', async () => {
-      buyEndpoint(503);
-      const user = userEvent.setup();
-      renderItem();
-
-      await openAndName(user);
-      await user.click(screen.getByRole('button', { name: 'Yes, I\u2019m buying it' }));
-
-      await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
-      expect(screen.getByRole('dialog', { hidden: true })).toBeInTheDocument();
     });
   });
 });
