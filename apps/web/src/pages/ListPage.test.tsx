@@ -183,18 +183,10 @@ describe('ListPage', () => {
     expect(screen.getByText('Every gift is already held, purchased or funded.')).toBeInTheDocument();
   });
 
-  it('shows the claiming explainer with the list\u2019s hold length', async () => {
-    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
-    renderListPage();
-
-    const box = await screen.findByRole('region', { name: 'How claiming a gift works' });
-    expect(box).toHaveTextContent('It\u2019s yours for 3 days, and you can extend it once.');
-  });
-
   it.each([
     ['only group gifts', { ...view(false), items: [aListItem({ title: 'Honeymoon fund', type: 'group', availableUnits: 0, priceMinor: 50000, pledgedMinor: 0 })] }],
     ['no single gift left to hold', view(true)],
-  ] satisfies [string, ListViewResponse][])('leaves out the holding explainer when the list has %s', async (_, list) => {
+  ] satisfies [string, ListViewResponse][])('leaves out the claiming explainer when the list has %s', async (_, list) => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(list)));
     renderListPage();
 
@@ -202,7 +194,7 @@ describe('ListPage', () => {
     expect(screen.queryByText('How claiming a gift works')).not.toBeInTheDocument();
   });
 
-  it('moves focus to the gift filter when the guest dismisses the holding explainer', async () => {
+  it('moves focus to the gift filter when the guest dismisses the claiming explainer', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
     const user = userEvent.setup();
     renderListPage();
@@ -234,7 +226,7 @@ describe('ListPage', () => {
     expect(screen.queryByText('How group gifts work')).not.toBeInTheDocument();
   });
 
-  it('shows the group-gift explainer below the holding explainer', async () => {
+  it('shows the group-gift explainer below the claiming explainer', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), items: [...view(false).items!, groupGift] })));
     renderListPage();
 
@@ -242,7 +234,7 @@ describe('ListPage', () => {
     expect(holdingBox().compareDocumentPosition(groupBox()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('moves focus to the group-gift explainer when the guest dismisses the holding explainer while both show', async () => {
+  it('moves focus to the group-gift explainer when the guest dismisses the claiming explainer while both show', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), items: [...view(false).items!, groupGift] })));
     const user = userEvent.setup();
     renderListPage();
@@ -294,11 +286,11 @@ describe('ListPage', () => {
     });
   });
 
-  it('says "1 day" for a one-day hold', async () => {
-    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), capabilities: { holdDurationDays: 1 } })));
+  it('passes the list\u2019s hold length to the claiming explainer', async () => {
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), capabilities: { holdDurationDays: 5 } })));
     renderListPage();
 
-    expect(await screen.findByText(/It\u2019s yours for 1 day,/)).toBeInTheDocument();
+    expect(await screen.findByText(/It\u2019s yours for 5 days,/)).toBeInTheDocument();
   });
 
   it('holds the item, then lists it in Your contributions with its actions', async () => {
