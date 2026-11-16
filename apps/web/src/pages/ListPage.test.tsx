@@ -183,15 +183,12 @@ describe('ListPage', () => {
     expect(screen.getByText('Every gift is already held, purchased or funded.')).toBeInTheDocument();
   });
 
-  it('explains holding: hold before buying, buy within 3 days, then mark it purchased or the hold ends', async () => {
+  it('shows the claiming explainer with the list\u2019s hold length', async () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
     renderListPage();
 
     const box = await screen.findByRole('region', { name: 'How claiming a gift works' });
-    expect(within(box).getByText('Hold it before you buy it.')).toBeInTheDocument();
-    expect(within(box).getByText('Buy it within 3 days.')).toBeInTheDocument();
-    expect(within(box).getByText('Come back and mark it purchased.')).toBeInTheDocument();
-    expect(box).toHaveTextContent('If you don\u2019t, the hold ends after 3 days and another guest can buy the same gift.');
+    expect(box).toHaveTextContent('It\u2019s yours for 3 days, and you can extend it once.');
   });
 
   it.each([
@@ -301,7 +298,7 @@ describe('ListPage', () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json({ ...view(false), capabilities: { holdDurationDays: 1 } })));
     renderListPage();
 
-    expect(await screen.findByText('Buy it within 1 day.')).toBeInTheDocument();
+    expect(await screen.findByText(/It\u2019s yours for 1 day,/)).toBeInTheDocument();
   });
 
   it('holds the item, then lists it in Your contributions with its actions', async () => {
