@@ -363,7 +363,8 @@ export class Item {
     const own = this.ownHold(hold);
     const limit = this.purchaseLimit(own);
     const status = own.statusAt(this.asOf);
-    if (status === 'released' || status === 'purchased' || status === 'undone') throw new HoldNotActiveError(own.id.value);
+    // Only a hold still active, or lapsed but not ended, can be bought; any other status has already ended.
+    if (status !== 'active' && status !== 'expired') throw new HoldNotActiveError(own.id.value);
     if (limit === 0) throw new HoldLapsedError(this.id.value);
     own.assertCovers(units);
     // Within the units held but beyond the units free: another guest took them since this hold lapsed.

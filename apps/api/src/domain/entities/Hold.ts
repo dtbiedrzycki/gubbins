@@ -17,17 +17,17 @@ export type HoldStatus = 'active' | 'expired' | 'released' | 'purchased' | 'undo
 
 /**
  * A hold's own lifecycle rules. The methods that take an instant (`statusAt`,
- * `canExtendAt`, `canReleaseAt`, `canUndoBuyAt`, `extend`, `release`, `markPurchased`,
- * `undoBuy`) are the
- * aggregate's internals: its `Item` calls them with the instant it was loaded
- * at, and application code goes through `Wishlist`, never these. That keeps
- * every decision on one instant, so no caller can decide on current data
- * using an older date.
+ * `canExtendAt`, `canReleaseAt`, `canUndoBuyAt`, `extend`, `release`,
+ * `markPurchased`, `undoBuy`) are the aggregate's internals: its `Item` calls
+ * them with the instant it was loaded at, and application code goes through
+ * `Wishlist`, never these. That keeps every decision on one instant, so no
+ * caller can decide on current data using an older date.
  */
 export class Hold {
   /**
    * Enforces the invariants between the timestamps, so neither factory
-   * can produce a hold that ended two ways. The lifecycle fields are private
+   * can produce a hold that ended two ways, or one whose buy was undone
+   * without being bought. The lifecycle fields are private
    * and mutable because the hold's own commands (extend, release,
    * markPurchased, undoBuy) change them in place — sound only because every
    * aggregate is loaded fresh per unit of work, as `Item.placeHold` already
@@ -182,7 +182,8 @@ export class Hold {
   }
 
   /**
-   * Ends the hold in a purchase. Refuses a hold that already ended: released, bought, or bought and undone (`purchasedAt` stays set): an
+   * Ends the hold in a purchase. Refuses a hold that already ended:
+   * released, bought, or bought and undone (`purchasedAt` stays set). An
    * expired hold may still be purchased when its item has a free unit, and
    * only the item — which sees the other holds — can tell, so reach this
    * through `Item.purchaseHold`, which passes its load instant. `units` is
