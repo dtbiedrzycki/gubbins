@@ -15,7 +15,7 @@ describe('markHoldPurchasedRequestSchema', () => {
 });
 
 describe('holdViewSchema', () => {
-  it.each(['active', 'expired', 'released', 'purchased', 'undone'])('accepts a %s hold', (status) => {
+  it.each(['active', 'expired', 'released', 'purchased', 'buyUndone'])('accepts a %s hold', (status) => {
     expect(holdViewSchema.safeParse({ ...view, status }).success).toBe(true);
   });
 
