@@ -35,11 +35,29 @@
   care of — thank you!" If open-ended funds are still open, they're listed
   below the banner instead of hiding the page entirely.
 
+**Buy flow**
+- Each available single gift leads with "I'm buying this" (primary), ahead
+  of "Hold this item" (secondary).
+- Tap "I'm buying this" → sheet titled `Buying "{title}"?` with: "How many?"
+  stepper (only when more than one is wanted), a boxed note (tap "Yes,
+  I'm buying it" before you buy it; other guests then see it's taken, so
+  no one else buys it while you're getting it; it can't be undone, so only
+  tap it if you're sure; with several, the note quotes the button's label
+  and says "they"), then name(s) and an optional message to the
+  owner (≤300 chars).
+- Buttons: "Yes, I'm buying it" (or "Yes, I'm buying N" for several) and
+  Cancel. One step holds the gift and marks it purchased.
+- The "How claiming a gift works" card explains both routes, leading with
+  "I'm buying this".
+
 **Hold flow**
-- Tap "Hold it" → sheet with: name (required), optional email ("so we can
-  remind you before the hold expires" — only shown if `SMTP` is configured,
-  per the capability-flag rule in [ops](ops.md)), subtitle "Other guests will see it's taken while you buy it", and a boxed note: buy it, come back and tap "Mark as purchased", or the hold ends after 3 days.
-  Primary CTA: "Confirm hold." The hold sheet asks for name(s) only; the
+- Tap "Hold this item" → sheet titled `Hold "{title}" for yourself?` with:
+  name (required), optional email ("so we can remind you before the hold
+  expires" — only shown if `SMTP` is configured, per the capability-flag
+  rule in [ops](ops.md)), subtitle "Other guests will see it's taken while
+  you buy it", and a boxed note: buy it, come back and tap "Mark as
+  purchased", or the hold ends after HOLD_DURATION_DAYS (default 3).
+  Primary CTA: "Yes, hold it." The hold sheet asks for name(s) only; the
   message to the owner is asked when the hold is marked purchased.
 - Tap "Mark as purchased" → sheet with the optional message to the owner
   (≤300 chars). One unit: title "Mark “{item}” as purchased?". More than one
@@ -92,7 +110,7 @@
 
 **Double-submit protection**
 
-- Both the hold sheet and the contribute flow carry an idempotency key,
+- The hold sheet, the buying sheet and the contribute flow carry an idempotency key,
   generated client-side (`crypto.randomUUID()`) **when the sheet/flow is
   opened**, not when submit is tapped — generating it at submit time would
   produce a fresh key per tap and defeat the mechanism entirely.
@@ -106,8 +124,8 @@
   where the guest can only recover the second hold's secret. *(ADR-[048](../adr/0048-hold-contribution-submits-carry-a-client-generated.md))*
 
 **Message from giver to owner**
-- Optional free-text field, ≤300 chars, on the purchase sheet and the
-  contribute flow. Escaped on output, same treatment as names.
+- Optional free-text field, ≤300 chars, on the buying sheet, the purchase
+  sheet and the contribute flow. Escaped on output, same treatment as names.
 - Visible to the owner **immediately**, regardless of
   `ownerSeesClaimStatus`, `ownerSeesClaimerIdentity`, or `revealAfter` —
   treated as a personal note, not claim-status information that spoiler
