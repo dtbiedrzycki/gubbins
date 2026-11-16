@@ -33,7 +33,7 @@ describe('UndoBuy', () => {
 
     const again = await undo.execute({ wishlistId: WISHLIST_ID, holdId }, GUEST);
 
-    expect(again.status).toBe('undone');
+    expect(again.status).toBe('buyUndone');
     expect(eventStore.recorded(ITEM_ID)).toHaveLength(streamLength);
   });
 });

@@ -54,6 +54,6 @@ back leaves a gift marked bought that never arrives.
 - No new event type or migration for "I'm buying this". The undo adds
   `BuyUndone` by a guest (replacing the owner-only `PurchaseVoided` in
   ADR-[0075](./0075-ledger-events-record-the-acting-role.md)), the hold
-  status `undone`, and a migration adding `holds.buy_undone_at`.
+  status `buyUndone`, and a migration adding `holds.buy_undone_at`.
 - Until the undo ships, a guest's "I'm buying this" can't be taken back, and
   the sheet says so.

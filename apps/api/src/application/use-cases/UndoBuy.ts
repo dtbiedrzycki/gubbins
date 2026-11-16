@@ -15,7 +15,7 @@ export class UndoBuy implements HoldCommand {
     return this.unitOfWork.execute((ctx) => {
       const now = this.clock.now();
       return runHoldCommand(ctx, input, access, now, HoldPermissions.mayUndoBuy, (wishlist, hold) => wishlist.undoBuy(hold),
-        (wishlist, hold) => wishlist.holdStatus(hold) === 'undone');
+        (wishlist, hold) => wishlist.holdStatus(hold) === 'buyUndone');
     });
   }
 }

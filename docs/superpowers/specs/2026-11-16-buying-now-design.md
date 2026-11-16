@@ -194,14 +194,14 @@ rename.
   2026-11-16)
   The web names the action `undoBuy` (`HoldAction`, `api.undoBuy`).
 - **After an undo** the card leaves "Your contributions", as a released hold
-  does (`GetListView` drops the `undone` status from `myHolds`, and the sheet
+  does (`GetListView` drops the `buyUndone` status from `myHolds`, and the sheet
   closes if it was the last entry). The outcome message says "{title} is
   available to other guests again." *(my call)* Focus moves to the sheet's
   heading, as after a release, since the card is gone. Like a release's
   message, it clears when a new hold appears, which would contradict it
   (owner, 2026-11-16).
 - **The status line** (`statusLine` in `YourContributions.tsx`) switches over
-  every status, so it gains an `undone` case, "Undone." *(my call)*,
+  every status, so it gains a `buyUndone` case, "Undone." *(my call)*,
   though the list view never sends an undone hold.
 - **The buying sheet's note** (`HoldDialog.tsx`, in its buy mode) changes its
   second line. The first line is unchanged. Exactly:
@@ -249,7 +249,7 @@ rename.
   actor `owner` if an owner undo is ever built (one event per fold, as
   ADR-0075 argues for `HoldReleased`) *(my call)*.
 - **`Hold` records `buyUndoneAt`.** The constructor enforces that it is set
-  only on a purchased hold. `statusAt` reports `undone` for it, checked
+  only on a purchased hold. `statusAt` reports `buyUndone` for it, checked
   before `purchased`, and `Hold.undoBuy(at)` refuses anything but a
   purchased hold with `HoldNotActiveError`.
 - **`Item.undoBuy(hold)`** acts at its `asOf` and advances the stream as
@@ -286,7 +286,7 @@ rename.
   `hold_not_active` for a hold that was never bought (active, expired or
   released), as the existing hold commands answer. The OpenAPI document
   and the web's generated `schema.gen.ts` are regenerated.
-- **`HoldView` and the shared status enum** gain `undone` and
+- **`HoldView` and the shared status enum** gain `buyUndone` and
   `actions.undoBuy`.
 - **Docs in the same release:** `docs/spec/holds.md` ("Purchase is terminal;
   only the owner can undo it"), `docs/spec/domain-model.md` ("Purchase
@@ -350,7 +350,7 @@ protects.
     (`Hold.undoBuy`'s guard).
   - `Hold`: reconstituting with `buyUndoneAt` but no `purchasedAt` is
     refused (the private constructor's invariant).
-  - `Hold`: `statusAt` reports an undone purchase as `undone`, not
+  - `Hold`: `statusAt` reports an undone purchase as `buyUndone`, not
     `purchased` (`statusAt`'s check order: undone before purchased). The
     counters filter by status, so this also drops it from
     `committedUnits()` and `purchasedCount()`.

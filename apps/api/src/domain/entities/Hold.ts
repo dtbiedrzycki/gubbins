@@ -13,7 +13,7 @@ import { UuidId } from '../value-objects/UuidId.js';
  * the timestamps, so nothing has to be written when a hold expires
  * (ADR-0002's lazy expiry).
  */
-export type HoldStatus = 'active' | 'expired' | 'released' | 'purchased' | 'undone';
+export type HoldStatus = 'active' | 'expired' | 'released' | 'purchased' | 'buyUndone';
 
 /**
  * A hold's own lifecycle rules. The methods that take an instant (`statusAt`,
@@ -119,7 +119,7 @@ export class Hold {
    */
   statusAt(at: Date): HoldStatus {
     // Checked first: an undone buy keeps purchasedAt, so it would otherwise read as purchased.
-    if (this._buyUndoneAt !== null) return 'undone';
+    if (this._buyUndoneAt !== null) return 'buyUndone';
     if (this._purchasedAt !== null) return 'purchased';
     if (this._releasedAt !== null) return 'released';
     if (at.getTime() > this._expiresAt.getTime()) return 'expired';

@@ -569,7 +569,7 @@ describe('hold lifecycle over HTTP', () => {
     const undone = await holdAction(list.slug, holdId, 'undo-buy', cookie);
 
     expect(undone.statusCode).toBe(200);
-    expect(undone.json()).toMatchObject({ holdId, status: 'undone' });
+    expect(undone.json()).toMatchObject({ holdId, status: 'buyUndone' });
   });
 
   it.each(['extend', 'release', 'purchase', 'undo-buy'] as const)(
