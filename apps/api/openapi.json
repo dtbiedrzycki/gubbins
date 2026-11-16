@@ -2242,7 +2242,7 @@
                         "expired",
                         "released",
                         "purchased",
-                        "undone"
+                        "buyUndone"
                       ]
                     },
                     "expiresAt": {
