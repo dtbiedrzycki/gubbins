@@ -59,7 +59,7 @@ describe('BuyItem', () => {
     expect(store.guestPii.size).toBe(1);
   });
 
-  it('checks the guest details before writing, so an invalid message buys nothing', async () => {
+  it('writes nothing when the guest details are refused', async () => {
     const { useCase, eventStore, store } = await makeUseCase();
 
     // The in-memory unit of work doesn't roll back, so this fails if the details are built after the append.
