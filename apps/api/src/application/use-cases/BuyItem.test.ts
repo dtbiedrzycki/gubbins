@@ -59,7 +59,7 @@ describe('BuyItem', () => {
     expect(store.guestPii.size).toBe(1);
   });
 
-  it('buys nothing and stores no details when the message is 1,000 characters, over the limit', async () => {
+  it('checks the guest details before writing, so an invalid message buys nothing', async () => {
     const { useCase, eventStore, store } = await makeUseCase();
 
     // The in-memory unit of work doesn't roll back, so this fails if the details are built after the append.
