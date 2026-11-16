@@ -20,11 +20,12 @@ export interface HoldCommand {
 /**
  * The body every hold command shares, run inside a unit of work: load the
  * list, find the hold on it, check permission, let the wishlist decide,
- * then persist the outcome and answer with the hold's view. A command supplies
- * only its permission check and its wishlist call, which may first read what it
- * needs (it runs before anything is written). A command whose effect may already
- * hold also supplies `alreadyDone`: then nothing is decided or written. `now` is the clock reading
- * the list is loaded at; the wishlist then decides everything as of it.
+ * then persist the outcome and answer with the hold's view. A command
+ * supplies its permission check and its wishlist call, which may first read
+ * what it needs (it runs before anything is written), and, if its effect may
+ * already hold, an `alreadyDone` check that answers the view with nothing
+ * decided or written. `now` is the clock reading the list is loaded at; the
+ * wishlist then decides everything as of it.
  */
 export async function runHoldCommand<E extends LedgerEvent>(
   ctx: TransactionContext,
@@ -46,6 +47,7 @@ export async function runHoldCommand<E extends LedgerEvent>(
   if (!actor) throw new HoldNotFoundError(input.holdId);
 
   // A repeat of a done command answers the done state rather than an error: the guest's intent already holds.
+  // It runs after the permission check, so another session still gets the generic 404.
   if (alreadyDone?.(wishlist, hold)) return toHoldView(wishlist, hold);
 
   const { item, event, expectedSeq } = await decide(wishlist, hold);
