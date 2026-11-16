@@ -173,7 +173,7 @@ describe('ItemView', () => {
     expect(screen.getByRole('progressbar')).toHaveClass('sr-only');
   });
 
-  it('keeps the button row last in its stack, so space-y adds no margin below it', () => {
+  it('puts the button row last in its stack, so space-y adds no margin below it', () => {
     renderItem();
     const row = screen.getByRole('button', { name: /^Hold this item/ }).parentElement!;
     expect(row.parentElement?.lastElementChild).toBe(row);
