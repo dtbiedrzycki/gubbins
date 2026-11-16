@@ -20,7 +20,7 @@ const expiredBuyable: HoldView = { ...active, status: 'expired', actions: { exte
 const purchased: HoldView = { ...active, status: 'purchased', purchasedUnits: 1, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false, undoBuy: true } };
 const noActions = { extend: false, release: false, purchase: false, undoBuy: false };
 const released: HoldView = { ...active, status: 'released', actions: noActions };
-const undone: HoldView = { ...purchased, status: 'undone', actions: noActions };
+const undone: HoldView = { ...purchased, status: 'buyUndone', actions: noActions };
 
 /** The two outcomes whose card leaves the sheet: what is pressed, the route, its answer and the message. */
 const cardLeaving = [
