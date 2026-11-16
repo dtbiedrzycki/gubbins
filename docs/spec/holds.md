@@ -1,7 +1,10 @@
 # Holds (single items)
 
 - **Duration `HOLD_DURATION_DAYS`, default 3** ([ops](ops.md)).
-- Language is "hold" / "I'm buying this now" — never "reserve"
+- Language is "hold" / "I'm buying this" — never "reserve"
+- The guest's main action on an available single gift is **I'm buying this**,
+  which holds it and marks it purchased in one step; "Hold this item" is the
+  secondary action for a guest who isn't ready to buy yet
 - Hold confirmation screen leads with **Mark as purchased** as primary action
 - Private hold link `/wishlists/{slug}/holds/{holdSecret}` to confirm, extend, or release; cookie as secondary
 - The hold confirmation screen additionally surfaces the guest

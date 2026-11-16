@@ -35,6 +35,20 @@
   care of — thank you!" If open-ended funds are still open, they're listed
   below the banner instead of hiding the page entirely.
 
+**Buy flow**
+- Each available single gift leads with "I'm buying this" (primary), ahead
+  of "Hold this item" (secondary).
+- Tap "I'm buying this" → sheet titled `Buying "{title}"?` with: "How many?"
+  stepper (only when more than one is wanted), name(s), optional message
+  to the owner (≤300 chars), and a boxed note: tap "Yes, I'm buying it"
+  before you buy it; other guests then see it's taken, so no one else buys
+  it while you're getting it; it can't be undone, so only tap it if you're
+  sure.
+- Buttons: "Yes, I'm buying it" (or "Yes, I'm buying N" for several) and
+  Cancel. One step holds the gift and marks it purchased.
+- The "How claiming a gift works" card explains both routes, leading with
+  "I'm buying this".
+
 **Hold flow**
 - Tap "Hold it" → sheet with: name (required), optional email ("so we can
   remind you before the hold expires" — only shown if `SMTP` is configured,
