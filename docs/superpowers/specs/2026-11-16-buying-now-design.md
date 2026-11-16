@@ -85,11 +85,12 @@ flight, the fields lock once sent, and a retry reuses the key.
 - **Note box.** It tells the guest to commit *before* buying, so nobody else
   buys the gift in the meantime (owner ruling, 2026-11-16):
   - **Do this before you buy it.**
-  - Once you confirm, other guests will see it's taken, so no one else buys
-    it while you're getting it. You can't undo this, so only confirm if
-    you're sure.
-  - It says "once you confirm" rather than "marked as purchased", which read
-    as if the purchase had already happened (owner, 2026-11-16).
+  - After this, other guests will see it's taken, so no one else buys it
+    while you're getting it. You can't undo this, so only go ahead if you're
+    sure.
+  - It avoids "marked as purchased", which read as if the purchase had
+    already happened, and "confirm", which names no button on the sheet
+    (owner, 2026-11-16).
   - With more than 1 picked, "they" and "them" replace "it".
 - **Buttons:** "Yes, I'm buying it" (or "Yes, I'm buying N"), and "Cancel".
   The pending label is "Saving…".
@@ -176,8 +177,8 @@ Item decides, Hold records.
   does (`GetListView` drops the undone status from `myHolds`, and the sheet
   closes if it was the last entry). The outcome message says "{title} is
   available to other guests again." *(my call)*
-- **The buying sheet's note** changes its second line to: "Once you confirm,
-  other guests will see it's taken, so no one else buys it while you're
+- **The buying sheet's note** changes its second line to: "After this, other
+  guests will see it's taken, so no one else buys it while you're
   getting it. If plans change, undo it from Your contributions."
 
 ### Rules
