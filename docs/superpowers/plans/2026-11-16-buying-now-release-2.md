@@ -21,7 +21,7 @@
   - Card button: `I didn't buy it`, secondary style, on a card whose `actions.undoBuy` is true.
   - Question: `Undo buying {title}? Other guests will be able to buy it.`; with `purchasedUnits > 1`: `… able to buy them.`. Buttons `Yes, undo it` (primary) and `Keep it` (secondary).
   - Success: `{title} is available to other guests again.` Failure fallback: `Couldn't undo buying {title}.`
-  - Status line for `buyUndone` (never sent by the list view, but the switch is exhaustive): `Undone.`
+  - Status line for `buyUndone` (never sent by the list view, but the switch is exhaustive): `Buy undone.`
   - Buying-sheet note, second line: one unit `Other guests will then see it's taken, so no one else buys it while you're getting it. If plans change, you can undo it from Your contributions.`; N > 1 `Other guests will then see they're taken, so no one else buys them while you're getting them. If plans change, you can undo it from Your contributions.` The first line is unchanged.
 - Route errors: 404 generic (`{ message: 'Not found' }`) for an unknown hold or another session's; 409 `hold_not_active` for a hold that was never bought; a hold already undone answers 200.
 - Each PR is verified with skill verifying-gubbins-locally: plain `scripts/verify.sh` for a stacked PR, `--e2e` once it targets main.
@@ -150,7 +150,7 @@ Each test the plan lists, and the production line only it protects. Values and r
 - Modify: `packages/shared-types/src/holdView.ts` (`holdStatusSchema` gains `'buyUndone'`; `actions` gains `undoBuy: z.boolean()`); Test: `holdView.test.ts` (fixture; `'buyUndone'` joins the accepted statuses)
 - Modify: `apps/api/src/application/views/HoldView.ts`; Test: `HoldView.test.ts`
 - Generated: `apps/api/openapi.json`, `apps/web/src/api/schema.gen.ts`
-- Modify: `apps/web/src/features/holds/YourContributions.tsx` (`statusLine`: `case 'buyUndone': return 'Undone.'`, with a why-comment that the list view never sends one)
+- Modify: `apps/web/src/features/holds/YourContributions.tsx` (`statusLine`: `case 'buyUndone': return 'Buy undone.'`, with a why-comment that the list view never sends one)
 - Fixtures: `apps/web/src/test/holdView.ts`, `apps/web/src/api/client.test.ts`, `apps/web/src/features/holds/YourContributions.test.tsx` (add `undoBuy: false` to every `actions` literal, except the `purchased` fixture, which gets `undoBuy: true` as the server now sends; no new tests)
 
 **Interfaces:**
