@@ -25,6 +25,13 @@ describe('HowHoldingWorks', () => {
     expect(card()).not.toBeInTheDocument();
   });
 
+  it('stays hidden for a guest who dismissed it before the rename', () => {
+    // The key and value the card has always written; renaming either would show it again.
+    localStorage.setItem('gubbins.holdingExplainerDismissed', 'yes');
+    render(<HowHoldingWorks holdDurationDays={3} />);
+    expect(card()).not.toBeInTheDocument();
+  });
+
   it('dismisses for this visit only where storage is blocked', async () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
