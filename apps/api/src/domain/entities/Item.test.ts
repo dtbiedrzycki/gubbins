@@ -414,7 +414,7 @@ describe('Item.purchaseHold', () => {
   it.each([
     ['released', { releasedAt: T0 }],
     ['purchased', { purchasedAt: T0, purchasedUnits: 1 }],
-    ['undone', { purchasedAt: T0, purchasedUnits: 1, buyUndoneAt: T0 }],
+    ['buyUndone', { purchasedAt: T0, purchasedUnits: 1, buyUndoneAt: T0 }],
   ] as const)('refuses a %s hold with HoldNotActiveError, not as lapsed', (_state, overrides) => {
     const hold = holdOn(overrides);
     expect(() => holding([hold], { quantity: 2 }).purchaseHold(hold, 1)).toThrow(HoldNotActiveError);
