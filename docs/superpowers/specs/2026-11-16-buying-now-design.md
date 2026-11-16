@@ -87,8 +87,13 @@ flight, the fields lock once sent, and a retry reuses the key.
   - **Tap "Yes, I'm buying it" before you buy it.**
   - Other guests will then see it's taken, so no one else buys it while
     you're getting it. It can't be undone, so only tap it if you're sure.
-  - With more than 1 picked, the button's own label is quoted ("Yes, I'm
-    buying 2"), and "they" and "them" replace "it".
+  - With more than 1 picked, the note quotes the button's own label and
+    speaks of the gifts as "they" and "them". The last sentence keeps "it",
+    which means the purchase and the button. With 2 picked, exactly:
+    - **Tap "Yes, I'm buying 2" before you buy them.**
+    - Other guests will then see they're taken, so no one else buys them
+      while you're getting them. It can't be undone, so only tap it if
+      you're sure.
   - It names the button rather than saying "this" or "confirm", and avoids
     "marked as purchased", which read as if the purchase had already happened
     (owner, 2026-11-16).
@@ -110,7 +115,9 @@ flight, the fields lock once sent, and a retry reuses the key.
 
 ### "How holding a gift works" (`HowHoldingWorks.tsx`)
 
-Rewritten to lead with the new default. Proposed copy *(my call; the owner
+Rewritten to lead with the new default. The privacy page
+(`apps/web/src/pages/PrivacyPage.tsx`), which names the card when it lists
+what the browser remembers, changes to the new heading in the same release. Proposed copy *(my call; the owner
 may reword)*:
 
 - Heading: **How claiming a gift works**
@@ -139,9 +146,11 @@ Item decides, Hold records.
   events are returned together with one starting sequence number.
 - **The hold is a normal hold.** Its `expiresAt` comes from the hold policy
   as usual, and never matters, because a purchased hold doesn't expire.
-- **Wishlist authorizes it as placing a hold:** a guest session on this list.
-  The session that buys is the session that holds, so no separate purchase
-  permission check is needed *(my call)*.
+- **`Wishlist` gains a matching method that delegates to the item,** as
+  `holdItem` does. It is authorized as `HoldItem` is: a guest session on
+  this list, checked by the route and the use case. The session that buys
+  is the session that holds, so no separate purchase permission check is
+  needed *(my call)*.
 - **A guest who already holds the gift can still use it.** It creates a
   second, purchased card and leaves the existing hold alone, as a second
   hold does today *(my call)*.
@@ -155,8 +164,10 @@ Item decides, Hold records.
   with name and message, one `guest_pii` row, ADR-0057), written in the same
   transaction.
 - **Route:** `POST /api/lists/:slug/items/:itemId/buy`. Body: `idempotencyKey`,
-  `name`, `units`, `message?`. Response: the purchased `HoldView`. Errors as
-  the hold route (409 `item_unavailable`, 400 validation, 404 unknown item).
+  `name`, `units`, `message?`. Response: 201 with the purchased `HoldView`,
+  since it creates a hold, as the hold route does *(my call)*. Errors as the
+  hold route: 409 `item_unavailable`, 409 with no code when concurrent
+  writes outlast the retries, 400 validation, 404 unknown item.
   *(My call: its own route rather than a flag on the hold request, so the
   contract says which commitment the guest made.)*
 - **Use case:** beside `HoldItem` (e.g. `BuyItem`), reusing its load,
@@ -177,9 +188,14 @@ Item decides, Hold records.
   does (`GetListView` drops the undone status from `myHolds`, and the sheet
   closes if it was the last entry). The outcome message says "{title} is
   available to other guests again." *(my call)*
-- **The buying sheet's note** changes its second line to: "Other guests will
-  then see it's taken, so no one else buys it while you're getting it. If
-  plans change, you can undo it from Your contributions."
+- **The buying sheet's note** changes its second line. The first line is
+  unchanged. Exactly:
+  - One unit: "Other guests will then see it's taken, so no one else buys it
+    while you're getting it. If plans change, you can undo it from Your
+    contributions."
+  - With 2 picked: "Other guests will then see they're taken, so no one else
+    buys them while you're getting them. If plans change, you can undo it
+    from Your contributions."
 
 ### Rules
 
@@ -200,7 +216,10 @@ Item decides, Hold records.
   and purchased holds. Today it lists those statuses by name, so a new status
   would otherwise fall through to `HoldLapsedError`.
 - **Undoing twice** (two tabs) answers 200 with the current view, not an
-  error *(my call: the guest's intent is already true)*.
+  error *(my call: the guest's intent is already true)*. The undo use case
+  owns this: when the hold is already voided, it answers the current view
+  without calling the domain and appends nothing. `Hold` itself refuses a
+  second void with `HoldNotActiveError`.
 
 ### Domain, events, storage and API
 
@@ -216,7 +235,10 @@ Item decides, Hold records.
   (ADR-0083). Shipped migrations are never edited (ADR-0085).
   `rebuildProjections` folds the event.
 - **Route:** `POST /api/lists/:slug/holds/:holdId/void`, following the
-  existing per-action hold routes, with no body. `HoldView.actions` gains a
+  existing per-action hold routes, with no body. Response: 200 with the
+  `HoldView`. Errors: 404 (generic) for an unknown hold or another
+  session's, 409 `hold_not_active` for a hold that isn't purchased
+  *(my call)*. `HoldView.actions` gains a
   flag for it, true exactly when the hold is purchased and not voided.
 - **`HoldView` and the shared status enum** gain the new status.
 - **Docs in the same release:** `docs/spec/holds.md` ("Purchase is terminal;
@@ -232,7 +254,7 @@ Item decides, Hold records.
 | Double tap, or a retry over slow wifi | One idempotency key per sheet; a replay returns the first result | No |
 | A retry of the buy request arriving after an undo | Replay returns the hold as it is now (undone); it never purchases again | **Yes:** release 2 must test it |
 | Undo racing another guest buying the freed units | Sequence check and retry | No |
-| Undo twice from two tabs | The second finds it already undone and answers 200 | **Yes:** release 2 |
+| Undo twice from two tabs | The undo use case finds it already undone, answers 200 and appends nothing | **Yes:** release 2 |
 | The owner edits the quantity or removes the gift mid-purchase | ADR-0019 (quantity may drop below committed); a removed gift answers 404 | No |
 
 ## Input handling
@@ -253,30 +275,75 @@ No new kinds of input; each field keeps the rules it already has *(my call)*.
   missing-gift risk, and the alternatives turned down: longer holds, email,
   browser notifications, a calendar reminder, a final commitment with no
   undo, and holding as the default. Ships with this spec.
-- ADR-0075 amendment and `docs/spec/holds.md`: in release 2, as above.
+- In release 1: `docs/spec/guest-ux.md` ("Hold flow") and
+  `docs/spec/holds.md`'s opening rules, which still describe holding as the
+  guest's way in, lead with "I'm buying this".
+- ADR-0075 amendment and `docs/spec/holds.md`'s terminal-purchase rule: in
+  release 2, as above.
 
 ## Tests (at the owning layer)
 
-- **Domain:**
-  - `Item`: buying now records a hold whose units bought equal its units, at
-    one instant, returning both events; more units than free is refused.
-  - `Hold` (release 2): voiding needs a purchased hold; an undone purchase
-    counts for nothing; it can't be voided twice.
-- **Application:**
-  - Release 1: replaying the buy key returns the first result.
-  - Release 2: replaying the buy key after an undo returns the undone hold
-    and appends nothing; a second undo appends nothing.
-- **Routes:** each new route's success path, and one schema refusal.
+Each test names the rule it pins; the line in brackets is the code it
+protects.
+
+- **Domain, release 1:**
+  - `Item`: buying now records one hold whose units bought equal its units,
+    at one instant, and returns both events (the new `Item` command). Unit
+    and group-gift refusals are `placeHold`'s and stay tested there.
+- **Domain, release 2:**
+  - `Hold`: voiding needs a purchased hold (the void command's guard).
+  - `Hold`: a voided hold can't be voided again, `HoldNotActiveError` (the
+    same guard).
+  - `Hold`: reconstituting with `voidedAt` but no `purchasedAt` is refused
+    (the private constructor's invariant).
+  - `Hold`: `statusAt` reports the voided status.
+  - `Item`: an undone purchase counts in neither `committedUnits()` nor
+    `purchasedCount()` (the counters).
+  - `Item`: `purchaseHold` refuses a voided hold with `HoldNotActiveError`
+    (its status list).
+- **Application, release 1:**
+  - Buying appends `ItemHeld` and `ItemPurchased` in one append at one
+    expected sequence number, as the guest, and stores the name and message
+    in one `guest_pii` row (`BuyItem`'s append and PII insert).
+  - Replaying the buy key returns the first result (the replay step).
+- **Application, release 2:**
+  - Undoing appends `PurchaseVoided` as the guest, and the hold is saved
+    with `voidedAt` (the undo use case's append).
+  - A second undo answers the current view and appends nothing (the undo
+    use case's already-voided branch).
+  - Replaying the buy key after an undo returns the undone hold and appends
+    nothing (the replay step).
+  - `GetListView` leaves voided holds out of `myHolds` (its filter).
+- **Request schema:** if the buy schema extends `holdItemRequestSchema`,
+  its rows in `packages/shared-types` cover only `message`; otherwise one
+  row per required field, beside `holdItem.test.ts`.
+- **Routes:**
+  - The buy route: one success path (201), and one schema refusal whose
+    request lacks only `name`.
+  - The undo route: one success path only; it has no body to refuse.
+  - The undo command joins the existing tables: `HoldPermissions.test.ts`
+    (placing session, other session, no session), the IDOR tables in
+    `routes.integration.test.ts`, and the ledger actor matrix in
+    `ledgerActors.integration.test.ts`.
 - **Repository contract and rebuild** (release 2): `voided_at` round-trips,
   and a rebuild re-folds it.
-- **Web:**
+- **Web, release 1:**
   - The card shows "I'm buying this" first, exactly when holding is offered.
-  - The sheet's note, button wording and stepper follow the count.
-  - The fields lock once sent, and "Only N still wanted now." appears after a 409.
-  - Release 2: undo asks first, and the card leaves afterwards.
-- **e2e:**
-  - Release 1: buy 2 of a quantity-5 gift, and another guest sees "Wanted: 3 more".
-  - Release 2: undo it, and the other guest sees "Wanted: 5 more".
+  - The sheet's note quotes "Yes, I'm buying 2" with 2 picked.
+  - The confirm button reads "Yes, I'm buying 2" with 2 picked.
+  - `ItemView` announces "{title} is marked as purchased. Thank you!" after
+    buying.
+  - Only if the buying sheet is its own component: the fields lock once
+    sent; "Only N still wanted now." appears after a 409; the stepper
+    follows the units free. As a mode of `HoldDialog`, those rules are
+    already pinned there.
+- **Web, release 2:**
+  - "I didn't buy it" asks first.
+  - After the undo, the outcome message says "{title} is available to other
+    guests again.", and focus moves as after a release.
+- **e2e:** one journey. Release 1: buy 2 of a quantity-5 gift, and another
+  guest sees "Wanted: 3 more". Release 2 extends that same test: undo it,
+  and the other guest sees "Wanted: 5 more".
 
 ## Left to the builder
 
