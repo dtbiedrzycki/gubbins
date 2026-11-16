@@ -37,7 +37,8 @@ describe('toHoldView', () => {
       actions: { extend: false, release: true, purchase: true, undoBuy: false },
     });
     const bought = holdOn({ units: 2, purchasedAt: at(DAY), purchasedUnits: 1 });
-    expect(toHoldView(wishlistAt(at(DAY), [bought]), bought).purchasedUnits).toBe(1);
-    expect(toHoldView(wishlistAt(at(DAY), [bought]), bought).actions.undoBuy).toBe(true);
+    const boughtView = toHoldView(wishlistAt(at(DAY), [bought]), bought);
+    expect(boughtView.purchasedUnits).toBe(1);
+    expect(boughtView.actions.undoBuy).toBe(true);
   });
 });
