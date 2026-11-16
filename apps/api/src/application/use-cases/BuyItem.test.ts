@@ -36,7 +36,7 @@ const input = (overrides: { message?: string } = {}) => ({
 });
 
 describe('BuyItem', () => {
-  it('appends the held and purchased events in one append as the guest, and stores the name and message in one details row', async () => {
+  it('buys 2 units in one guest append, with the details row linked by piiRef', async () => {
     const { useCase, calls, store, wishlists } = await makeUseCase();
 
     const view = await useCase.execute(input(), GUEST);
