@@ -24,6 +24,8 @@ async function setup(policy?: HoldPolicy) {
   return { ...world, view, release, purchase, undoBuy };
 }
 
+type World = Awaited<ReturnType<typeof setup>>;
+
 const GROUP_ITEM_ID = '44444444-4444-7444-8444-444444444444';
 
 async function groupSetup() {
@@ -129,8 +131,8 @@ describe('GetListView', () => {
   });
 
   it.each([
-    ['released holds', (world: Awaited<ReturnType<typeof setup>>, holdId: string) => world.release(holdId)],
-    ['undone buys', async (world: Awaited<ReturnType<typeof setup>>, holdId: string) => {
+    ['released holds', (world: World, holdId: string) => world.release(holdId)],
+    ['undone buys', async (world: World, holdId: string) => {
       await world.purchase(holdId);
       await world.undoBuy(holdId);
     }],
