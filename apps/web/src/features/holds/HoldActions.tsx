@@ -103,6 +103,7 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
       send: () => release.mutate({ holdId }),
     },
     undoBuy: {
+      // Only a bought hold offers the undo, and it always carries purchasedUnits; the type is nullable for the others.
       text: `Undo buying ${itemTitle}? Other guests will be able to buy ${(hold.purchasedUnits ?? 1) > 1 ? 'them' : 'it'}.`,
       yes: 'Yes, undo it', keep: 'Keep it',
       send: () => undoBuy.mutate({ holdId }),
@@ -119,6 +120,7 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
   // The button the guest pressed is replaced, so focus would fall to <body>:
   // move it into the question, and back to the asking button when they keep it.
   // An effect event, so only the question opening or closing moves focus, not every render.
+  // The asking buttons' refs stay out of questions: the compiler lint refuses refs in an object render reads.
   const moveFocus = useEffectEvent((open: AskFirst | null) => {
     if (asked.current) (open ? keepButton : { release: releaseButton, undoBuy: undoBuyButton }[asked.current]).current?.focus();
   });

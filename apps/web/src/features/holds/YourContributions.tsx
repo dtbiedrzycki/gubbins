@@ -44,9 +44,9 @@ function statusLine(hold: HoldView): string {
  * pledge, that opens a sheet listing them; holds with their expiry and the
  * actions they offer, pledges read-only. Outcomes show in the sheet, not on
  * the hold's card: the refetch after an action can remove the card (a
- * release, an undo, or a hold already released in another tab). An outcome that
- * empties the sheet closes it and shows in this component's own page-level
- * pair instead. Every live region stays mounted while its container is
+ * release, an undo, or a hold already released in another tab). An outcome
+ * that empties the sheet closes it and shows in this component's own
+ * page-level pair instead. Every live region stays mounted while its container is
  * (ADR-0025). Feedback clears when the next action starts, so a repeated
  * message is announced again. A release's or an undo's message also clears
  * when a new hold appears, which it would contradict; other messages stay to

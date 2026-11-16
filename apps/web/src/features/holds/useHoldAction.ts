@@ -33,9 +33,9 @@ const call: { [A in HoldAction]: (slug: string, input: HoldActionInputs[A]) => P
  * once with the hold as cached, and the refetch finishes in the background.
  *
  * `onSuccess` and `onError` are hook-level options rather than `mutate`
- * callbacks on purpose: a released or undone hold drops out of the refetched list and
- * its component unmounts, and TanStack skips `mutate` callbacks for an
- * unmounted component — the outcome would never be shown.
+ * callbacks on purpose: a released or undone hold drops out of the
+ * refetched list and its component unmounts, and TanStack skips `mutate`
+ * callbacks for an unmounted component — the outcome would never be shown.
  */
 export function useHoldAction<A extends HoldAction>(
   slug: string,

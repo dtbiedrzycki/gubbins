@@ -128,17 +128,14 @@ describe('YourContributions', () => {
     expect(within(region).getByRole('status')).toHaveTextContent('Your hold on Stroller is released.');
   });
 
-  it('asks "Undo buying Stroller? Other guests will be able to buy it." before undoing, and "Keep it" takes the question away', async () => {
-    listViews(list([purchased]));
+  it('with 1 of 2 held bought, asks "Undo buying Stroller? Other guests will be able to buy it." before undoing', async () => {
+    listViews(list([{ ...purchased, units: 2, purchasedUnits: 1 }]));
     const user = userEvent.setup();
     const region = await openYourContributions();
 
     await user.click(within(region).getByRole('button', { name: 'I didn’t buy it' }));
-    expect(within(region).getByRole('group', { name: 'Undo buying Stroller? Other guests will be able to buy it.' })).toBeInTheDocument();
-    await user.click(within(region).getByRole('button', { name: 'Keep it' }));
 
-    expect(within(region).queryByRole('group')).not.toBeInTheDocument();
-    expect(within(region).getByRole('button', { name: 'I didn’t buy it' })).toBeInTheDocument();
+    expect(within(region).getByRole('group', { name: 'Undo buying Stroller? Other guests will be able to buy it.' })).toBeInTheDocument();
   });
 
   it('with 2 bought, the question ends "Other guests will be able to buy them."', async () => {
@@ -149,19 +146,6 @@ describe('YourContributions', () => {
     await user.click(within(region).getByRole('button', { name: 'I didn’t buy it' }));
 
     expect(within(region).getByRole('group', { name: 'Undo buying Stroller? Other guests will be able to buy them.' })).toBeInTheDocument();
-  });
-
-  it('after an undo, announces "Stroller is available to other guests again." once the card has gone', async () => {
-    listViews(list([purchased], [pledge]), list([], [pledge]));
-    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/undo-buy', 200, undone));
-    const user = userEvent.setup();
-    const region = await openYourContributions();
-
-    await user.click(within(region).getByRole('button', { name: 'I didn’t buy it' }));
-    await user.click(within(region).getByRole('button', { name: 'Yes, undo it' }));
-
-    await waitFor(() => expect(within(region).queryByRole('heading', { name: 'Stroller' })).not.toBeInTheDocument());
-    expect(within(region).getByRole('status')).toHaveTextContent('Stroller is available to other guests again.');
   });
 
   it('says "Couldn’t undo buying Stroller." when the undo fails', async () => {

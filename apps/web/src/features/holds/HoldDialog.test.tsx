@@ -232,7 +232,7 @@ describe('HoldDialog', () => {
       expect(screen.queryByText(/come back and tap \u201cMark as purchased\u201d/)).not.toBeInTheDocument();
     });
 
-    it('quotes "Yes, I\u2019m buying 2" in the note with 2 picked', async () => {
+    it('with 2 picked, quotes "Yes, I\u2019m buying 2" and still ends "you can undo it from Your contributions"', async () => {
       const user = userEvent.setup();
       buy({ availableUnits: 5 });
       await user.click(screen.getByRole('button', { name: 'One more' }));
