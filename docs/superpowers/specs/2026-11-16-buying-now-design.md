@@ -190,7 +190,8 @@ rename.
   first, as "Release hold" does: "Undo buying {title}? Other guests will be
   able to buy it." with "Yes, undo it" and "Keep it" (owner, 2026-11-16).
   With more than 1 unit bought (`purchasedUnits`, not `units`): "…buy
-  them." If the undo fails: "Couldn't undo buying {title}." *(my call)*
+  them." If the undo fails: "Couldn't undo buying {title}." (owner,
+  2026-11-16)
   The web names the action `undoBuy` (`HoldAction`, `api.undoBuy`).
 - **After an undo** the card leaves "Your contributions", as a released hold
   does (`GetListView` drops the `undone` status from `myHolds`, and the sheet
@@ -198,7 +199,7 @@ rename.
   available to other guests again." *(my call)* Focus moves to the sheet's
   heading, as after a release, since the card is gone. Like a release's
   message, it clears when a new hold appears, which would contradict it
-  *(my call)*.
+  (owner, 2026-11-16).
 - **The status line** (`statusLine` in `YourContributions.tsx`) switches over
   every status, so it gains an `undone` case, "Undone." *(my call)*,
   though the list view never sends an undone hold.
@@ -267,16 +268,17 @@ rename.
   (`WishlistRepositoryKysely.ts`). `buy_undone_at` joins both, the hold
   repository reads it, and the in-memory fake copies it.
   `rebuildProjections` folds the event into it.
-- **`Hold.reconstitute` takes `buyUndoneAt` as optional,** defaulting to
-  null, as it takes `piiRef`: only an undone hold has one, and the
-  adapters always pass it *(my call; making it required touches every
-  hold fixture)*.
+- **`Hold.reconstitute` takes `buyUndoneAt` as optional** in release 2,
+  defaulting to null; the adapters always pass it. Two mechanical PRs
+  after release 2 make it required: the callers pass it, then the default
+  goes (owner, 2026-11-16; required, as #201 made the other fields).
 - **Use case `UndoBuy`,** beside `ReleaseHold`, through the shared hold
   command body (`runHoldCommand`). That body gains one optional check,
-  `settled(wishlist, hold): boolean`, run after the permission check: when
-  it is true, it answers the hold's view with no domain call, no append
-  and no save. `UndoBuy` passes "the hold is already undone"; the other
-  commands pass nothing. The `HoldCommand` doc comment names the undo too.
+  `alreadyDone(wishlist, hold): boolean`, run after the permission check:
+  when it is true, it answers the hold's view with no domain call, no
+  append and no save. `UndoBuy` passes "the hold is already undone"; the
+  other commands pass nothing. `runHoldCommand`'s and `HoldCommand`'s doc
+  comments change to match.
 - **Route:** `POST /api/lists/:slug/holds/:holdId/undo-buy`, operationId
   `undoBuy`, a row in the existing table of body-less hold commands
   (`holdCommands` in `routes.ts`). Response: 200 with the `HoldView`.
@@ -357,9 +359,9 @@ protects.
   - `Wishlist`: `undoBuy` has the item decide and returns that item, and
     it and `canUndoBuy` join the other-list refusal and hold-question
     tests (`Wishlist.undoBuy`'s delegation and `lookup`).
-  - `Wishlist`: `findHoldForReplay` returns an undone hold for its key
-    (its no-status-filter rule), so a buy replayed after an undo answers
-    the undone hold and never buys again.
+  - `Wishlist`: `findHoldForReplay`'s existing expired-hold test becomes a
+    table over expired and undone (its no-status-filter rule), so a buy
+    replayed after an undo answers the undone hold and never buys again.
 - **Application, release 1:**
   - Buying appends `ItemHeld` and `ItemPurchased` in one append at one
     expected sequence number, as the guest, and stores the name and message
@@ -407,6 +409,8 @@ protects.
   - "I didn't buy it" asks first.
   - With 2 bought, the question ends "Other guests will be able to buy
     them." (the question's unit branch).
+  - After an undo, the outcome message clears when a new hold appears (the
+    clearing check), as a row beside the release's.
   - After the undo, the outcome message says "{title} is available to other
     guests again."
   - After the undo, focus moves as after a release.
@@ -425,7 +429,11 @@ protects.
      sheet; the explainer and e2e.
   2. Release 2: domain (`buyUndoneAt`, the undo command and its event
      type); storage (the migration and saving); the `HoldView` contract;
-     the event's `LedgerEvent` union entry with the route, since
-     `rebuildProjections` and the ledger actor matrix are keyed by the
-     union and the matrix raises every type over HTTP; the use case's
-     branches; web; docs.
+     then one PR holding the event's `LedgerEvent` union entry, its fold,
+     `UndoBuy` and its success test, and the route with its OpenAPI files.
+     They can't ship apart: `rebuildProjections` and the ledger actor
+     matrix are keyed by the union, and the matrix raises every type over
+     HTTP. That PR is about 13 files, a one-off exception to the cap
+     (owner, 2026-11-16). Then `alreadyDone` with `GetListView`'s filter
+     and the route's security tables; web; docs; and after release 2,
+     the two PRs that make `buyUndoneAt` required.
