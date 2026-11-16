@@ -39,11 +39,11 @@
 - Each available single gift leads with "I'm buying this" (primary), ahead
   of "Hold this item" (secondary).
 - Tap "I'm buying this" → sheet titled `Buying "{title}"?` with: "How many?"
-  stepper (only when more than one is wanted), name(s), optional message
-  to the owner (≤300 chars), and a boxed note: tap "Yes, I'm buying it"
-  before you buy it; other guests then see it's taken, so no one else buys
-  it while you're getting it; it can't be undone, so only tap it if you're
-  sure.
+  stepper (only when more than one is wanted), a boxed note (tap "Yes,
+  I'm buying it" before you buy it; other guests then see it's taken, so
+  no one else buys it while you're getting it; it can't be undone, so only
+  tap it if you're sure), then name(s) and an optional message to the
+  owner (≤300 chars).
 - Buttons: "Yes, I'm buying it" (or "Yes, I'm buying N" for several) and
   Cancel. One step holds the gift and marks it purchased.
 - The "How claiming a gift works" card explains both routes, leading with
