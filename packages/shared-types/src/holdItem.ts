@@ -8,6 +8,9 @@ export const holdItemRequestSchema = z.object({
 });
 export type HoldItemRequest = z.infer<typeof holdItemRequestSchema>;
 
+export const buyItemRequestSchema = holdItemRequestSchema.extend({ message: z.string().optional() });
+export type BuyItemRequest = z.infer<typeof buyItemRequestSchema>;
+
 /** The hold just placed — or, for a replayed idempotency key, the original hold as it is now (ADR-0048). */
 export const holdItemResponseSchema = holdViewSchema;
 export type HoldItemResponse = HoldView;

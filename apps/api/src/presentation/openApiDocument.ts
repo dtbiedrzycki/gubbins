@@ -24,6 +24,7 @@ const noDependencies: AppDependencies = {
   editListDetails: unusedDependency('editListDetails'),
   getManageView: unusedDependency('getManageView'),
   holdItem: unusedDependency('holdItem'),
+  buyItem: unusedDependency('buyItem'),
   pledgeContribution: unusedDependency('pledgeContribution'),
   extendHold: unusedDependency('extendHold'),
   releaseHold: unusedDependency('releaseHold'),

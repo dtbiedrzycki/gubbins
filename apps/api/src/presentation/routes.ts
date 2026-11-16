@@ -8,7 +8,7 @@ import {
   editListDetailsRequestSchema, editedResponseSchema, moveItemRequestSchema,
   addItemRequestSchema, addItemResponseSchema, editItemRequestSchema,
   manageViewResponseSchema,
-  holdItemRequestSchema, holdItemResponseSchema, holdViewSchema, markHoldPurchasedRequestSchema, listViewResponseSchema,
+  buyItemRequestSchema, holdItemRequestSchema, holdItemResponseSchema, holdViewSchema, markHoldPurchasedRequestSchema, listViewResponseSchema,
   pledgeRequestSchema, pledgeResponseSchema,
   errorResponseSchema,
 } from '@gubbins/shared-types';
@@ -336,6 +336,30 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       // The use case loads the wishlist this slug resolved to and asks it for
       // the item, so another list's item id is ItemNotFoundError — a 404.
       const view = await deps.holdItem.execute({ wishlistId: guest.wishlistId, itemId, idempotencyKey: request.body.idempotencyKey, name: request.body.name, units: request.body.units }, guest.access);
+      return reply.code(201).send(view);
+    } catch (err) {
+      return sendDomainError(reply, err);
+    }
+  });
+
+  app.post('/api/lists/:slug/items/:itemId/buy', {
+    schema: {
+      operationId: 'buyItem',
+      params: slugItemParams,
+      body: buyItemRequestSchema,
+      response: {
+        201: json('The item is bought for this session in one step; a replayed idempotency key returns the same purchase.', holdViewSchema),
+        400: json(INVALID_REQUEST, errorResponseSchema),
+        404: json('No such list or item, or no valid session for the list. These are deliberately indistinguishable.', errorResponseSchema),
+        409: json('Fewer units of the item are free than asked (item_unavailable), or a concurrent change won (no code).', errorResponseSchema),
+      },
+    },
+  }, async (request, reply) => {
+    const { slug, itemId } = request.params;
+    const guest = await guestAccess(request, reply, slug);
+    if (!guest) return reply.code(404).send(NOT_FOUND);
+    try {
+      const view = await deps.buyItem.execute({ wishlistId: guest.wishlistId, itemId, idempotencyKey: request.body.idempotencyKey, name: request.body.name, units: request.body.units, message: request.body.message }, guest.access);
       return reply.code(201).send(view);
     } catch (err) {
       return sendDomainError(reply, err);

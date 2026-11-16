@@ -177,6 +177,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lists/{slug}/items/{itemId}/buy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["buyItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lists/{slug}/items/{itemId}/contributions": {
         parameters: {
             query?: never;
@@ -908,6 +924,80 @@ export interface operations {
         };
         responses: {
             /** @description The item is now held for this session; a replayed idempotency key returns the same hold. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        holdId: string;
+                        itemId: string;
+                        /** @enum {string} */
+                        status: "active" | "expired" | "released" | "purchased";
+                        expiresAt: string;
+                        extendedAt: string | null;
+                        units: number;
+                        purchasedUnits: number | null;
+                        purchasableUnits: number;
+                        actions: {
+                            extend: boolean;
+                            release: boolean;
+                            purchase: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description The request did not match the schema, or a domain rule refused it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No such list or item, or no valid session for the list. These are deliberately indistinguishable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Fewer units of the item are free than asked (item_unavailable), or a concurrent change won (no code). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    buyItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    idempotencyKey: string;
+                    name: string;
+                    units: number;
+                    message?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The item is bought for this session in one step; a replayed idempotency key returns the same purchase. */
             201: {
                 headers: {
                     [name: string]: unknown;

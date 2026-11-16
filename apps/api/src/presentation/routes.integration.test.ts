@@ -328,6 +328,59 @@ describe('POST /api/lists/:slug/items/:itemId/hold', () => {
   });
 });
 
+describe('POST /api/lists/:slug/items/:itemId/buy', () => {
+  it('buys 2 of the item for the session and answers 201 with the purchased hold', async () => {
+    const list = await createList(app, 3);
+    const cookie = await guestOn(list);
+
+    const response = await app.inject({
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/buy`,
+      headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', units: 2 },
+    });
+    const view = await app.inject({ method: 'GET', url: `/api/lists/${list.slug}`, headers: { cookie } });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({ status: 'purchased', purchasedUnits: 2 });
+    expect(view.json()).toMatchObject({ items: [{ availableUnits: 1 }] });
+  });
+
+  it('passes the name and message from the buy body to the guest details', async () => {
+    const list = await createList();
+    const cookie = await guestOn(list);
+
+    await app.inject({
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/buy`,
+      headers: { cookie }, payload: { idempotencyKey: 'idem-1', name: 'Ada', units: 1, message: 'See you Saturday' },
+    });
+
+    expect(await db.selectFrom('guest_pii').select(['name', 'message']).execute()).toEqual([{ name: 'Ada', message: 'See you Saturday' }]);
+  });
+
+  it('returns 400 for a buy request without a name', async () => {
+    const list = await createList();
+    const cookie = await guestOn(list);
+
+    const response = await app.inject({
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/buy`, headers: { cookie }, payload: { idempotencyKey: 'idem-1', units: 1 },
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it("answers the generic 404 when asked to buy another list's item", async () => {
+    const list = await createList();
+    const other = await createList();
+    const cookie = await guestOn(list);
+
+    const response = await app.inject({
+      method: 'POST', url: `/api/lists/${list.slug}/items/${other.itemId}/buy`, headers: { cookie }, payload: { idempotencyKey: 'idem-x', name: 'Ada', units: 1 },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ message: 'Not found' });
+  });
+});
+
 describe('response validation', () => {
   it('logs and returns a generic 500 when a handler produces a body that does not match its response schema', async () => {
     const db = createDb(':memory:');
@@ -584,6 +637,7 @@ describe('guest access is checked before any list is loaded', () => {
       { method: 'GET', url: '/api/lists/no-such-list' },
       { method: 'POST', url: `/api/lists/${list.slug}/holds/some-hold/extend`, headers: forged },
       { method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/hold`, headers: forged, payload: { idempotencyKey: 'k', name: 'Ada', units: 1 } },
+      { method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/buy`, headers: forged, payload: { idempotencyKey: 'k', name: 'Ada', units: 1 } },
     ] as const;
     const responses = await Promise.all(requests.map((request) => guarded.inject(request)));
 
