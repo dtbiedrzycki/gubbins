@@ -6,7 +6,7 @@ import { ApiError } from '../../api/client';
 
 function renderDialog(overrides: Partial<HoldDialogProps> = {}) {
   const props: HoldDialogProps = {
-    itemTitle: 'Stroller', holdDurationDays: 3, availableUnits: 1, isPending: false, error: null,
+    itemTitle: 'Stroller', holdDurationDays: 3, availableUnits: 1, mode: 'hold', isPending: false, error: null,
     onConfirm: vi.fn(), onClose: vi.fn(), ...overrides,
   };
   return { props, ...render(<HoldDialog {...props} />) };
@@ -123,6 +123,8 @@ describe('HoldDialog', () => {
   });
 
   it('disables Cancel and confirm while the hold is in flight', () => {
+    // A name is filled in, so only the pending state can be what disables confirm.
+    localStorage.setItem('gubbins.gifterNames', 'Sam');
     renderDialog({ isPending: true });
 
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
@@ -209,5 +211,77 @@ describe('HoldDialog', () => {
     const [[first], [credential, details]] = vi.mocked(props.onConfirm).mock.calls;
     expect(credential.idempotencyKey).toBe(first.idempotencyKey);
     expect(details).toEqual({ name: 'Amara Okafor', units: 1 });
+  });
+
+  describe('in buy mode', () => {
+    const buy = (overrides: Partial<HoldDialogProps> = {}) => renderDialog({ mode: 'buy', ...overrides });
+
+    it('asks "Buying \u201cStroller\u201d?"', () => {
+      buy();
+      expect(screen.getByRole('dialog', { hidden: true })).toHaveAccessibleName('Buying \u201cStroller\u201d?');
+    });
+
+    it('tells the guest to tap "Yes, I\u2019m buying it" before buying, and that it can\u2019t be undone', () => {
+      buy();
+      expect(screen.getByText('Tap \u201cYes, I\u2019m buying it\u201d before you buy it.')).toBeInTheDocument();
+      expect(screen.getByText('Other guests will then see it\u2019s taken, so no one else buys it while you\u2019re getting it. It can\u2019t be undone, so only tap it if you\u2019re sure.')).toBeInTheDocument();
+    });
+
+    it('leaves out the hold sheet\u2019s come-back note', () => {
+      buy();
+      expect(screen.queryByText(/come back and tap \u201cMark as purchased\u201d/)).not.toBeInTheDocument();
+    });
+
+    it('quotes "Yes, I\u2019m buying 2" in the note with 2 picked', async () => {
+      const user = userEvent.setup();
+      buy({ availableUnits: 5 });
+      await user.click(screen.getByRole('button', { name: 'One more' }));
+      expect(screen.getByText('Tap \u201cYes, I\u2019m buying 2\u201d before you buy them.')).toBeInTheDocument();
+      expect(screen.getByText('Other guests will then see they\u2019re taken, so no one else buys them while you\u2019re getting them. It can\u2019t be undone, so only tap it if you\u2019re sure.')).toBeInTheDocument();
+    });
+
+    it('reads "Yes, I\u2019m buying 2" on the confirm button with 2 picked', async () => {
+      const user = userEvent.setup();
+      buy({ availableUnits: 5 });
+      await user.click(screen.getByRole('button', { name: 'One more' }));
+      expect(screen.getByRole('button', { name: 'Yes, I\u2019m buying 2' })).toBeInTheDocument();
+    });
+
+    it('sends the trimmed message with the details', async () => {
+      const user = userEvent.setup();
+      const { props } = buy();
+      await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+      await user.type(screen.getByLabelText('Message to the owner (optional)'), '  See you Saturday  ');
+      await user.click(screen.getByRole('button', { name: 'Yes, I\u2019m buying it' }));
+
+      expect(props.onConfirm).toHaveBeenCalledWith(expect.anything(), { name: 'Amara', units: 1, message: 'See you Saturday' });
+    });
+
+    it('locks the message with the name once sent, so a retry sends what was sent', async () => {
+      const user = userEvent.setup();
+      const { props } = buy();
+      await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+      await user.type(screen.getByLabelText('Message to the owner (optional)'), 'Enjoy');
+      await user.click(screen.getByRole('button', { name: 'Yes, I\u2019m buying it' }));
+      await user.type(screen.getByLabelText('Message to the owner (optional)'), '!');
+      await user.click(screen.getByRole('button', { name: 'Yes, I\u2019m buying it' }));
+
+      expect(vi.mocked(props.onConfirm).mock.calls[1][1]).toEqual({ name: 'Amara', units: 1, message: 'Enjoy' });
+    });
+
+    it('limits the message to 300 characters', () => {
+      buy();
+      expect(screen.getByLabelText('Message to the owner (optional)')).toHaveAttribute('maxlength', '300');
+    });
+
+    it('reads "Saving\u2026" on the confirm button while a purchase is in flight', () => {
+      buy({ isPending: true });
+      expect(screen.getByRole('button', { name: 'Saving\u2026' })).toBeInTheDocument();
+    });
+
+    it('tells the guest a failed purchase was on our end, led by "Couldn\u2019t buy Stroller."', () => {
+      buy({ error: new ApiError(500, 'Internal server error') });
+      expect(screen.getByRole('alert')).toHaveTextContent('Couldn\u2019t buy Stroller. Something went wrong on our end.');
+    });
   });
 });

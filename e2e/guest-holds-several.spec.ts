@@ -92,3 +92,27 @@ test('a guest holds 2 of 5, buys 1, and another guest sees "Wanted: 4 more"', as
     await otherContext.close();
   }
 });
+
+test('a guest buys 2 of 5 with "I’m buying this", and another guest sees "Wanted: 3 more"', async ({ page, context, browser, baseURL }) => {
+  const list = await listOfFiveOnesies(page);
+  const guest = await guestFromLink(context, list);
+  const yourContributions = guest.getByRole('dialog', { name: 'Your contributions' });
+
+  await guest.getByRole('button', { name: 'I’m buying this' }).click();
+  await expectNoSeriousAxeViolations(guest);
+  await guest.getByRole('button', { name: 'One more' }).click();
+  await guest.getByLabel('Gifter name(s)').fill('Amara');
+  await guest.getByRole('button', { name: 'Yes, I’m buying 2' }).click();
+
+  await guest.getByRole('button', { name: 'Your contributions · 1' }).click();
+  await expect(yourContributions.getByText('× 2')).toBeVisible();
+  await expect(yourContributions.getByText('Marked as purchased.', { exact: true })).toBeVisible();
+
+  const otherContext = await browser.newContext({ baseURL });
+  try {
+    const other = await guestFromLink(otherContext, list);
+    await expect(other.getByText('Wanted: 3 more')).toBeVisible();
+  } finally {
+    await otherContext.close();
+  }
+});

@@ -1,6 +1,6 @@
 import createClient from 'openapi-fetch';
 import type {
-  AddItemRequest, AddItemResponse, CreateListRequest, CreateListResponse, EditedResponse, EditItemRequest, EditListDetailsRequest, EnterGuestKeyRequest, EnterGuestKeyResponse,
+  AddItemRequest, AddItemResponse, BuyItemRequest, CreateListRequest, CreateListResponse, EditedResponse, EditItemRequest, EditListDetailsRequest, EnterGuestKeyRequest, EnterGuestKeyResponse,
   GuestKeySuggestionResponse, HoldItemRequest, HoldItemResponse, HoldView, ListViewResponse, ManageViewResponse, MoveItemRequest, OwnerSessionRequest, OwnerSessionResponse, PledgeRequest, PledgeResponse,
 } from '@gubbins/shared-types';
 import type { paths } from './schema.gen';
@@ -113,6 +113,9 @@ export const api = {
 
   holdItem: (slug: string, itemId: string, input: HoldItemRequest): Promise<HoldItemResponse> =>
     http.POST('/api/lists/{slug}/items/{itemId}/hold', { params: { path: { slug, itemId } }, body: input }).then(unwrap),
+
+  buyItem: (slug: string, itemId: string, input: BuyItemRequest): Promise<HoldView> =>
+    http.POST('/api/lists/{slug}/items/{itemId}/buy', { params: { path: { slug, itemId } }, body: input }).then(unwrap),
 
   pledgeContribution: (slug: string, itemId: string, input: PledgeRequest): Promise<PledgeResponse> =>
     http.POST('/api/lists/{slug}/items/{itemId}/contributions', { params: { path: { slug, itemId } }, body: input }).then(unwrap),

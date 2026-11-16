@@ -1,12 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, isNetworkFailure } from '../../api/client';
 import { listViewKey } from './useListView';
-import type { HoldItemRequest, ListViewResponse } from '@gubbins/shared-types';
+import type { BuyItemRequest, ListViewResponse } from '@gubbins/shared-types';
 
-export function useHoldItem(slug: string, itemId: string) {
+/** Holds the item, or with `via: 'buy'` holds and purchases it in one step. */
+export function useHoldItem(slug: string, itemId: string, via: 'hold' | 'buy' = 'hold') {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: HoldItemRequest) => api.holdItem(slug, itemId, input),
+    mutationFn: (input: BuyItemRequest) => (via === 'buy' ? api.buyItem : api.holdItem)(slug, itemId, input),
     // The server confirmed the hold, so "Your contributions" can show it even if the
     // refetch below fails. The item's status is left to the server: with
     // more than one unit, it may still be available.
