@@ -40,7 +40,7 @@ async function projections() {
   const wishlistIds = await db.selectFrom('wishlists').select('id').orderBy('id').execute();
   return {
     holds: await db.selectFrom('holds')
-      .select(['id', 'item_id', 'secret', 'session_hash', 'idempotency_key', 'expires_at', 'extended_at', 'released_at', 'purchased_at', 'units', 'purchased_units'])
+      .select(['id', 'item_id', 'secret', 'session_hash', 'idempotency_key', 'expires_at', 'extended_at', 'released_at', 'purchased_at', 'buy_undone_at', 'units', 'purchased_units'])
       .orderBy('id').execute(),
     contributions: await db.selectFrom('contributions')
       .select(['id', 'item_id', 'amount_minor', 'session_hash', 'idempotency_key', 'pii_ref', 'pledged_at'])
@@ -80,6 +80,7 @@ async function aBusyLedger(): Promise<void> {
   const extendedThenBought = await newList();
   const releasedThenReheld = await newList();
   const lapsedThenBought = await newList();
+  const boughtThenUndone = await newList();
   const stillActive = await newList();
   await newList(); // a list nobody touched: its item_state must fold back to zero
 
@@ -87,6 +88,7 @@ async function aBusyLedger(): Promise<void> {
   const b = await releasedThenReheld.hold(GUEST, 'b');
   const c = await lapsedThenBought.hold(GUEST, 'c');
   await stillActive.hold(GUEST, 'd');
+  const e = await boughtThenUndone.hold(GUEST, 'e');
   await groupGift.pledge(GUEST, 'p');
   await groupGift.pledge(OTHER_GUEST, 'p2');
 
@@ -100,6 +102,10 @@ async function aBusyLedger(): Promise<void> {
 
   clock.advance(2 * DAY);
   await deps.markHoldPurchased.execute({ ...lapsedThenBought.command, holdId: c.holdId, units: 1 }, GUEST);
+
+  await deps.markHoldPurchased.execute({ ...boughtThenUndone.command, holdId: e.holdId, units: 1 }, GUEST);
+  clock.advance(DAY);
+  await deps.undoBuy.execute({ ...boughtThenUndone.command, holdId: e.holdId }, GUEST);
 }
 
 describe('rebuildProjections', () => {
@@ -117,7 +123,7 @@ describe('rebuildProjections', () => {
     await aBusyLedger();
     const incremental = await projections();
     await db.updateTable('item_state').set({ seq: 99 }).execute();
-    await db.updateTable('holds').set({ released_at: null, purchased_at: null, purchased_units: null, extended_at: '2000-01-01T00:00:00.000Z' }).execute();
+    await db.updateTable('holds').set({ released_at: null, purchased_at: null, buy_undone_at: null, purchased_units: null, extended_at: '2000-01-01T00:00:00.000Z' }).execute();
     await db.deleteFrom('contributions').execute();
 
     await rebuildProjections(db);

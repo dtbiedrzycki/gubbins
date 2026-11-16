@@ -28,6 +28,7 @@ const noDependencies: AppDependencies = {
   pledgeContribution: unusedDependency('pledgeContribution'),
   extendHold: unusedDependency('extendHold'),
   releaseHold: unusedDependency('releaseHold'),
+  undoBuy: unusedDependency('undoBuy'),
   markHoldPurchased: unusedDependency('markHoldPurchased'),
   wishlists: unusedDependency('wishlists'),
   clock: unusedDependency('clock'),

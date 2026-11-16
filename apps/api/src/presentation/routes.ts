@@ -390,7 +390,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     }
   });
 
-  const holdCommands: { action: 'extend' | 'release'; operationId: string; command: HoldCommand; done: string; conflict: string }[] = [
+  const holdCommands: { action: 'extend' | 'release' | 'undo-buy'; operationId: string; command: HoldCommand; done: string; conflict: string }[] = [
     {
       action: 'extend', operationId: 'extendHold', command: deps.extendHold,
       done: 'The hold was extended once, by the configured duration, from its current expiry.',
@@ -400,6 +400,11 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
       action: 'release', operationId: 'releaseHold', command: deps.releaseHold,
       done: 'The hold was released; its units are free for others.',
       conflict: 'The hold is not active (hold_not_active).',
+    },
+    {
+      action: 'undo-buy', operationId: 'undoBuy', command: deps.undoBuy,
+      done: 'The buy was undone; its units are free for others.',
+      conflict: 'The hold was never bought (hold_not_active).',
     },
   ];
 

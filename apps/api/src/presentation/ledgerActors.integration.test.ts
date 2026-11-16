@@ -23,6 +23,7 @@ const PERMITTED_ACTORS: Record<LedgerEvent['type'], readonly Actor[]> = {
   HoldExtended: ['guest'],
   HoldReleased: ['guest'],
   ItemPurchased: ['guest'],
+  BuyUndone: ['guest'],
   ContributionPledged: ['guest'],
 };
 
@@ -77,6 +78,7 @@ async function raiseEveryEventType(): Promise<void> {
   const bought = await holdOnNewList();
   expect((await bought.act('extend')).statusCode).toBe(200);
   expect((await bought.act('purchase')).statusCode).toBe(200);
+  expect((await bought.act('undo-buy')).statusCode).toBe(200);
   const dropped = await holdOnNewList();
   expect((await dropped.act('release')).statusCode).toBe(200);
   expect((await pledgeOnNewList()).statusCode).toBe(201);
