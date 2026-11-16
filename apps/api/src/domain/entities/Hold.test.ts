@@ -207,7 +207,7 @@ describe('Hold.undoBuy', () => {
   it('stamps buyUndoneAt and returns BuyUndone', () => {
     const hold = persisted({ purchasedAt: CREATED, purchasedUnits: 1 });
     expect(hold.undoBuy(CREATED)).toEqual({ type: 'BuyUndone', v: 1, holdId: HOLD_ID, occurredAt: CREATED.toISOString() });
-    expect(hold.statusAt(CREATED)).toBe('undone');
+    expect(hold.buyUndoneAt).toEqual(CREATED);
   });
 
   it.each([
