@@ -82,11 +82,12 @@ flight, the fields lock once sent, and a retry reuses the key.
 - **Fields:** "Gifter name(s)" (the hold sheet's field, hints and remembered
   names), then "Message to the owner (optional)" (the purchase sheet's
   field).
-- **Note box:**
-  - **This marks it as purchased straight away.**
-  - Other guests will see it's taken. You can't undo this, so only go ahead
-    if you're sure you'll buy it.
-  - With more than 1 picked, "them" and "they're" replace "it" and "it's".
+- **Note box.** It tells the guest to commit *before* buying, so nobody else
+  buys the gift in the meantime (owner ruling, 2026-11-16):
+  - **Do this before you buy it.**
+  - It's marked as purchased straight away, so no one else buys it while
+    you're getting it. You can't undo this, so only go ahead if you're sure.
+  - With more than 1 picked, "they" and "them" replace "it".
 - **Buttons:** "Yes, I'm buying it" (or "Yes, I'm buying N"), and "Cancel".
   The pending label is "Saving…".
 - **When there are no longer enough units:** the hold sheet's 409
@@ -109,8 +110,9 @@ Rewritten to lead with the new default. Proposed copy *(my call; the owner
 may reword)*:
 
 - Heading: **How claiming a gift works**
-1. **Sure you'll buy it? Tap "I'm buying this".** Other guests see it's
-   taken straight away, and there's nothing to come back for.
+1. **Sure you'll buy it? Tap "I'm buying this" before you buy it.** Other
+   guests see it's taken straight away, so nobody buys it in the meantime,
+   and there's nothing to come back for.
 2. **Not sure yet? Hold it.** It's yours for {duration}, and you can extend
    it once.
 3. **Bought a gift you held? Come back and mark it purchased.** If you
@@ -171,8 +173,9 @@ Item decides, Hold records.
   does (`GetListView` drops the undone status from `myHolds`, and the sheet
   closes if it was the last entry). The outcome message says "{title} is
   available to other guests again." *(my call)*
-- **The buying sheet's note** changes its second line to: "Other guests will
-  see it's taken. If plans change, undo it from Your contributions."
+- **The buying sheet's note** changes its second line to: "It's marked as
+  purchased straight away, so no one else buys it while you're getting it.
+  If plans change, undo it from Your contributions."
 
 ### Rules
 
