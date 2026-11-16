@@ -312,6 +312,15 @@ export class Wishlist {
     return { item, ...item.placeHold(props, tokens, hasher) };
   }
 
+  buyItem(
+    props: { itemId: string; sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string; units: number },
+    tokens: { generateEntityId(): string; generateHoldSecret(): string },
+    hasher: { hash(value: string): string },
+  ): { item: Item; hold: Hold; events: [ItemHeldEvent, ItemPurchasedEvent]; expectedSeq: number } {
+    const item = this.getItem(props.itemId);
+    return { item, ...item.placePurchasedHold(props, tokens, hasher) };
+  }
+
   pledge(
     props: { itemId: string; amountMinor: number; sessionHash: string; idempotencyKey: string; piiRef: string },
     ids: { generateEntityId(): string },

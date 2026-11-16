@@ -235,6 +235,22 @@ export class Item {
     return { hold, event, expectedSeq: this.recordEvent() };
   }
 
+  /**
+   * Holds `units` and buys all of them in one step, for a guest who is
+   * buying now. `placeHold` decides availability; `purchaseHold` then buys
+   * every unit held. Reach it through `Wishlist.buyItem`.
+   */
+  placePurchasedHold(
+    props: { sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string; units: number },
+    tokens: { generateEntityId(): string; generateHoldSecret(): string },
+    hasher: { hash(value: string): string },
+  ): { hold: Hold; events: [ItemHeldEvent, ItemPurchasedEvent]; expectedSeq: number } {
+    const held = this.placeHold(props, tokens, hasher);
+    const purchased = this.purchaseHold(held.hold, held.hold.units);
+    // Both events are appended in one call at the seq before the first, since recordEvent advanced once per event.
+    return { hold: purchased.hold, events: [held.event, purchased.event], expectedSeq: held.expectedSeq };
+  }
+
   /** The sum of its pledges. Derived, never stored. */
   pledgedTotal(): Money {
     return Money.usd(sumMinor(this._contributions));

@@ -302,6 +302,23 @@ describe('Item hold commands', () => {
   });
 });
 
+describe('Item.placePurchasedHold', () => {
+  const props = { sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', durationMs: 3 * DAY, piiRef: '66666666-6666-7666-8666-666666666666', units: 2 };
+  const tokens = { generateEntityId: () => '55555555-5555-7555-8555-555555555555', generateHoldSecret: () => 'hold-secret' };
+  const hasher = { hash: () => 'f'.repeat(64) };
+
+  it('places a hold of 2 and buys both, returning ItemHeld then ItemPurchased to append at the seq it was loaded at', () => {
+    const item = Item.reconstitute({ ...base, quantity: 5, seq: 7 });
+
+    const result = item.placePurchasedHold(props, tokens, hasher);
+
+    expect(result.expectedSeq).toBe(7);
+    expect(result.events.map((e) => e.type)).toEqual(['ItemHeld', 'ItemPurchased']);
+    expect(result.events[1].units).toBe(2);
+    expect(result.hold.purchasedUnits).toBe(2);
+  });
+});
+
 describe('Item.purchaseHold', () => {
   it('purchases an active hold; the unit is gone for good', () => {
     const hold = holdOn();
