@@ -25,7 +25,7 @@
   - Explainer heading `How claiming a gift works` and its three steps as in the spec.
 - Buy route answers 201; errors as the hold route (409 `item_unavailable`, 409 no code, 400, 404).
 - Unit wording is "wanted", never "left".
-- Each PR is verified with skill verifying-gubbins-locally (`scripts/verify.sh`, `--e2e` for any PR into main).
+- Each PR is verified with skill verifying-gubbins-locally: `scripts/verify.sh --e2e` for a PR that targets main (the pre-push gate requires it), plain `scripts/verify.sh` for a stacked one. A stacked PR runs `--e2e` once it is retargeted to main to merge.
 
 ## Review Focus
 
@@ -52,7 +52,7 @@
 - Produces:
   - `Item.placePurchasedHold(props: { sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string; units: number }, tokens: { generateEntityId(): string; generateHoldSecret(): string }, hasher: { hash(value: string): string }): { hold: Hold; events: [ItemHeldEvent, ItemPurchasedEvent]; expectedSeq: number }`
   - `Wishlist.buyItem(props: { itemId: string } & <the same props>, tokens, hasher): { item: Item; hold: Hold; events: [ItemHeldEvent, ItemPurchasedEvent]; expectedSeq: number }`
-  - `interface BuyItemInput { wishlistId: string; itemId: string; idempotencyKey: string; name: string; units: number; message?: string }`
+  - `interface BuyItemInput extends HoldItemInput { message?: string }`
   - `class BuyItem { constructor(unitOfWork: UnitOfWork, tokenGenerator: TokenGenerator, clock: Clock, hasher: Hasher, policy: HoldPolicy); execute(input: BuyItemInput, access: AccessContext): Promise<HoldView> }`
 
 - [ ] **Step 1: Write the failing domain test** in `Item.test.ts`, beside the `placeHold` tests:
@@ -75,31 +75,31 @@
 - [ ] **Step 6: Run them and see them fail:** `scripts/verify.sh --quick apps/api src/application/use-cases/BuyItem.test.ts` fails because the module is missing.
 - [ ] **Step 7: Implement `BuyItem`.** Follow `HoldItem.execute` step for step: the guest guard, `findById` at `clock.now()`, and replay via `findHoldForReplay` before anything else. Then `GuestDetails.from({ name, message })` before any write, the `piiRef` minted by the use case, and `wishlist.buyItem(...)`. Then `append(item.id.value, expectedSeq, events, 'guest')`, `guestPii.insert`, and `wishlists.save`. Keep `HoldItem`'s why-comments wherever the same reason applies. Sharing code with `HoldItem` is optional: duplicate the guard and replay steps rather than add a helper with one caller each.
 - [ ] **Step 8: Run them and see them pass.**
-- [ ] **Step 9: Verify and commit:** `scripts/verify.sh` on a clean tree, then commit "feat(api): buy a gift in one step, holding and purchasing it together".
+- [ ] **Step 9: Verify and commit:** announce the e2e run to peer sessions, then `scripts/verify.sh --e2e` on a clean tree (this PR targets main), then commit "feat(api): buy a gift in one step, holding and purchasing it together".
 
 ### Task 2: The buy route and its contract
 
 **PR:** builds on Task 1. 9 files.
 
 **Files:**
-- Modify: `packages/shared-types/src/holdItem.ts`: add `buyItemRequestSchema`, `BuyItemRequest`, `buyItemResponseSchema` (exported through the existing barrel)
+- Modify: `packages/shared-types/src/holdItem.ts`: add `buyItemRequestSchema`, `BuyItemRequest` (exported through the existing barrel, `index.ts:17`)
 - Modify: `apps/api/src/presentation/routes.ts`: add the route after the hold route (~line 344)
 - Modify: `apps/api/src/presentation/compositionRoot.ts`: `buyItem: BuyItem` in the deps type, built with the same arguments as `holdItem`
 - Modify: `apps/api/src/presentation/openApiDocument.ts`: `buyItem: unusedDependency('buyItem')`
-- Modify: `apps/api/src/presentation/openApiDocument.test.ts`: `buyItem: ['201', '400', '404', '409']` in the statuses table
+- Modify: `apps/api/src/presentation/openApiDocument.test.ts`: `buyItem: ['201', '400', '404', '409']` in the statuses table; response descriptions 54 → 58; error schemas 37 → 40 (both the `toHaveLength` and the `Array(…)`)
+- Modify: `apps/api/src/presentation/openApiDocument.noDatabase.test.ts`: paths 15 → 16
 - Test: `apps/api/src/presentation/routes.integration.test.ts`
 - Generated: `apps/api/openapi.json`, `apps/web/src/api/schema.gen.ts` (`npm run gen:api`)
-- Modify: `packages/shared-types/src/index.ts` only if the barrel doesn't already re-export `holdItem.ts` (it does today, so expect 8 files)
 
 **Interfaces:**
 - Consumes: `BuyItem.execute(input: BuyItemInput, access)` from Task 1.
 - Produces:
   - `buyItemRequestSchema = holdItemRequestSchema.extend({ message: z.string().optional() })`. It extends the hold schema, so it needs no schema rows of its own; text isn't limited at the schema, per AGENTS.md.
-  - `buyItemResponseSchema = holdViewSchema`.
+  - The 201 response is `holdViewSchema` itself, as the purchase route's 200 is (`json('…', holdViewSchema)`); no alias.
   - Route `POST /api/lists/:slug/items/:itemId/buy`, `operationId: 'buyItem'`.
 
 - [ ] **Step 1: Write the failing route tests** in `routes.integration.test.ts`, beside the hold route's:
-  - `it('buys 2 of the item for the session and answers 201 with the purchased hold')`: 201, body `status: 'purchased'` and `purchasedUnits: 2`. A follow-up GET of the list shows the item's `availableUnits` dropped by 2.
+  - `it('buys 2 of the item for the session and answers 201 with the purchased hold')`: on `createList(app, 3)` (as "passes the name and units from the body to the hold" sets up its list), post `units: 2`; 201, body `status: 'purchased'` and `purchasedUnits: 2`, and a follow-up GET of the list shows the item's `availableUnits` as 1.
   - `it("passes the name and message from the buy body to the guest details")`: post `{ idempotencyKey, name: 'Ada', units: 1, message: 'See you Saturday' }` and expect `guest_pii` to be `[{ name: 'Ada', message: 'See you Saturday' }]`, as the purchase route's message test does.
   - `it('returns 400 for a buy request without a name')`: the request lacks only `name`.
   - `it("answers the generic 404 when asked to buy another list's item")`, mirroring the hold test at ~line 428.
@@ -112,9 +112,9 @@
   - 409: the hold route's text
 
   The OpenAPI descriptions are user-invisible, so they may say "session" and "idempotency key".
-- [ ] **Step 4: Regenerate:** `npm run gen:api`, then add the statuses row to `openApiDocument.test.ts`.
-- [ ] **Step 5: Run and see them pass**, including `openApiDocument.test.ts` ("matches the committed apps/api/openapi.json").
-- [ ] **Step 6: Verify and commit:** `scripts/verify.sh`, then commit "feat(api): POST a purchase without holding first".
+- [ ] **Step 4: Regenerate:** `npm run gen:api`. In `openApiDocument.test.ts`, add the statuses row and raise the response-description count 54 → 58 and the error-schema count 37 → 40 (the route adds four responses, three of them 4xx). In `openApiDocument.noDatabase.test.ts`, raise the path count 15 → 16.
+- [ ] **Step 5: Run and see them pass**, including `openApiDocument.test.ts` ("matches the committed apps/api/openapi.json") and `openApiDocument.noDatabase.test.ts`.
+- [ ] **Step 6: Verify and commit:** `scripts/verify.sh` (stacked, so not `--e2e`), then commit "feat(api): POST a purchase without holding first".
 
 ### Task 3: "I'm buying this" on the gift card
 
@@ -138,7 +138,7 @@
   - `api.buyItem(slug: string, itemId: string, input: BuyItemRequest): Promise<HoldView>`
   - `useHoldItem(slug: string, itemId: string, via: 'hold' | 'buy' = 'hold')`: the mutation input is `BuyItemRequest` (a superset of `HoldItemRequest`), and `mutationFn` picks `api.holdItem` or `api.buyItem`. The cache update and refetch are unchanged.
   - `HoldDialogProps.mode?: 'hold' | 'buy'` (default `'hold'`, so existing callers and tests are unchanged), and `onConfirm(credential, details: { name: string; units: number; message?: string })`, where `message` is set only in `buy` mode.
-  - `purchasedMessage(itemTitle: string, heldUnits: number, boughtUnits: number | null): string`, which returns the success copy above. `HoldActions`' inline `purchasedMessage` moves here unchanged.
+  - `purchasedMessage(itemTitle: string, heldUnits: number, boughtUnits: number | null): string`, which returns the success copy above. `HoldActions`' inline closure (`HoldActions.tsx:68`, over `itemTitle` and `hold.units`) moves here with those two as parameters; its three calls (lines 74, 84, 114) pass `itemTitle, hold.units, …` and the purchased units they pass today. The copy is unchanged, and YourContributions' existing purchase tests keep pinning it.
 
 - [ ] **Step 1: Write the failing tests:**
   - `client.test.ts`: `it('buyItem posts the details and message to the buy route')`. Copy the `markHoldPurchased` test at ~line 94, not the path-only hold test: capture the path and `request.text()`, then assert the path is `/api/lists/abc123/items/item-1/buy` and the body is `'{"idempotencyKey":"k","name":"Ada","units":1,"message":"Congrats"}'`.
@@ -151,20 +151,22 @@
     - `it('sends the trimmed message with the details in buy mode')`: type `'  See you Saturday  '` and expect `onConfirm` with `{ name: 'Amara', units: 1, message: 'See you Saturday' }`.
     - `it('locks the message with the name once sent, so a retry sends what was sent')`: type a message, confirm, type more, confirm again; the second `onConfirm` carries the first message.
     - `it('limits the message to 300 characters')`: `toHaveAttribute('maxlength', '300')`, as `ContributeDialog`'s test does.
+    - `it('reads "Saving…" on the confirm button while a purchase is in flight')`: `mode: 'buy'`, `isPending: true`; the button named `Saving…` is disabled. (Hold mode's `Holding…` is pinned by "disables Cancel and confirm while the hold is in flight".)
     - `it('tells the guest a failed purchase was on our end, led by "Couldn’t buy Stroller."')`: `error: new ApiError(500, 'Internal server error')`, alert `Couldn’t buy Stroller. Something went wrong on our end.`
 
-    The name lock, the 409 retry and the stepper are shared with hold mode and already tested; don't repeat them.
+    The name lock, the disabling while pending, the 409 retry and the stepper are shared with hold mode and already tested; don't repeat them.
   - `ItemView.test.tsx`:
     - Extend the two existing absence tests rather than adding one: rename them `'shows a %s item as such, with no Hold or "I’m buying this" button'` and `'gives a group gift its price, and no units, Hold or "I’m buying this" button'`, and assert the new button is absent too.
     - `it('puts "I’m buying this" before "Hold this item"')`: the DOM order of the two buttons.
+    - Retarget the existing `it('keeps the Hold button last in its stack, so space-y adds no margin below it')` (~line 175): rename it `it('keeps the button row last in its stack, so space-y adds no margin below it')` and assert that the Hold button's parent (the row) is the `lastElementChild` of the row's parent.
     - `it('names the item in the "I’m buying this" button')`: `getByRole('button', { name: 'I’m buying this: Stroller' })`.
-    - `it('announces "Stroller: 2 marked as purchased. Thank you!" after buying 2 of 5')`: `renderItem({ availableUnits: 5 })`, tap "One more", confirm "Yes, I’m buying 2", with msw answering `/buy` with 201.
+    - `it('announces "Stroller: 2 marked as purchased. Thank you!" after buying 2 of 5')`: `renderItem({ availableUnits: 5 })`, tap "One more", confirm "Yes, I’m buying 2", with msw answering `/buy` with 201 and `aHoldView({ status: 'purchased', units: 2, purchasedUnits: 2 })` (the file's existing builder, `apps/web/src/test/holdView.ts`).
     - `it("moves focus to the gift's heading once buying succeeds")`.
     - `it('returns focus to "I’m buying this" when the buying sheet is cancelled')`.
     - `it('shows a refused purchase in the buying sheet and keeps it open')`: msw answers `/buy` with 503; the alert isn't empty and the dialog stays open. Don't assert the copy, which is `HoldDialog`'s.
   - `e2e/guest-holds-several.spec.ts`: `test('a guest buys 2 of 5 with "I\u2019m buying this", and another guest sees "Wanted: 3 more"')`. It reuses `listOfFiveOnesies` and `guestFromLink`. Steps:
-    1. Click `I'm buying this`, run `expectNoSeriousAxeViolations` with the sheet open, then click `One more`, fill `Gifter name(s)`, and click `Yes, I'm buying 2`.
-    2. "Your contributions" shows `× 2` and `Marked as purchased.`. This is the sync point, and the one check that tells a purchase from a hold of 2.
+    1. Click `'I’m buying this'` (curly apostrophe, as the UI renders it; a straight `'` doesn't match), run `expectNoSeriousAxeViolations` with the sheet open, then click `One more`, fill `Gifter name(s)`, and click `'Yes, I’m buying 2'`.
+    2. Click `Your contributions · 1`, then expect the sheet to show `× 2` and `Marked as purchased.` (exact), as the existing journey does. This is the sync point, and the one check that tells a purchase from a hold of 2.
     3. A second browser context sees `Wanted: 3 more`.
 
     The success wording is pinned by the `ItemView` test, so the journey doesn't assert it.
@@ -174,9 +176,11 @@
   - The note box uses the `border-wax` border, as in the mockup. Leave out hold mode's subtitle and boxed "come back" note.
   - The message is trimmed before `onConfirm`, a blank one is left out (as `ContributeDialog` does), and it locks with the name once sent.
   - The error fallback is `Couldn’t buy ${itemTitle}.`
-  - **`ItemView`:** a second `useHoldItem(slug, item.id, 'buy')`, and a `dialogMode` state set by whichever button opened the sheet. In buy mode, pass the buy mutation's `isPending`, `error` and `reset` to the sheet, not the hold mutation's. On a buy success, set `thanks` to `purchasedMessage(item.title, units, units)`, with the same focus move as after a hold. Cancel returns focus to the button that opened the sheet.
+  - **`HoldDialog`'s pending label** is `Saving…` in buy mode, `Holding…` in hold mode.
+  - **`ItemView`'s buttons:** put both in one `flex flex-wrap gap-2` row, as the mockup's `.row` does, so they wrap at narrow widths: "I’m buying this" `btn-primary` first, then "Hold this item" changed from `btn-primary` to `btn-secondary`.
+  - **`ItemView`'s sheet:** a second `useHoldItem(slug, item.id, 'buy')`, and a `dialogMode` state set by whichever button opened the sheet. Opening either sheet clears `thanks`, as Chip in does, so a repeat purchase is announced again. In buy mode, pass the buy mutation's `isPending`, `error` and `reset` to the sheet, not the hold mutation's. On a buy success, set `thanks` from the server's view, `onSuccess: (view) => setThanks(purchasedMessage(item.title, view.units, view.purchasedUnits))`, as `HoldActions` does, with the same focus move as after a hold. Cancel returns focus to the button that opened the sheet.
 - [ ] **Step 4: Run them and see them pass.**
-- [ ] **Step 5: Verify and commit:** announce the e2e run to peer sessions, then run `scripts/verify.sh --e2e` and commit "feat(web): lead each gift with I'm buying this".
+- [ ] **Step 5: Verify and commit:** announce the e2e run to peer sessions, then run `scripts/verify.sh --e2e` (this PR adds an e2e journey, and only that level runs it) and commit "feat(web): lead each gift with I'm buying this".
 
 ### Task 4: The explainer and the privacy page
 
@@ -194,7 +198,7 @@
   - `HowHoldingWorks.test.tsx`: `it('lists buying first, holding for 3 days second, and marking a held gift purchased third')`. Assert the three `listitem`s' text in order, including `It’s yours for 3 days`.
 - [ ] **Step 2: Run it and see it fail:** `scripts/verify.sh --quick apps/web src/features/holds/HowHoldingWorks.test.tsx`.
 - [ ] **Step 3: Implement** the copy changes.
-- [ ] **Step 4: Verify and commit:** `scripts/verify.sh --e2e` (announce it to peer sessions first; this PR's base chain targets main), then commit "feat(web): explain claiming a gift, leading with I'm buying this".
+- [ ] **Step 4: Verify and commit:** `scripts/verify.sh` (stacked, so not `--e2e`; no e2e test reads the explainer, and the stack's `--e2e` runs when it is retargeted to main to merge), then commit "feat(web): explain claiming a gift, leading with I'm buying this".
 
 ### Task 5: Docs for the shipped behaviour
 
