@@ -173,7 +173,7 @@ describe('ItemView', () => {
     expect(screen.getByRole('progressbar')).toHaveClass('sr-only');
   });
 
-  it('keeps the button row last in its stack, so space-y adds no margin below it', () => {
+  it('puts the button row last in its stack, so space-y adds no margin below it', () => {
     renderItem();
     const row = screen.getByRole('button', { name: /^Hold this item/ }).parentElement!;
     expect(row.parentElement?.lastElementChild).toBe(row);
@@ -361,6 +361,20 @@ describe('ItemView', () => {
       await user.click(screen.getByRole('button', { name: 'Yes, I\u2019m buying 2' }));
 
       await vi.waitFor(() => expect(status).toHaveTextContent('Stroller: 2 marked as purchased. Thank you!'));
+    });
+
+    it('empties the status when "I\u2019m buying this" is opened again after buying 1 of 5', async () => {
+      server.use(http.post('/api/lists/abc123/items/item-1/buy', () => HttpResponse.json(aHoldView({ status: 'purchased', units: 1, purchasedUnits: 1 }), { status: 201 })));
+      const user = userEvent.setup();
+      renderItem({ availableUnits: 5 });
+      const status = screen.getByRole('status');
+      await openAndName(user);
+      await user.click(screen.getByRole('button', { name: 'Yes, I\u2019m buying it' }));
+      await vi.waitFor(() => expect(status).toHaveTextContent('Stroller is marked as purchased. Thank you!'));
+
+      await user.click(screen.getByRole('button', { name: /^I\u2019m buying this/ }));
+
+      expect(status).toBeEmptyDOMElement();
     });
 
     it('returns focus to "I\u2019m buying this" when the buying sheet is cancelled', async () => {

@@ -36,7 +36,7 @@ const input = (overrides: { message?: string } = {}) => ({
 });
 
 describe('BuyItem', () => {
-  it('appends the held and purchased events in one append as the guest, and stores the name and message in one details row', async () => {
+  it('buys 2 units in one guest append, with the details row linked by piiRef', async () => {
     const { useCase, calls, store, wishlists } = await makeUseCase();
 
     const view = await useCase.execute(input(), GUEST);
@@ -72,5 +72,10 @@ describe('BuyItem', () => {
   it('throws ItemNotFoundError without a guest session', async () => {
     const { useCase } = await makeUseCase();
     await expect(useCase.execute(input(), { guestSession: null })).rejects.toThrow(ItemNotFoundError);
+  });
+
+  it('throws ItemNotFoundError for a wishlist that does not exist', async () => {
+    const { useCase } = await makeUseCase();
+    await expect(useCase.execute({ ...input(), wishlistId: 'no-such-wishlist' }, GUEST)).rejects.toThrow(ItemNotFoundError);
   });
 });

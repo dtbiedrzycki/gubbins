@@ -17,7 +17,7 @@ export interface HoldDialogProps {
   /** Units free right now; the count is capped here, and asked for only when more than one is free. */
   availableUnits: number;
   /** `buy` holds and purchases in one step, and takes a message to the owner. */
-  mode?: 'hold' | 'buy';
+  mode: 'hold' | 'buy';
   isPending: boolean;
   error: Error | null;
   /** `message` is set only in buy mode, and only when one was typed. */
@@ -34,7 +34,7 @@ export interface HoldDialogProps {
  * dismissed while the hold is in flight, so the outcome lands where the
  * guest is looking.
  */
-export function HoldDialog({ itemTitle, holdDurationDays, availableUnits, mode = 'hold', isPending, error, onConfirm, onClose }: HoldDialogProps) {
+export function HoldDialog({ itemTitle, holdDurationDays, availableUnits, mode, isPending, error, onConfirm, onClose }: HoldDialogProps) {
   const credential = useHoldCredential();
   const [name, setName] = useState(readGifterNames);
   const [message, setMessage] = useState('');

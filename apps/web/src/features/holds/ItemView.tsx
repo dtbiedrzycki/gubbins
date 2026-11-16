@@ -75,9 +75,8 @@ export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chi
   function closeDialog() {
     closedBy.current = 'cancel';
     setDialogOpen(false);
-    // The next opening of either sheet starts clean: no stale error from this one.
-    hold.reset();
-    buy.reset();
+    // The next opening starts clean: no stale error from this one.
+    sheet.reset();
   }
 
   const group = item.type === 'group' && item.priceMinor !== null
