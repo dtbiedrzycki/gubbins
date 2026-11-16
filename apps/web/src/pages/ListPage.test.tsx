@@ -187,7 +187,7 @@ describe('ListPage', () => {
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(false))));
     renderListPage();
 
-    const box = await screen.findByRole('region', { name: 'How holding a gift works' });
+    const box = await screen.findByRole('region', { name: 'How claiming a gift works' });
     expect(within(box).getByText('Hold it before you buy it.')).toBeInTheDocument();
     expect(within(box).getByText('Buy it within 3 days.')).toBeInTheDocument();
     expect(within(box).getByText('Come back and mark it purchased.')).toBeInTheDocument();
@@ -202,7 +202,7 @@ describe('ListPage', () => {
     renderListPage();
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Baby Shower' })).toBeInTheDocument();
-    expect(screen.queryByText('How holding a gift works')).not.toBeInTheDocument();
+    expect(screen.queryByText('How claiming a gift works')).not.toBeInTheDocument();
   });
 
   it('moves focus to the gift filter when the guest dismisses the holding explainer', async () => {
@@ -216,7 +216,7 @@ describe('ListPage', () => {
   });
 
   const groupGift = aListItem({ id: 'item-g', title: 'Honeymoon fund', type: 'group', availableUnits: 0, priceMinor: 50000, pledgedMinor: 0 });
-  const holdingBox = () => screen.getByRole('region', { name: 'How holding a gift works' });
+  const holdingBox = () => screen.getByRole('region', { name: 'How claiming a gift works' });
   const groupBox = () => screen.getByRole('region', { name: 'How group gifts work' });
 
   it('explains group gifts when the list has one still taking pledges', async () => {
