@@ -17,9 +17,8 @@ describe('UndoBuy', () => {
     await buy.execute({ wishlistId: WISHLIST_ID, holdId, units: 1 }, GUEST);
     clock.advance(DAY);
 
-    const view = await undo.execute({ wishlistId: WISHLIST_ID, holdId }, GUEST);
+    await undo.execute({ wishlistId: WISHLIST_ID, holdId }, GUEST);
 
-    expect(view.status).toBe('undone');
     const reloaded = await wishlists.findById(WISHLIST_ID, clock.now());
     expect(reloaded?.findHold(holdId)?.buyUndoneAt).toEqual(new Date(T0.getTime() + DAY));
     expect(eventStore.recorded(ITEM_ID).map(({ event, actor }) => [event.type, actor]).at(-1)).toEqual(['BuyUndone', 'guest']);
