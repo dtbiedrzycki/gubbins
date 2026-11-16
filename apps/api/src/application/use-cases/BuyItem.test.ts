@@ -73,4 +73,9 @@ describe('BuyItem', () => {
     const { useCase } = await makeUseCase();
     await expect(useCase.execute(input(), { guestSession: null })).rejects.toThrow(ItemNotFoundError);
   });
+
+  it('throws ItemNotFoundError for a wishlist that does not exist', async () => {
+    const { useCase } = await makeUseCase();
+    await expect(useCase.execute({ ...input(), wishlistId: 'no-such-wishlist' }, GUEST)).rejects.toThrow(ItemNotFoundError);
+  });
 });

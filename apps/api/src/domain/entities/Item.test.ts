@@ -313,7 +313,7 @@ describe('Item.placePurchasedHold', () => {
     expect(item.placePurchasedHold(props, tokens, hasher).expectedSeq).toBe(7);
   });
 
-  it('buys all 2 units it holds, returning ItemHeld then ItemPurchased', () => {
+  it('buys all 2 units it holds, returning ItemHeld then ItemPurchased, and the returned hold shows 2 purchased', () => {
     const item = Item.reconstitute({ ...base, quantity: 5, seq: 7 });
 
     const result = item.placePurchasedHold(props, tokens, hasher);
