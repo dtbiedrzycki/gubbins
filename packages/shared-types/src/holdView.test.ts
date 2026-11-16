@@ -5,7 +5,7 @@ import { listViewResponseSchema } from './listView.js';
 const view = {
   holdId: 'h', itemId: 'i', status: 'active', expiresAt: '2026-01-04T00:00:00.000Z', extendedAt: null,
   units: 1, purchasedUnits: null, purchasableUnits: 1,
-  actions: { extend: true, release: true, purchase: true },
+  actions: { extend: true, release: true, purchase: true, undoBuy: false },
 };
 
 describe('markHoldPurchasedRequestSchema', () => {
@@ -15,7 +15,7 @@ describe('markHoldPurchasedRequestSchema', () => {
 });
 
 describe('holdViewSchema', () => {
-  it.each(['active', 'expired', 'released', 'purchased'])('accepts a %s hold', (status) => {
+  it.each(['active', 'expired', 'released', 'purchased', 'undone'])('accepts a %s hold', (status) => {
     expect(holdViewSchema.safeParse({ ...view, status }).success).toBe(true);
   });
 

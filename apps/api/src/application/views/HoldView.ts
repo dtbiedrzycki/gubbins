@@ -17,9 +17,9 @@ export interface HoldView {
   /**
    * What the guest may do next, decided by the domain so the UI never
    * re-derives a rule: extend once while active, release while active,
-   * purchase while active, or while expired with a unit still free.
+   * purchase while active, or while expired with a unit still free; undo a buy while bought.
    */
-  actions: { extend: boolean; release: boolean; purchase: boolean };
+  actions: { extend: boolean; release: boolean; purchase: boolean; undoBuy: boolean };
 }
 
 /** `hold` as of the instant `wishlist` was loaded at; the wishlist answers every rule. */
@@ -37,6 +37,7 @@ export function toHoldView(wishlist: Wishlist, hold: Hold): HoldView {
       extend: wishlist.canExtendHold(hold),
       release: wishlist.canReleaseHold(hold),
       purchase: wishlist.canPurchaseHold(hold),
+      undoBuy: wishlist.canUndoBuy(hold),
     },
   };
 }

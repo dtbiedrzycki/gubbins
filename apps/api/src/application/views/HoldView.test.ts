@@ -34,9 +34,10 @@ describe('toHoldView', () => {
       holdId: hold.id.value, itemId: ITEM_ID, status: 'active',
       expiresAt: at(3 * DAY).toISOString(), extendedAt: at(DAY).toISOString(),
       units: 2, purchasedUnits: null, purchasableUnits: 2,
-      actions: { extend: false, release: true, purchase: true },
+      actions: { extend: false, release: true, purchase: true, undoBuy: false },
     });
     const bought = holdOn({ units: 2, purchasedAt: at(DAY), purchasedUnits: 1 });
     expect(toHoldView(wishlistAt(at(DAY), [bought]), bought).purchasedUnits).toBe(1);
+    expect(toHoldView(wishlistAt(at(DAY), [bought]), bought).actions.undoBuy).toBe(true);
   });
 });

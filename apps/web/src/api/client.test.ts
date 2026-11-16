@@ -65,7 +65,7 @@ describe('path parameters', () => {
 describe('hold actions', () => {
   const view = aHoldView({
     expiresAt: '2026-01-07T00:00:00.000Z', extendedAt: '2026-01-02T00:00:00.000Z',
-    actions: { extend: false, release: true, purchase: true },
+    actions: { extend: false, release: true, purchase: true, undoBuy: false },
   });
 
   it.each([
