@@ -189,12 +189,16 @@ rename.
 - **A purchased card gets "I didn't buy it"** (secondary style). It asks
   first, as "Release hold" does: "Undo buying {title}? Other guests will be
   able to buy it." with "Yes, undo it" and "Keep it" (owner, 2026-11-16).
-  With more than 1 unit bought: "…buy them."
+  With more than 1 unit bought (`purchasedUnits`, not `units`): "…buy
+  them." If the undo fails: "Couldn't undo buying {title}." *(my call)*
+  The web names the action `undoBuy` (`HoldAction`, `api.undoBuy`).
 - **After an undo** the card leaves "Your contributions", as a released hold
   does (`GetListView` drops the `undone` status from `myHolds`, and the sheet
   closes if it was the last entry). The outcome message says "{title} is
   available to other guests again." *(my call)* Focus moves to the sheet's
-  heading, as after a release, since the card is gone.
+  heading, as after a release, since the card is gone. Like a release's
+  message, it clears when a new hold appears, which would contradict it
+  *(my call)*.
 - **The status line** (`statusLine` in `YourContributions.tsx`) switches over
   every status, so it gains an `undone` case, "Undone." *(my call)*,
   though the list view never sends an undone hold.
@@ -254,23 +258,40 @@ rename.
   the new `actions.undoBuy` flag.
 - **Migration `0005`** adds `holds.buy_undone_at` (nullable text) with a
   structural CHECK: `buy_undone_at` is null unless `purchased_at` is set
-  (ADR-0083). Shipped migrations are never edited (ADR-0085). The hold
-  repository and its in-memory fake read and write it, and
+  (ADR-0083). It is a column CHECK in raw SQL, since SQLite can't add a
+  table constraint to an existing table. Shipped migrations are never
+  edited (ADR-0085). `HoldsTable` in `schema.ts` gains the column.
+- **Saving an undone hold.** Commands save through `wishlists.save`, which
+  rewrites a hold only when a column in `lifecycleColumns`
+  (`HoldRepositoryKysely.ts`) differs from the stored row it selects
+  (`WishlistRepositoryKysely.ts`). `buy_undone_at` joins both, the hold
+  repository reads it, and the in-memory fake copies it.
   `rebuildProjections` folds the event into it.
+- **`Hold.reconstitute` takes `buyUndoneAt` as optional,** defaulting to
+  null, as it takes `piiRef`: only an undone hold has one, and the
+  adapters always pass it *(my call; making it required touches every
+  hold fixture)*.
 - **Use case `UndoBuy`,** beside `ReleaseHold`, through the shared hold
-  command body (`runHoldCommand`) plus the already-undone branch above.
-- **Route:** `POST /api/lists/:slug/holds/:holdId/undo-buy`, a row in the
-  existing table of body-less hold commands (`holdCommands` in
-  `routes.ts`). Response: 200 with the `HoldView`. Errors: 404 (generic)
-  for an unknown hold or another session's, 409 `hold_not_active` for a
-  hold that isn't purchased, as the existing hold commands answer.
+  command body (`runHoldCommand`). That body gains one optional check,
+  `settled(wishlist, hold): boolean`, run after the permission check: when
+  it is true, it answers the hold's view with no domain call, no append
+  and no save. `UndoBuy` passes "the hold is already undone"; the other
+  commands pass nothing. The `HoldCommand` doc comment names the undo too.
+- **Route:** `POST /api/lists/:slug/holds/:holdId/undo-buy`, operationId
+  `undoBuy`, a row in the existing table of body-less hold commands
+  (`holdCommands` in `routes.ts`). Response: 200 with the `HoldView`.
+  Errors: 404 (generic) for an unknown hold or another session's, 409
+  `hold_not_active` for a hold that was never bought (active, expired or
+  released), as the existing hold commands answer. The OpenAPI document
+  and the web's generated `schema.gen.ts` are regenerated.
 - **`HoldView` and the shared status enum** gain `undone` and
   `actions.undoBuy`.
 - **Docs in the same release:** `docs/spec/holds.md` ("Purchase is terminal;
   only the owner can undo it"), `docs/spec/domain-model.md` ("Purchase
   single only — terminal"), `docs/spec/guest-ux.md`'s buy flow ("it can't
   be undone") and the comment on `ItemPurchasedEvent` change to say the
-  guest can undo it.
+  guest can undo it. `docs/spec/data-and-persistence.md`'s list of event
+  types names `BuyUndone` in place of `PurchaseVoided`.
 
 ## Concurrency
 
@@ -306,8 +327,9 @@ No new kinds of input; each field keeps the rules it already has *(my call)*.
   `docs/spec/holds.md`'s opening rules, which still describe holding as the
   guest's way in, lead with "I'm buying this".
 - In release 2, as above: the ADR-0075 amendment, `docs/spec/holds.md`'s
-  terminal-purchase rule, `docs/spec/domain-model.md`'s purchase line and
-  `docs/spec/guest-ux.md`'s buy flow.
+  terminal-purchase rule, `docs/spec/domain-model.md`'s purchase line,
+  `docs/spec/guest-ux.md`'s buy flow and
+  `docs/spec/data-and-persistence.md`'s event list.
 
 ## Tests (at the owning layer)
 
@@ -332,6 +354,12 @@ protects.
     beside the `canExtendHold`/`canReleaseHold` tests.
   - `Item`: `purchaseHold` refuses an undone hold with `HoldNotActiveError`
     (its status list).
+  - `Wishlist`: `undoBuy` has the item decide and returns that item, and
+    it and `canUndoBuy` join the other-list refusal and hold-question
+    tests (`Wishlist.undoBuy`'s delegation and `lookup`).
+  - `Wishlist`: `findHoldForReplay` returns an undone hold for its key
+    (its no-status-filter rule), so a buy replayed after an undo answers
+    the undone hold and never buys again.
 - **Application, release 1:**
   - Buying appends `ItemHeld` and `ItemPurchased` in one append at one
     expected sequence number, as the guest, and stores the name and message
@@ -342,8 +370,6 @@ protects.
     `buyUndoneAt` (`UndoBuy`'s append).
   - A second undo answers the current view and appends nothing (`UndoBuy`'s
     already-undone branch).
-  - Replaying the buy key after an undo returns the undone hold and appends
-    nothing (the replay step).
   - `GetListView` leaves undone holds out of `myHolds` (its filter).
 - **Request schema:** if the buy schema extends `holdItemRequestSchema`,
   it needs no new rows (`message` is optional with no limit); otherwise one
@@ -359,9 +385,11 @@ protects.
     `ledgerActors.integration.test.ts`. In the IDOR table of holds closed
     by their owner, the undo joins both the actions and the closing
     actions, which pins "another session undoes a hold its owner undid →
-    the generic 404".
-- **Repository contract and rebuild** (release 2): `buy_undone_at`
-  round-trips, and a rebuild re-folds it from `BuyUndone`.
+    the generic 404". Its closing step is a purchase, then the undo.
+- **Repository contract and rebuild** (release 2): an undone hold saved
+  through `wishlists.save` reloads as undone (`wishlistRepository.contract.ts`,
+  run by the real adapter and the fake), and a rebuild re-folds
+  `buy_undone_at` from `BuyUndone`.
 - **Schema** (release 2): the database refuses `buy_undone_at` without
   `purchased_at` (the migration's CHECK).
 - **Web, release 1:**
@@ -377,6 +405,8 @@ protects.
     already pinned there.
 - **Web, release 2:**
   - "I didn't buy it" asks first.
+  - With 2 bought, the question ends "Other guests will be able to buy
+    them." (the question's unit branch).
   - After the undo, the outcome message says "{title} is available to other
     guests again."
   - After the undo, focus moves as after a release.
@@ -393,7 +423,9 @@ protects.
 - The PR split within the 10-file cap. A natural order:
   1. Release 1: domain and use case; route and contract; the web card and
      sheet; the explainer and e2e.
-  2. Release 2: domain (`buyUndoneAt`, the undo command and its event type);
-     the event's `LedgerEvent` union entry with the migration and
-     projection fold, since `rebuildProjections` switches exhaustively over
-     the union; contract; route; web; docs.
+  2. Release 2: domain (`buyUndoneAt`, the undo command and its event
+     type); storage (the migration and saving); the `HoldView` contract;
+     the event's `LedgerEvent` union entry with the route, since
+     `rebuildProjections` and the ledger actor matrix are keyed by the
+     union and the matrix raises every type over HTTP; the use case's
+     branches; web; docs.
