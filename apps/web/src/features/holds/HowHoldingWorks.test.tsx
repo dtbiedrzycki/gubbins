@@ -37,6 +37,11 @@ describe('HowHoldingWorks', () => {
     expect(card()).toBeInTheDocument();
   });
 
+  it('says "1 day", not "1 days"', () => {
+    render(<HowHoldingWorks holdDurationDays={1} />);
+    expect(screen.getByText(/It\u2019s yours for 1 day,/)).toBeInTheDocument();
+  });
+
   it('lists buying first, holding for 3 days second, and marking a held gift purchased third', () => {
     render(<HowHoldingWorks holdDurationDays={3} />);
     const items = screen.getAllByRole('listitem').map((li) => li.textContent);
