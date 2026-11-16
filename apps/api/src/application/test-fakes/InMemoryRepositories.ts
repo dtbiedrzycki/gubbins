@@ -44,6 +44,7 @@ function copyHold(hold: Hold): Hold {
     id: hold.id.value, itemId: hold.itemId.value, secret: hold.secret.value, sessionHash: hold.sessionHash.value,
     idempotencyKey: hold.idempotencyKey.value, expiresAt: hold.expiresAt,
     extendedAt: hold.extendedAt, releasedAt: hold.releasedAt, purchasedAt: hold.purchasedAt,
+    buyUndoneAt: hold.buyUndoneAt,
     piiRef: hold.piiRef?.value ?? null, units: hold.units, purchasedUnits: hold.purchasedUnits,
   });
 }
