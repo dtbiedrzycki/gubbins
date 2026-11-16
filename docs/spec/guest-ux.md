@@ -51,9 +51,12 @@
   "I'm buying this".
 
 **Hold flow**
-- Tap "Hold this item" → sheet with: name (required), optional email ("so we can
-  remind you before the hold expires" — only shown if `SMTP` is configured,
-  per the capability-flag rule in [ops](ops.md)), subtitle "Other guests will see it's taken while you buy it", and a boxed note: buy it, come back and tap "Mark as purchased", or the hold ends after 3 days.
+- Tap "Hold this item" → sheet titled `Hold "{title}" for yourself?` with:
+  name (required), optional email ("so we can remind you before the hold
+  expires" — only shown if `SMTP` is configured, per the capability-flag
+  rule in [ops](ops.md)), subtitle "Other guests will see it's taken while
+  you buy it", and a boxed note: buy it, come back and tap "Mark as
+  purchased", or the hold ends after HOLD_DURATION_DAYS (default 3).
   Primary CTA: "Yes, hold it." The hold sheet asks for name(s) only; the
   message to the owner is asked when the hold is marked purchased.
 - Tap "Mark as purchased" → sheet with the optional message to the owner
