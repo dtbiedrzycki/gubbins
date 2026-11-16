@@ -4,6 +4,7 @@ import { PledgeContribution } from './PledgeContribution.js';
 import { SequentialTokenGenerator } from '../test-fakes/SequentialTokenGenerator.js';
 import { ReleaseHold } from './ReleaseHold.js';
 import { MarkHoldPurchased } from './MarkHoldPurchased.js';
+import { UndoBuy } from './UndoBuy.js';
 import type { HoldPolicy } from '../HoldPolicy.js';
 import type { AccessContext } from '../AccessContext.js';
 import { DAY, GUEST, ITEM_ID, NO_SESSION, OTHER_GUEST, T0, WISHLIST_ID, twoListsWithOneItemEach } from '../test-fakes/scenarios.js';
@@ -19,7 +20,8 @@ async function setup(policy?: HoldPolicy) {
   const view = (access: AccessContext = GUEST) => useCase.execute({ wishlistId: WISHLIST_ID }, access);
   const release = (holdId: string) => new ReleaseHold(world.unitOfWork, world.clock).execute({ wishlistId: WISHLIST_ID, holdId }, GUEST);
   const purchase = (holdId: string) => new MarkHoldPurchased(world.unitOfWork, world.clock).execute({ wishlistId: WISHLIST_ID, holdId, units: 1 }, GUEST);
-  return { ...world, view, release, purchase };
+  const undoBuy = (holdId: string) => new UndoBuy(world.unitOfWork, world.clock).execute({ wishlistId: WISHLIST_ID, holdId }, GUEST);
+  return { ...world, view, release, purchase, undoBuy };
 }
 
 const GROUP_ITEM_ID = '44444444-4444-7444-8444-444444444444';
@@ -126,10 +128,14 @@ describe('GetListView', () => {
     expect(shown.myHolds).toMatchObject([{ status: 'expired', actions: { extend: false, release: false, purchase: true } }]);
   });
 
-  it('lists purchased holds but not released ones', async () => {
-    const { placeHold, clock, view, release, purchase } = await setup();
-    const released = await placeHold();
-    await release(released.holdId);
+  it.each(['released', 'undone'] as const)('lists purchased holds but not %s ones', async (closed) => {
+    const { placeHold, clock, view, release, purchase, undoBuy } = await setup();
+    const first = await placeHold();
+    if (closed === 'released') await release(first.holdId);
+    else {
+      await purchase(first.holdId);
+      await undoBuy(first.holdId);
+    }
     clock.advance(DAY);
     const bought = await placeHold();
     await purchase(bought.holdId);

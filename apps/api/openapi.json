@@ -2223,7 +2223,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The buy was undone; its units are free for others.",
+            "description": "The buy was undone, now or by an earlier request; its units are free for others.",
             "content": {
               "application/json": {
                 "schema": {

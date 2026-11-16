@@ -403,7 +403,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     },
     {
       action: 'undo-buy', operationId: 'undoBuy', command: deps.undoBuy,
-      done: 'The buy was undone; its units are free for others.',
+      done: 'The buy was undone, now or by an earlier request; its units are free for others.',
       conflict: 'The hold was never bought (hold_not_active).',
     },
   ];

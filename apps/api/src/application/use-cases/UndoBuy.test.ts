@@ -23,4 +23,19 @@ describe('UndoBuy', () => {
     expect(reloaded?.findHold(holdId)?.buyUndoneAt).toEqual(new Date(T0.getTime() + DAY));
     expect(eventStore.recorded(ITEM_ID).map(({ event, actor }) => [event.type, actor]).at(-1)).toEqual(['BuyUndone', 'guest']);
   });
+
+  it('answers a second undo with the undone view and appends nothing', async () => {
+    const { placeHold, buy, undo, eventStore, wishlists, clock } = await setup();
+    const { holdId } = await placeHold();
+    await buy.execute({ wishlistId: WISHLIST_ID, holdId, units: 1 }, GUEST);
+    await undo.execute({ wishlistId: WISHLIST_ID, holdId }, GUEST);
+    const streamLength = eventStore.recorded(ITEM_ID).length;
+    const seq = (await wishlists.findById(WISHLIST_ID, clock.now()))?.getItem(ITEM_ID).seq;
+
+    const again = await undo.execute({ wishlistId: WISHLIST_ID, holdId }, GUEST);
+
+    expect(again.status).toBe('undone');
+    expect(eventStore.recorded(ITEM_ID)).toHaveLength(streamLength);
+    expect((await wishlists.findById(WISHLIST_ID, clock.now()))?.getItem(ITEM_ID).seq).toBe(seq);
+  });
 });

@@ -12,7 +12,7 @@ export interface HoldCommandInput {
   holdId: string;
 }
 
-/** Extend, release and mark purchased share one shape, so presentation registers their routes alike. */
+/** Extend, release, mark purchased and undo a buy share one shape, so presentation registers their routes alike. */
 export interface HoldCommand {
   execute(input: HoldCommandInput, access: AccessContext): Promise<HoldView>;
 }
@@ -22,7 +22,8 @@ export interface HoldCommand {
  * list, find the hold on it, check permission, let the wishlist decide,
  * then persist the outcome and answer with the hold's view. A command supplies
  * only its permission check and its wishlist call, which may first read what it
- * needs (it runs before anything is written). `now` is the clock reading
+ * needs (it runs before anything is written). A command whose effect may already
+ * hold also supplies `alreadyDone`: then nothing is decided or written. `now` is the clock reading
  * the list is loaded at; the wishlist then decides everything as of it.
  */
 export async function runHoldCommand<E extends LedgerEvent>(
@@ -32,6 +33,7 @@ export async function runHoldCommand<E extends LedgerEvent>(
   now: Date,
   permit: (hold: Hold, access: AccessContext) => Actor | null,
   decide: (wishlist: Wishlist, hold: Hold) => HoldCommandResult<E> | Promise<HoldCommandResult<E>>,
+  alreadyDone?: (wishlist: Wishlist, hold: Hold) => boolean,
 ): Promise<HoldView> {
   const wishlist = await ctx.wishlists.findById(input.wishlistId, now);
   if (!wishlist) throw new HoldNotFoundError(input.holdId);
@@ -42,6 +44,9 @@ export async function runHoldCommand<E extends LedgerEvent>(
   // about holds that are not theirs.
   const actor = permit(hold, access);
   if (!actor) throw new HoldNotFoundError(input.holdId);
+
+  // A repeat of a done command answers the done state rather than an error: the guest's intent already holds.
+  if (alreadyDone?.(wishlist, hold)) return toHoldView(wishlist, hold);
 
   const { item, event, expectedSeq } = await decide(wishlist, hold);
 

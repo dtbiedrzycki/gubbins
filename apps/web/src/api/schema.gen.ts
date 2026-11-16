@@ -1349,7 +1349,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The buy was undone; its units are free for others. */
+            /** @description The buy was undone, now or by an earlier request; its units are free for others. */
             200: {
                 headers: {
                     [name: string]: unknown;
