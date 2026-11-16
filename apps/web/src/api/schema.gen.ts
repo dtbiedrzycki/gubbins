@@ -516,7 +516,7 @@ export interface operations {
                             holdId: string;
                             itemId: string;
                             /** @enum {string} */
-                            status: "active" | "expired" | "released" | "purchased" | "undone";
+                            status: "active" | "expired" | "released" | "purchased" | "buyUndone";
                             expiresAt: string;
                             extendedAt: string | null;
                             units: number;
@@ -934,7 +934,7 @@ export interface operations {
                         holdId: string;
                         itemId: string;
                         /** @enum {string} */
-                        status: "active" | "expired" | "released" | "purchased" | "undone";
+                        status: "active" | "expired" | "released" | "purchased" | "buyUndone";
                         expiresAt: string;
                         extendedAt: string | null;
                         units: number;
@@ -1009,7 +1009,7 @@ export interface operations {
                         holdId: string;
                         itemId: string;
                         /** @enum {string} */
-                        status: "active" | "expired" | "released" | "purchased" | "undone";
+                        status: "active" | "expired" | "released" | "purchased" | "buyUndone";
                         expiresAt: string;
                         extendedAt: string | null;
                         units: number;
@@ -1145,7 +1145,7 @@ export interface operations {
                         holdId: string;
                         itemId: string;
                         /** @enum {string} */
-                        status: "active" | "expired" | "released" | "purchased" | "undone";
+                        status: "active" | "expired" | "released" | "purchased" | "buyUndone";
                         expiresAt: string;
                         extendedAt: string | null;
                         units: number;
@@ -1211,7 +1211,7 @@ export interface operations {
                         holdId: string;
                         itemId: string;
                         /** @enum {string} */
-                        status: "active" | "expired" | "released" | "purchased" | "undone";
+                        status: "active" | "expired" | "released" | "purchased" | "buyUndone";
                         expiresAt: string;
                         extendedAt: string | null;
                         units: number;
@@ -1277,7 +1277,7 @@ export interface operations {
                         holdId: string;
                         itemId: string;
                         /** @enum {string} */
-                        status: "active" | "expired" | "released" | "purchased" | "undone";
+                        status: "active" | "expired" | "released" | "purchased" | "buyUndone";
                         expiresAt: string;
                         extendedAt: string | null;
                         units: number;

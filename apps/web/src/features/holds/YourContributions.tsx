@@ -27,7 +27,7 @@ function statusLine(hold: HoldView): string {
         : `Your hold expired on ${formatExpiry(hold.expiresAt)}.`;
     case 'purchased':
       return 'Marked as purchased.';
-    case 'undone':
+    case 'buyUndone':
       // The list view never sends an undone hold; the case keeps the switch exhaustive.
       return 'Undone.';
     case 'released':
