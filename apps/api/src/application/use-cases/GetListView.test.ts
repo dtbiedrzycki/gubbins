@@ -128,14 +128,17 @@ describe('GetListView', () => {
     expect(shown.myHolds).toMatchObject([{ status: 'expired', actions: { extend: false, release: false, purchase: true } }]);
   });
 
-  it.each(['released', 'undone'] as const)('lists purchased holds but not %s ones', async (closed) => {
-    const { placeHold, clock, view, release, purchase, undoBuy } = await setup();
+  it.each([
+    ['released holds', (world: Awaited<ReturnType<typeof setup>>, holdId: string) => world.release(holdId)],
+    ['undone buys', async (world: Awaited<ReturnType<typeof setup>>, holdId: string) => {
+      await world.purchase(holdId);
+      await world.undoBuy(holdId);
+    }],
+  ])('lists purchased holds but not %s', async (_, close) => {
+    const world = await setup();
+    const { placeHold, clock, view, purchase } = world;
     const first = await placeHold();
-    if (closed === 'released') await release(first.holdId);
-    else {
-      await purchase(first.holdId);
-      await undoBuy(first.holdId);
-    }
+    await close(world, first.holdId);
     clock.advance(DAY);
     const bought = await placeHold();
     await purchase(bought.holdId);
