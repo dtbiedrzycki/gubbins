@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gubbins I'm Buying This</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* Fonts come from the repo's own Fontsource packages (run npm ci first); without them the Georgia and system-ui fallbacks show. */
+@font-face { font-family: "IM Fell English"; font-style: normal; font-weight: 400; src: url(../../node_modules/@fontsource/im-fell-english/files/im-fell-english-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-style: normal; font-weight: 400; src: url(../../node_modules/@fontsource/alegreya-sans/files/alegreya-sans-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-style: normal; font-weight: 700; src: url(../../node_modules/@fontsource/alegreya-sans/files/alegreya-sans-latin-700-normal.woff2) format("woff2"); }
+/* Layout: phone-width frames side by side (stacking when narrow): the item card, the sheet for one unit, the sheet with the stepper, and Your contributions after the undo ships. */
+:root {
+  --paper: #F6F3FB; --ink: #2E2447; --muted: #625A78; --line: #DCD3EA; --card: #FFFFFF;
+  --moss: #34603F; --wax: #9E2A45; --page: #ECE7F4;
+  --display: "IM Fell English", Georgia, serif;
+  --sans: "Alegreya Sans", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 16px/1.45 var(--sans); }
+main { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+h1 { font: 2rem/1.15 var(--display); margin: 0 0 6px; }
+.lede { color: var(--muted); max-width: 62ch; margin: 0 0 28px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; align-items: start; }
+.frame { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.tag { font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.phone { background: var(--paper); border: 1.5px solid var(--line); border-radius: 28px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.item { background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.item h3 { font: 1.15rem/1.2 var(--display); margin: 0; }
+.meta { color: var(--muted); font-size: .92rem; margin: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { min-height: 2.75rem; padding: .5rem 1.1rem; border-radius: 22px 22px 22px 6px; font: 700 1rem var(--sans); border: 0; }
+.primary { background: var(--moss); color: #fff; }
+.secondary { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.dialog { background: var(--paper); border-radius: 22px; padding: 18px; box-shadow: 0 0 0 1.5px var(--ink); display: flex; flex-direction: column; gap: 10px; }
+.dialog p { margin: 0; }
+.title { font: 1.2rem/1.2 var(--display); }
+.muted { color: var(--muted); }
+.box { background: var(--card); border: 1.5px solid var(--wax); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.field { border: 1.5px solid var(--ink); border-radius: 14px; background: #fff; min-height: 2.5rem; padding: .45rem .7rem; color: var(--muted); font-size: .95rem; }
+.small { font-size: .9rem; }
+.stepper { display: flex; align-items: center; gap: 10px; }
+.step { width: 2.75rem; height: 2.75rem; border-radius: 50%; border: 1.5px solid var(--ink); background: #fff; font: 700 1.2rem var(--sans); color: var(--ink); }
+.count { font: 700 1.2rem var(--sans); min-width: 1.5ch; text-align: center; }
+</style>
+</head>
+<body>
+<main>
+  <h1>&ldquo;I&rsquo;m buying this&rdquo;</h1>
+  <p class="lede">&ldquo;I&rsquo;m buying this&rdquo; is the main action on a single gift, so a guest who is sure has nothing to come back and mark later. Holding stays for guests who are still deciding. The sheets show the first release&rsquo;s wording (no undo yet); the last frame is the undo that ships second. Group gifts keep &ldquo;Chip in&rdquo;.</p>
+  <div class="grid">
+    <section class="frame">
+      <span class="tag">Item card</span>
+      <div class="phone">
+        <div class="item">
+          <h3>Wooden train set</h3>
+          <p class="meta">£34</p>
+          <div class="row">
+            <button class="btn primary" type="button">I&rsquo;m buying this</button>
+            <button class="btn secondary" type="button">Hold this item</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="frame">
+      <span class="tag">Sheet, one unit free</span>
+      <div class="phone">
+        <div class="dialog">
+          <p class="title">Buying &ldquo;Wooden train set&rdquo;?</p>
+          <div class="box">
+            <p><b>Tap &ldquo;Yes, I&rsquo;m buying it&rdquo; before you buy it.</b></p>
+            <p>Other guests will then see it&rsquo;s taken, so no one else buys it while you&rsquo;re getting it. It can&rsquo;t be undone, so only tap it if you&rsquo;re sure.</p>
+          </div>
+          <span>Gifter name(s)</span>
+          <div class="field">Sam &amp; Alex Smith</div>
+          <span>Message to the owner (optional)</span>
+          <div class="field">&nbsp;</div>
+          <div class="row">
+            <button class="btn primary" type="button">Yes, I&rsquo;m buying it</button>
+            <button class="btn secondary" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="frame">
+      <span class="tag">Sheet, more than one unit free</span>
+      <div class="phone">
+        <div class="dialog">
+          <p class="title">Buying &ldquo;Baby onesies, 0&ndash;3 months&rdquo;?</p>
+          <div class="row"><span>How many?</span></div>
+          <div class="stepper">
+            <button class="step" type="button" aria-label="One fewer">&minus;</button>
+            <span class="count">2</span>
+            <button class="step" type="button" aria-label="One more">+</button>
+            <span class="muted small">of 5 wanted</span>
+          </div>
+          <div class="box">
+            <p><b>Tap &ldquo;Yes, I&rsquo;m buying 2&rdquo; before you buy them.</b></p>
+            <p>Other guests will then see they&rsquo;re taken, so no one else buys them while you&rsquo;re getting them. It can&rsquo;t be undone, so only tap it if you&rsquo;re sure.</p>
+          </div>
+          <span>Gifter name(s)</span>
+          <div class="field">Sam &amp; Alex Smith</div>
+          <span>Message to the owner (optional)</span>
+          <div class="field">&nbsp;</div>
+          <div class="row">
+            <button class="btn primary" type="button">Yes, I&rsquo;m buying 2</button>
+            <button class="btn secondary" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="frame">
+      <span class="tag">Your contributions, after the undo ships</span>
+      <div class="phone">
+        <div class="item">
+          <h3>Wooden train set</h3>
+          <p class="meta">Marked as purchased.</p>
+          <div class="row"><button class="btn secondary" type="button">I didn&rsquo;t buy it</button></div>
+        </div>
+        <div class="item">
+          <h3>Baby onesies, 0&ndash;3 months &times; 2</h3>
+          <p class="meta">Marked as purchased.</p>
+          <div class="box">
+            <p>Undo your purchase of Baby onesies, 0&ndash;3 months? Other guests will be able to buy them.</p>
+            <div class="row">
+              <button class="btn primary" type="button">Yes, undo it</button>
+              <button class="btn secondary" type="button">Keep it</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+</body>
+</html>
