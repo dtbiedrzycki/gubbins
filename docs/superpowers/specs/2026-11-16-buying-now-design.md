@@ -293,7 +293,8 @@ rename.
   single only — terminal"), `docs/spec/guest-ux.md`'s buy flow ("it can't
   be undone") and the comment on `ItemPurchasedEvent` change to say the
   guest can undo it. `docs/spec/data-and-persistence.md`'s list of event
-  types names `BuyUndone` in place of `PurchaseVoided`.
+  types names `BuyUndone` in place of `PurchaseVoided`, and ADR-0078's "A
+  purchase is a terminal state of a `Hold`" allows the buyer's undo.
 
 ## Concurrency
 
@@ -330,8 +331,9 @@ No new kinds of input; each field keeps the rules it already has *(my call)*.
   guest's way in, lead with "I'm buying this".
 - In release 2, as above: the ADR-0075 amendment, `docs/spec/holds.md`'s
   terminal-purchase rule, `docs/spec/domain-model.md`'s purchase line,
-  `docs/spec/guest-ux.md`'s buy flow and
-  `docs/spec/data-and-persistence.md`'s event list.
+  `docs/spec/guest-ux.md`'s buy flow,
+  `docs/spec/data-and-persistence.md`'s event list and ADR-0078's
+  terminal-purchase sentence.
 
 ## Tests (at the owning layer)
 
