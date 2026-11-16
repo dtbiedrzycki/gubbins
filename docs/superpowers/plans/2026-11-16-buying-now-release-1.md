@@ -29,8 +29,8 @@
 
 ## Review Focus
 
-1. **A guest whose session lapsed taps "I'm buying this":** nothing is written and the guest sees the generic not-found. Pinned in Task 1 (use case) and Task 2 (route).
-2. **A message over 300 characters:** nothing is bought, no hold appears. `GuestDetails` owns the limit; the use case must build the details before appending. Pinned in Task 1.
+1. **A guest whose session lapsed taps "I'm buying this":** nothing is written and the guest sees the generic not-found. Pinned in Task 1 (use case) and Task 2 (the route joins the no-session matrix).
+2. **An invalid message (over 300 characters):** nothing is bought and no hold appears. `GuestDetails` owns the limit and tests the 300/301 boundary; the use case must build the details before appending. Pinned in Task 1 by an order test.
 3. **A double tap or retry on slow wifi:** exactly one purchase. The sheet's key is minted on open (existing `HoldDialog` behaviour, pinned there); the server replays the key. Pinned in Task 1.
 4. **Fewer units free than picked by the time the guest taps:** 409 `item_unavailable`, nothing bought, the sheet retries in place. The domain refusal is `placeHold`'s, tested there; the sheet behaviour is `HoldDialog`'s, tested there. No new test.
 5. **A guest who already holds some of the gift buys more:** they get a second, purchased card, and the active hold stays. Follows from composing `placeHold`; no new test.
@@ -56,21 +56,22 @@
   - `class BuyItem { constructor(unitOfWork: UnitOfWork, tokenGenerator: TokenGenerator, clock: Clock, hasher: Hasher, policy: HoldPolicy); execute(input: BuyItemInput, access: AccessContext): Promise<HoldView> }`
 
 - [ ] **Step 1: Write the failing domain test** in `Item.test.ts`, beside the `placeHold` tests:
-  `it('places a hold and buys all its units at one instant, returning both events from one starting seq')`. On a quantity-5 single item at `asOf` 2026-11-16T12:00:00Z with seq 7, `placePurchasedHold({ …, units: 2 })`:
-  - `result.expectedSeq` is 7, and `result.events.map((e) => e.type)` is `['ItemHeld', 'ItemPurchased']`;
-  - both events' `occurredAt` are `'2026-11-16T12:00:00.000Z'`, and the `ItemPurchased` event's `units` is 2;
-  - `result.hold.statusAt(asOf)` is `'purchased'` and `result.hold.purchasedUnits` is 2;
-  - `item.availableUnits()` is 3.
+  `it('places a hold of 2 and buys both, returning ItemHeld then ItemPurchased to append at the seq it was loaded at')`. On a quantity-5 single item loaded at seq 7, `placePurchasedHold({ …, units: 2 })`:
+  - `result.expectedSeq` is 7;
+  - `result.events.map((e) => e.type)` is `['ItemHeld', 'ItemPurchased']`, and the `ItemPurchased` event's `units` is 2;
+  - `result.hold.purchasedUnits` is 2.
+
+  Don't assert `occurredAt`, `statusAt` or `availableUnits`: this command decides none of them, and the counters are pinned by the existing purchase tests.
 
   Unit and group-gift refusals are `placeHold`'s and stay tested there; don't repeat them.
 - [ ] **Step 2: Run it and see it fail:** `scripts/verify.sh --quick apps/api src/domain/entities/Item.test.ts` fails with "placePurchasedHold is not a function".
 - [ ] **Step 3: Implement `Item.placePurchasedHold`.** Call `placeHold`, then `purchaseHold(hold, hold.units)`. Return the first call's `expectedSeq`, which is the seq to append both events at, since `recordEvent` advanced once per event. Doc comment: "Reach it through `Wishlist.buyItem`." Then `Wishlist.buyItem`, shaped like `holdItem`: `getItem(props.itemId)`, then `{ item, ...item.placePurchasedHold(props, tokens, hasher) }`.
 - [ ] **Step 4: Run it and see it pass** (same command).
 - [ ] **Step 5: Write the failing use-case tests** in `BuyItem.test.ts`, with `FixedClock`, `InMemoryStore` and the fakes `HoldItem.test.ts` uses:
-  - `it('appends the held and purchased events in one append as the guest, and stores the name and message in one details row')`: one `append` call recorded for the item, with `events` types `['ItemHeld', 'ItemPurchased']`, `expectedSeq` equal to the item's seq before the call, and actor `'guest'`. Exactly one `guest_pii` row, `{ name: 'Ada', message: 'See you Saturday' }`, whose id is the hold's `piiRef`. The returned view has `status: 'purchased'` and `purchasedUnits` equal to `units`.
+  - `it('appends the held and purchased events in one append as the guest, and stores the name and message in one details row')`. The in-memory store flattens its stream, so two appends would look like one: wrap the store's `append` in a recording `EventStore` for this test, the way `HoldItem.test.ts`'s concurrency test wraps it, and assert `calls` equals `[{ itemId: ITEM_ID, expectedSeq: 0, types: ['ItemHeld', 'ItemPurchased'], actor: 'guest' }]`. Also assert exactly one `guest_pii` row, `{ name: 'Ada', message: 'See you Saturday' }`, whose id is the hold's `piiRef`, and a returned view with `status: 'purchased'` and `purchasedUnits` equal to `units`.
   - `it('replays the first purchase for a repeated idempotency key, appending nothing more')`: a second `execute` with the same key returns a view with the same `holdId`, and the append count and `guest_pii` row count are unchanged.
-  - `it('refuses a 301-character message without appending or storing anything')`: rejects with `DomainValidationError`, no append, no `guest_pii` row.
-  - `it('throws ItemNotFoundError without a guest session, appending nothing')`.
+  - `it('buys nothing and stores no details when the message is invalid')`, using `'x'.repeat(1000)` as `MarkHoldPurchased.test.ts` does (`GuestDetails` owns the 300/301 boundary). Assert a `DomainValidationError`, an empty stream for the item and no `guest_pii` row. The in-memory unit of work doesn't roll back, so this fails if the details are built after the append.
+  - `it('throws ItemNotFoundError without a guest session')`.
 - [ ] **Step 6: Run them and see them fail:** `scripts/verify.sh --quick apps/api src/application/use-cases/BuyItem.test.ts` fails because the module is missing.
 - [ ] **Step 7: Implement `BuyItem`.** Follow `HoldItem.execute` step for step: the guest guard, `findById` at `clock.now()`, and replay via `findHoldForReplay` before anything else. Then `GuestDetails.from({ name, message })` before any write, the `piiRef` minted by the use case, and `wishlist.buyItem(...)`. Then `append(item.id.value, expectedSeq, events, 'guest')`, `guestPii.insert`, and `wishlists.save`. Keep `HoldItem`'s why-comments wherever the same reason applies. Sharing code with `HoldItem` is optional: duplicate the guard and replay steps rather than add a helper with one caller each.
 - [ ] **Step 8: Run them and see them pass.**
@@ -99,8 +100,10 @@
 
 - [ ] **Step 1: Write the failing route tests** in `routes.integration.test.ts`, beside the hold route's:
   - `it('buys 2 of the item for the session and answers 201 with the purchased hold')`: 201, body `status: 'purchased'` and `purchasedUnits: 2`. A follow-up GET of the list shows the item's `availableUnits` dropped by 2.
-  - `it('returns 400 for a purchase without a name')`: the request lacks only `name`.
+  - `it("passes the name and message from the buy body to the guest details")`: post `{ idempotencyKey, name: 'Ada', units: 1, message: 'See you Saturday' }` and expect `guest_pii` to be `[{ name: 'Ada', message: 'See you Saturday' }]`, as the purchase route's message test does.
+  - `it('returns 400 for a buy request without a name')`: the request lacks only `name`.
   - `it("answers the generic 404 when asked to buy another list's item")`, mirroring the hold test at ~line 428.
+  - Add the buy route as a row of the existing matrix "answers a request without a valid session cookie without reading any list, as for an unknown slug" (~line 569): `{ method: 'POST', url: \`/api/lists/${list.slug}/items/${list.itemId}/buy\`, headers: forged, payload: { idempotencyKey: 'k', name: 'Ada', units: 1 } }`. No new test.
 - [ ] **Step 2: Run them and see them fail:** `scripts/verify.sh --quick apps/api src/presentation/routes.integration.test.ts` gives 404s from the missing route.
 - [ ] **Step 3: Add the schema, the route and the wiring.** The route copies the hold route's shape: `guestAccess`, then `deps.buyItem.execute({ …, message: request.body.message })`, `reply.code(201)`, and errors through `sendDomainError`. Responses:
   - 201 `'The item is bought for this session in one step; a replayed idempotency key returns the same purchase.'`
@@ -138,33 +141,40 @@
   - `purchasedMessage(itemTitle: string, heldUnits: number, boughtUnits: number | null): string`, which returns the success copy above. `HoldActions`' inline `purchasedMessage` moves here unchanged.
 
 - [ ] **Step 1: Write the failing tests:**
-  - `client.test.ts`: `it('buyItem posts the details and message to the buy route')`, mirroring the hold-route test at ~line 52.
+  - `client.test.ts`: `it('buyItem posts the details and message to the buy route')`. Copy the `markHoldPurchased` test at ~line 94, not the path-only hold test: capture the path and `request.text()`, then assert the path is `/api/lists/abc123/items/item-1/buy` and the body is `'{"idempotencyKey":"k","name":"Ada","units":1,"message":"Congrats"}'`.
   - `HoldDialog.test.tsx`, rendering `mode: 'buy'`. Each `it` is one behaviour:
-    - `it('titles the buying sheet Buying "{title}"?')`
+    - `it('asks "Buying “Stroller”?" in buy mode')`
     - `it('tells the guest to tap "Yes, I’m buying it" before buying, and that it can’t be undone')`, with the full one-unit note text.
+    - `it('leaves out the hold sheet’s come-back note in buy mode')`: no "come back and tap “Mark as purchased”" text. This is a mode branch, not removed code.
     - `it('quotes "Yes, I’m buying 2" in the note with 2 picked')`, with the full plural note text.
     - `it('reads "Yes, I’m buying 2" on the confirm button with 2 picked')`
-    - `it('sends the message with the details in buy mode')`
-    - `it('limits the message to 300 characters')`
+    - `it('sends the trimmed message with the details in buy mode')`: type `'  See you Saturday  '` and expect `onConfirm` with `{ name: 'Amara', units: 1, message: 'See you Saturday' }`.
+    - `it('locks the message with the name once sent, so a retry sends what was sent')`: type a message, confirm, type more, confirm again; the second `onConfirm` carries the first message.
+    - `it('limits the message to 300 characters')`: `toHaveAttribute('maxlength', '300')`, as `ContributeDialog`'s test does.
+    - `it('tells the guest a failed purchase was on our end, led by "Couldn’t buy Stroller."')`: `error: new ApiError(500, 'Internal server error')`, alert `Couldn’t buy Stroller. Something went wrong on our end.`
 
-    The lock, 409 and stepper rules are shared with hold mode and already tested; don't repeat them.
+    The name lock, the 409 retry and the stepper are shared with hold mode and already tested; don't repeat them.
   - `ItemView.test.tsx`:
-    - `it('offers "I’m buying this" exactly when it offers holding')`: on an available single item, both buttons; on a held-out one or a group gift, neither.
+    - Extend the two existing absence tests rather than adding one: rename them `'shows a %s item as such, with no Hold or "I’m buying this" button'` and `'gives a group gift its price, and no units, Hold or "I’m buying this" button'`, and assert the new button is absent too.
     - `it('puts "I’m buying this" before "Hold this item"')`: the DOM order of the two buttons.
-    - `it('announces "{title} is marked as purchased. Thank you!" after buying')`, with the api mocked as the existing tests do.
+    - `it('names the item in the "I’m buying this" button')`: `getByRole('button', { name: 'I’m buying this: Stroller' })`.
+    - `it('announces "Stroller: 2 marked as purchased. Thank you!" after buying 2 of 5')`: `renderItem({ availableUnits: 5 })`, tap "One more", confirm "Yes, I’m buying 2", with msw answering `/buy` with 201.
+    - `it("moves focus to the gift's heading once buying succeeds")`.
+    - `it('returns focus to "I’m buying this" when the buying sheet is cancelled')`.
+    - `it('shows a refused purchase in the buying sheet and keeps it open')`: msw answers `/buy` with 503; the alert isn't empty and the dialog stays open. Don't assert the copy, which is `HoldDialog`'s.
   - `e2e/guest-holds-several.spec.ts`: `test('a guest buys 2 of 5 with "I\u2019m buying this", and another guest sees "Wanted: 3 more"')`. It reuses `listOfFiveOnesies` and `guestFromLink`. Steps:
-    1. Click `I'm buying this`, then `One more`, fill `Gifter name(s)`, and click `Yes, I'm buying 2`.
-    2. Expect the status line `Baby onesies: 2 marked as purchased. Thank you!`.
-    3. "Your contributions" shows `× 2` and `Marked as purchased.`.
-    4. A second browser context sees `Wanted: 3 more`.
-    5. Run `expectNoSeriousAxeViolations` with the sheet open.
+    1. Click `I'm buying this`, run `expectNoSeriousAxeViolations` with the sheet open, then click `One more`, fill `Gifter name(s)`, and click `Yes, I'm buying 2`.
+    2. "Your contributions" shows `× 2` and `Marked as purchased.`. This is the sync point, and the one check that tells a purchase from a hold of 2.
+    3. A second browser context sees `Wanted: 3 more`.
+
+    The success wording is pinned by the `ItemView` test, so the journey doesn't assert it.
 - [ ] **Step 2: Run them and see them fail** (one `--quick` run per unit-test file; the e2e test runs in Step 5).
 - [ ] **Step 3: Implement:**
   - **`HoldDialog`'s `buy` mode** follows the mockup's order: title, stepper, note box, name field and hints, then message (`LimitedTextarea`, local `MESSAGE_MAX = 300` as `PurchaseDialog` and `ContributeDialog` do), then the alert and buttons.
   - The note box uses the `border-wax` border, as in the mockup. Leave out hold mode's subtitle and boxed "come back" note.
-  - The message locks with the name once sent.
+  - The message is trimmed before `onConfirm`, a blank one is left out (as `ContributeDialog` does), and it locks with the name once sent.
   - The error fallback is `Couldn’t buy ${itemTitle}.`
-  - **`ItemView`:** a second `useHoldItem(slug, item.id, 'buy')`, and a `dialogMode` state set by whichever button opened the sheet. On a buy success, set `thanks` to `purchasedMessage(item.title, units, units)`, with the same focus move as after a hold. Cancel returns focus to the button that opened the sheet.
+  - **`ItemView`:** a second `useHoldItem(slug, item.id, 'buy')`, and a `dialogMode` state set by whichever button opened the sheet. In buy mode, pass the buy mutation's `isPending`, `error` and `reset` to the sheet, not the hold mutation's. On a buy success, set `thanks` to `purchasedMessage(item.title, units, units)`, with the same focus move as after a hold. Cancel returns focus to the button that opened the sheet.
 - [ ] **Step 4: Run them and see them pass.**
 - [ ] **Step 5: Verify and commit:** announce the e2e run to peer sessions, then run `scripts/verify.sh --e2e` and commit "feat(web): lead each gift with I'm buying this".
 
@@ -181,7 +191,7 @@
 **Interfaces:** consumes Task 3's buttons and sheet.
 
 - [ ] **Step 1: Write the failing tests:**
-  - `HowHoldingWorks.test.tsx`: `it('leads with tapping "I’m buying this" before you buy, then holding when unsure')`. It checks the three steps' bold lead-ins in order, with `{duration}` rendered as "3 days".
+  - `HowHoldingWorks.test.tsx`: `it('lists buying first, holding for 3 days second, and marking a held gift purchased third')`. Assert the three `listitem`s' text in order, including `It’s yours for 3 days`.
 - [ ] **Step 2: Run it and see it fail:** `scripts/verify.sh --quick apps/web src/features/holds/HowHoldingWorks.test.tsx`.
 - [ ] **Step 3: Implement** the copy changes.
 - [ ] **Step 4: Verify and commit:** `scripts/verify.sh --e2e` (announce it to peer sessions first; this PR's base chain targets main), then commit "feat(web): explain claiming a gift, leading with I'm buying this".
