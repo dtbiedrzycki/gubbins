@@ -132,7 +132,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
 
       const reloaded = (await fx.wishlists.findById(LIST_A, undoneAt))!;
       const stored = reloaded.findHold(hold.id.value)!;
-      expect(reloaded.holdStatus(stored)).toBe('undone');
+      expect(reloaded.holdStatus(stored)).toBe('buyUndone');
       expect(stored.buyUndoneAt).toEqual(undoneAt);
     });
 

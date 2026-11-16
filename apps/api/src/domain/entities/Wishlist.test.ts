@@ -457,7 +457,7 @@ describe('Wishlist.itemStatus', () => {
 describe('Wishlist.findHoldForReplay', () => {
   it.each([
     ['expired', { expiresAt: at(-1) }],
-    ['undone', { purchasedAt: T0, purchasedUnits: 1, buyUndoneAt: T0 }],
+    ['buyUndone', { purchasedAt: T0, purchasedUnits: 1, buyUndoneAt: T0 }],
   ] as const)("returns the session's own hold for a key it already used, whatever its state: %s", (_state, overrides) => {
     const hold = holdOn(ITEM_ID, { idempotencyKey: 'tap-1', ...overrides });
     expect(loaded({ holds: [hold] }).findHoldForReplay(ITEM_ID, 'tap-1', SESSION)).toBe(hold);

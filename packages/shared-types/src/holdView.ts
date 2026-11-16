@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const holdStatusSchema = z.enum(['active', 'expired', 'released', 'purchased', 'undone']);
+export const holdStatusSchema = z.enum(['active', 'expired', 'released', 'purchased', 'buyUndone']);
 export type HoldStatus = z.infer<typeof holdStatusSchema>;
 
 /**
