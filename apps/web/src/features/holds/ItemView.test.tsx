@@ -138,10 +138,11 @@ describe('ItemView', () => {
   it.each([
     ['held', 'Stroller is held.'],
     ['purchased', 'Stroller has been purchased.'],
-  ] as const)('shows a %s item as such, with no Hold button', (status, message) => {
+  ] as const)('shows a %s item as such, with no Hold or "I\u2019m buying this" button', (status, message) => {
     renderItem({ status });
     expect(screen.getByRole('status')).toHaveTextContent(message);
     expect(screen.queryByRole('button', { name: /^Hold this item/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^I\u2019m buying this/ })).not.toBeInTheDocument();
   });
 
   it.each([['held', 'red-wax'], ['purchased', 'gold-wax']] as const)('marks a %s item with a %s seal that does not stamp in and is hidden from screen readers', (status, tone) => {
@@ -172,10 +173,17 @@ describe('ItemView', () => {
     expect(screen.getByRole('progressbar')).toHaveClass('sr-only');
   });
 
-  it('keeps the Hold button last in its stack, so space-y adds no margin below it', () => {
+  it('keeps the button row last in its stack, so space-y adds no margin below it', () => {
     renderItem();
-    const button = screen.getByRole('button', { name: /^Hold this item/ });
-    expect(button.parentElement?.lastElementChild).toBe(button);
+    const row = screen.getByRole('button', { name: /^Hold this item/ }).parentElement!;
+    expect(row.parentElement?.lastElementChild).toBe(row);
+  });
+
+  it('puts "I\u2019m buying this" before "Hold this item"', () => {
+    renderItem();
+    const buying = screen.getByRole('button', { name: /^I\u2019m buying this/ });
+    const hold = screen.getByRole('button', { name: /^Hold this item/ });
+    expect(buying.compareDocumentPosition(hold) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('announces the item held through the status region already on the page', () => {
@@ -227,6 +235,11 @@ describe('ItemView', () => {
   it('has no store link without a url', () => {
     renderItem();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('names the item in the "I\u2019m buying this" button', () => {
+    renderItem();
+    expect(screen.getByRole('button', { name: 'I\u2019m buying this: Stroller' })).toBeInTheDocument();
   });
 
   it('names the item in the Hold button', () => {
@@ -284,10 +297,11 @@ describe('ItemView', () => {
     expect(screen.getByText('You chipped in $40.00')).toBeInTheDocument();
   });
 
-  it('gives a group gift its price and no Hold button or units', () => {
+  it('gives a group gift its price, and no units, Hold or "I\u2019m buying this" button', () => {
     renderItem({ type: 'group', priceMinor: 20000, availableUnits: 0 });
     expect(screen.getByText('$200.00')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Hold this item/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^I\u2019m buying this/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/^Wanted:/)).not.toBeInTheDocument();
   });
 
@@ -322,5 +336,78 @@ describe('ItemView', () => {
     await vi.waitFor(() => expect(screen.queryByRole('dialog', { hidden: true })).not.toBeInTheDocument());
     expect(status).toHaveTextContent('Thank you! Your pledge of $287.50 is recorded.');
     await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Chip in' })).toHaveFocus());
+  });
+
+  describe('buying', () => {
+    function buyEndpoint(status: number) {
+      server.use(http.post('/api/lists/abc123/items/item-1/buy', () => status === 201
+        ? HttpResponse.json(aHoldView({ status: 'purchased', units: 2, purchasedUnits: 2 }), { status })
+        : HttpResponse.json({ message: 'Request failed' }, { status })));
+    }
+
+    async function openAndName(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(screen.getByRole('button', { name: /^I\u2019m buying this/ }));
+      await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    }
+
+    it('announces "Stroller: 2 marked as purchased. Thank you!" after buying 2 of 5', async () => {
+      buyEndpoint(201);
+      const user = userEvent.setup();
+      renderItem({ availableUnits: 5 });
+      const status = screen.getByRole('status');
+
+      await openAndName(user);
+      await user.click(screen.getByRole('button', { name: 'One more' }));
+      await user.click(screen.getByRole('button', { name: 'Yes, I\u2019m buying 2' }));
+
+      await vi.waitFor(() => expect(status).toHaveTextContent('Stroller: 2 marked as purchased. Thank you!'));
+    });
+
+    it("moves focus to the gift's heading once buying succeeds", async () => {
+      buyEndpoint(201);
+      const user = userEvent.setup();
+      renderItem();
+
+      await openAndName(user);
+      await user.click(screen.getByRole('button', { name: 'Yes, I\u2019m buying it' }));
+
+      await vi.waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Stroller' })).toHaveFocus());
+    });
+
+    it('returns focus to "I\u2019m buying this" when the buying sheet is cancelled', async () => {
+      const user = userEvent.setup();
+      renderItem();
+
+      await user.click(screen.getByRole('button', { name: /^I\u2019m buying this/ }));
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+      expect(screen.getByRole('button', { name: /^I\u2019m buying this/ })).toHaveFocus();
+    });
+
+    it('forgets a refused purchase when the buying sheet is opened again', async () => {
+      buyEndpoint(503);
+      const user = userEvent.setup();
+      renderItem();
+
+      await openAndName(user);
+      await user.click(screen.getByRole('button', { name: 'Yes, I\u2019m buying it' }));
+      await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+      await user.click(screen.getByRole('button', { name: /^I\u2019m buying this/ }));
+
+      expect(screen.getByRole('alert')).toBeEmptyDOMElement();
+    });
+
+    it('shows a refused purchase in the buying sheet and keeps it open', async () => {
+      buyEndpoint(503);
+      const user = userEvent.setup();
+      renderItem();
+
+      await openAndName(user);
+      await user.click(screen.getByRole('button', { name: 'Yes, I\u2019m buying it' }));
+
+      await vi.waitFor(() => expect(screen.getByRole('alert')).not.toBeEmptyDOMElement());
+      expect(screen.getByRole('dialog', { hidden: true })).toBeInTheDocument();
+    });
   });
 });

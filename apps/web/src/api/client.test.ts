@@ -103,6 +103,21 @@ describe('hold actions', () => {
     expect(body).toBe('{"units":2,"message":"Congrats"}');
   });
 
+  it('buyItem posts the details and message to the buy route', async () => {
+    let path = '';
+    let body = 'unset';
+    server.use(http.post('/api/lists/:slug/items/:itemId/buy', async ({ request }) => {
+      path = new URL(request.url).pathname;
+      body = await request.text();
+      return HttpResponse.json(view, { status: 201 });
+    }));
+
+    await api.buyItem('abc123', 'item-1', { idempotencyKey: 'k', name: 'Ada', units: 1, message: 'Congrats' });
+
+    expect(path).toBe('/api/lists/abc123/items/item-1/buy');
+    expect(body).toBe('{"idempotencyKey":"k","name":"Ada","units":1,"message":"Congrats"}');
+  });
+
   it('carries the 409 code on ApiError, beside the message', async () => {
     server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }));
 

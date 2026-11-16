@@ -4,6 +4,7 @@ import type { HoldView } from '@gubbins/shared-types';
 import { useHoldAction, type HoldAction } from './useHoldAction';
 import { formatExpiry } from './formatExpiry';
 import { PurchaseDialog } from './PurchaseDialog';
+import { purchasedMessage } from './purchasedMessage';
 import { ApiError } from '../../api/client';
 import { actionErrorMessage } from '../../lib/actionErrorMessage';
 
@@ -65,13 +66,11 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
   });
   const [purchaseSheetOpen, setPurchaseSheetOpen] = useState(false);
   const purchaseButton = useRef<HTMLButtonElement>(null);
-  const purchasedMessage = (purchasedUnits: number | null) =>
-    hold.units > 1 ? `${itemTitle}: ${purchasedUnits} marked as purchased. Thank you!` : `${itemTitle} is marked as purchased. Thank you!`;
   const purchase = useHoldAction(slug, 'purchase', {
     onSuccess: (view) => {
       // The modal makes the page inert, so it must be gone before the outcome moves focus.
       flushSync(() => setPurchaseSheetOpen(false));
-      onOutcome({ action: 'purchase', ok: true, message: purchasedMessage(view.purchasedUnits) });
+      onOutcome({ action: 'purchase', ok: true, message: purchasedMessage(itemTitle, hold.units, view.purchasedUnits) });
     },
     // The sheet, with the typed message, stays for a failure the guest can
     // retry: no answer, our end, a clash, or fewer units free (re-capped by the
@@ -81,7 +80,7 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
       if (purchaseSheetOpen && refetched && canRetryPurchase(error)) return;
       flushSync(() => setPurchaseSheetOpen(false));
       if (refusedAs(error, 'hold_not_active') && refetched?.status === 'purchased') {
-        onOutcome({ action: 'purchase', ok: true, message: purchasedMessage(refetched.purchasedUnits) });
+        onOutcome({ action: 'purchase', ok: true, message: purchasedMessage(itemTitle, hold.units, refetched.purchasedUnits) });
       } else failed('purchase')(error);
     },
   });
@@ -111,7 +110,7 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
   if (purchaseSheetOpen && !hold.actions.purchase && !purchase.isPending) {
     setPurchaseSheetOpen(false);
     // A request whose answer was lost may still have gone through, or another tab bought it.
-    if (hold.status === 'purchased') setLostPurchase({ ok: true, message: purchasedMessage(hold.purchasedUnits) });
+    if (hold.status === 'purchased') setLostPurchase({ ok: true, message: purchasedMessage(itemTitle, hold.units, hold.purchasedUnits) });
     else setLostPurchase({
       ok: false,
       // Only an unavailable refusal explains why the purchase went away; any other kept failure doesn't.

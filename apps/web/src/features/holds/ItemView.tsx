@@ -3,6 +3,7 @@ import type { ListViewResponse } from '@gubbins/shared-types';
 import { useHoldItem } from './useHoldItem';
 import { storeHost } from '../../lib/storeHost';
 import { HoldDialog } from './HoldDialog';
+import { purchasedMessage } from './purchasedMessage';
 import { ItemAnnouncement } from './ItemAnnouncement';
 import { Seal } from './Seal';
 import { formatMoney } from '../../lib/formatMoney';
@@ -28,6 +29,7 @@ export interface ItemViewProps {
 
 export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chippedInMinor, draft, onChipInClosed }: ItemViewProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<'hold' | 'buy'>('hold');
   const [chipInOpen, setChipInOpen] = useState(Boolean(draft));
   const [thanks, setThanks] = useState('');
   const chipInButton = useRef<HTMLButtonElement>(null);
@@ -43,28 +45,39 @@ export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chi
     setChipInOpen(false);
     onChipInClosed?.();
   }
-  const { mutate, isPending, error, reset } = useHoldItem(slug, item.id);
+  const hold = useHoldItem(slug, item.id);
+  const buy = useHoldItem(slug, item.id, 'buy');
+  const sheet = dialogMode === 'buy' ? buy : hold;
   const holdButton = useRef<HTMLButtonElement>(null);
+  const buyButton = useRef<HTMLButtonElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
 
   // Unmounting the dialog skips the browser's own focus return, and the page
   // is inert until the modal has gone, so move focus after the commit.
-  // After a hold the button is about to go even if this render still has it.
-  const closedBy = useRef<'cancel' | 'hold' | null>(null);
+  // After a hold or a purchase the button is about to go even if this render still has it.
+  const closedBy = useRef<'cancel' | 'done' | null>(null);
   useEffect(() => {
     if (dialogOpen || !closedBy.current) return;
-    const button = closedBy.current === 'cancel' ? holdButton.current : null;
+    const button = closedBy.current === 'cancel' ? (dialogMode === 'buy' ? buyButton : holdButton).current : null;
     closedBy.current = null;
     if (button) button.focus();
     // The Hold button has gone, so the card's own heading is the nearest place left.
     else heading.current?.focus();
-  }, [dialogOpen]);
+  }, [dialogOpen, dialogMode]);
+
+  function openDialog(mode: 'hold' | 'buy') {
+    // Cleared, so a repeat purchase is announced again.
+    setThanks('');
+    setDialogMode(mode);
+    setDialogOpen(true);
+  }
 
   function closeDialog() {
     closedBy.current = 'cancel';
     setDialogOpen(false);
-    // The next opening starts clean: no stale error from this one.
-    reset();
+    // The next opening of either sheet starts clean: no stale error from this one.
+    hold.reset();
+    buy.reset();
   }
 
   const group = item.type === 'group' && item.priceMinor !== null
@@ -122,18 +135,30 @@ export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chi
         />
       )}
       {item.type === 'single' && item.status === 'available' && (
-        <button ref={holdButton} type="button" onClick={() => setDialogOpen(true)} className="btn-primary">
-          Hold this item<span className="sr-only">: {item.title}</span>
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button ref={buyButton} type="button" onClick={() => openDialog('buy')} className="btn-primary">
+            I&rsquo;m buying this<span className="sr-only">: {item.title}</span>
+          </button>
+          <button ref={holdButton} type="button" onClick={() => openDialog('hold')} className="btn-secondary">
+            Hold this item<span className="sr-only">: {item.title}</span>
+          </button>
+        </div>
       )}
       {dialogOpen && (
         <HoldDialog
           itemTitle={item.title}
           holdDurationDays={holdDurationDays}
           availableUnits={item.availableUnits}
-          isPending={isPending}
-          error={error}
-          onConfirm={(credential, details) => mutate({ idempotencyKey: credential.idempotencyKey, ...details }, { onSuccess: () => { closedBy.current = 'hold'; setDialogOpen(false); } })}
+          mode={dialogMode}
+          isPending={sheet.isPending}
+          error={sheet.error}
+          onConfirm={(credential, details) => sheet.mutate({ idempotencyKey: credential.idempotencyKey, ...details }, {
+            onSuccess: (view) => {
+              if (dialogMode === 'buy') setThanks(purchasedMessage(item.title, view.units, view.purchasedUnits));
+              closedBy.current = 'done';
+              setDialogOpen(false);
+            },
+          })}
           onClose={closeDialog}
         />
       )}
