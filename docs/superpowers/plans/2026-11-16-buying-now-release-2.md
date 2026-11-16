@@ -60,9 +60,11 @@ Each test the plan lists, and the production line only it protects. Values and r
 | Rebuild: busy ledger with an undone buy; drift repair | the `BuyUndone` fold |
 | UndoBuy: records as guest, saves the instant | `UndoBuy`'s command wiring and save |
 | UndoBuy: second undo answers, appends nothing | `runHoldCommand`'s `alreadyDone` branch and `UndoBuy`'s check |
-| GetListView: not released or undone | `myHolds`' filter |
+| GetListView: not released; not undone (one table) | each operand of `myHolds`' filter |
 | Route: undo answers 200 with the undone view | the route answers the command's view (status `undone`) |
 | Route: generic 404 tables gain `undo-buy` | permission → not found for this route (security matrix) |
+| Web: purchased card offers only "I didn’t buy it" | the `actions.undoBuy` render condition |
+| Web: focus into each question and back | each action's return-focus button |
 | Web: asks; plural; announces; failure copy | the confirm branch, `purchasedUnits > 1`, the success message, `couldnt.undoBuy` |
 | Web: focus and clearing `it.each` gain undo | the named set of outcomes whose card leaves, at each use |
 | Web: note copy (1 and 2) | `HoldDialog`'s buy-mode note |
@@ -99,7 +101,7 @@ Each test the plan lists, and the production line only it protects. Values and r
     - `it('stamps buyUndoneAt and returns BuyUndone')`: on a purchased hold, `undoBuy(CREATED)` equals `{ type: 'BuyUndone', v: 1, holdId: HOLD_ID, occurredAt: CREATED.toISOString() }`, and `statusAt(CREATED)` is then `'undone'`.
     - `it.each` over active, expired, released and undone: `'refuses a %s hold'` with `HoldNotActiveError`.
 - [ ] **Step 2: Run them and see them fail:** `scripts/verify.sh --quick apps/api src/domain/entities/Hold.test.ts`.
-- [ ] **Step 3: Implement in `Hold.ts`.** `_buyUndoneAt` is the constructor's last parameter. Constructor invariant, message `'A hold can have its buy undone only once bought'`. `statusAt` checks `_buyUndoneAt` first. `canUndoBuyAt(at)` is `statusAt(at) === 'purchased'`, and `undoBuy` refuses with `HoldNotActiveError` unless `canUndoBuyAt(at)`. Add `undoBuy` to the class note's list of methods that take an instant and to the constructor comment's list of the hold's own commands, whose "the one invariant" becomes "the invariants", and the comment on `markPurchased` stays true (it already refuses an undone hold: `purchasedAt` stays set). Create `BuyUndoneEvent.ts` and update `ItemPurchasedEvent`'s doc comment.
+- [ ] **Step 3: Implement in `Hold.ts`.** `_buyUndoneAt` is the constructor's last parameter. Constructor invariant, message `'A hold can have its buy undone only once bought'`. `statusAt` checks `_buyUndoneAt` first. `canUndoBuyAt(at)` is `statusAt(at) === 'purchased'`, and `undoBuy` refuses with `HoldNotActiveError` unless `canUndoBuyAt(at)`. Add `undoBuy` to the class note's list of methods that take an instant and to the constructor comment's list of the hold's own commands, whose "the one invariant" becomes "the invariants", `markPurchased`'s comment "Refuses only the terminal states" becomes "Refuses a hold that already ended: released, bought, or bought and undone (`purchasedAt` stays set)", and `Hold.test.ts`'s `'refuses a %s hold — both are terminal'` is renamed `'refuses a %s hold, which has already ended'`. Create `BuyUndoneEvent.ts` and update `ItemPurchasedEvent`'s doc comment.
 - [ ] **Step 4: Run them and see them pass.**
 - [ ] **Step 5: Write the failing `Item` tests** in `Item.test.ts`:
   - In `Item hold commands`: `it('undoBuy undoes its own hold at the instant it was loaded at, and records one event on its stream')`, shaped like `extendHold`'s: a purchased hold (`holdOn({ purchasedAt: T0, purchasedUnits: 1 })`) on an item loaded at seq 1 and `at(DAY)`. After `undoBuy(hold)`: `event.type` is `'BuyUndone'`, `hold.buyUndoneAt` equals `at(DAY)`, `expectedSeq` is 1 and `item.seq` is 2. Don't assert the units freed: the counters follow `statusAt`, pinned in `Hold.test.ts`.
@@ -135,7 +137,7 @@ Each test the plan lists, and the production line only it protects. Values and r
 
 - [ ] **Step 1: Write the failing tests.**
   - `wishlistRepository.contract.ts`: `it('saves an undone buy through wishlists.save, and the hold reloads as undone')`: insert a hold, load the list, `purchaseHold(hold, 1)`, save; load again later, `undoBuy(hold)`, save; reload: `holdStatus` is `'undone'` and `buyUndoneAt` equals that instant. Both adapters run it.
-  - `schema.integration.test.ts`: add the row `['a buy undone on a hold that is not purchased', { buy_undone_at: NOW }]` to the CHECK table, and `{ name: '0005_hold_buy_undone' }` to the migration-names list.
+  - `schema.integration.test.ts`: add the row `['a buy undone on a hold that was never bought', { buy_undone_at: NOW }]` to the CHECK table, renaming its `describe('0001_init schema')` to `describe('the holds schema')` since 0005's CHECK now sits there too, and `{ name: '0005_hold_buy_undone' }` to the migration-names list.
 - [ ] **Step 2: Run them and see them fail:** `scripts/verify.sh --quick apps/api <file>` for `src/infrastructure/contracts.integration.test.ts` (the real adapter), `src/application/test-fakes/InMemoryRepositories.contract.test.ts` (the fake) and `src/infrastructure/db/schema.integration.test.ts`.
 - [ ] **Step 3: Implement.** The migration is raw SQL like `0004`: `alter table holds add column buy_undone_at text check (buy_undone_at is null or purchased_at is not null)`, with a why-comment: a column CHECK, since SQLite can't add a table constraint to an existing table, and structural only (ADR-0083). Register it in `index.ts`. Add `buy_undone_at` to `lifecycleColumns`, to the row → `Hold.reconstitute` mapping, to `save`'s select list in `WishlistRepositoryKysely`, and to the fake's copy.
 - [ ] **Step 4: Run them and see them pass,** then `scripts/verify.sh` and commit "feat(api): store when a buy was undone".
@@ -162,7 +164,7 @@ Each test the plan lists, and the production line only it protects. Values and r
 
 ### Task 4: `BuyUndone` in the ledger, and the undo route
 
-**PR:** stacks on Task 3. About 13 files, the one exception to the cap (owner ruling 12): `rebuildProjections` and the ledger actor matrix are keyed by `LedgerEvent`, and the matrix raises every event type over HTTP, so the union entry, `UndoBuy` and the route can't ship apart. The PR body gives that reason for its size, without task numbers.
+**PR:** stacks on Task 3. About 13 files, the one exception to the cap (owner ruling 12): `rebuildProjections` and the ledger actor matrix are keyed by `LedgerEvent`, and the matrix raises every event type over HTTP, so the union entry, `UndoBuy` and the route can't ship apart. The PR body gives that reason for its size, without task numbers, and a Heads-up: the route's generic-404 and success tests come in the next PR, to keep this one at its size.
 
 **Files:**
 - Modify: `apps/api/src/domain/events/LedgerEvent.ts`
@@ -182,31 +184,32 @@ Each test the plan lists, and the production line only it protects. Values and r
   - `rebuildProjections.integration.test.ts`: `aBusyLedger` adds a hold that is bought then undone (`deps.undoBuy`), so `'re-folds exactly the state the write path maintained incrementally'` covers the fold; `projections()` selects `buy_undone_at`, and `'repairs a projection that drifted from the ledger'` nulls it too.
   - The two OpenAPI tests as listed above.
 - [ ] **Step 2: Run them and see them fail** (compile errors are the expected failure).
-- [ ] **Step 3: Implement.** `LedgerEvent` gains `BuyUndoneEvent`. `rebuildProjections` gets `case 'BuyUndone'` setting `buy_undone_at`,, and the `ItemHeld` insert writes `buy_undone_at: null` beside the other lifecycle nulls, for consistency (no test can see it). `UndoBuy` is `ReleaseHold` with `HoldPermissions.mayUndoBuy` and `wishlist.undoBuy(hold)`. In `routes.ts`, `holdCommands`' `action` type widens to the path segment `'extend' | 'release' | 'undo-buy'`, with the row `{ action: 'undo-buy', operationId: 'undoBuy', command: deps.undoBuy, done: 'The buy was undone; its units are free for others.', conflict: 'The hold was never bought (hold_not_active).' }`. Until Task 5, a second undo answers that 409. Wire it in `compositionRoot.ts` and `openApiDocument.ts`, then regenerate.
+- [ ] **Step 3: Implement.** `LedgerEvent` gains `BuyUndoneEvent`. `rebuildProjections` gets `case 'BuyUndone'` setting `buy_undone_at`, and the `ItemHeld` insert writes `buy_undone_at: null` beside the other lifecycle nulls, for consistency (no test can see it). `UndoBuy` is `ReleaseHold` with `HoldPermissions.mayUndoBuy` and `wishlist.undoBuy(hold)`. In `routes.ts`, `holdCommands`' `action` type widens to the path segment `'extend' | 'release' | 'undo-buy'`, with the row `{ action: 'undo-buy', operationId: 'undoBuy', command: deps.undoBuy, done: 'The buy was undone; its units are free for others.', conflict: 'The hold was never bought (hold_not_active).' }`. Until Task 5, a second undo answers that 409. Wire it in `compositionRoot.ts` and `openApiDocument.ts`, then regenerate.
 - [ ] **Step 4: Run them and see them pass,** then verify and commit "feat(api): undo a buy over HTTP, recorded as BuyUndone".
 
 ### Task 5: A second undo answers 200, and the undone hold leaves the guest's list
 
-**PR:** stacks on Task 4. 6 files.
+**PR:** stacks on Task 4. 9 files.
 
 **Files:**
 - Modify: `apps/api/src/application/use-cases/holdCommand.ts`, `UndoBuy.ts`
 - Test: `apps/api/src/application/use-cases/UndoBuy.test.ts`
 - Modify: `apps/api/src/application/use-cases/GetListView.ts`; Test: `GetListView.test.ts`
 - Test: `apps/api/src/presentation/routes.integration.test.ts`
+- Modify: `apps/api/src/presentation/routes.ts` (the undo row's `done`); Generated: `apps/api/openapi.json`, `apps/web/src/api/schema.gen.ts`
 
 **Interfaces:**
 - Produces: `runHoldCommand(ctx, input, access, now, permit, decide, alreadyDone?: (wishlist: Wishlist, hold: Hold) => boolean)`. When `alreadyDone` is given and true after the permission check, it answers `toHoldView(wishlist, hold)` with no `decide`, no append and no save.
 
 - [ ] **Step 1: Write the failing tests.**
   - `UndoBuy.test.ts`: `it('answers a second undo with the undone view and appends nothing')`: after one undo, a second `execute` returns `status: 'undone'` and the stream's length and the item's `seq` are unchanged.
-  - `GetListView.test.ts`: rename `'lists purchased holds but not released ones'` to `'lists purchased holds but not released or undone ones'`, and add a third hold that is bought then undone; `myHolds` is still just the bought one.
+  - `GetListView.test.ts`: `setup()` gains `undoBuy` (a `new UndoBuy(world.unitOfWork, world.clock)`, like `release`). Turn `'lists purchased holds but not released ones'` into an `it.each` over released and undone, `'lists purchased holds but not %s ones'`. Each row closes one hold (release; or buy, then undo) before the bought one is placed, since the item has one unit. `myHolds` is just the bought one.
   - `routes.integration.test.ts`: `holdAction`'s action type gains `'undo-buy'` (no body).
     - `it('undoes a bought hold, answering 200 with its undone view')`.
     - `'undo-buy'` joins the `it.each` of `'%s answers the generic 404 for anything but this session's hold on this list'`.
     - `'undo-buy'` joins the closing actions of `"answers the generic 404, not a state-revealing 409, when another session acts on a hold that was closed by %s"` (its closing step buys then undoes) and the inner list of actions tried.
 - [ ] **Step 2: Run them and see the second-undo and list tests fail;** the route tests pass already. Show each passing new test failing when its line is broken (for the route row, drop `'undo-buy'` from `holdCommands`).
-- [ ] **Step 3: Implement.** Add `alreadyDone` to `runHoldCommand`, with a why-comment (a repeat of a done command answers the done state rather than an error: the guest's intent already holds). `runHoldCommand`'s doc comment ("check permission, let the wishlist decide, then persist") and `HoldCommand`'s ("Extend, release and mark purchased share one shape") change to match. `UndoBuy` passes `(wishlist, hold) => wishlist.holdStatus(hold) === 'undone'`. `GetListView` filters out `'released'` and `'undone'`, and its comment says why ("released holds and undone buys were the guest's own choice").
+- [ ] **Step 3: Implement.** Add `alreadyDone` to `runHoldCommand`, with a why-comment (a repeat of a done command answers the done state rather than an error: the guest's intent already holds). `runHoldCommand`'s doc comment ("check permission, let the wishlist decide, then persist") and `HoldCommand`'s ("Extend, release and mark purchased share one shape") change to match. `UndoBuy` passes `(wishlist, hold) => wishlist.holdStatus(hold) === 'undone'`. The undo row's `done` becomes `'The buy was undone, now or by an earlier request; its units are free for others.'`; regenerate. `GetListView` filters out `'released'` and `'undone'`, and its comment says why ("released holds and undone buys were the guest's own choice").
 - [ ] **Step 4: Run them and see them pass,** then verify and commit "feat(api): answer a repeated undo with the undone hold, and drop undone holds from the guest's list".
 
 ### Task 6: "I didn't buy it" on the web
@@ -231,15 +234,15 @@ Each test the plan lists, and the production line only it protects. Values and r
   - `it('after an undo, announces "Stroller is available to other guests again." once the card has gone')`.
   - `it('says "Couldn’t undo buying Stroller." when the undo fails')` (500 with no message).
   - Turn `'moves focus into the release question, and back to the Release button when the guest keeps the hold'` into an `it.each` over release ("Release hold" / "Keep my hold") and undo ("I didn’t buy it" / "Keep it"), named `'moves focus into the %s question, and back to its button when the guest keeps it'`.
-  - Turn `'after a release with other entries left, moves focus to the sheet\'s heading'` into an `it.each` over release and undo.
-  - Turn `'clears the last announcement when a new hold appears'` into an `it.each` over release and undo.
+  - Turn `'after a release with other entries left, moves focus to the sheet\'s heading'` into an `it.each` over `'a release'` and `'an undo'`, named `'after %s with other entries left, moves focus to the sheet\'s heading'`.
+  - Turn `'clears the last announcement when a new hold appears'` into an `it.each` over the same rows, named `'clears the message after %s when a new hold appears'`.
 - [ ] **Step 2: Update the note tests** in `HoldDialog.test.tsx` to the new second line for 1 and 2 units, renaming `'… and that it can’t be undone'` to `'… and that it can be undone from Your contributions'`.
 - [ ] **Step 3: Run them and see them fail:** `scripts/verify.sh --quick apps/web src/features/holds/YourContributions.test.tsx` (and `HoldDialog.test.tsx`).
 - [ ] **Step 4: Implement.**
   - `HoldActions`: generalise the release confirmation to one `confirming: 'release' | 'undoBuy' | null` state. Each action supplies its question, its yes and keep labels, and the button that focus returns to, so the focus effect and the question group are shared, not copied. `I didn't buy it` shows when `hold.actions.undoBuy` is true. `couldnt.undoBuy` and the success message come from the copy list. On error, report `failed('undoBuy')`; a repeat answers 200, so it needs no refusal special case.
   - `YourContributions`: name once the outcomes whose card leaves (`release`, `undoBuy`), and use that name both for focus in `showOutcome` and for clearing on a new hold. The component's doc comment says "A release's or an undo's message also clears when a new hold appears".
   - `HoldDialog`: the new second line.
-- [ ] **Step 5: Extend the e2e journey** `'a guest buys 2 of 5 with "I’m buying this", and another guest sees "Wanted: 3 more"'` and rename it `'… sees "Wanted: 3 more", then "Wanted: 5 more" after the buy is undone'`. After the other guest sees "Wanted: 3 more", the first guest presses `I didn’t buy it` and `Yes, undo it`, and sees `Baby onesies is available to other guests again.` (the fixture's title). The other guest reloads and sees `Wanted: 5 more`. The `try`/`finally` that closes the other guest's context wraps the undo and the reload. Run the axe scan once while the question is open.
+- [ ] **Step 5: Extend the e2e journey** `'a guest buys 2 of 5 with "I’m buying this", and another guest sees "Wanted: 3 more"'` and rename it `'… sees "Wanted: 3 more", then "Wanted: 5 more" after the buy is undone'`. After the other guest sees "Wanted: 3 more", the first guest presses `I didn’t buy it` and `Yes, undo it`, and sees `Baby onesies is available to other guests again.` (the fixture's title). That was the guest's only entry, so the sheet closes and the message is read at page level, as `e2e/guest-manages-a-hold.spec.ts` reads a release's: `guest.getByRole('status').filter({ hasText: … })`. The other guest reloads and sees `Wanted: 5 more`. The `try`/`finally` that closes the other guest's context wraps the undo and the reload. Run the axe scan once while the question is open, before "Yes, undo it".
 - [ ] **Step 6: Run, verify (`scripts/verify.sh --e2e`, announcing it to peer sessions) and commit** "feat(web): let a guest undo a buy from Your contributions".
 
 ### Task 7: Docs for the undo
@@ -250,7 +253,7 @@ Each test the plan lists, and the production line only it protects. Values and r
 - Modify: `docs/adr/0075-ledger-events-record-the-acting-role.md`: in the single-role list, `PurchaseVoided` goes and `BuyUndone` joins the guest-only types, with one sentence: an owner undo, if built, records the same event as `owner`.
 - Modify: `docs/spec/holds.md`: "Purchase is terminal; only the owner can undo it" becomes "The guest who bought a gift can undo the buy from Your contributions; its units go back to other guests (ADR-0088)".
 - Modify: `docs/spec/domain-model.md`: "Purchase single only — terminal" becomes "single only — the buying guest can undo it (`BuyUndone`)".
-- Modify: `docs/spec/guest-ux.md`: the buy flow's "it can't be undone, so only tap it if you're sure" becomes "if plans change, they can undo it from Your contributions", and the Your contributions description gains "I didn't buy it", its question and its outcome.
+- Modify: `docs/spec/guest-ux.md`: the buy flow's "it can't be undone, so only tap it if you're sure" becomes "if plans change, they can undo it from Your contributions", and a new bullet after the buy flow says: "From Your contributions, a bought gift offers "I didn't buy it", which asks "Undo buying {title}?" and puts its units back for other guests."
 - Modify: `docs/spec/data-and-persistence.md`: the event-type list names `BuyUndone` in place of `PurchaseVoided`.
 - Modify: `docs/adr/0078-wishlist-is-the-aggregate-root.md`: "A purchase is a terminal state of a `Hold`" becomes "A purchase ends a hold's own lifecycle, except for its buyer's undo (`BuyUndone`, ADR-0088)", amended in place (ADRs are editable through 0.x).
 
