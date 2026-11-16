@@ -1,4 +1,4 @@
-/** A hold that ended in a purchase. Terminal (holds spec): only the owner can undo it, with PurchaseVoided in sub-project 4. */
+/** A hold that ended in a purchase. The guest who bought it can undo it with `BuyUndone`. */
 export interface ItemPurchasedEvent {
   type: 'ItemPurchased';
   v: 1;

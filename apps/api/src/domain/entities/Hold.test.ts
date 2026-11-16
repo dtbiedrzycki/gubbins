@@ -90,6 +90,10 @@ describe('Hold.reconstitute', () => {
     expect(() => persisted({ releasedAt: EXPIRES_AT, purchasedAt: EXPIRES_AT, purchasedUnits: 1 })).toThrow(DomainValidationError);
   });
 
+  it('refuses a hold whose buy was undone but that was never bought', () => {
+    expect(() => persisted({ buyUndoneAt: CREATED })).toThrow(DomainValidationError);
+  });
+
   it('rejects purchased units without a purchase, and a purchase without purchased units', () => {
     expect(() => persisted({ units: 2, purchasedUnits: 1 })).toThrow(DomainValidationError);
     expect(() => persisted({ units: 2, purchasedAt: EXPIRES_AT, purchasedUnits: null })).toThrow(DomainValidationError);
@@ -117,6 +121,10 @@ describe('Hold.statusAt — the one definition of hold state', () => {
 
   it('is purchased once purchasedAt is set, even long after expiry', () => {
     expect(persisted({ purchasedAt: msFromExpiry(5), purchasedUnits: 1 }).statusAt(msFromExpiry(86_400_000))).toBe('purchased');
+  });
+
+  it('is undone once buyUndoneAt is set, though purchasedAt stays', () => {
+    expect(persisted({ purchasedAt: CREATED, purchasedUnits: 1, buyUndoneAt: CREATED }).statusAt(CREATED)).toBe('undone');
   });
 
   it('starts a newly created hold active, with no lifecycle timestamps', () => {
@@ -195,6 +203,23 @@ describe('Hold.release', () => {
   });
 });
 
+describe('Hold.undoBuy', () => {
+  it('stamps buyUndoneAt and returns BuyUndone', () => {
+    const hold = persisted({ purchasedAt: CREATED, purchasedUnits: 1 });
+    expect(hold.undoBuy(CREATED)).toEqual({ type: 'BuyUndone', v: 1, holdId: HOLD_ID, occurredAt: CREATED.toISOString() });
+    expect(hold.statusAt(CREATED)).toBe('undone');
+  });
+
+  it.each([
+    ['active', persisted, CREATED],
+    ['expired', persisted, msFromExpiry(1)],
+    ['released', () => persisted({ releasedAt: CREATED }), CREATED],
+    ['undone', () => persisted({ purchasedAt: CREATED, purchasedUnits: 1, buyUndoneAt: CREATED }), CREATED],
+  ] as const)('refuses a %s hold', (_state, make, at) => {
+    expect(() => make().undoBuy(at)).toThrow(HoldNotActiveError);
+  });
+});
+
 describe('Hold.markPurchased', () => {
   it('stamps purchasedAt and returns ItemPurchased', () => {
     const hold = persisted();
@@ -223,7 +248,8 @@ describe('Hold.markPurchased', () => {
   it.each([
     ['released', () => persisted({ releasedAt: CREATED })],
     ['purchased', () => persisted({ purchasedAt: CREATED, purchasedUnits: 1 })],
-  ] as const)('refuses a %s hold — both are terminal', (_state, make) => {
+    ['undone', () => persisted({ purchasedAt: CREATED, purchasedUnits: 1, buyUndoneAt: CREATED })],
+  ] as const)('refuses a %s hold, which has already ended', (_state, make) => {
     expect(() => make().markPurchased(CREATED, 1)).toThrow(HoldNotActiveError);
   });
 });

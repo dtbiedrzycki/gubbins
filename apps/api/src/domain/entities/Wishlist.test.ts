@@ -47,7 +47,7 @@ function loaded(options: { quantity?: number; seq?: number; holds?: Hold[]; asOf
 /** Every `can…` answer for `hold`, asked of a wishlist that loaded it. */
 function asks(hold: Hold, options: Parameters<typeof loaded>[0] = {}) {
   const wishlist = loaded({ ...options, holds: [hold] });
-  return { canExtendHold: wishlist.canExtendHold(hold), canReleaseHold: wishlist.canReleaseHold(hold), canPurchaseHold: wishlist.canPurchaseHold(hold) };
+  return { canExtendHold: wishlist.canExtendHold(hold), canReleaseHold: wishlist.canReleaseHold(hold), canUndoBuy: wishlist.canUndoBuy(hold), canPurchaseHold: wishlist.canPurchaseHold(hold) };
 }
 
 describe('Wishlist.create', () => {
@@ -395,6 +395,14 @@ describe('Wishlist hold commands', () => {
     expect(item).toBe(wishlist.getItem(ITEM_ID));
   });
 
+  it('undoBuy has the item decide, and returns that item', () => {
+    const hold = holdOn(ITEM_ID, { purchasedAt: T0, purchasedUnits: 1 });
+    const wishlist = loaded({ holds: [hold] });
+    const { event, item } = wishlist.undoBuy(hold);
+    expect(event.type).toBe('BuyUndone');
+    expect(item).toBe(wishlist.getItem(ITEM_ID));
+  });
+
   it('purchaseHold has the item decide, and returns that item', () => {
     const hold = holdOn(ITEM_ID);
     const wishlist = loaded({ holds: [hold] });
@@ -415,6 +423,7 @@ describe('Wishlist hold commands', () => {
   it("refuses a hold on another list's item with HoldNotFoundError", () => {
     expect(() => loaded().extendHold(holdOn(OTHER_ITEM_ID), DAY)).toThrow(HoldNotFoundError);
     expect(() => loaded().releaseHold(holdOn(OTHER_ITEM_ID))).toThrow(HoldNotFoundError);
+    expect(() => loaded().undoBuy(holdOn(OTHER_ITEM_ID))).toThrow(HoldNotFoundError);
     expect(() => loaded().purchaseHold(holdOn(OTHER_ITEM_ID), 1)).toThrow(HoldNotFoundError);
   });
 });
@@ -423,15 +432,16 @@ describe('Wishlist hold questions', () => {
   it("answers each question as the hold's item does, true or false", () => {
     const hold = holdOn(ITEM_ID);
     expect(loaded({ holds: [hold], asOf: at(3 * DAY + 1) }).holdStatus(hold)).toBe('expired');
-    expect(asks(hold)).toEqual({ canExtendHold: true, canReleaseHold: true, canPurchaseHold: true });
-    expect(asks(holdOn(ITEM_ID, { releasedAt: T0 }))).toEqual({ canExtendHold: false, canReleaseHold: false, canPurchaseHold: false });
+    expect(asks(hold)).toEqual({ canExtendHold: true, canReleaseHold: true, canUndoBuy: false, canPurchaseHold: true });
+    expect(asks(holdOn(ITEM_ID, { releasedAt: T0 }))).toEqual({ canExtendHold: false, canReleaseHold: false, canUndoBuy: false, canPurchaseHold: false });
+    expect(asks(holdOn(ITEM_ID, { purchasedAt: T0, purchasedUnits: 1 })).canUndoBuy).toBe(true);
   });
 
   it("refuses a hold on another list's item: HoldNotFoundError for its status, false for every can… question", () => {
     expect(() => loaded().holdStatus(holdOn(OTHER_ITEM_ID))).toThrow(HoldNotFoundError);
     const elsewhere = holdOn(OTHER_ITEM_ID);
     const wishlist = loaded();
-    expect([wishlist.canExtendHold(elsewhere), wishlist.canReleaseHold(elsewhere), wishlist.canPurchaseHold(elsewhere)]).toEqual([false, false, false]);
+    expect([wishlist.canExtendHold(elsewhere), wishlist.canReleaseHold(elsewhere), wishlist.canUndoBuy(elsewhere), wishlist.canPurchaseHold(elsewhere)]).toEqual([false, false, false, false]);
   });
 });
 
@@ -445,8 +455,11 @@ describe('Wishlist.itemStatus', () => {
 });
 
 describe('Wishlist.findHoldForReplay', () => {
-  it("returns the session's own hold for a key it already used, even once that hold has expired", () => {
-    const hold = holdOn(ITEM_ID, { idempotencyKey: 'tap-1', expiresAt: at(-1) });
+  it.each([
+    ['expired', { expiresAt: at(-1) }],
+    ['undone', { purchasedAt: T0, purchasedUnits: 1, buyUndoneAt: T0 }],
+  ] as const)("returns the session's own hold for a key it already used, whatever its state: %s", (_state, overrides) => {
+    const hold = holdOn(ITEM_ID, { idempotencyKey: 'tap-1', ...overrides });
     expect(loaded({ holds: [hold] }).findHoldForReplay(ITEM_ID, 'tap-1', SESSION)).toBe(hold);
   });
 

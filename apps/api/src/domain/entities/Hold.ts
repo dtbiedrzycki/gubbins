@@ -1,4 +1,5 @@
 import { DomainValidationError, HoldAlreadyExtendedError, HoldNotActiveError } from '../errors.js';
+import type { BuyUndoneEvent } from '../events/BuyUndoneEvent.js';
 import type { HoldExtendedEvent } from '../events/HoldExtendedEvent.js';
 import type { HoldReleasedEvent } from '../events/HoldReleasedEvent.js';
 import type { ItemPurchasedEvent } from '../events/ItemPurchasedEvent.js';
@@ -12,11 +13,12 @@ import { UuidId } from '../value-objects/UuidId.js';
  * the timestamps, so nothing has to be written when a hold expires
  * (ADR-0002's lazy expiry).
  */
-export type HoldStatus = 'active' | 'expired' | 'released' | 'purchased';
+export type HoldStatus = 'active' | 'expired' | 'released' | 'purchased' | 'undone';
 
 /**
  * A hold's own lifecycle rules. The methods that take an instant (`statusAt`,
- * `canExtendAt`, `canReleaseAt`, `extend`, `release`, `markPurchased`) are the
+ * `canExtendAt`, `canReleaseAt`, `canUndoBuyAt`, `extend`, `release`, `markPurchased`,
+ * `undoBuy`) are the
  * aggregate's internals: its `Item` calls them with the instant it was loaded
  * at, and application code goes through `Wishlist`, never these. That keeps
  * every decision on one instant, so no caller can decide on current data
@@ -24,10 +26,10 @@ export type HoldStatus = 'active' | 'expired' | 'released' | 'purchased';
  */
 export class Hold {
   /**
-   * Enforces the one invariant between the timestamps, so neither factory
+   * Enforces the invariants between the timestamps, so neither factory
    * can produce a hold that ended two ways. The lifecycle fields are private
    * and mutable because the hold's own commands (extend, release,
-   * markPurchased) change them in place — sound only because every
+   * markPurchased, undoBuy) change them in place — sound only because every
    * aggregate is loaded fresh per unit of work, as `Item.placeHold` already
    * assumes.
    */
@@ -44,6 +46,7 @@ export class Hold {
     private _releasedAt: Date | null,
     private _purchasedAt: Date | null,
     private _purchasedUnits: number | null,
+    private _buyUndoneAt: Date | null,
   ) {
     if (_releasedAt !== null && _purchasedAt !== null) {
       throw new DomainValidationError('A hold cannot be both released and purchased');
@@ -51,6 +54,9 @@ export class Hold {
     if (!Number.isInteger(units) || units < 1) throw new DomainValidationError('A hold must cover a positive whole number of units');
     if ((_purchasedAt === null) !== (_purchasedUnits === null)) {
       throw new DomainValidationError('A hold records purchased units exactly when it is purchased');
+    }
+    if (_buyUndoneAt !== null && _purchasedAt === null) {
+      throw new DomainValidationError('A hold can have its buy undone only once bought');
     }
     if (_purchasedUnits !== null) this.assertCovers(_purchasedUnits);
   }
@@ -68,7 +74,7 @@ export class Hold {
     return new Hold(
       UuidId.from(props.id), UuidId.from(props.itemId), secret, sessionHash, idempotencyKey,
       UuidId.from(props.piiRef), props.units,
-      props.expiresAt, null, null, null, null,
+      props.expiresAt, null, null, null, null, null,
     );
   }
 
@@ -80,13 +86,14 @@ export class Hold {
   static reconstitute(props: {
     id: string; itemId: string; secret: string; sessionHash: string; idempotencyKey: string;
     expiresAt: Date; extendedAt: Date | null; releasedAt: Date | null; purchasedAt: Date | null;
-    piiRef?: string | null; units: number; purchasedUnits: number | null;
+    piiRef?: string | null; units: number; purchasedUnits: number | null; buyUndoneAt?: Date | null;
   }): Hold {
     return new Hold(
       UuidId.from(props.id), UuidId.from(props.itemId), HoldSecret.from(props.secret),
       SessionHash.from(props.sessionHash), IdempotencyKey.from(props.idempotencyKey),
       props.piiRef == null ? null : UuidId.from(props.piiRef), props.units,
       props.expiresAt, props.extendedAt, props.releasedAt, props.purchasedAt, props.purchasedUnits,
+      props.buyUndoneAt ?? null,
     );
   }
 
@@ -94,6 +101,7 @@ export class Hold {
   get extendedAt(): Date | null { return this._extendedAt; }
   get releasedAt(): Date | null { return this._releasedAt; }
   get purchasedAt(): Date | null { return this._purchasedAt; }
+  get buyUndoneAt(): Date | null { return this._buyUndoneAt; }
   /** Units bought, from 1 to `units`; null until purchased. The rest went back to other guests. */
   get purchasedUnits(): number | null { return this._purchasedUnits; }
 
@@ -110,6 +118,8 @@ export class Hold {
    * the class note).
    */
   statusAt(at: Date): HoldStatus {
+    // Checked first: an undone buy keeps purchasedAt, so it would otherwise read as purchased.
+    if (this._buyUndoneAt !== null) return 'undone';
     if (this._purchasedAt !== null) return 'purchased';
     if (this._releasedAt !== null) return 'released';
     if (at.getTime() > this._expiresAt.getTime()) return 'expired';
@@ -133,6 +143,11 @@ export class Hold {
   /** Called by its `Item` with its load instant, like `statusAt`. */
   canReleaseAt(at: Date): boolean {
     return this.statusAt(at) === 'active';
+  }
+
+  /** Called by its `Item` with its load instant, like `statusAt`. */
+  canUndoBuyAt(at: Date): boolean {
+    return this.statusAt(at) === 'purchased';
   }
 
   /**
@@ -159,8 +174,15 @@ export class Hold {
     return { type: 'HoldReleased', v: 1, holdId: this.id.value, occurredAt: at.toISOString() };
   }
 
+  /** Called by its `Item` with its load instant, like `statusAt`. */
+  undoBuy(at: Date): BuyUndoneEvent {
+    if (!this.canUndoBuyAt(at)) throw new HoldNotActiveError(this.id.value);
+    this._buyUndoneAt = at;
+    return { type: 'BuyUndone', v: 1, holdId: this.id.value, occurredAt: at.toISOString() };
+  }
+
   /**
-   * Ends the hold in a purchase. Refuses only the terminal states: an
+   * Ends the hold in a purchase. Refuses a hold that already ended: released, bought, or bought and undone (`purchasedAt` stays set): an
    * expired hold may still be purchased when its item has a free unit, and
    * only the item — which sees the other holds — can tell, so reach this
    * through `Item.purchaseHold`, which passes its load instant. `units` is

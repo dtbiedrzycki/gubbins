@@ -8,7 +8,7 @@ const hold = Hold.reconstitute({
   secret: 'hold-secret', sessionHash: SESSION, idempotencyKey: 'idem-1',
   expiresAt: new Date('2026-01-04T00:00:00.000Z'), extendedAt: null, releasedAt: null, purchasedAt: null, units: 1, purchasedUnits: null,
 });
-const commands = ['mayExtend', 'mayRelease', 'mayPurchase'] as const;
+const commands = ['mayExtend', 'mayRelease', 'mayUndoBuy', 'mayPurchase'] as const;
 
 describe('HoldPermissions — guest rows', () => {
   it.each(commands)('%s: the session that placed the hold acts, as the guest', (command) => {

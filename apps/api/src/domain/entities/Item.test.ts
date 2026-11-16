@@ -280,6 +280,16 @@ describe('Item hold commands', () => {
     expect(item.seq).toBe(2);
   });
 
+  it('undoBuy undoes its own hold at the instant it was loaded at, and records one event on its stream', () => {
+    const hold = holdOn({ purchasedAt: T0, purchasedUnits: 1 });
+    const item = holding([hold], { seq: 1, asOf: at(DAY) });
+    const { event, expectedSeq } = item.undoBuy(hold);
+    expect(event.type).toBe('BuyUndone');
+    expect(hold.buyUndoneAt).toEqual(at(DAY));
+    expect(expectedSeq).toBe(1);
+    expect(item.seq).toBe(2);
+  });
+
   it('releaseHold frees the unit', () => {
     const hold = holdOn();
     const item = holding([hold], { asOf: at(DAY) });
@@ -291,6 +301,7 @@ describe('Item hold commands', () => {
   it('refuses a command on a hold it did not load, with HoldNotFoundError', () => {
     expect(() => holding([]).releaseHold(holdOn())).toThrow(HoldNotFoundError);
     expect(() => holding([]).extendHold(holdOn(), DAY)).toThrow(HoldNotFoundError);
+    expect(() => holding([]).undoBuy(holdOn())).toThrow(HoldNotFoundError);
     expect(() => holding([]).purchaseHold(holdOn(), 1)).toThrow(HoldNotFoundError);
   });
 
@@ -400,11 +411,13 @@ describe('Item.purchaseHold', () => {
     expect(() => holding([hold], { quantity: 3 }).purchaseHold(hold, 3)).toThrow(DomainValidationError);
   });
 
-  it('refuses a released hold, or one already purchased', () => {
-    const released = holdOn({ releasedAt: T0 });
-    const purchased = holdOn({ purchasedAt: T0, purchasedUnits: 1 });
-    expect(() => holding([released]).purchaseHold(released, 1)).toThrow(HoldNotActiveError);
-    expect(() => holding([purchased], { quantity: 2 }).purchaseHold(purchased, 1)).toThrow(HoldNotActiveError);
+  it.each([
+    ['released', { releasedAt: T0 }],
+    ['purchased', { purchasedAt: T0, purchasedUnits: 1 }],
+    ['undone', { purchasedAt: T0, purchasedUnits: 1, buyUndoneAt: T0 }],
+  ] as const)('refuses a %s hold with HoldNotActiveError, not as lapsed', (_state, overrides) => {
+    const hold = holdOn(overrides);
+    expect(() => holding([hold], { quantity: 2 }).purchaseHold(hold, 1)).toThrow(HoldNotActiveError);
   });
 });
 
@@ -435,7 +448,7 @@ describe('Item.purchasableUnits', () => {
   });
 });
 
-describe('Item.holdStatus, canExtendHold and canReleaseHold', () => {
+describe('Item.holdStatus, canExtendHold, canReleaseHold and canUndoBuy', () => {
   it("reports a hold's status as of the instant it was loaded at", () => {
     const hold = holdOn();
     expect(holding([hold], { asOf: at(3 * DAY) }).holdStatus(hold)).toBe('active');
@@ -462,6 +475,14 @@ describe('Item.holdStatus, canExtendHold and canReleaseHold', () => {
     expect(holding([purchased]).canReleaseHold(purchased)).toBe(false);
     expect(holding([extended], { asOf: at(3 * DAY + 1) }).canReleaseHold(extended)).toBe(false);
     expect(holding([]).canReleaseHold(holdOn())).toBe(false);
+  });
+
+  it('canUndoBuy: purchased, and loaded', () => {
+    const purchased = holdOn({ purchasedAt: T0, purchasedUnits: 1 });
+    const active = holdOn();
+    expect(holding([purchased]).canUndoBuy(purchased)).toBe(true);
+    expect(holding([active]).canUndoBuy(active)).toBe(false);
+    expect(holding([]).canUndoBuy(purchased)).toBe(false);
   });
 });
 
