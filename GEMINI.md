@@ -1,0 +1,3 @@
+# gubbins
+
+@./AGENTS.md

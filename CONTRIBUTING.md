@@ -1,5 +1,8 @@
 # Contributing to gubbins
 
+The rules for PR size, tests, code review and PR descriptions are in
+[`AGENTS.md`](AGENTS.md). They apply to people and AI agents alike.
+
 ## Development environment
 
 Use the dev container in `.devcontainer/` — it pins Node 24.17 and the
@@ -58,8 +61,8 @@ an edit to an existing one
    taking the next number, and list it in `migrations/index.ts`.
 2. A migration that is in a release tag is never edited. Fix it with
    another new migration. `scripts/check-shipped-migrations.sh` fails
-   when one is changed or deleted. Run it before pushing (the local gate
-   runs it).
+   when one is changed or deleted. Run it before pushing
+   (`scripts/verify.sh` runs it).
 3. An event payload shape change needs a version bump and an upcaster
    (ADR-[032](docs/adr/0032-migrations-are-forward-only-rollback-restore-from-backup.md)),
    not an in-place edit.
@@ -126,6 +129,10 @@ with Tailwind
 framework or library as an ADR rather than introducing it ad hoc.
 
 ## Tests
+
+Before pushing, run `scripts/verify.sh` on a clean tree (add `--e2e` for
+`main` or a PR into `main`). It runs CI's checks locally, since CI is
+turned off for now. The individual commands:
 
 ```sh
 npm test            # bats, then every workspace's unit tests
