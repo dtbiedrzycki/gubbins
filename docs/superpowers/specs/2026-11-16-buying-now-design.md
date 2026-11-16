@@ -84,14 +84,14 @@ flight, the fields lock once sent, and a retry reuses the key.
   field).
 - **Note box.** It tells the guest to commit *before* buying, so nobody else
   buys the gift in the meantime (owner ruling, 2026-11-16):
-  - **Do this before you buy it.**
-  - After this, other guests will see it's taken, so no one else buys it
-    while you're getting it. You can't undo this, so only go ahead if you're
-    sure.
-  - It avoids "marked as purchased", which read as if the purchase had
-    already happened, and "confirm", which names no button on the sheet
+  - **Tap "Yes, I'm buying it" before you buy it.**
+  - Other guests will then see it's taken, so no one else buys it while
+    you're getting it. It can't be undone, so only tap it if you're sure.
+  - With more than 1 picked, the button's own label is quoted ("Yes, I'm
+    buying 2"), and "they" and "them" replace "it".
+  - It names the button rather than saying "this" or "confirm", and avoids
+    "marked as purchased", which read as if the purchase had already happened
     (owner, 2026-11-16).
-  - With more than 1 picked, "they" and "them" replace "it".
 - **Buttons:** "Yes, I'm buying it" (or "Yes, I'm buying N"), and "Cancel".
   The pending label is "Saving…".
 - **When there are no longer enough units:** the hold sheet's 409
@@ -177,9 +177,9 @@ Item decides, Hold records.
   does (`GetListView` drops the undone status from `myHolds`, and the sheet
   closes if it was the last entry). The outcome message says "{title} is
   available to other guests again." *(my call)*
-- **The buying sheet's note** changes its second line to: "After this, other
-  guests will see it's taken, so no one else buys it while you're
-  getting it. If plans change, undo it from Your contributions."
+- **The buying sheet's note** changes its second line to: "Other guests will
+  then see it's taken, so no one else buys it while you're getting it. If
+  plans change, you can undo it from Your contributions."
 
 ### Rules
 
