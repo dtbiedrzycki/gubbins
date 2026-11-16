@@ -30,6 +30,9 @@ const canRetryPurchase = (error: Error) =>
   !(error instanceof ApiError) || error.status === 0 || error.status >= 500
   || (error.status === 409 && (!error.code || error.code === 'item_unavailable'));
 
+/** The actions that ask a question before they act. */
+type AskFirst = Extract<HoldAction, 'release' | 'undoBuy'>;
+
 const primary = 'btn-primary';
 const secondary = 'btn-secondary';
 
@@ -45,6 +48,7 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
     extend: `Couldn’t extend your hold on ${itemTitle}.`,
     release: `Couldn’t release your hold on ${itemTitle}.`,
     purchase: `Couldn’t mark ${itemTitle} as purchased.`,
+    undoBuy: `Couldn’t undo buying ${itemTitle}.`,
   };
   const failed = (action: HoldAction) => (error: Error) => onOutcome({ action, ok: false, message: actionErrorMessage(error, couldnt[action]) });
   const extended = (view: HoldView) => onOutcome({ action: 'extend', ok: true, message: `Hold extended until ${formatExpiry(view.expiresAt)}.` });
@@ -84,22 +88,45 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
       } else failed('purchase')(error);
     },
   });
-  const [confirmingRelease, setConfirmingRelease] = useState(false);
+  // A repeated undo answers 200, so it needs no refusal special case.
+  const undoBuy = useHoldAction(slug, 'undoBuy', {
+    onSuccess: () => onOutcome({ action: 'undoBuy', ok: true, message: `${itemTitle} is available to other guests again.` }),
+    onError: failed('undoBuy'),
+  });
+
+  const { holdId } = hold;
+  // The actions that ask first: their question, their answers, and what yes sends.
+  const questions = {
+    release: {
+      text: `Release your hold on ${itemTitle}? Someone else will be able to hold it.`,
+      yes: 'Yes, release it', keep: 'Keep my hold',
+      send: () => release.mutate({ holdId }),
+    },
+    undoBuy: {
+      text: `Undo buying ${itemTitle}? Other guests will be able to buy ${(hold.purchasedUnits ?? 1) > 1 ? 'them' : 'it'}.`,
+      yes: 'Yes, undo it', keep: 'Keep it',
+      send: () => undoBuy.mutate({ holdId }),
+    },
+  };
+  const [confirming, setConfirming] = useState<AskFirst | null>(null);
   const releaseButton = useRef<HTMLButtonElement>(null);
+  const undoBuyButton = useRef<HTMLButtonElement>(null);
   const keepButton = useRef<HTMLButtonElement>(null);
-  const releaseQuestion = useRef<HTMLParagraphElement>(null);
-  const confirmToggled = useRef(false);
+  const questionText = useRef<HTMLParagraphElement>(null);
+  // The action whose question last opened; null until then, so mounting moves no focus.
+  const asked = useRef<AskFirst | null>(null);
 
   // The button the guest pressed is replaced, so focus would fall to <body>:
-  // move it into the question, and back to Release when they keep the hold.
-  useEffect(() => {
-    if (!confirmToggled.current) return;
-    (confirmingRelease ? keepButton : releaseButton).current?.focus();
-  }, [confirmingRelease]);
+  // move it into the question, and back to the asking button when they keep it.
+  // An effect event, so only the question opening or closing moves focus, not every render.
+  const moveFocus = useEffectEvent((open: AskFirst | null) => {
+    if (asked.current) (open ? keepButton : { release: releaseButton, undoBuy: undoBuyButton }[asked.current]).current?.focus();
+  });
+  useEffect(() => moveFocus(confirming), [confirming]);
 
-  function toggleConfirmRelease(next: boolean) {
-    confirmToggled.current = true;
-    setConfirmingRelease(next);
+  function ask(action: AskFirst) {
+    asked.current = action;
+    setConfirming(action);
   }
 
   // A refetch can leave nothing to buy, which unmounts the sheet: after a
@@ -126,10 +153,8 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
     if (lostPurchase) reportLostPurchase(lostPurchase);
   }, [lostPurchase]);
 
-  const mutations = [extend, release, purchase];
+  const mutations = [extend, release, purchase, undoBuy];
   const pending = mutations.some((m) => m.isPending);
-
-  const { holdId } = hold;
 
   function buy(units: number, message: string) {
     onStart();
@@ -157,24 +182,27 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
         {hold.actions.extend && (
           <button type="button" disabled={pending} onClick={() => { onStart(); extend.mutate({ holdId }); }} className={secondary}>Extend hold</button>
         )}
-        {hold.actions.release && !confirmingRelease && (
-          <button ref={releaseButton} type="button" disabled={pending} onClick={() => toggleConfirmRelease(true)} className={secondary}>Release hold</button>
+        {hold.actions.release && confirming !== 'release' && (
+          <button ref={releaseButton} type="button" disabled={pending} onClick={() => ask('release')} className={secondary}>Release hold</button>
+        )}
+        {hold.actions.undoBuy && confirming !== 'undoBuy' && (
+          <button ref={undoBuyButton} type="button" disabled={pending} onClick={() => ask('undoBuy')} className={secondary}>I didn’t buy it</button>
         )}
       </div>
-      {hold.actions.release && confirmingRelease && (
-        <div role="group" aria-labelledby={`release-${hold.holdId}`} className="space-y-2 rounded-[14px] border border-line p-3">
-          <p ref={releaseQuestion} id={`release-${hold.holdId}`} tabIndex={-1}>Release your hold on {itemTitle}? Someone else will be able to hold it.</p>
+      {confirming && hold.actions[confirming] && (
+        <div role="group" aria-labelledby={`${confirming}-${holdId}`} className="space-y-2 rounded-[14px] border border-line p-3">
+          <p ref={questionText} id={`${confirming}-${holdId}`} tabIndex={-1}>{questions[confirming].text}</p>
           <div className="flex gap-2">
             <button type="button" disabled={pending} onClick={() => {
               // The question stays up, its buttons disabled, until the outcome
               // moves focus on; the question is what can hold focus till then.
-              releaseQuestion.current?.focus();
+              questionText.current?.focus();
               onStart();
-              release.mutate({ holdId });
+              questions[confirming].send();
             }} className={primary}>
-              Yes, release it
+              {questions[confirming].yes}
             </button>
-            <button ref={keepButton} type="button" disabled={pending} onClick={() => toggleConfirmRelease(false)} className={secondary}>Keep my hold</button>
+            <button ref={keepButton} type="button" disabled={pending} onClick={() => setConfirming(null)} className={secondary}>{questions[confirming].keep}</button>
           </div>
         </div>
       )}

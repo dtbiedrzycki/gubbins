@@ -221,10 +221,10 @@ describe('HoldDialog', () => {
       expect(screen.getByRole('dialog', { hidden: true })).toHaveAccessibleName('Buying \u201cStroller\u201d?');
     });
 
-    it('tells the guest to tap "Yes, I\u2019m buying it" before buying, and that it can\u2019t be undone', () => {
+    it('tells the guest to tap "Yes, I\u2019m buying it" before buying, and that it can be undone from Your contributions', () => {
       buy();
       expect(screen.getByText('Tap \u201cYes, I\u2019m buying it\u201d before you buy it.')).toBeInTheDocument();
-      expect(screen.getByText('Other guests will then see it\u2019s taken, so no one else buys it while you\u2019re getting it. It can\u2019t be undone, so only tap it if you\u2019re sure.')).toBeInTheDocument();
+      expect(screen.getByText('Other guests will then see it\u2019s taken, so no one else buys it while you\u2019re getting it. If plans change, you can undo it from Your contributions.')).toBeInTheDocument();
     });
 
     it('leaves out the hold sheet\u2019s come-back note', () => {
@@ -237,7 +237,7 @@ describe('HoldDialog', () => {
       buy({ availableUnits: 5 });
       await user.click(screen.getByRole('button', { name: 'One more' }));
       expect(screen.getByText('Tap \u201cYes, I\u2019m buying 2\u201d before you buy them.')).toBeInTheDocument();
-      expect(screen.getByText('Other guests will then see they\u2019re taken, so no one else buys them while you\u2019re getting them. It can\u2019t be undone, so only tap it if you\u2019re sure.')).toBeInTheDocument();
+      expect(screen.getByText('Other guests will then see they\u2019re taken, so no one else buys them while you\u2019re getting them. If plans change, you can undo it from Your contributions.')).toBeInTheDocument();
     });
 
     it('reads "Yes, I\u2019m buying 2" on the confirm button with 2 picked', async () => {

@@ -81,7 +81,7 @@ export function HoldDialog({ itemTitle, holdDurationDays, availableUnits, mode, 
             <p className="font-bold">Tap &ldquo;{confirmLabel}&rdquo; before you buy {pronoun}.</p>
             <p>{units > 1
               ? <>Other guests will then see they&rsquo;re taken, so no one else buys them while you&rsquo;re getting them.</>
-              : <>Other guests will then see it&rsquo;s taken, so no one else buys it while you&rsquo;re getting it.</>} It can&rsquo;t be undone, so only tap it if you&rsquo;re sure.</p>
+              : <>Other guests will then see it&rsquo;s taken, so no one else buys it while you&rsquo;re getting it.</>} If plans change, you can undo it from Your contributions.</p>
           </div>
         )
         : (

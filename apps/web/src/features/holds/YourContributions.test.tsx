@@ -18,6 +18,15 @@ const active = aHoldView({ expiresAt: EXPIRES });
 const extended: HoldView = { ...active, expiresAt: EXTENDED_EXPIRES, extendedAt: '2026-01-02T00:00:00.000Z', actions: { extend: false, release: true, purchase: true, undoBuy: false } };
 const expiredBuyable: HoldView = { ...active, status: 'expired', actions: { extend: false, release: false, purchase: true, undoBuy: false } };
 const purchased: HoldView = { ...active, status: 'purchased', purchasedUnits: 1, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false, undoBuy: true } };
+const noActions = { extend: false, release: false, purchase: false, undoBuy: false };
+const released: HoldView = { ...active, status: 'released', actions: noActions };
+const undone: HoldView = { ...purchased, status: 'undone', actions: noActions };
+
+/** The two outcomes whose card leaves the sheet: what is pressed, the route, its answer and the message. */
+const cardLeaving = [
+  ['a release', active, 'Release hold', 'Yes, release it', 'release', released, 'Your hold on Stroller is released.'],
+  ['an undo', purchased, 'I didn’t buy it', 'Yes, undo it', 'undo-buy', undone, 'Stroller is available to other guests again.'],
+] as const;
 
 type Pledge = ListViewResponse['myContributions'][number];
 const pledge: Pledge = { contributionId: 'pledge-1', itemId: 'item-2', amountMinor: 4000, pledgedAt: '2026-01-02T00:00:00.000Z' };
@@ -79,13 +88,13 @@ describe('YourContributions', () => {
     expect(within(within(region).getByRole('listitem')).getAllByRole('button').map((b) => b.textContent)).toEqual(['Mark as purchased']);
   });
 
-  it('shows a purchased hold as done, with a gold wax seal and no actions', async () => {
+  it('shows a purchased hold as done, with a gold wax seal and only "I didn’t buy it"', async () => {
     listViews(list([purchased]));
     const region = await openYourContributions();
 
     expect(within(region).getByText('Marked as purchased.')).toBeInTheDocument();
     expect(region.querySelector('[data-seal]')).toHaveAttribute('data-seal', 'gold-wax');
-    expect(within(within(region).getByRole('listitem')).queryAllByRole('button')).toEqual([]);
+    expect(within(within(region).getByRole('listitem')).getAllByRole('button').map((b) => b.textContent)).toEqual(['I didn’t buy it']);
   });
 
 
@@ -119,15 +128,66 @@ describe('YourContributions', () => {
     expect(within(region).getByRole('status')).toHaveTextContent('Your hold on Stroller is released.');
   });
 
-  it('moves focus into the release question, and back to the Release button when the guest keeps the hold', async () => {
-    listViews(list([active]));
+  it('asks "Undo buying Stroller? Other guests will be able to buy it." before undoing, and "Keep it" takes the question away', async () => {
+    listViews(list([purchased]));
     const user = userEvent.setup();
     const region = await openYourContributions();
 
-    await user.click(within(region).getByRole('button', { name: 'Release hold' }));
-    expect(within(region).getByRole('button', { name: 'Keep my hold' })).toHaveFocus();
-    await user.click(within(region).getByRole('button', { name: 'Keep my hold' }));
-    expect(within(region).getByRole('button', { name: 'Release hold' })).toHaveFocus();
+    await user.click(within(region).getByRole('button', { name: 'I didn’t buy it' }));
+    expect(within(region).getByRole('group', { name: 'Undo buying Stroller? Other guests will be able to buy it.' })).toBeInTheDocument();
+    await user.click(within(region).getByRole('button', { name: 'Keep it' }));
+
+    expect(within(region).queryByRole('group')).not.toBeInTheDocument();
+    expect(within(region).getByRole('button', { name: 'I didn’t buy it' })).toBeInTheDocument();
+  });
+
+  it('with 2 bought, the question ends "Other guests will be able to buy them."', async () => {
+    listViews(list([{ ...purchased, units: 2, purchasedUnits: 2 }]));
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: 'I didn’t buy it' }));
+
+    expect(within(region).getByRole('group', { name: 'Undo buying Stroller? Other guests will be able to buy them.' })).toBeInTheDocument();
+  });
+
+  it('after an undo, announces "Stroller is available to other guests again." once the card has gone', async () => {
+    listViews(list([purchased], [pledge]), list([], [pledge]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/undo-buy', 200, undone));
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: 'I didn’t buy it' }));
+    await user.click(within(region).getByRole('button', { name: 'Yes, undo it' }));
+
+    await waitFor(() => expect(within(region).queryByRole('heading', { name: 'Stroller' })).not.toBeInTheDocument());
+    expect(within(region).getByRole('status')).toHaveTextContent('Stroller is available to other guests again.');
+  });
+
+  it('says "Couldn’t undo buying Stroller." when the undo fails', async () => {
+    listViews(list([purchased]));
+    server.use(http.post('/api/lists/:slug/holds/:holdId/undo-buy', () => new HttpResponse(null, { status: 500 })));
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: 'I didn’t buy it' }));
+    await user.click(within(region).getByRole('button', { name: 'Yes, undo it' }));
+
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent(/^Couldn’t undo buying Stroller\. /));
+  });
+
+  it.each([
+    ['release', active, 'Release hold', 'Keep my hold'],
+    ['undo', purchased, 'I didn’t buy it', 'Keep it'],
+  ] as const)('moves focus into the %s question, and back to its button when the guest keeps it', async (_, hold, button, keep) => {
+    listViews(list([hold]));
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+
+    await user.click(within(region).getByRole('button', { name: button }));
+    expect(within(region).getByRole('button', { name: keep })).toHaveFocus();
+    await user.click(within(region).getByRole('button', { name: keep }));
+    expect(within(region).getByRole('button', { name: button })).toHaveFocus();
   });
 
   it('explains a refusal and refetches, so the card shows the hold as it really is', async () => {
@@ -294,15 +354,15 @@ describe('YourContributions', () => {
     expect(region.querySelector('[data-seal]')).toBeNull();
   });
 
-  it('clears the last announcement when a new hold appears', async () => {
+  it.each(cardLeaving)('clears the message after %s when a new hold appears', async (_, hold, button, yes, route, answer, message) => {
     const second: HoldView = { ...active, holdId: 'hold-2' };
-    listViews(list([active], [pledge]), list([], [pledge]), list([second], [pledge]));
-    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false, undoBuy: false } }));
+    listViews(list([hold], [pledge]), list([], [pledge]), list([second], [pledge]));
+    server.use(mock('post', `/api/lists/{slug}/holds/{holdId}/${route}`, 200, answer));
     const user = userEvent.setup();
     const region = await openYourContributions();
-    await user.click(within(region).getByRole('button', { name: 'Release hold' }));
-    await user.click(within(region).getByRole('button', { name: 'Yes, release it' }));
-    await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Your hold on Stroller is released.'));
+    await user.click(within(region).getByRole('button', { name: button }));
+    await user.click(within(region).getByRole('button', { name: yes }));
+    await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent(message));
 
     // The guest holds the item again from the item view, which refetches the list.
     await client.invalidateQueries();
@@ -326,14 +386,14 @@ describe('YourContributions', () => {
     await waitFor(() => expect(within(region).getByRole('heading', { name: heading })).toHaveFocus());
   });
 
-  it('after a release with other entries left, moves focus to the sheet\'s heading', async () => {
-    listViews(list([active], [pledge]), list([], [pledge]));
-    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false, undoBuy: false } }));
+  it.each(cardLeaving)('after %s with other entries left, moves focus to the sheet\'s heading', async (_, hold, button, yes, route, answer) => {
+    listViews(list([hold], [pledge]), list([], [pledge]));
+    server.use(mock('post', `/api/lists/{slug}/holds/{holdId}/${route}`, 200, answer));
     const user = userEvent.setup();
     const region = await openYourContributions();
 
-    await user.click(within(region).getByRole('button', { name: 'Release hold' }));
-    await user.click(within(region).getByRole('button', { name: 'Yes, release it' }));
+    await user.click(within(region).getByRole('button', { name: button }));
+    await user.click(within(region).getByRole('button', { name: yes }));
 
     await waitFor(() => expect(within(region).getByRole('heading', { name: 'Your contributions' })).toHaveFocus());
   });

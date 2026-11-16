@@ -71,6 +71,7 @@ describe('hold actions', () => {
   it.each([
     ['extendHold', 'extend'],
     ['releaseHold', 'release'],
+    ['undoBuy', 'undo-buy'],
   ] as const)('%s posts to the %s route with no body and returns the hold view', async (method, action) => {
     let path = '';
     let body = 'unset';
