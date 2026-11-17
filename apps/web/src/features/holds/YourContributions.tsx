@@ -53,10 +53,10 @@ function statusLine(hold: HoldView): string {
  * release, an undo, or a hold already released in another tab). An outcome
  * that empties the sheet closes it and shows in this component's own
  * page-level pair instead, or, when the action succeeded and the page shows
- * its gift, beside that gift: decided once, as the sheet empties. A failed release or undo reads as done once
- * its hold leaves the list, as a failed purchase does once its hold shows
- * bought. Every live region stays mounted while its
- * container is (ADR-0025). Feedback clears when the next action starts, so a
+ * its gift, beside that gift: decided once, as the sheet empties. A failed
+ * release or undo reads as done once its hold leaves the list, as a failed
+ * purchase does once its hold shows bought. Every live region stays mounted
+ * while its container is (ADR-0025). Feedback clears when the next action starts, so a
  * repeated message is announced again. A release's or an undo's message also
  * clears when a new hold appears, which it would contradict; other messages
  * stay to be read.
