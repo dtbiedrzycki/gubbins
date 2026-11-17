@@ -21,6 +21,8 @@ export interface HoldOutcome {
   action: HoldAction;
   ok: boolean;
   message: string;
+  /** A failed release's or undo's success message, shown instead once its hold has left the list: the action took effect after all. */
+  ifGone?: string;
 }
 
 const refusedAs = (error: Error, code: string) => error instanceof ApiError && error.status === 409 && error.code === code;
@@ -50,9 +52,11 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
     purchase: `Couldn’t mark ${itemTitle} as purchased.`,
     undoBuy: `Couldn’t undo buying ${itemTitle}.`,
   };
-  const failed = (action: HoldAction) => (error: Error) => onOutcome({ action, ok: false, message: actionErrorMessage(error, couldnt[action]) });
+  const released = `Your hold on ${itemTitle} is released.`;
+  const undone = `${itemTitle} is available to other guests again.`;
+  const failed = (action: HoldAction, ifGone?: string) => (error: Error) =>
+    onOutcome({ action, ok: false, message: actionErrorMessage(error, couldnt[action]), ifGone });
   const extended = (view: HoldView) => onOutcome({ action: 'extend', ok: true, message: `Hold extended until ${formatExpiry(view.expiresAt)}.` });
-  const released = () => onOutcome({ action: 'release', ok: true, message: `Your hold on ${itemTitle} is released.` });
   // A repeat of an action whose first answer was lost is refused; the refetched hold shows whether it worked.
   const extend = useHoldAction(slug, 'extend', {
     onSuccess: extended,
@@ -62,11 +66,8 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
     },
   });
   const release = useHoldAction(slug, 'release', {
-    onSuccess: released,
-    onError: (error, refetched) => {
-      if ((refusedAs(error, 'hold_not_active') || (error instanceof ApiError && error.status === 404)) && !refetched) released();
-      else failed('release')(error);
-    },
+    onSuccess: () => onOutcome({ action: 'release', ok: true, message: released }),
+    onError: failed('release', released),
   });
   const [purchaseSheetOpen, setPurchaseSheetOpen] = useState(false);
   const purchaseButton = useRef<HTMLButtonElement>(null);
@@ -90,8 +91,8 @@ export function HoldActions({ slug, hold, itemTitle, onStart, onOutcome }: HoldA
   });
   // A repeated undo answers 200, so it needs no refusal special case.
   const undoBuy = useHoldAction(slug, 'undoBuy', {
-    onSuccess: () => onOutcome({ action: 'undoBuy', ok: true, message: `${itemTitle} is available to other guests again.` }),
-    onError: failed('undoBuy'),
+    onSuccess: () => onOutcome({ action: 'undoBuy', ok: true, message: undone }),
+    onError: failed('undoBuy', undone),
   });
 
   const { holdId } = hold;

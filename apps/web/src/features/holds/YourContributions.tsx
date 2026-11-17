@@ -46,7 +46,9 @@ function statusLine(hold: HoldView): string {
  * the hold's card: the refetch after an action can remove the card (a
  * release, an undo, or a hold already released in another tab). An outcome
  * that empties the sheet closes it and shows in this component's own
- * page-level pair instead. Every live region stays mounted while its
+ * page-level pair instead. A failed release or undo reads as done once
+ * its hold leaves the list, as a failed purchase does once its hold shows
+ * bought. Every live region stays mounted while its
  * container is (ADR-0025). Feedback clears when the next action starts, so a
  * repeated message is announced again. A release's or an undo's message also
  * clears when a new hold appears, which it would contradict; other messages
@@ -54,7 +56,7 @@ function statusLine(hold: HoldView): string {
  */
 export function YourContributions({ slug, holds, contributions, itemTitles, onEmptied }: YourContributionsProps) {
   const [open, setOpen] = useState(false);
-  const [outcome, setOutcome] = useState<HoldOutcome | null>(null);
+  const [outcome, setOutcome] = useState<(HoldOutcome & { holdId: string }) | null>(null);
   const button = useRef<HTMLButtonElement>(null);
   const sheetHeading = useRef<HTMLHeadingElement>(null);
   const cardHeadings = useRef(new Map<string, HTMLHeadingElement>());
@@ -66,6 +68,8 @@ export function YourContributions({ slug, holds, contributions, itemTitles, onEm
     setKnownHoldIds(holdIds);
     if (outcome?.ok && cardLeaving.includes(outcome.action)) setOutcome(null);
   }
+  // Its answer was lost, or another tab acted: once the hold has gone, the release or undo went through.
+  if (outcome?.ifGone && !holdIds.includes(outcome.holdId)) setOutcome({ ...outcome, ok: true, message: outcome.ifGone, ifGone: undefined });
 
   const entries = holds.length + contributions.length;
   // The button's seal stamps in the first time it appears while the page is open, never again.
@@ -102,7 +106,7 @@ export function YourContributions({ slug, holds, contributions, itemTitles, onEm
   // moves to something that outlives the refetch: the hold's own heading if
   // its card stays, otherwise the sheet's heading beside the feedback.
   function showOutcome(holdId: string, next: HoldOutcome) {
-    setOutcome(next);
+    setOutcome({ ...next, holdId });
     const card = next.ok && !cardLeaving.includes(next.action) ? cardHeadings.current.get(holdId) : undefined;
     (card ?? sheetHeading.current)?.focus();
   }

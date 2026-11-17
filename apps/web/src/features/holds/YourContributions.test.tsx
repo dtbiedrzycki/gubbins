@@ -263,19 +263,20 @@ describe('YourContributions', () => {
     expect(within(region).getByRole('status')).toBeEmptyDOMElement();
   });
 
-  it.each([
-    ['409 hold_not_active', mock('post', '/api/lists/{slug}/holds/{holdId}/release', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' })],
-    ['404', mock('post', '/api/lists/{slug}/holds/{holdId}/release', 404, { message: 'Not found' })],
-  ])('reports a release that already went through as released after a %s', async (_, refusal) => {
-    listViews(list([active], [pledge]), list([], [pledge]));
-    server.use(refusal);
+  it.each(cardLeaving)('reports %s that got no answer as done once a later refetch shows its hold has gone', async (_, hold, button, yes, route, _answer, message) => {
+    // The server acted, but its answer never arrived. 1: the page loads; 2: the
+    // failure's own refetch still shows the hold; 3: a later refetch doesn't.
+    listViews(list([hold], [pledge]), list([hold], [pledge]), list([], [pledge]));
+    server.use(http.post(`/api/lists/:slug/holds/:holdId/${route}`, () => HttpResponse.error()));
     const user = userEvent.setup();
     const region = await openYourContributions();
+    await user.click(within(region).getByRole('button', { name: button }));
+    await user.click(within(region).getByRole('button', { name: yes }));
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent(/^Couldn’t /));
 
-    await user.click(within(region).getByRole('button', { name: 'Release hold' }));
-    await user.click(within(region).getByRole('button', { name: 'Yes, release it' }));
+    await client.invalidateQueries({ queryKey: listViewKey('abc123') });
 
-    await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent('Your hold on Stroller is released.'));
+    await waitFor(() => expect(within(region).getByRole('status')).toHaveTextContent(message));
     expect(within(region).getByRole('alert')).toBeEmptyDOMElement();
   });
 
