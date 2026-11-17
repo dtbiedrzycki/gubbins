@@ -33,7 +33,7 @@ function statusLine(hold: HoldView): string {
       return 'Marked as purchased.';
     case 'buyUndone':
       // The list view never sends an undone hold; the case keeps the switch exhaustive.
-      return 'Undone.';
+      return 'Buy undone.';
     case 'released':
       return 'Released.';
   }
