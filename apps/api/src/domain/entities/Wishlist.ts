@@ -1,5 +1,6 @@
 import { DomainValidationError, HoldNotFoundError, ItemHasGuestHistoryError, ItemNotFoundError, ItemUnavailableError, NoPaymentMethodError } from '../errors.js';
 import type { ContributionPledgedEvent } from '../events/ContributionPledgedEvent.js';
+import type { BuyUndoneEvent } from '../events/BuyUndoneEvent.js';
 import type { HoldExtendedEvent } from '../events/HoldExtendedEvent.js';
 import type { HoldReleasedEvent } from '../events/HoldReleasedEvent.js';
 import type { ItemHeldEvent } from '../events/ItemHeldEvent.js';
@@ -293,6 +294,11 @@ export class Wishlist {
     return this.lookup(hold)?.canReleaseHold(hold) ?? false;
   }
 
+  /** `undoBuy`'s rule as a question; false for a hold it did not load. */
+  canUndoBuy(hold: Hold): boolean {
+    return this.lookup(hold)?.canUndoBuy(hold) ?? false;
+  }
+
   /** `purchaseHold`'s rule as a question, for views that offer the action only when it would succeed; false for a hold it did not load. */
   canPurchaseHold(hold: Hold): boolean {
     return this.lookup(hold)?.canPurchaseHold(hold) ?? false;
@@ -337,6 +343,11 @@ export class Wishlist {
   releaseHold(hold: Hold): HoldCommandResult<HoldReleasedEvent> {
     const item = this.memberOf(hold);
     return { item, ...item.releaseHold(hold) };
+  }
+
+  undoBuy(hold: Hold): HoldCommandResult<BuyUndoneEvent> {
+    const item = this.memberOf(hold);
+    return { item, ...item.undoBuy(hold) };
   }
 
   purchaseHold(hold: Hold, units: number): HoldCommandResult<ItemPurchasedEvent> {

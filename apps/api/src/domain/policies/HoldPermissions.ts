@@ -32,6 +32,9 @@ export const HoldPermissions = {
   mayRelease(hold: Hold, credentials: HoldCredentials): Actor | null {
     return placedBy(hold, credentials) ? 'guest' : null;
   },
+  mayUndoBuy(hold: Hold, credentials: HoldCredentials): Actor | null {
+    return placedBy(hold, credentials) ? 'guest' : null;
+  },
   mayPurchase(hold: Hold, credentials: HoldCredentials): Actor | null {
     return placedBy(hold, credentials) ? 'guest' : null;
   },

@@ -1,5 +1,6 @@
 import { ContributionAmountError, DomainValidationError, HoldLapsedError, HoldNotActiveError, HoldNotFoundError, ItemUnavailableError } from '../errors.js';
 import type { ContributionPledgedEvent } from '../events/ContributionPledgedEvent.js';
+import type { BuyUndoneEvent } from '../events/BuyUndoneEvent.js';
 import type { HoldExtendedEvent } from '../events/HoldExtendedEvent.js';
 import type { HoldReleasedEvent } from '../events/HoldReleasedEvent.js';
 import type { ItemHeldEvent } from '../events/ItemHeldEvent.js';
@@ -314,6 +315,11 @@ export class Item {
     return this.findHold(hold.id.value)?.canReleaseAt(this.asOf) ?? false;
   }
 
+  /** `undoBuy`'s rule as a question; false for a hold it did not load. */
+  canUndoBuy(hold: Hold): boolean {
+    return this.findHold(hold.id.value)?.canUndoBuyAt(this.asOf) ?? false;
+  }
+
   /** The most units `purchaseHold` would accept for `hold`, for views that cap what they offer; 0 for a hold it did not load. */
   purchasableUnits(hold: Hold): number {
     const own = this.findHold(hold.id.value);
@@ -341,6 +347,13 @@ export class Item {
     return { hold: own, event, expectedSeq: this.recordEvent() };
   }
 
+  /** Reach it through `Wishlist.undoBuy`, which authorizes the hold. */
+  undoBuy(hold: Hold): { hold: Hold; event: BuyUndoneEvent; expectedSeq: number } {
+    const own = this.ownHold(hold);
+    const event = own.undoBuy(this.asOf);
+    return { hold: own, event, expectedSeq: this.recordEvent() };
+  }
+
   /**
    * Buys `units` of the hold; units not bought
    * go back to other guests. Reach it through `Wishlist.purchaseHold`,
@@ -350,7 +363,8 @@ export class Item {
     const own = this.ownHold(hold);
     const limit = this.purchaseLimit(own);
     const status = own.statusAt(this.asOf);
-    if (status === 'released' || status === 'purchased') throw new HoldNotActiveError(own.id.value);
+    // Only a hold still active, or lapsed but not ended, can be bought; any other status has already ended.
+    if (status !== 'active' && status !== 'expired') throw new HoldNotActiveError(own.id.value);
     if (limit === 0) throw new HoldLapsedError(this.id.value);
     own.assertCovers(units);
     // Within the units held but beyond the units free: another guest took them since this hold lapsed.
