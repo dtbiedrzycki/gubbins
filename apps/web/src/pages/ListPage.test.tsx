@@ -31,14 +31,14 @@ function CurrentLocation() {
 function renderListPage(entry = '/abc123') {
   // useListView's own retry wins over these defaults; retryDelay: 0 keeps its one retry instant.
   const client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 }, mutations: { retry: false } } });
-  return render(
+  return { client, ...render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[entry]}>
         <Routes><Route path="/:slug" element={<ListPage />} /></Routes>
         <CurrentLocation />
       </MemoryRouter>
     </QueryClientProvider>,
-  );
+  ) };
 }
 
 describe('ListPage', () => {
@@ -344,6 +344,19 @@ describe('ListPage', () => {
     await user.click(screen.getByRole('button', { name: 'Yes, release it' }));
 
     await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Stroller' })).toHaveFocus());
+  });
+
+  it('when another tab empties Your contributions, moves focus to the list title', async () => {
+    let held = true;
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(held))));
+    const user = userEvent.setup();
+    const { client } = renderListPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Your contributions · 1' }));
+    held = false;
+    await client.invalidateQueries();
+
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Baby Shower' })).toHaveFocus());
   });
 
   it('keeps the list, with the new hold in Your contributions, when the refetch after a hold fails', async () => {

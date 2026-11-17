@@ -14,7 +14,7 @@ export interface YourContributionsProps {
   holds: HoldView[];
   contributions: ListViewResponse['myContributions'];
   itemTitles: Record<string, string>;
-  /** An action removed the last entry, so the sheet and its button are gone; `itemId` is that action's gift, unless another tab emptied it. */
+  /** The last entry left, so the sheet and its button are gone; `itemId` is the gift of the latest outcome, if any. */
   onEmptied: (itemId?: string) => void;
 }
 

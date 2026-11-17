@@ -211,6 +211,18 @@ describe('YourContributions', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('This hold is no longer active.');
   });
 
+  it('when a refusal removes the last entry, reports that gift', async () => {
+    listViews(list([active]), list([]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }));
+    const onEmptied = vi.fn();
+    const user = userEvent.setup();
+    const region = await openYourContributions({ onEmptied });
+
+    await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
+
+    await waitFor(() => expect(onEmptied).toHaveBeenCalledWith('item-1'));
+  });
+
   it('explains a not-found hold in words a guest can act on, not the bare "Not found"', async () => {
     listViews(list([active]));
     server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 404, { message: 'Not found' }));

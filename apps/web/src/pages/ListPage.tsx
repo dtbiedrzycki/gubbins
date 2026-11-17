@@ -108,10 +108,11 @@ export default function ListPage() {
         <header className="text-center">
           <h1 ref={title} tabIndex={-1} className="font-display text-[2.05rem] leading-tight text-balance break-words text-list-title">{query.data.title}</h1>
           <span className="vine" aria-hidden="true" />
-          {/* An outcome that empties the sheet focuses its gift, so the page stays near it; the title is the fallback when another tab emptied it. */}
+          {/* Here, so an outcome that empties the sheet shows under the list title, the fallback focus. */}
           <YourContributions slug={slug} holds={query.data.myHolds} contributions={query.data.myContributions}
             itemTitles={Object.fromEntries(items.map((i) => [i.id, i.title]))}
-            onEmptied={(itemId) => (document.getElementById(`item-title-${itemId}`) ?? title.current)?.focus()} />
+            // Focus the outcome's gift, so the page stays near it; the title when there's no gift or the filter hides it.
+            onEmptied={(itemId) => ((itemId && document.getElementById(`item-title-${itemId}`)) || title.current)?.focus()} />
         </header>
         {query.data.description && (
           <section aria-label="About this list">
