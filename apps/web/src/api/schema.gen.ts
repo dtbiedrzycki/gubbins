@@ -257,6 +257,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lists/{slug}/holds/{holdId}/undo-buy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["undoBuy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1311,6 +1327,72 @@ export interface operations {
                 };
             };
             /** @description The hold is not active (hold_not_active). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    undoBuy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                holdId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The buy was undone; its units are free for others. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        holdId: string;
+                        itemId: string;
+                        /** @enum {string} */
+                        status: "active" | "expired" | "released" | "purchased" | "buyUndone";
+                        expiresAt: string;
+                        extendedAt: string | null;
+                        units: number;
+                        purchasedUnits: number | null;
+                        purchasableUnits: number;
+                        actions: {
+                            extend: boolean;
+                            release: boolean;
+                            purchase: boolean;
+                            undoBuy: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description The request did not match the schema, or a domain rule refused it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No such list or hold, no valid session for the list, or the hold is not this session's. These are deliberately indistinguishable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description The hold was never bought (hold_not_active). */
             409: {
                 headers: {
                     [name: string]: unknown;

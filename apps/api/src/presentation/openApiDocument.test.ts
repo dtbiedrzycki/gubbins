@@ -42,6 +42,7 @@ describe('the OpenAPI document (ADR-0077)', () => {
       extendHold: ['200', '400', '404', '409'],
       releaseHold: ['200', '400', '404', '409'],
       markHoldPurchased: ['200', '400', '404', '409'],
+      undoBuy: ['200', '400', '404', '409'],
     });
   });
   it('describes every response, rather than leaving the generator default', async () => {
@@ -50,7 +51,7 @@ describe('the OpenAPI document (ADR-0077)', () => {
     for (const methods of Object.values(doc.paths) as Record<string, { responses: Record<string, { description: string }> }>[]) {
       for (const op of Object.values(methods)) for (const response of Object.values(op.responses)) descriptions.push(response.description);
     }
-    expect(descriptions).toHaveLength(58);
+    expect(descriptions).toHaveLength(62);
     expect(descriptions.filter((d) => !d.trim() || d === 'Default Response')).toEqual([]);
   });
 
@@ -65,7 +66,7 @@ describe('the OpenAPI document (ADR-0077)', () => {
         }
       }
     }
-    expect(errorSchemas).toHaveLength(40);
-    expect(errorSchemas).toEqual(Array(40).fill({ $ref: '#/components/schemas/ErrorResponse' }));
+    expect(errorSchemas).toHaveLength(43);
+    expect(errorSchemas).toEqual(Array(43).fill({ $ref: '#/components/schemas/ErrorResponse' }));
   });
 });

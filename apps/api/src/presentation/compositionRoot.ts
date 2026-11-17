@@ -23,6 +23,7 @@ import { BuyItem } from '../application/use-cases/BuyItem.js';
 import { HoldItem } from '../application/use-cases/HoldItem.js';
 import { PledgeContribution } from '../application/use-cases/PledgeContribution.js';
 import { ExtendHold } from '../application/use-cases/ExtendHold.js';
+import { UndoBuy } from '../application/use-cases/UndoBuy.js';
 import { ReleaseHold } from '../application/use-cases/ReleaseHold.js';
 import { MarkHoldPurchased } from '../application/use-cases/MarkHoldPurchased.js';
 import type { Logger } from '../application/ports/Logger.js';
@@ -59,6 +60,7 @@ export interface AppDependencies {
   pledgeContribution: PledgeContribution;
   extendHold: ExtendHold;
   releaseHold: ReleaseHold;
+  undoBuy: UndoBuy;
   markHoldPurchased: MarkHoldPurchased;
   /** For resolving a URL's slug before access is checked; use cases load their own aggregate. */
   wishlists: WishlistRepositoryKysely;
@@ -95,6 +97,7 @@ export function buildDependencies(db: Kysely<Database>, logger: Logger = new Con
     pledgeContribution: new PledgeContribution(unitOfWork, tokenGenerator, clock),
     extendHold: new ExtendHold(unitOfWork, clock, holdPolicy),
     releaseHold: new ReleaseHold(unitOfWork, clock),
+    undoBuy: new UndoBuy(unitOfWork, clock),
     markHoldPurchased: new MarkHoldPurchased(unitOfWork, clock),
     wishlists,
     logger,
