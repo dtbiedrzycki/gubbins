@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useIsMutating } from '@tanstack/react-query';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useListView } from '../features/holds/useListView';
 import { useListTheme } from '../lib/useListTheme';
@@ -47,6 +48,14 @@ export default function ListPage() {
   // The ids are fixed when the guest picks a filter, so a gift that changes state stays shown (with any open dialog) until they pick again.
   const [filter, setFilter] = useState<{ value: ItemFilterValue; ids?: Set<string> }>({ value: 'all' });
   const title = useRef<HTMLHeadingElement>(null);
+  // A done action that emptied Your contributions, told beside its gift until the next action starts.
+  const [notice, setNotice] = useState<{ itemId: string; message: string } | null>(null);
+  const mutating = useIsMutating() > 0;
+  const [wasMutating, setWasMutating] = useState(mutating);
+  if (mutating !== wasMutating) {
+    setWasMutating(mutating);
+    if (mutating) setNotice(null);
+  }
   // A chip-in the guest left to pay, by this tab or another; read once, on arrival.
   const [draft, setDraft] = useState(() => (slug ? loadDraft(slug, Date.now()) : null));
   // Only a gift still on the list and taking pledges can be chipped in to.
@@ -99,6 +108,11 @@ export default function ListPage() {
   // The card is going; the gift filter comes next.
   const focusFilter = () => document.querySelector<HTMLButtonElement>('[aria-label="Show gifts"] button')?.focus();
   const hasContributions = query.data.myHolds.length + query.data.myContributions.length > 0;
+  // Focus the outcome's gift, so the page stays near it; the title when there's no gift or the filter hides it.
+  function showEmptied(itemId?: string, message?: string) {
+    if (itemId && message) setNotice({ itemId, message });
+    ((itemId && document.getElementById(`item-title-${itemId}`)) || title.current)?.focus();
+  }
   return (
     // While the floating "Your contributions" button shows, the end of the page leaves room for it, so it never covers the last gift:
     // pb-24 (6rem) clears the button's 2.75rem height and 1rem gap from the bottom, with room to spare.
@@ -108,9 +122,11 @@ export default function ListPage() {
         <header className="text-center">
           <h1 ref={title} tabIndex={-1} className="font-display text-[2.05rem] leading-tight text-balance break-words text-list-title">{query.data.title}</h1>
           <span className="vine" aria-hidden="true" />
-          {/* Here, so an outcome that empties the sheet shows beside the title that takes focus. */}
+          {/* Here, so an outcome whose gift isn't shown appears under the list title, the fallback focus. */}
           <YourContributions slug={slug} holds={query.data.myHolds} contributions={query.data.myContributions}
-            itemTitles={Object.fromEntries(items.map((i) => [i.id, i.title]))} onEmptied={() => title.current?.focus()} />
+            itemTitles={Object.fromEntries(items.map((i) => [i.id, i.title]))}
+            isGiftShown={(itemId) => shown.some((i) => i.id === itemId)}
+            onEmptied={showEmptied} />
         </header>
         {query.data.description && (
           <section aria-label="About this list">
@@ -145,6 +161,7 @@ export default function ListPage() {
                 heldUnits={query.data.myHolds.filter((h) => h.itemId === item.id && h.status === 'active').reduce((sum, h) => sum + h.units, 0)}
                 chippedInMinor={query.data.myContributions.filter((c) => c.itemId === item.id).reduce((sum, c) => sum + c.amountMinor, 0)}
                 draft={resumeDraft?.itemId === item.id ? resumeDraft : undefined}
+                notice={notice?.itemId === item.id ? notice.message : undefined}
                 // Done with once its chip-in closes: the next one, or the gift shown again, starts afresh.
                 onChipInClosed={() => setDraft(null)}
               />

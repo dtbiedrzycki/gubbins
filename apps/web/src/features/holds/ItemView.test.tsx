@@ -17,9 +17,16 @@ const payment: ListViewResponse['payment'] = { venmoHandle: 'my-venmo', zelleHan
 type Item = NonNullable<ListViewResponse['items']>[number];
 const single = aListItem;
 
-function renderItem(over: Partial<Item> = {}, mine: { heldUnits?: number; chippedInMinor?: number } = {}): void {
-  const ui = <ItemView slug="abc123" holdDurationDays={3} item={single(over)} payment={payment} heldUnits={mine.heldUnits ?? 0} chippedInMinor={mine.chippedInMinor ?? 0} />;
-  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}>{ui}</QueryClientProvider>);
+/** Renders the item; the returned function renders it again with a notice from Your contributions. */
+function renderItem(over: Partial<Item> = {}, mine: { heldUnits?: number; chippedInMinor?: number } = {}): (notice: string) => void {
+  const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+  const ui = (notice?: string) => (
+    <QueryClientProvider client={client}>
+      <ItemView slug="abc123" holdDurationDays={3} item={single(over)} payment={payment} heldUnits={mine.heldUnits ?? 0} chippedInMinor={mine.chippedInMinor ?? 0} notice={notice} />
+    </QueryClientProvider>
+  );
+  const { rerender } = render(ui());
+  return (notice) => rerender(ui(notice));
 }
 
 /** Records the body of every hold request; answers each with the next status given. */
@@ -375,6 +382,20 @@ describe('ItemView', () => {
       await user.click(screen.getByRole('button', { name: /^I\u2019m buying this/ }));
 
       expect(status).toBeEmptyDOMElement();
+    });
+
+    it('replaces the thanks with a notice from Your contributions after buying 1 of 5', async () => {
+      server.use(http.post('/api/lists/abc123/items/item-1/buy', () => HttpResponse.json(aHoldView({ status: 'purchased', units: 1, purchasedUnits: 1 }), { status: 201 })));
+      const user = userEvent.setup();
+      const showNotice = renderItem({ availableUnits: 5 });
+      const status = screen.getByRole('status');
+      await openAndName(user);
+      await user.click(screen.getByRole('button', { name: 'Yes, I\u2019m buying it' }));
+      await vi.waitFor(() => expect(status).toHaveTextContent('Stroller is marked as purchased. Thank you!'));
+
+      showNotice('Stroller is available to other guests again.');
+
+      expect(status).toHaveTextContent('Stroller is available to other guests again.');
     });
 
     it('returns focus to "I\u2019m buying this" when the buying sheet is cancelled', async () => {

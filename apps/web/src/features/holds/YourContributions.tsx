@@ -14,8 +14,14 @@ export interface YourContributionsProps {
   holds: HoldView[];
   contributions: ListViewResponse['myContributions'];
   itemTitles: Record<string, string>;
-  /** An action removed the last entry, so the sheet and its button are gone. */
-  onEmptied: () => void;
+  /** Whether the page shows this gift, so a done action that empties the sheet is told beside it instead of here. */
+  isGiftShown: (itemId: string) => boolean;
+  /**
+   * The last entry left, so the sheet and its button are gone. `itemId` is the
+   * latest outcome's gift, if any; `notice` is that outcome's message when it
+   * is the gift's to show.
+   */
+  onEmptied: (itemId?: string, notice?: string) => void;
 }
 
 /** The actions whose card leaves the sheet once their refetch lands. */
@@ -46,17 +52,18 @@ function statusLine(hold: HoldView): string {
  * the hold's card: the refetch after an action can remove the card (a
  * release, an undo, or a hold already released in another tab). An outcome
  * that empties the sheet closes it and shows in this component's own
- * page-level pair instead. A failed release or undo reads as done once
- * its hold leaves the list, as a failed purchase does once its hold shows
- * bought. Every live region stays mounted while its
- * container is (ADR-0025). Feedback clears when the next action starts, so a
+ * page-level pair instead, or, when the action succeeded and the page shows
+ * its gift, beside that gift: decided once, as the sheet empties. A failed
+ * release or undo reads as done once its hold leaves the list, as a failed
+ * purchase does once its hold shows bought. Every live region stays mounted
+ * while its container is (ADR-0025). Feedback clears when the next action starts, so a
  * repeated message is announced again. A release's or an undo's message also
  * clears when a new hold appears, which it would contradict; other messages
  * stay to be read.
  */
-export function YourContributions({ slug, holds, contributions, itemTitles, onEmptied }: YourContributionsProps) {
+export function YourContributions({ slug, holds, contributions, itemTitles, isGiftShown, onEmptied }: YourContributionsProps) {
   const [open, setOpen] = useState(false);
-  const [outcome, setOutcome] = useState<(HoldOutcome & { holdId: string }) | null>(null);
+  const [outcome, setOutcome] = useState<(HoldOutcome & { holdId: string; itemId: string }) | null>(null);
   const button = useRef<HTMLButtonElement>(null);
   const sheetHeading = useRef<HTMLHeadingElement>(null);
   const cardHeadings = useRef(new Map<string, HTMLHeadingElement>());
@@ -82,20 +89,23 @@ export function YourContributions({ slug, holds, contributions, itemTitles, onEm
     setShown(entries > 0);
     if (shown) setStampButton(false);
   }
-  const [emptied, setEmptied] = useState(false);
+  const [emptied, setEmptied] = useState<{ itemId?: string; notice?: string } | null>(null);
   if (open && entries === 0) {
     setOpen(false);
-    setEmptied(true);
+    const toGift = settled?.ok && isGiftShown(settled.itemId);
+    setEmptied({ itemId: settled?.itemId, notice: toGift ? settled.message : undefined });
+    // Handed to the gift, so the page pair never shows it, even if a filter later hides the gift.
+    if (toGift) setOutcome(null);
   }
   // After the dialog has gone, so the page is no longer inert.
-  const reportEmptied = useEffectEvent(onEmptied);
+  const reportEmptied = useEffectEvent((report: { itemId?: string; notice?: string }) => onEmptied(report.itemId, report.notice));
   useEffect(() => {
-    if (emptied) reportEmptied();
+    if (emptied) reportEmptied(emptied);
   }, [emptied]);
 
   function openSheet() {
     setOutcome(null);
-    setEmptied(false);
+    setEmptied(null);
     setOpen(true);
   }
 
@@ -108,8 +118,8 @@ export function YourContributions({ slug, holds, contributions, itemTitles, onEm
   // The pressed button is disabled in flight and often gone after, so focus
   // moves to something that outlives the refetch: the hold's own heading if
   // its card stays, otherwise the sheet's heading beside the feedback.
-  function showOutcome(holdId: string, next: HoldOutcome) {
-    setOutcome({ ...next, holdId });
+  function showOutcome(holdId: string, itemId: string, next: HoldOutcome) {
+    setOutcome({ ...next, holdId, itemId });
     const card = next.ok && !cardLeaving.includes(next.action) ? cardHeadings.current.get(holdId) : undefined;
     (card ?? sheetHeading.current)?.focus();
   }
@@ -117,7 +127,7 @@ export function YourContributions({ slug, holds, contributions, itemTitles, onEm
   const status = outcome?.ok ? outcome.message : '';
   const alert = outcome && !outcome.ok ? outcome.message : '';
   // The sheet shows an outcome once its refetch has landed: if that empties
-  // the sheet, the page pair announces it instead, and only once.
+  // the sheet, the page pair or the gift announces it instead, and only once.
   const settling = useIsMutating() > 0;
 
   return (
@@ -165,7 +175,7 @@ export function YourContributions({ slug, holds, contributions, itemTitles, onEm
                     {count !== null && count > 1 && <span className="shrink-0 font-bold text-moss">× {count}</span>}
                   </div>
                   <p>{statusLine(hold)}</p>
-                  <HoldActions slug={slug} hold={hold} itemTitle={itemTitle} onStart={() => setOutcome(null)} onOutcome={(next) => showOutcome(hold.holdId, next)} />
+                  <HoldActions slug={slug} hold={hold} itemTitle={itemTitle} onStart={() => setOutcome(null)} onOutcome={(next) => showOutcome(hold.holdId, hold.itemId, next)} />
                 </li>
               );
             })}

@@ -25,13 +25,21 @@ export interface ItemViewProps {
   draft?: ContributeDraft;
   /** The chip-in closed, so a draft it opened from is done with. */
   onChipInClosed?: () => void;
+  /** What a done action in Your contributions did to this gift, told in its announcement row. */
+  notice?: string;
 }
 
-export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chippedInMinor, draft, onChipInClosed }: ItemViewProps) {
+export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chippedInMinor, draft, onChipInClosed, notice }: ItemViewProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'hold' | 'buy'>('hold');
   const [chipInOpen, setChipInOpen] = useState(Boolean(draft));
   const [thanks, setThanks] = useState('');
+  // A notice is newer than any thanks, which it may contradict (an undone buy), so the thanks goes.
+  const [shownNotice, setShownNotice] = useState(notice);
+  if (notice !== shownNotice) {
+    setShownNotice(notice);
+    if (notice) setThanks('');
+  }
   const chipInButton = useRef<HTMLButtonElement>(null);
   // The Chip in button outlives the dialog, so focus goes back to it either way.
   const chipInClosed = useRef(false);
@@ -92,7 +100,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chi
   // the moment the guest releases or buys from "Your contributions".
   return (
     <div className="space-y-4">
-      <h2 ref={heading} tabIndex={-1} className="font-display text-[1.3rem] leading-tight text-balance break-words">{item.title}</h2>
+      <h2 ref={heading} id={`item-title-${item.id}`} tabIndex={-1} className="font-display text-[1.3rem] leading-tight text-balance break-words">{item.title}</h2>
       {item.priceMinor !== null && <p className="font-bold tabular-nums">{formatMoney(item.priceMinor)}</p>}
       {item.description && <ClampedText id={`item-description-${item.id}`}><Markdown text={item.description} /></ClampedText>}
       {item.url && <p><a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2.5 text-moss underline">View on {storeHost(item.url)} <span className="sr-only">for {item.title} (opens in a new tab)</span></a></p>}
@@ -101,7 +109,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chi
           While it's empty, the row adds no gap of its own. */}
       <div className="flex items-center gap-2.5 has-[>p:empty:only-child]:mb-0">
         {item.status !== 'available' && <Seal tone={item.status === 'purchased' ? 'gold-wax' : 'red-wax'} />}
-        <ItemAnnouncement message={thanks || (item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is held.` : `${item.title} has been purchased.`)} />
+        <ItemAnnouncement message={thanks || notice || (item.status === 'available' ? '' : item.status === 'held' ? `${item.title} is held.` : `${item.title} has been purchased.`)} />
       </div>
       {/* Mounted on every single gift, so a hold that leaves units free is still announced. */}
       {item.type === 'single' && <p aria-live="polite" className="empty:mb-0">{heldUnits > 0 ? `You're holding ${heldUnits}` : ''}</p>}

@@ -31,14 +31,14 @@ function CurrentLocation() {
 function renderListPage(entry = '/abc123') {
   // useListView's own retry wins over these defaults; retryDelay: 0 keeps its one retry instant.
   const client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 }, mutations: { retry: false } } });
-  return render(
+  return { client, ...render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[entry]}>
         <Routes><Route path="/:slug" element={<ListPage />} /></Routes>
         <CurrentLocation />
       </MemoryRouter>
     </QueryClientProvider>,
-  );
+  ) };
 }
 
 describe('ListPage', () => {
@@ -330,7 +330,7 @@ describe('ListPage', () => {
     expect(screen.getByRole('main')).toHaveClass('pb-24');
   });
 
-  it('when the guest releases their last hold, moves focus to the list title', async () => {
+  it('when the guest releases their last hold, moves focus to that gift\'s heading', async () => {
     let held = true;
     server.use(
       http.get('/api/lists/abc123', () => HttpResponse.json(view(held))),
@@ -342,6 +342,60 @@ describe('ListPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Your contributions · 1' }));
     await user.click(screen.getByRole('button', { name: 'Release hold' }));
     await user.click(screen.getByRole('button', { name: 'Yes, release it' }));
+
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Stroller' })).toHaveFocus());
+  });
+
+  /** Serves the list with one hold, then lets the guest release it and hold the gift again. */
+  function holdAndRelease() {
+    let held = true;
+    server.use(
+      http.get('/api/lists/abc123', () => HttpResponse.json(view(held))),
+      http.post('/api/lists/abc123/holds/hold-1/release', () => { held = false; return HttpResponse.json({ ...hold, status: 'released' }); }),
+      http.post('/api/lists/abc123/items/item-1/hold', () => { held = true; return HttpResponse.json(hold, { status: 201 }); }),
+    );
+  }
+
+  async function releaseTheLastHold(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByRole('button', { name: 'Your contributions · 1' }));
+    await user.click(screen.getByRole('button', { name: 'Release hold' }));
+    await user.click(screen.getByRole('button', { name: 'Yes, release it' }));
+    return screen.getByRole('heading', { level: 2, name: 'Stroller' }).closest('li')!;
+  }
+
+  it('when the guest releases their last hold, says so beside that gift', async () => {
+    holdAndRelease();
+    const user = userEvent.setup();
+    renderListPage();
+
+    const gift = await releaseTheLastHold(user);
+
+    await waitFor(() => expect(within(gift).getByRole('status')).toHaveTextContent('Your hold on Stroller is released.'));
+  });
+
+  it('clears the message beside the gift when the guest\'s next action starts', async () => {
+    holdAndRelease();
+    const user = userEvent.setup();
+    renderListPage();
+    const gift = await releaseTheLastHold(user);
+    await waitFor(() => expect(within(gift).getByRole('status')).toHaveTextContent('Your hold on Stroller is released.'));
+
+    await user.click(within(gift).getByRole('button', { name: /^Hold this item/ }));
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+    await waitFor(() => expect(within(gift).getByRole('status')).toHaveTextContent('Stroller is held.'));
+  });
+
+  it('when another tab empties Your contributions, moves focus to the list title', async () => {
+    let held = true;
+    server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(held))));
+    const user = userEvent.setup();
+    const { client } = renderListPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Your contributions · 1' }));
+    held = false;
+    await client.invalidateQueries();
 
     await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Baby Shower' })).toHaveFocus());
   });

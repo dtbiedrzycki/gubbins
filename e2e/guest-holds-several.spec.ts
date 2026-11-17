@@ -120,7 +120,7 @@ test('a guest buys 2 of 5 with "I’m buying this", and another guest sees "Want
     await expectNoSeriousAxeViolations(guest);
     await yesUndo.click();
 
-    // That was the guest's only entry, so the sheet closes and the page says what happened.
+    // That was the guest's only entry, so the sheet closes and the gift says what happened.
     await expect(yourContributions).toBeHidden();
     await expect(guest.getByRole('status').filter({ hasText: 'Baby onesies is available to other guests again.' })).toBeVisible();
 
