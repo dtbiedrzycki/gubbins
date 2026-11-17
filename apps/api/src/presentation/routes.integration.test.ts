@@ -159,8 +159,8 @@ async function ownerOn(list: { slug: string; ownerToken: string }, on: FastifyIn
   return extractCookieHeader(await on.inject({ method: 'POST', url: `/api/lists/${list.slug}/owner-session`, payload: { ownerToken: list.ownerToken } }));
 }
 
-function holdAction(slug: string, holdId: string, action: 'extend' | 'release' | 'purchase', cookie?: string, on: FastifyInstance = app) {
-  // Purchase takes a body (units may be left out); extend and release take none.
+function holdAction(slug: string, holdId: string, action: 'extend' | 'release' | 'purchase' | 'undo-buy', cookie?: string, on: FastifyInstance = app) {
+  // Purchase takes a body (units may be left out); extend, release and undo-buy take none.
   return on.inject({ method: 'POST', url: `/api/lists/${slug}/holds/${holdId}/${action}`, headers: cookie ? { cookie } : {}, ...(action === 'purchase' ? { payload: { units: 1 } } : {}) });
 }
 
@@ -562,7 +562,17 @@ describe('hold lifecycle over HTTP', () => {
     expect(retry.statusCode).toBe(201);
   });
 
-  it.each(['extend', 'release', 'purchase'] as const)(
+  it('undoes a bought hold, answering 200 with its undone view', async () => {
+    const { list, cookie, holdId } = await heldByGuest();
+    await holdAction(list.slug, holdId, 'purchase', cookie);
+
+    const undone = await holdAction(list.slug, holdId, 'undo-buy', cookie);
+
+    expect(undone.statusCode).toBe(200);
+    expect(undone.json()).toMatchObject({ holdId, status: 'buyUndone' });
+  });
+
+  it.each(['extend', 'release', 'purchase', 'undo-buy'] as const)(
     '%s answers the generic 404 for anything but this session\'s hold on this list',
     async (action) => {
       const { list, cookie, holdId } = await heldByGuest();
@@ -590,16 +600,20 @@ describe('hold lifecycle over HTTP', () => {
 describe('lazy expiry and the configured duration over HTTP', () => {
   const T0 = new Date('2026-01-01T00:00:00.000Z');
 
-  it.each(['release', 'purchase', 'lapse'] as const)(
+  it.each(['release', 'purchase', 'undo-buy', 'lapse'] as const)(
     "answers the generic 404, not a state-revealing 409, when another session acts on a hold that was closed by %s",
     async (closing) => {
       const { timed, clock } = await appAt(T0);
       const { list, cookie, holdId } = await heldByGuest(timed);
       if (closing === 'lapse') clock.advance(3 * DAY + 1);
-      else expect((await holdAction(list.slug, holdId, closing, cookie, timed)).statusCode).toBe(200);
+      else {
+        // Undoing a buy closes the hold only after it was bought.
+        if (closing === 'undo-buy') expect((await holdAction(list.slug, holdId, 'purchase', cookie, timed)).statusCode).toBe(200);
+        expect((await holdAction(list.slug, holdId, closing, cookie, timed)).statusCode).toBe(200);
+      }
       const otherGuest = await guestOn(list, timed);
 
-      for (const action of ['extend', 'release', 'purchase'] as const) {
+      for (const action of ['extend', 'release', 'purchase', 'undo-buy'] as const) {
         const response = await holdAction(list.slug, holdId, action, otherGuest, timed);
         expect(response.statusCode).toBe(404);
         expect(response.json()).toEqual({ message: 'Not found' });

@@ -54,10 +54,10 @@ export class GetListView {
           pledgedMinor: i.type === 'group' ? i.pledgedTotal().amountMinor : null,
         })),
         payment: { venmoHandle: wishlist.paymentMethods.venmoHandle, zelleHandle: wishlist.paymentMethods.zelleHandle },
-        // Released holds were the guest's own choice and need no follow-up;
+        // Released holds and undone buys were the guest's own choice and need no follow-up;
         // expired ones stay, since an expired hold can still be purchased while a unit is free.
         myHolds: mine
-          .filter((hold) => wishlist.holdStatus(hold) !== 'released')
+          .filter((hold) => !['released', 'buyUndone'].includes(wishlist.holdStatus(hold)))
           .sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime())
           .map((hold) => toHoldView(wishlist, hold)),
         myContributions: pledges
