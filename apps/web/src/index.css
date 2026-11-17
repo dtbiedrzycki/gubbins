@@ -43,6 +43,11 @@
   --list-rule-radius: 9px;
 }
 
+/* Firefox for Android paints the strip its toolbar uncovers with the root's background, so a white root showed as a band above the page. */
+@layer base {
+  html { background: var(--color-paper); }
+}
+
 @utility btn-primary {
   min-height: 2.75rem;
   padding: 0.5rem 1.25rem;
