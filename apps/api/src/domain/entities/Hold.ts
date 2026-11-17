@@ -86,14 +86,14 @@ export class Hold {
   static reconstitute(props: {
     id: string; itemId: string; secret: string; sessionHash: string; idempotencyKey: string;
     expiresAt: Date; extendedAt: Date | null; releasedAt: Date | null; purchasedAt: Date | null;
-    piiRef?: string | null; units: number; purchasedUnits: number | null; buyUndoneAt?: Date | null;
+    piiRef?: string | null; units: number; purchasedUnits: number | null; buyUndoneAt: Date | null;
   }): Hold {
     return new Hold(
       UuidId.from(props.id), UuidId.from(props.itemId), HoldSecret.from(props.secret),
       SessionHash.from(props.sessionHash), IdempotencyKey.from(props.idempotencyKey),
       props.piiRef == null ? null : UuidId.from(props.piiRef), props.units,
       props.expiresAt, props.extendedAt, props.releasedAt, props.purchasedAt, props.purchasedUnits,
-      props.buyUndoneAt ?? null,
+      props.buyUndoneAt,
     );
   }
 
