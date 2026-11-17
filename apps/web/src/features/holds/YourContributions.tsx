@@ -64,12 +64,15 @@ export function YourContributions({ slug, holds, contributions, itemTitles, onEm
   const [knownHoldIds, setKnownHoldIds] = useState(holdIds);
   // Only a hold that appears while the page is open gets its seal stamped in.
   const [initialHoldIds] = useState(() => new Set(holdIds));
+  // Its answer was lost, or another tab acted: once the hold has gone, the release or undo went through.
+  const settled = outcome?.ifGone && !holdIds.includes(outcome.holdId)
+    ? { ...outcome, ok: true, message: outcome.ifGone, ifGone: undefined }
+    : outcome;
+  if (settled !== outcome) setOutcome(settled);
   if (holdIds.some((id) => !knownHoldIds.includes(id))) {
     setKnownHoldIds(holdIds);
-    if (outcome?.ok && cardLeaving.includes(outcome.action)) setOutcome(null);
+    if (settled?.ok && cardLeaving.includes(settled.action)) setOutcome(null);
   }
-  // Its answer was lost, or another tab acted: once the hold has gone, the release or undo went through.
-  if (outcome?.ifGone && !holdIds.includes(outcome.holdId)) setOutcome({ ...outcome, ok: true, message: outcome.ifGone, ifGone: undefined });
 
   const entries = holds.length + contributions.length;
   // The button's seal stamps in the first time it appears while the page is open, never again.

@@ -280,6 +280,31 @@ describe('YourContributions', () => {
     expect(within(region).getByRole('alert')).toBeEmptyDOMElement();
   });
 
+  it('announces nothing for a release that got no answer when the refetch removing its hold also brings a new hold', async () => {
+    let deliver!: () => void;
+    const delivered = new Promise<void>((resolve) => { deliver = resolve; });
+    let gets = 0;
+    server.use(
+      http.get('/api/lists/abc123', async () => {
+        if (++gets === 1) return HttpResponse.json(list([active], [pledge]));
+        // Held back until the failure shows, so the test sees it replaced, not skipped.
+        await delivered;
+        return HttpResponse.json(list([{ ...active, holdId: 'hold-2' }], [pledge]));
+      }),
+      http.post('/api/lists/:slug/holds/:holdId/release', () => HttpResponse.error()),
+    );
+    const user = userEvent.setup();
+    const region = await openYourContributions();
+    await user.click(within(region).getByRole('button', { name: 'Release hold' }));
+    await user.click(within(region).getByRole('button', { name: 'Yes, release it' }));
+    await waitFor(() => expect(within(region).getByRole('alert')).toHaveTextContent(/^Couldn’t release /));
+
+    deliver();
+
+    await waitFor(() => expect(within(region).getByRole('alert')).toBeEmptyDOMElement());
+    expect(within(region).getByRole('status')).toBeEmptyDOMElement();
+  });
+
   it('still explains a refused release when the refetch shows the hold is still there', async () => {
     listViews(list([active]), list([expiredBuyable]));
     server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }));
