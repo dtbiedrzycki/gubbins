@@ -77,7 +77,7 @@ Item
                  sessionHash, idempotencyKey
                  (holderName, email, message live in GuestPii, not here
                  — see [data & persistence](data-and-persistence.md), ADR-[057](../adr/0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md))
-  Purchase       single only — terminal
+  Purchase       single only — the buying guest can undo it (`BuyUndone`)
   Contribution   group | fund — amount, piiRef → GuestPii.id,
                  method: { kind, label, handle } | null  ← snapshotted
                    at pledge time; null permitted only when

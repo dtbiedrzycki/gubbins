@@ -29,7 +29,7 @@
   further periodic work requires an ADR — the count of scheduled jobs is
   deliberately fixed at one.
 - Expiry is **lazily computed** (`now > expiresAt`), never emitted by a job — a failed cron costs a missed email, not a stuck item
-- Purchase is terminal; only the owner can undo it
+- The guest who bought a gift can undo the buy from Your contributions; its units go back to other guests (ADR-[088](../adr/0088-guests-lead-with-im-buying-this-and-can-undo-a-purchase.md))
 - Owner can mark an item purchased directly (offline purchase)
 - **Concurrent-hold cap per guest session**: a session may hold at most
   `MAX_ACTIVE_HOLDS_PER_SESSION` items at once (default 10 — set well

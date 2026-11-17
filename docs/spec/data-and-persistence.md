@@ -1,7 +1,7 @@
 # Data & persistence
 
 - **Event stream for the ledger only** — claims, purchases, contributions. Not for CRUD metadata.
-- Event types: `ItemHeld`, `HoldExtended`, `HoldReleased`, `ItemPurchased`, `PurchaseVoided`, `ContributionPledged`, `ContributionConfirmed`, `ContributionVoided`, `ManualContributionRecorded`
+- Event types: `ItemHeld`, `HoldExtended`, `HoldReleased`, `ItemPurchased`, `BuyUndone`, `ContributionPledged`, `ContributionConfirmed`, `ContributionVoided`, `ManualContributionRecorded`
 - `ContributionVoided` applies to guest and manual contributions alike —
   voiding carries identical semantics regardless of `source`, which the
   projection reads from the original row, so no separate

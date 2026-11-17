@@ -29,12 +29,13 @@ about that difference. This is not a new event, so ADR-007's first test
 does not apply to it: it is attribution on events that already qualify.
 
 The remaining types are single-role today: `ItemHeld`, `HoldExtended`,
-and `ContributionPledged` are guest-only; `PurchaseVoided`,
+`ContributionPledged` and `BuyUndone` are guest-only;
 `ContributionConfirmed`, `ContributionVoided`, and
 `ManualContributionRecorded` are owner-only
 ([holds](../spec/holds.md),
 ADR-[004](./0004-pledged-vs-confirmed-states-payments-unverifiable-by-design.md),
-[manual contributions](../spec/manual-contributions.md)).
+[manual contributions](../spec/manual-contributions.md)). An owner undo of
+a buy, if one is built, records the same `BuyUndone` as `owner`.
 
 Attribution cannot be backfilled. Once shared-role events are written
 without it, that history is permanently ambiguous. The project is
