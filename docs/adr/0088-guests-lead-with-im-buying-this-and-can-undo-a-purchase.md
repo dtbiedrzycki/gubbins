@@ -24,7 +24,7 @@ transaction, recording the same `ItemHeld` and `ItemPurchased` events as a
 hold followed by a purchase. "Hold this item" stays, as the second option for
 guests who aren't sure.
 
-A guest can undo any purchase of theirs. `PurchaseVoided` records it, every
+A guest can undo any purchase of theirs. `BuyUndone` records it, every
 unit bought goes back to other guests, and the undone purchase counts for
 nothing. The undo ships after "I'm buying this".
 
@@ -52,9 +52,8 @@ back leaves a gift marked bought that never arrives.
 ## Consequences
 
 - No new event type or migration for "I'm buying this". The undo adds
-  `PurchaseVoided` by a guest (amending
-  ADR-[0075](./0075-ledger-events-record-the-acting-role.md)'s owner-only
-  note), a hold status for an undone purchase, and a migration adding
-  `holds.voided_at`.
+  `BuyUndone` by a guest (replacing the owner-only `PurchaseVoided` in
+  ADR-[0075](./0075-ledger-events-record-the-acting-role.md)), the hold
+  status `buyUndone`, and a migration adding `holds.buy_undone_at`.
 - Until the undo ships, a guest's "I'm buying this" can't be taken back, and
   the sheet says so.

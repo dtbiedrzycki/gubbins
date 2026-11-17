@@ -44,8 +44,9 @@ sure they are, so they choose: "I'm buying this" for a gift they mean to buy,
 - **Longer holds.** ADR-0002 and `HOLD_DURATION_DAYS` are unchanged; raise
   the setting if guests report running out of time.
 - **Group gifts.** They keep "Chip in".
-- **An owner-side undo.** The docs name `PurchaseVoided` for an owner action
-  that isn't built; release 2 builds only the guest's.
+- **An owner-side undo.** Release 2 builds only the guest's. The docs
+  named `PurchaseVoided` for an owner undo that was never built; release 2's
+  `BuyUndone` takes its place in ADR-0075.
 - **Undoing part of a purchase.** Undo returns every unit bought.
 
 ## Anti-goals
@@ -178,18 +179,32 @@ Item decides, Hold records.
 
 ## Release 2: undo a purchase
 
+Names follow the owner's ruling that "buy" is the app's one word for it
+(2026-11-16). Release 2 adds no new "purchase"-named identifiers, copy or
+columns; the purchase-named code it touches keeps its names until a later
+rename.
+
 ### "Your contributions" (`YourContributions.tsx`, `HoldActions.tsx`)
 
 - **A purchased card gets "I didn't buy it"** (secondary style). It asks
-  first, as "Release hold" does: "Undo your purchase of {title}? Other guests
-  will be able to buy it." with "Yes, undo it" and "Keep it" *(wording my
-  call)*. With more than 1 unit: "…buy them."
+  first, as "Release hold" does: "Undo buying {title}? Other guests will be
+  able to buy it." with "Yes, undo it" and "Keep it" (owner, 2026-11-16).
+  With more than 1 unit bought (`purchasedUnits`, not `units`): "…buy
+  them." If the undo fails: "Couldn't undo buying {title}." (owner,
+  2026-11-16)
+  The web names the action `undoBuy` (`HoldAction`, `api.undoBuy`).
 - **After an undo** the card leaves "Your contributions", as a released hold
-  does (`GetListView` drops the undone status from `myHolds`, and the sheet
+  does (`GetListView` drops the `buyUndone` status from `myHolds`, and the sheet
   closes if it was the last entry). The outcome message says "{title} is
-  available to other guests again." *(my call)*
-- **The buying sheet's note** changes its second line. The first line is
-  unchanged. Exactly:
+  available to other guests again." *(my call)* Focus moves to the sheet's
+  heading, as after a release, since the card is gone. Like a release's
+  message, it clears when a new hold appears, which would contradict it
+  (owner, 2026-11-16).
+- **The status line** (`statusLine` in `YourContributions.tsx`) switches over
+  every status, so it gains a `buyUndone` case, "Buy undone." (owner, 2026-11-16),
+  though the list view never sends an undone hold.
+- **The buying sheet's note** (`HoldDialog.tsx`, in its buy mode) changes its
+  second line. The first line is unchanged. Exactly:
   - One unit: "Other guests will then see it's taken, so no one else buys it
     while you're getting it. If plans change, you can undo it from Your
     contributions."
@@ -206,52 +221,80 @@ Item decides, Hold records.
   matches Release)*.
 - **No time limit** *(my call; lists have no event date to measure from)*.
 - **Only the browser that made the purchase can undo it** (the existing
-  `placedBy` rule in `HoldPermissions`). The actor recorded is `guest`.
+  `placedBy` rule in `HoldPermissions`, as `mayUndoBuy`). The actor recorded
+  is `guest`.
 - **An undone purchase counts for nothing:** not in `committedUnits()`, not
   in `purchasedCount()`. The owner's counts drop. The `guest_pii` row
   (name and message) is kept, under ADR-0057's retention like any other.
-- **An undone purchase is final.** It can't be re-purchased or undone again;
+- **An undone purchase is final.** It can't be bought again or undone again;
   the guest buys again with a new request if they change their mind back.
   `Item.purchaseHold` must refuse it with `HoldNotActiveError`, like released
-  and purchased holds. Today it lists those statuses by name, so a new status
-  would otherwise fall through to `HoldLapsedError`.
-- **Undoing twice** (two tabs) answers 200 with the current view, not an
-  error *(my call: the guest's intent is already true)*. The undo use case
-  owns this: after the permission check, when the hold is already voided,
-  it answers the current view without calling the domain and appends
-  nothing. Another session's voided hold is the generic 404, as for any
-  hold of theirs. `Hold` itself refuses a second void with
-  `HoldNotActiveError`.
+  and purchased holds. It lists those statuses by name, so a new status
+  would otherwise fall through to `HoldLapsedError`. (`Hold.markPurchased`
+  already refuses it, since `purchasedAt` stays set.)
+- **Undoing twice** (two tabs, or a retry whose first answer was lost)
+  answers 200 with the current view, not an error *(my call: the guest's
+  intent is already true)*. The undo use case owns this: after the
+  permission check, when the hold is already undone, it answers the current
+  view without calling the domain and appends nothing. Another session's
+  undone hold is the generic 404, as for any hold of theirs. `Hold` itself
+  refuses a second undo with `HoldNotActiveError`.
 
 ### Domain, events, storage and API
 
-- **Event: `PurchaseVoided`** `{ holdId, occurredAt }`. The original holds
-  design named it in the docs only, so it is new to the `LedgerEvent` union
-  and the `rebuildProjections` switch. ADR-0075 lists it as owner-only; amend it to allow
-  the guest.
-- **`Hold` records `voidedAt`.** The constructor enforces that it is set only
-  on a purchased hold. `statusAt` reports a new status for it (name per
-  ADR-0079, e.g. `voided`), and the web shows it as above.
-- **`Item` gains the undo command,** at its `asOf` and advancing the stream
-  as `releaseHold` does, reached through a matching `Wishlist` method
-  (ADR-0078). Beside it, a `can…` question shares the command's guard, as
-  `canReleaseHold` does, and `toHoldView` reads it for the new action
-  flag.
-- **Migration `0005`** adds `holds.voided_at` (nullable text) with a
-  structural CHECK: `voided_at` is null unless `purchased_at` is set
-  (ADR-0083). Shipped migrations are never edited (ADR-0085).
-  `rebuildProjections` folds the event.
-- **Route:** `POST /api/lists/:slug/holds/:holdId/void`, following the
-  existing per-action hold routes, with no body. Response: 200 with the
-  `HoldView`. Errors: 404 (generic) for an unknown hold or another
-  session's, 409 `hold_not_active` for a hold that isn't purchased, as
-  the existing hold commands answer. `HoldView.actions` gains a flag for
-  it, from the `Item` question above.
-- **`HoldView` and the shared status enum** gain the new status.
+- **Event: `BuyUndone`** `{ type, v: 1, holdId, occurredAt }`, new to the
+  `LedgerEvent` union and the `rebuildProjections` switch. ADR-0075 lists
+  the owner's unbuilt `PurchaseVoided` as owner-only; amend it to name
+  `BuyUndone` instead, raised by the guest today, and by the owner with
+  actor `owner` if an owner undo is ever built (one event per fold, as
+  ADR-0075 argues for `HoldReleased`) *(my call)*.
+- **`Hold` records `buyUndoneAt`.** The constructor enforces that it is set
+  only on a purchased hold. `statusAt` reports `buyUndone` for it, checked
+  before `purchased`, and `Hold.undoBuy(at)` refuses anything but a
+  purchased hold with `HoldNotActiveError`.
+- **`Item.undoBuy(hold)`** acts at its `asOf` and advances the stream as
+  `releaseHold` does, reached through `Wishlist.undoBuy` (ADR-0078).
+  Beside it, `canUndoBuy(hold)` on `Item` and `Wishlist` shares the
+  command's guard, as `canReleaseHold` does, and `toHoldView` reads it for
+  the new `actions.undoBuy` flag.
+- **Migration `0005`** adds `holds.buy_undone_at` (nullable text) with a
+  structural CHECK: `buy_undone_at` is null unless `purchased_at` is set
+  (ADR-0083). It is a column CHECK in raw SQL, since SQLite can't add a
+  table constraint to an existing table. Shipped migrations are never
+  edited (ADR-0085). `HoldsTable` in `schema.ts` gains the column.
+- **Saving an undone hold.** Commands save through `wishlists.save`, which
+  rewrites a hold only when a column in `lifecycleColumns`
+  (`HoldRepositoryKysely.ts`) differs from the stored row it selects
+  (`WishlistRepositoryKysely.ts`). `buy_undone_at` joins both, the hold
+  repository reads it, and the in-memory fake copies it.
+  `rebuildProjections` folds the event into it.
+- **`Hold.reconstitute` takes `buyUndoneAt` as optional** in release 2,
+  defaulting to null; the adapters always pass it. Two mechanical PRs
+  after release 2 make it required: the callers pass it, then the default
+  goes (owner, 2026-11-16; required, as #201 made the other fields).
+- **Use case `UndoBuy`,** beside `ReleaseHold`, through the shared hold
+  command body (`runHoldCommand`). That body gains one optional check,
+  `alreadyDone(wishlist, hold): boolean`, run after the permission check:
+  when it is true, it answers the hold's view with no domain call, no
+  append and no save. `UndoBuy` passes "the hold is already undone"; the
+  other commands pass nothing. `runHoldCommand`'s and `HoldCommand`'s doc
+  comments change to match.
+- **Route:** `POST /api/lists/:slug/holds/:holdId/undo-buy`, operationId
+  `undoBuy`, a row in the existing table of body-less hold commands
+  (`holdCommands` in `routes.ts`). Response: 200 with the `HoldView`.
+  Errors: 404 (generic) for an unknown hold or another session's, 409
+  `hold_not_active` for a hold that was never bought (active, expired or
+  released), as the existing hold commands answer. The OpenAPI document
+  and the web's generated `schema.gen.ts` are regenerated.
+- **`HoldView` and the shared status enum** gain `buyUndone` and
+  `actions.undoBuy`.
 - **Docs in the same release:** `docs/spec/holds.md` ("Purchase is terminal;
   only the owner can undo it"), `docs/spec/domain-model.md` ("Purchase
-  single only — terminal") and the comment on `ItemPurchasedEvent` change
-  to say the guest can undo it.
+  single only — terminal"), `docs/spec/guest-ux.md`'s buy flow ("it can't
+  be undone") and the comment on `ItemPurchasedEvent` change to say the
+  guest can undo it. `docs/spec/data-and-persistence.md`'s list of event
+  types names `BuyUndone` in place of `PurchaseVoided`, and ADR-0078's "A
+  purchase is a terminal state of a `Hold`" allows the buyer's undo.
 
 ## Concurrency
 
@@ -286,8 +329,11 @@ No new kinds of input; each field keeps the rules it already has *(my call)*.
 - In release 1: `docs/spec/guest-ux.md` ("Hold flow") and
   `docs/spec/holds.md`'s opening rules, which still describe holding as the
   guest's way in, lead with "I'm buying this".
-- ADR-0075 amendment, `docs/spec/holds.md`'s terminal-purchase rule and
-  `docs/spec/domain-model.md`'s purchase line: in release 2, as above.
+- In release 2, as above: the ADR-0075 amendment, `docs/spec/holds.md`'s
+  terminal-purchase rule, `docs/spec/domain-model.md`'s purchase line,
+  `docs/spec/guest-ux.md`'s buy flow,
+  `docs/spec/data-and-persistence.md`'s event list and ADR-0078's
+  terminal-purchase sentence.
 
 ## Tests (at the owning layer)
 
@@ -299,32 +345,36 @@ protects.
     at one instant, and returns both events (the new `Item` command). Unit
     and group-gift refusals are `placeHold`'s and stay tested there.
 - **Domain, release 2:**
-  - `Hold`: voiding refuses a hold that isn't purchased, with
-    `HoldNotActiveError`, as one table: active, expired, released, voided
-    (the void command's guard).
-  - `Hold`: reconstituting with `voidedAt` but no `purchasedAt` is refused
-    (the private constructor's invariant).
-  - `Hold`: `statusAt` reports a voided purchase as voided, not purchased
-    (`statusAt`'s check order: voided before purchased). The counters
-    filter by status, so this also drops it from `committedUnits()` and
-    `purchasedCount()`.
-  - `Item`: can undo a purchase exactly when the hold is purchased (the
-    `can…` question), beside the `canExtendHold`/`canReleaseHold` tests.
-  - `Item`: `purchaseHold` refuses a voided hold with `HoldNotActiveError`
+  - `Hold`: undoing a buy refuses a hold that isn't purchased, with
+    `HoldNotActiveError`, as one table: active, expired, released, undone
+    (`Hold.undoBuy`'s guard).
+  - `Hold`: reconstituting with `buyUndoneAt` but no `purchasedAt` is
+    refused (the private constructor's invariant).
+  - `Hold`: `statusAt` reports an undone purchase as `buyUndone`, not
+    `purchased` (`statusAt`'s check order: undone before purchased). The
+    counters filter by status, so this also drops it from
+    `committedUnits()` and `purchasedCount()`.
+  - `Item`: `canUndoBuy` is true exactly when the hold is purchased,
+    beside the `canExtendHold`/`canReleaseHold` tests.
+  - `Item`: `purchaseHold` refuses an undone hold with `HoldNotActiveError`
     (its status list).
+  - `Wishlist`: `undoBuy` has the item decide and returns that item, and
+    it and `canUndoBuy` join the other-list refusal and hold-question
+    tests (`Wishlist.undoBuy`'s delegation and `lookup`).
+  - `Wishlist`: `findHoldForReplay`'s existing expired-hold test becomes a
+    table over expired and undone (its no-status-filter rule), so a buy
+    replayed after an undo answers the undone hold and never buys again.
 - **Application, release 1:**
   - Buying appends `ItemHeld` and `ItemPurchased` in one append at one
     expected sequence number, as the guest, and stores the name and message
     in one `guest_pii` row (`BuyItem`'s append and PII insert).
   - Replaying the buy key returns the first result (the replay step).
 - **Application, release 2:**
-  - Undoing appends `PurchaseVoided` as the guest, and the hold is saved
-    with `voidedAt` (the undo use case's append).
-  - A second undo answers the current view and appends nothing (the undo
-    use case's already-voided branch).
-  - Replaying the buy key after an undo returns the undone hold and appends
-    nothing (the replay step).
-  - `GetListView` leaves voided holds out of `myHolds` (its filter).
+  - Undoing appends `BuyUndone` as the guest, and the hold is saved with
+    `buyUndoneAt` (`UndoBuy`'s append).
+  - A second undo answers the current view and appends nothing (`UndoBuy`'s
+    already-undone branch).
+  - `GetListView` leaves undone holds out of `myHolds` (its filter).
 - **Request schema:** if the buy schema extends `holdItemRequestSchema`,
   it needs no new rows (`message` is optional with no limit); otherwise one
   row per required field (`idempotencyKey`, `name`, `units`), beside
@@ -339,9 +389,13 @@ protects.
     `ledgerActors.integration.test.ts`. In the IDOR table of holds closed
     by their owner, the undo joins both the actions and the closing
     actions, which pins "another session undoes a hold its owner undid →
-    the generic 404".
-- **Repository contract and rebuild** (release 2): `voided_at` round-trips,
-  and a rebuild re-folds it.
+    the generic 404". Its closing step is a purchase, then the undo.
+- **Repository contract and rebuild** (release 2): an undone hold saved
+  through `wishlists.save` reloads as undone (`wishlistRepository.contract.ts`,
+  run by the real adapter and the fake), and a rebuild re-folds
+  `buy_undone_at` from `BuyUndone`.
+- **Schema** (release 2): the database refuses `buy_undone_at` without
+  `purchased_at` (the migration's CHECK).
 - **Web, release 1:**
   - The card shows "I'm buying this" exactly when holding is offered.
   - "I'm buying this" comes before "Hold this item".
@@ -355,6 +409,10 @@ protects.
     already pinned there.
 - **Web, release 2:**
   - "I didn't buy it" asks first.
+  - With 2 bought, the question ends "Other guests will be able to buy
+    them." (the question's unit branch).
+  - After an undo, the outcome message clears when a new hold appears (the
+    clearing check), as a row beside the release's.
   - After the undo, the outcome message says "{title} is available to other
     guests again."
   - After the undo, focus moves as after a release.
@@ -365,12 +423,19 @@ protects.
 ## Left to the builder
 
 - Whether the buying sheet is its own component or a mode of `HoldDialog`.
-- Method, use-case and status names (ADR-0079).
+- Release 1's method, use-case and status names (ADR-0079). Release 2's
+  are the owner's (2026-11-16), above.
 - How `BuyItem` shares code with `HoldItem`.
 - The PR split within the 10-file cap. A natural order:
   1. Release 1: domain and use case; route and contract; the web card and
      sheet; the explainer and e2e.
-  2. Release 2: domain (`voidedAt`, the undo command and its event type);
-     the event's `LedgerEvent` union entry with the migration and
-     projection fold, since `rebuildProjections` switches exhaustively over
-     the union; contract; route; web; docs.
+  2. Release 2: domain (`buyUndoneAt`, the undo command and its event
+     type); storage (the migration and saving); the `HoldView` contract;
+     then one PR holding the event's `LedgerEvent` union entry, its fold,
+     `UndoBuy` and its success test, and the route with its OpenAPI files.
+     They can't ship apart: `rebuildProjections` and the ledger actor
+     matrix are keyed by the union, and the matrix raises every type over
+     HTTP. That PR is about 13 files, a one-off exception to the cap
+     (owner, 2026-11-16). Then `alreadyDone` with `GetListView`'s filter
+     and the route's security tables; web; docs; and after release 2,
+     the two PRs that make `buyUndoneAt` required.
