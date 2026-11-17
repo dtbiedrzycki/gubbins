@@ -32,7 +32,7 @@ function holdOn(itemId: string, overrides: Partial<Parameters<typeof Hold.recons
   holdCount += 1;
   return Hold.reconstitute({
     id: `00000000-0000-7000-8000-${String(holdCount).padStart(12, '0')}`, itemId, secret: 'hold-secret', sessionHash: SESSION,
-    idempotencyKey: `idem-${holdCount}`, expiresAt: at(3 * DAY), extendedAt: null, releasedAt: null, purchasedAt: null, units: 1, purchasedUnits: null,
+    idempotencyKey: `idem-${holdCount}`, expiresAt: at(3 * DAY), extendedAt: null, releasedAt: null, purchasedAt: null, buyUndoneAt: null, units: 1, purchasedUnits: null,
     ...overrides,
   });
 }

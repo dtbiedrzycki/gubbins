@@ -68,7 +68,7 @@ const msFromExpiry = (ms: number) => new Date(EXPIRES_AT.getTime() + ms);
 function persisted(overrides: Partial<Parameters<typeof Hold.reconstitute>[0]> = {}) {
   return Hold.reconstitute({
     id: HOLD_ID, itemId: ITEM_ID, secret: 'hold-secret', sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1',
-    expiresAt: EXPIRES_AT, extendedAt: null, releasedAt: null, purchasedAt: null, units: 1, purchasedUnits: null, ...overrides,
+    expiresAt: EXPIRES_AT, extendedAt: null, releasedAt: null, purchasedAt: null, buyUndoneAt: null, units: 1, purchasedUnits: null, ...overrides,
   });
 }
 

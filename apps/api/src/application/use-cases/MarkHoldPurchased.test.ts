@@ -75,7 +75,7 @@ describe('MarkHoldPurchased', () => {
     const held = store.holds.get(holdId)!;
     store.holds.set(holdId, Hold.reconstitute({
       id: holdId, itemId: ITEM_ID, secret: held.secret.value, sessionHash: held.sessionHash.value, idempotencyKey: held.idempotencyKey.value,
-      expiresAt: held.expiresAt, extendedAt: null, releasedAt: null, purchasedAt: null, piiRef: null, units: 1, purchasedUnits: null,
+      expiresAt: held.expiresAt, extendedAt: null, releasedAt: null, purchasedAt: null, buyUndoneAt: null, piiRef: null, units: 1, purchasedUnits: null,
     }));
     store.guestPii.clear();
 
