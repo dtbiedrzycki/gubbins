@@ -14,8 +14,16 @@ export interface YourContributionsProps {
   holds: HoldView[];
   contributions: ListViewResponse['myContributions'];
   itemTitles: Record<string, string>;
-  /** The last entry left, so the sheet and its button are gone; `itemId` is the gift of the latest outcome, if any. */
-  onEmptied: (itemId?: string) => void;
+  /** Whether the page shows this gift, so a done action that empties the sheet is told there instead of here. */
+  isGiftShown: (itemId: string) => boolean;
+  /** The last entry left, so the sheet and its button are gone; `outcome` is the latest one, if any. */
+  onEmptied: (outcome?: EmptiedOutcome) => void;
+}
+
+export interface EmptiedOutcome {
+  itemId: string;
+  ok: boolean;
+  message: string;
 }
 
 /** The actions whose card leaves the sheet once their refetch lands. */
@@ -46,7 +54,8 @@ function statusLine(hold: HoldView): string {
  * the hold's card: the refetch after an action can remove the card (a
  * release, an undo, or a hold already released in another tab). An outcome
  * that empties the sheet closes it and shows in this component's own
- * page-level pair instead. A failed release or undo reads as done once
+ * page-level pair instead, or beside its gift when that is done and the page
+ * shows the gift. A failed release or undo reads as done once
  * its hold leaves the list, as a failed purchase does once its hold shows
  * bought. Every live region stays mounted while its
  * container is (ADR-0025). Feedback clears when the next action starts, so a
@@ -54,7 +63,7 @@ function statusLine(hold: HoldView): string {
  * clears when a new hold appears, which it would contradict; other messages
  * stay to be read.
  */
-export function YourContributions({ slug, holds, contributions, itemTitles, onEmptied }: YourContributionsProps) {
+export function YourContributions({ slug, holds, contributions, itemTitles, isGiftShown, onEmptied }: YourContributionsProps) {
   const [open, setOpen] = useState(false);
   const [outcome, setOutcome] = useState<(HoldOutcome & { holdId: string; itemId: string }) | null>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -88,7 +97,7 @@ export function YourContributions({ slug, holds, contributions, itemTitles, onEm
     setEmptied(true);
   }
   // After the dialog has gone, so the page is no longer inert.
-  const reportEmptied = useEffectEvent(() => onEmptied(outcome?.itemId));
+  const reportEmptied = useEffectEvent(() => onEmptied(outcome ? { itemId: outcome.itemId, ok: outcome.ok, message: outcome.message } : undefined));
   useEffect(() => {
     if (emptied) reportEmptied();
   }, [emptied]);
@@ -122,7 +131,8 @@ export function YourContributions({ slug, holds, contributions, itemTitles, onEm
 
   return (
     <>
-      <p role="status" aria-live="polite" className="mt-3 font-bold text-moss empty:mt-0">{open ? '' : status}</p>
+      {/* A done action whose gift is on the page is told beside that gift instead, through onEmptied. */}
+      <p role="status" aria-live="polite" className="mt-3 font-bold text-moss empty:mt-0">{open || (outcome && isGiftShown(outcome.itemId)) ? '' : status}</p>
       <p role="alert" className="mt-3 text-error empty:mt-0">{open ? '' : alert}</p>
       {entries > 0 && (
         <>

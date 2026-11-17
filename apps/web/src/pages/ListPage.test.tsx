@@ -346,6 +346,28 @@ describe('ListPage', () => {
     await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Stroller' })).toHaveFocus());
   });
 
+  it('when the guest releases their last hold, says so beside that gift until their next action starts', async () => {
+    let held = true;
+    server.use(
+      http.get('/api/lists/abc123', () => HttpResponse.json(view(held))),
+      http.post('/api/lists/abc123/holds/hold-1/release', () => { held = false; return HttpResponse.json({ ...hold, status: 'released' }); }),
+      http.post('/api/lists/abc123/items/item-1/hold', () => { held = true; return HttpResponse.json(hold, { status: 201 }); }),
+    );
+    const user = userEvent.setup();
+    renderListPage();
+    await user.click(await screen.findByRole('button', { name: 'Your contributions · 1' }));
+    await user.click(screen.getByRole('button', { name: 'Release hold' }));
+    await user.click(screen.getByRole('button', { name: 'Yes, release it' }));
+    const gift = screen.getByRole('heading', { level: 2, name: 'Stroller' }).closest('li')!;
+    await waitFor(() => expect(within(gift).getByRole('status')).toHaveTextContent('Your hold on Stroller is released.'));
+
+    await user.click(within(gift).getByRole('button', { name: /^Hold this item/ }));
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: 'Yes, hold it' }));
+
+    await waitFor(() => expect(within(gift).getByRole('status')).toHaveTextContent('Stroller is held.'));
+  });
+
   it('when another tab empties Your contributions, moves focus to the list title', async () => {
     let held = true;
     server.use(http.get('/api/lists/abc123', () => HttpResponse.json(view(held))));

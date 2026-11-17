@@ -45,20 +45,20 @@ function listViews(...views: ListViewResponse[]) {
 }
 
 /** YourContributions fed by a live list-view query, as ListPage feeds it. */
-function Harness({ itemTitle, onEmptied }: { itemTitle: string; onEmptied: () => void }) {
+function Harness({ itemTitle, isGiftShown, onEmptied }: { itemTitle: string; isGiftShown: (itemId: string) => boolean; onEmptied: () => void }) {
   const query = useListView('abc123');
   return query.data ? (
     <YourContributions slug="abc123" holds={query.data.myHolds} contributions={query.data.myContributions}
-      itemTitles={{ 'item-1': itemTitle, 'item-2': 'Pram fund' }} onEmptied={onEmptied} />
+      itemTitles={{ 'item-1': itemTitle, 'item-2': 'Pram fund' }} isGiftShown={isGiftShown} onEmptied={onEmptied} />
   ) : null;
 }
 
 let client: QueryClient;
 
-function renderYourContributions({ itemTitle = 'Stroller', onEmptied = () => {} } = {}) {
+function renderYourContributions({ itemTitle = 'Stroller', isGiftShown = () => false, onEmptied = () => {} }: { itemTitle?: string; isGiftShown?: (itemId: string) => boolean; onEmptied?: () => void } = {}) {
   // useListView's own retry wins over these defaults; retryDelay: 0 keeps its one retry instant.
   client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 }, mutations: { retry: false } } });
-  return render(<QueryClientProvider client={client}><Harness itemTitle={itemTitle} onEmptied={onEmptied} /></QueryClientProvider>);
+  return render(<QueryClientProvider client={client}><Harness itemTitle={itemTitle} isGiftShown={isGiftShown} onEmptied={onEmptied} /></QueryClientProvider>);
 }
 
 /** Renders, then opens the sheet from its floating button. */
@@ -220,7 +220,7 @@ describe('YourContributions', () => {
 
     await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
 
-    await waitFor(() => expect(onEmptied).toHaveBeenCalledWith('item-1'));
+    await waitFor(() => expect(onEmptied).toHaveBeenCalledWith({ itemId: 'item-1', ok: false, message: 'This hold is no longer active.' }));
   });
 
   it('explains a not-found hold in words a guest can act on, not the bare "Not found"', async () => {
@@ -781,7 +781,20 @@ describe('YourContributions', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Your hold on Stroller is released.');
     expect(screen.queryByRole('button', { name: /^Your contributions/ })).not.toBeInTheDocument();
     expect(onEmptied).toHaveBeenCalledTimes(1);
-    expect(onEmptied).toHaveBeenCalledWith('item-1');
+    expect(onEmptied).toHaveBeenCalledWith({ itemId: 'item-1', ok: true, message: 'Your hold on Stroller is released.' });
+  });
+
+  it('when the last hold is released and the page shows its gift, leaves the page message to the gift', async () => {
+    listViews(list([active]), list([]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false, undoBuy: false } }));
+    const user = userEvent.setup();
+    const region = await openYourContributions({ isGiftShown: () => true });
+
+    await user.click(within(region).getByRole('button', { name: 'Release hold' }));
+    await user.click(within(region).getByRole('button', { name: 'Yes, release it' }));
+
+    await waitFor(() => expect(region).not.toBeInTheDocument());
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
   it('does not stamp the button shown on load', async () => {

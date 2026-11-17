@@ -85,7 +85,7 @@ test('a guest releases a hold after confirming, and the item can be held again',
   await expectNoSeriousAxeViolations(guest);
   await yourContributions.getByRole('button', { name: 'Yes, release it' }).click();
 
-  // The last entry is gone, so the sheet closes, the page says what happened, and focus goes to the gift.
+  // The last entry is gone, so the sheet closes and focus goes to the gift, which says what happened.
   await expect(yourContributions).toBeHidden();
   await expect(guest.getByRole('status').filter({ hasText: 'Your hold on Stroller is released.' })).toBeVisible();
   await expect(guest.getByRole('heading', { level: 2, name: 'Stroller' })).toBeFocused();
