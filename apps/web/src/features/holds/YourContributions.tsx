@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import { useIsMutating } from '@tanstack/react-query';
 import type { HoldView, ListViewResponse } from '@gubbins/shared-types';
 import { HoldActions, type HoldOutcome } from './HoldActions';
+import type { HoldAction } from './useHoldAction';
 import { formatExpiry } from './formatExpiry';
 import { Seal } from './Seal';
 import { formatMoney } from '../../lib/formatMoney';
@@ -16,6 +17,9 @@ export interface YourContributionsProps {
   /** An action removed the last entry, so the sheet and its button are gone. */
   onEmptied: () => void;
 }
+
+/** The actions whose card leaves the sheet once their refetch lands. */
+const cardLeaving: readonly HoldAction[] = ['release', 'undoBuy'];
 
 function statusLine(hold: HoldView): string {
   switch (hold.status) {
@@ -40,12 +44,13 @@ function statusLine(hold: HoldView): string {
  * pledge, that opens a sheet listing them; holds with their expiry and the
  * actions they offer, pledges read-only. Outcomes show in the sheet, not on
  * the hold's card: the refetch after an action can remove the card (a
- * release, or a hold already released in another tab). An outcome that
- * empties the sheet closes it and shows in this component's own page-level
- * pair instead. Every live region stays mounted while its container is
- * (ADR-0025). Feedback clears when the next action starts, so a repeated
- * message is announced again. A "released" message also clears when a new
- * hold appears, which it would contradict; other messages stay to be read.
+ * release, an undo, or a hold already released in another tab). An outcome
+ * that empties the sheet closes it and shows in this component's own
+ * page-level pair instead. Every live region stays mounted while its
+ * container is (ADR-0025). Feedback clears when the next action starts, so a
+ * repeated message is announced again. A release's or an undo's message also
+ * clears when a new hold appears, which it would contradict; other messages
+ * stay to be read.
  */
 export function YourContributions({ slug, holds, contributions, itemTitles, onEmptied }: YourContributionsProps) {
   const [open, setOpen] = useState(false);
@@ -59,7 +64,7 @@ export function YourContributions({ slug, holds, contributions, itemTitles, onEm
   const [initialHoldIds] = useState(() => new Set(holdIds));
   if (holdIds.some((id) => !knownHoldIds.includes(id))) {
     setKnownHoldIds(holdIds);
-    if (outcome?.ok && outcome.action === 'release') setOutcome(null);
+    if (outcome?.ok && cardLeaving.includes(outcome.action)) setOutcome(null);
   }
 
   const entries = holds.length + contributions.length;
@@ -98,7 +103,7 @@ export function YourContributions({ slug, holds, contributions, itemTitles, onEm
   // its card stays, otherwise the sheet's heading beside the feedback.
   function showOutcome(holdId: string, next: HoldOutcome) {
     setOutcome(next);
-    const card = next.ok && next.action !== 'release' ? cardHeadings.current.get(holdId) : undefined;
+    const card = next.ok && !cardLeaving.includes(next.action) ? cardHeadings.current.get(holdId) : undefined;
     (card ?? sheetHeading.current)?.focus();
   }
 

@@ -93,7 +93,7 @@ test('a guest holds 2 of 5, buys 1, and another guest sees "Wanted: 4 more"', as
   }
 });
 
-test('a guest buys 2 of 5 with "I’m buying this", and another guest sees "Wanted: 3 more"', async ({ page, context, browser, baseURL }) => {
+test('a guest buys 2 of 5 with "I’m buying this", and another guest sees "Wanted: 3 more", then "Wanted: 5 more" after the buy is undone', async ({ page, context, browser, baseURL }) => {
   const list = await listOfFiveOnesies(page);
   const guest = await guestFromLink(context, list);
   const yourContributions = guest.getByRole('dialog', { name: 'Your contributions' });
@@ -112,6 +112,20 @@ test('a guest buys 2 of 5 with "I’m buying this", and another guest sees "Want
   try {
     const other = await guestFromLink(otherContext, list);
     await expect(other.getByText('Wanted: 3 more')).toBeVisible();
+
+    await yourContributions.getByRole('button', { name: 'I didn’t buy it' }).click();
+    const yesUndo = yourContributions.getByRole('button', { name: 'Yes, undo it' });
+    // The scan runs with the question open, so it covers it.
+    await expect(yesUndo).toBeVisible();
+    await expectNoSeriousAxeViolations(guest);
+    await yesUndo.click();
+
+    // That was the guest's only entry, so the sheet closes and the page says what happened.
+    await expect(yourContributions).toBeHidden();
+    await expect(guest.getByRole('status').filter({ hasText: 'Baby onesies is available to other guests again.' })).toBeVisible();
+
+    await other.reload();
+    await expect(other.getByText('Wanted: 5 more')).toBeVisible();
   } finally {
     await otherContext.close();
   }
