@@ -7,7 +7,15 @@ function stubHeights(scrollHeight: number, clientHeight: number) {
   Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, value: clientHeight });
 }
 
+const { innerWidth, innerHeight } = window;
+
+function resizeWindow(width: number, height: number) {
+  Object.assign(window, { innerWidth: width, innerHeight: height });
+  act(() => { window.dispatchEvent(new Event('resize')); });
+}
+
 afterEach(() => {
+  Object.assign(window, { innerWidth, innerHeight });
   Reflect.deleteProperty(HTMLElement.prototype, 'scrollHeight');
   Reflect.deleteProperty(HTMLElement.prototype, 'clientHeight');
   Reflect.deleteProperty(document, 'fonts');
@@ -47,6 +55,25 @@ describe('ClampedText', () => {
     stubHeights(80, 40);
     await act(async () => fontsLoaded());
     expect(screen.getByRole('button', { name: 'Show more' })).toBeTruthy();
+  });
+
+  it('re-measures when the window width changes', () => {
+    stubHeights(40, 40);
+    render(<ClampedText id="d">long</ClampedText>);
+
+    stubHeights(80, 40);
+    resizeWindow(window.innerWidth - 100, window.innerHeight);
+    expect(screen.getByRole('button', { name: 'Show more' })).toBeTruthy();
+  });
+
+  it('does not clamp the expanded text when only the window height changes', () => {
+    stubHeights(80, 40);
+    render(<ClampedText id="d" rememberAs="test.expanded">long</ClampedText>);
+    const classChanges = new MutationObserver(() => {});
+    classChanges.observe(document.getElementById('d')!, { attributeFilter: ['class'] });
+
+    resizeWindow(window.innerWidth, window.innerHeight - 60);
+    expect(classChanges.takeRecords()).toEqual([]);
   });
 
   it('expands when keyboard focus enters the clamped text', () => {

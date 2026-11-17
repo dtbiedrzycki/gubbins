@@ -42,10 +42,18 @@ export function ClampedText({ children, id, rememberAs }: { children: ReactNode;
     void document.fonts?.ready.then(() => {
       if (!cancelled) measure();
     });
-    window.addEventListener('resize', measure);
+    // Line breaks follow the width alone. Firefox for Android fires resize with only the height changed as its
+    // toolbar slides while scrolling; clamping the text to measure it then let scroll anchoring jump the page to the top.
+    let width = window.innerWidth;
+    const remeasure = () => {
+      if (window.innerWidth === width) return;
+      width = window.innerWidth;
+      measure();
+    };
+    window.addEventListener('resize', remeasure);
     return () => {
       cancelled = true;
-      window.removeEventListener('resize', measure);
+      window.removeEventListener('resize', remeasure);
     };
   }, [children]);
 
