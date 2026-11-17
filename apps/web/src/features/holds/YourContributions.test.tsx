@@ -211,7 +211,7 @@ describe('YourContributions', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('This hold is no longer active.');
   });
 
-  it('when a refusal removes the last entry, reports that gift', async () => {
+  it('when a refusal empties the sheet, reports its gift for focus but keeps the message under the list title', async () => {
     listViews(list([active]), list([]));
     server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' }));
     const onEmptied = vi.fn();
