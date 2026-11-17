@@ -14,16 +14,14 @@ export interface YourContributionsProps {
   holds: HoldView[];
   contributions: ListViewResponse['myContributions'];
   itemTitles: Record<string, string>;
-  /** Whether the page shows this gift, so a done action that empties the sheet is told there instead of here. */
+  /** Whether the page shows this gift, so a done action that empties the sheet is told beside it instead of here. */
   isGiftShown: (itemId: string) => boolean;
-  /** The last entry left, so the sheet and its button are gone; `outcome` is the latest one, if any. */
-  onEmptied: (outcome?: EmptiedOutcome) => void;
-}
-
-export interface EmptiedOutcome {
-  itemId: string;
-  ok: boolean;
-  message: string;
+  /**
+   * The last entry left, so the sheet and its button are gone. `itemId` is the
+   * latest outcome's gift, if any; `notice` is that outcome's message when it
+   * is the gift's to show.
+   */
+  onEmptied: (itemId?: string, notice?: string) => void;
 }
 
 /** The actions whose card leaves the sheet once their refetch lands. */
@@ -54,8 +52,8 @@ function statusLine(hold: HoldView): string {
  * the hold's card: the refetch after an action can remove the card (a
  * release, an undo, or a hold already released in another tab). An outcome
  * that empties the sheet closes it and shows in this component's own
- * page-level pair instead, or beside its gift when that is done and the page
- * shows the gift. A failed release or undo reads as done once
+ * page-level pair instead, or, when the action succeeded and the page shows
+ * its gift, beside that gift: decided once, as the sheet empties. A failed release or undo reads as done once
  * its hold leaves the list, as a failed purchase does once its hold shows
  * bought. Every live region stays mounted while its
  * container is (ADR-0025). Feedback clears when the next action starts, so a
@@ -91,20 +89,23 @@ export function YourContributions({ slug, holds, contributions, itemTitles, isGi
     setShown(entries > 0);
     if (shown) setStampButton(false);
   }
-  const [emptied, setEmptied] = useState(false);
+  const [emptied, setEmptied] = useState<{ itemId?: string; notice?: string } | null>(null);
   if (open && entries === 0) {
     setOpen(false);
-    setEmptied(true);
+    const toGift = settled?.ok && isGiftShown(settled.itemId);
+    setEmptied({ itemId: settled?.itemId, notice: toGift ? settled.message : undefined });
+    // Handed to the gift, so the page pair never shows it, even if a filter later hides the gift.
+    if (toGift) setOutcome(null);
   }
   // After the dialog has gone, so the page is no longer inert.
-  const reportEmptied = useEffectEvent(() => onEmptied(outcome ? { itemId: outcome.itemId, ok: outcome.ok, message: outcome.message } : undefined));
+  const reportEmptied = useEffectEvent((report: { itemId?: string; notice?: string }) => onEmptied(report.itemId, report.notice));
   useEffect(() => {
-    if (emptied) reportEmptied();
+    if (emptied) reportEmptied(emptied);
   }, [emptied]);
 
   function openSheet() {
     setOutcome(null);
-    setEmptied(false);
+    setEmptied(null);
     setOpen(true);
   }
 
@@ -126,13 +127,12 @@ export function YourContributions({ slug, holds, contributions, itemTitles, isGi
   const status = outcome?.ok ? outcome.message : '';
   const alert = outcome && !outcome.ok ? outcome.message : '';
   // The sheet shows an outcome once its refetch has landed: if that empties
-  // the sheet, the page pair announces it instead, and only once.
+  // the sheet, the page pair or the gift announces it instead, and only once.
   const settling = useIsMutating() > 0;
 
   return (
     <>
-      {/* A done action whose gift is on the page is told beside that gift instead, through onEmptied. */}
-      <p role="status" aria-live="polite" className="mt-3 font-bold text-moss empty:mt-0">{open || (outcome && isGiftShown(outcome.itemId)) ? '' : status}</p>
+      <p role="status" aria-live="polite" className="mt-3 font-bold text-moss empty:mt-0">{open ? '' : status}</p>
       <p role="alert" className="mt-3 text-error empty:mt-0">{open ? '' : alert}</p>
       {entries > 0 && (
         <>

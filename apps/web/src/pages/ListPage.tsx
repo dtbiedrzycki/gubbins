@@ -13,7 +13,7 @@ import { HowGroupGiftsWork } from '../features/contribute/HowGroupGiftsWork';
 import { ItemFilter, filterKey, type ItemFilterValue } from '../features/holds/ItemFilter';
 import { ClampedText } from '../lib/ClampedText';
 import { Markdown } from '../lib/Markdown';
-import { YourContributions, type EmptiedOutcome } from '../features/holds/YourContributions';
+import { YourContributions } from '../features/holds/YourContributions';
 import { clearDraft, loadDraft } from '../features/contribute/contributeDraft';
 
 export default function ListPage() {
@@ -108,12 +108,10 @@ export default function ListPage() {
   // The card is going; the gift filter comes next.
   const focusFilter = () => document.querySelector<HTMLButtonElement>('[aria-label="Show gifts"] button')?.focus();
   const hasContributions = query.data.myHolds.length + query.data.myContributions.length > 0;
-  const isGiftShown = (itemId: string) => shown.some((i) => i.id === itemId);
-  // Focus the outcome's gift, so the page stays near it, and tell a done action there; the title when there's no gift or the filter hides it.
-  function showEmptied(outcome?: EmptiedOutcome) {
-    if (!outcome || !isGiftShown(outcome.itemId)) return title.current?.focus();
-    if (outcome.ok) setNotice({ itemId: outcome.itemId, message: outcome.message });
-    document.getElementById(`item-title-${outcome.itemId}`)?.focus();
+  // Focus the outcome's gift, so the page stays near it; the title when there's no gift or the filter hides it.
+  function showEmptied(itemId?: string, message?: string) {
+    if (itemId && message) setNotice({ itemId, message });
+    ((itemId && document.getElementById(`item-title-${itemId}`)) || title.current)?.focus();
   }
   return (
     // While the floating "Your contributions" button shows, the end of the page leaves room for it, so it never covers the last gift:
@@ -127,7 +125,7 @@ export default function ListPage() {
           {/* Here, so an outcome whose gift isn't shown appears under the list title, the fallback focus. */}
           <YourContributions slug={slug} holds={query.data.myHolds} contributions={query.data.myContributions}
             itemTitles={Object.fromEntries(items.map((i) => [i.id, i.title]))}
-            isGiftShown={isGiftShown}
+            isGiftShown={(itemId) => shown.some((i) => i.id === itemId)}
             onEmptied={showEmptied} />
         </header>
         {query.data.description && (

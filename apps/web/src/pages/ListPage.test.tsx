@@ -346,19 +346,38 @@ describe('ListPage', () => {
     await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Stroller' })).toHaveFocus());
   });
 
-  it('when the guest releases their last hold, says so beside that gift until their next action starts', async () => {
+  /** Serves the list with one hold, then lets the guest release it and hold the gift again. */
+  function holdAndRelease() {
     let held = true;
     server.use(
       http.get('/api/lists/abc123', () => HttpResponse.json(view(held))),
       http.post('/api/lists/abc123/holds/hold-1/release', () => { held = false; return HttpResponse.json({ ...hold, status: 'released' }); }),
       http.post('/api/lists/abc123/items/item-1/hold', () => { held = true; return HttpResponse.json(hold, { status: 201 }); }),
     );
-    const user = userEvent.setup();
-    renderListPage();
+  }
+
+  async function releaseTheLastHold(user: ReturnType<typeof userEvent.setup>) {
     await user.click(await screen.findByRole('button', { name: 'Your contributions · 1' }));
     await user.click(screen.getByRole('button', { name: 'Release hold' }));
     await user.click(screen.getByRole('button', { name: 'Yes, release it' }));
-    const gift = screen.getByRole('heading', { level: 2, name: 'Stroller' }).closest('li')!;
+    return screen.getByRole('heading', { level: 2, name: 'Stroller' }).closest('li')!;
+  }
+
+  it('when the guest releases their last hold, says so beside that gift', async () => {
+    holdAndRelease();
+    const user = userEvent.setup();
+    renderListPage();
+
+    const gift = await releaseTheLastHold(user);
+
+    await waitFor(() => expect(within(gift).getByRole('status')).toHaveTextContent('Your hold on Stroller is released.'));
+  });
+
+  it('clears the message beside the gift when the guest\'s next action starts', async () => {
+    holdAndRelease();
+    const user = userEvent.setup();
+    renderListPage();
+    const gift = await releaseTheLastHold(user);
     await waitFor(() => expect(within(gift).getByRole('status')).toHaveTextContent('Your hold on Stroller is released.'));
 
     await user.click(within(gift).getByRole('button', { name: /^Hold this item/ }));

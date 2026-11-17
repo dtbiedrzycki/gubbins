@@ -220,7 +220,7 @@ describe('YourContributions', () => {
 
     await user.click(within(region).getByRole('button', { name: 'Extend hold' }));
 
-    await waitFor(() => expect(onEmptied).toHaveBeenCalledWith({ itemId: 'item-1', ok: false, message: 'This hold is no longer active.' }));
+    await waitFor(() => expect(onEmptied).toHaveBeenCalledWith('item-1', undefined));
   });
 
   it('explains a not-found hold in words a guest can act on, not the bare "Not found"', async () => {
@@ -781,19 +781,37 @@ describe('YourContributions', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Your hold on Stroller is released.');
     expect(screen.queryByRole('button', { name: /^Your contributions/ })).not.toBeInTheDocument();
     expect(onEmptied).toHaveBeenCalledTimes(1);
-    expect(onEmptied).toHaveBeenCalledWith({ itemId: 'item-1', ok: true, message: 'Your hold on Stroller is released.' });
+    expect(onEmptied).toHaveBeenCalledWith('item-1', undefined);
   });
 
-  it('when the last hold is released and the page shows its gift, leaves the page message to the gift', async () => {
+  it('when the last hold is released and the page shows its gift, hands the message to that gift', async () => {
     listViews(list([active]), list([]));
     server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false, undoBuy: false } }));
+    const onEmptied = vi.fn();
     const user = userEvent.setup();
-    const region = await openYourContributions({ isGiftShown: () => true });
+    const region = await openYourContributions({ isGiftShown: () => true, onEmptied });
 
     await user.click(within(region).getByRole('button', { name: 'Release hold' }));
     await user.click(within(region).getByRole('button', { name: 'Yes, release it' }));
 
+    await waitFor(() => expect(onEmptied).toHaveBeenCalledWith('item-1', 'Your hold on Stroller is released.'));
+  });
+
+  it('when the last hold is released and the page shows its gift, says nothing under the list title, even once the gift is hidden', async () => {
+    listViews(list([active]), list([]));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false, undoBuy: false } }));
+    const user = userEvent.setup();
+    const { rerender } = renderYourContributions({ isGiftShown: () => true });
+    await user.click(await screen.findByRole('button', { name: 'Your contributions · 1' }));
+    const region = screen.getByRole('dialog', { name: 'Your contributions' });
+
+    await user.click(within(region).getByRole('button', { name: 'Release hold' }));
+    await user.click(within(region).getByRole('button', { name: 'Yes, release it' }));
     await waitFor(() => expect(region).not.toBeInTheDocument());
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    // A filter now hides the gift.
+    rerender(<QueryClientProvider client={client}><Harness itemTitle="Stroller" isGiftShown={() => false} onEmptied={() => {}} /></QueryClientProvider>);
+
     expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
