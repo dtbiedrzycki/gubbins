@@ -516,7 +516,7 @@ export interface operations {
                             holdId: string;
                             itemId: string;
                             /** @enum {string} */
-                            status: "active" | "expired" | "released" | "purchased";
+                            status: "active" | "expired" | "released" | "purchased" | "buyUndone";
                             expiresAt: string;
                             extendedAt: string | null;
                             units: number;
@@ -526,6 +526,7 @@ export interface operations {
                                 extend: boolean;
                                 release: boolean;
                                 purchase: boolean;
+                                undoBuy: boolean;
                             };
                         }[];
                         myContributions: {
@@ -933,7 +934,7 @@ export interface operations {
                         holdId: string;
                         itemId: string;
                         /** @enum {string} */
-                        status: "active" | "expired" | "released" | "purchased";
+                        status: "active" | "expired" | "released" | "purchased" | "buyUndone";
                         expiresAt: string;
                         extendedAt: string | null;
                         units: number;
@@ -943,6 +944,7 @@ export interface operations {
                             extend: boolean;
                             release: boolean;
                             purchase: boolean;
+                            undoBuy: boolean;
                         };
                     };
                 };
@@ -1007,7 +1009,7 @@ export interface operations {
                         holdId: string;
                         itemId: string;
                         /** @enum {string} */
-                        status: "active" | "expired" | "released" | "purchased";
+                        status: "active" | "expired" | "released" | "purchased" | "buyUndone";
                         expiresAt: string;
                         extendedAt: string | null;
                         units: number;
@@ -1017,6 +1019,7 @@ export interface operations {
                             extend: boolean;
                             release: boolean;
                             purchase: boolean;
+                            undoBuy: boolean;
                         };
                     };
                 };
@@ -1142,7 +1145,7 @@ export interface operations {
                         holdId: string;
                         itemId: string;
                         /** @enum {string} */
-                        status: "active" | "expired" | "released" | "purchased";
+                        status: "active" | "expired" | "released" | "purchased" | "buyUndone";
                         expiresAt: string;
                         extendedAt: string | null;
                         units: number;
@@ -1152,6 +1155,7 @@ export interface operations {
                             extend: boolean;
                             release: boolean;
                             purchase: boolean;
+                            undoBuy: boolean;
                         };
                     };
                 };
@@ -1207,7 +1211,7 @@ export interface operations {
                         holdId: string;
                         itemId: string;
                         /** @enum {string} */
-                        status: "active" | "expired" | "released" | "purchased";
+                        status: "active" | "expired" | "released" | "purchased" | "buyUndone";
                         expiresAt: string;
                         extendedAt: string | null;
                         units: number;
@@ -1217,6 +1221,7 @@ export interface operations {
                             extend: boolean;
                             release: boolean;
                             purchase: boolean;
+                            undoBuy: boolean;
                         };
                     };
                 };
@@ -1272,7 +1277,7 @@ export interface operations {
                         holdId: string;
                         itemId: string;
                         /** @enum {string} */
-                        status: "active" | "expired" | "released" | "purchased";
+                        status: "active" | "expired" | "released" | "purchased" | "buyUndone";
                         expiresAt: string;
                         extendedAt: string | null;
                         units: number;
@@ -1282,6 +1287,7 @@ export interface operations {
                             extend: boolean;
                             release: boolean;
                             purchase: boolean;
+                            undoBuy: boolean;
                         };
                     };
                 };

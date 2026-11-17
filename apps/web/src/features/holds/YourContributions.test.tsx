@@ -15,9 +15,9 @@ import { aHoldView } from '../../test/holdView';
 const EXPIRES = '2026-01-04T00:00:00.000Z';
 const EXTENDED_EXPIRES = '2026-01-07T00:00:00.000Z';
 const active = aHoldView({ expiresAt: EXPIRES });
-const extended: HoldView = { ...active, expiresAt: EXTENDED_EXPIRES, extendedAt: '2026-01-02T00:00:00.000Z', actions: { extend: false, release: true, purchase: true } };
-const expiredBuyable: HoldView = { ...active, status: 'expired', actions: { extend: false, release: false, purchase: true } };
-const purchased: HoldView = { ...active, status: 'purchased', purchasedUnits: 1, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false } };
+const extended: HoldView = { ...active, expiresAt: EXTENDED_EXPIRES, extendedAt: '2026-01-02T00:00:00.000Z', actions: { extend: false, release: true, purchase: true, undoBuy: false } };
+const expiredBuyable: HoldView = { ...active, status: 'expired', actions: { extend: false, release: false, purchase: true, undoBuy: false } };
+const purchased: HoldView = { ...active, status: 'purchased', purchasedUnits: 1, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false, undoBuy: true } };
 
 type Pledge = ListViewResponse['myContributions'][number];
 const pledge: Pledge = { contributionId: 'pledge-1', itemId: 'item-2', amountMinor: 4000, pledgedAt: '2026-01-02T00:00:00.000Z' };
@@ -104,7 +104,7 @@ describe('YourContributions', () => {
 
   it('asks before releasing, and still announces the release once the hold has gone', async () => {
     listViews(list([active], [pledge]), list([], [pledge]));
-    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false } }));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false, undoBuy: false } }));
     const user = userEvent.setup();
     const region = await openYourContributions();
 
@@ -297,7 +297,7 @@ describe('YourContributions', () => {
   it('clears the last announcement when a new hold appears', async () => {
     const second: HoldView = { ...active, holdId: 'hold-2' };
     listViews(list([active], [pledge]), list([], [pledge]), list([second], [pledge]));
-    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false } }));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false, undoBuy: false } }));
     const user = userEvent.setup();
     const region = await openYourContributions();
     await user.click(within(region).getByRole('button', { name: 'Release hold' }));
@@ -328,7 +328,7 @@ describe('YourContributions', () => {
 
   it('after a release with other entries left, moves focus to the sheet\'s heading', async () => {
     listViews(list([active], [pledge]), list([], [pledge]));
-    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false } }));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false, undoBuy: false } }));
     const user = userEvent.setup();
     const region = await openYourContributions();
 
@@ -344,7 +344,7 @@ describe('YourContributions', () => {
     const responded = new Promise<void>((resolve) => { respond = resolve; });
     server.use(http.post('/api/lists/abc123/holds/hold-1/release', async () => {
       await responded;
-      return HttpResponse.json({ ...active, status: 'released', actions: { extend: false, release: false, purchase: false } });
+      return HttpResponse.json({ ...active, status: 'released', actions: { extend: false, release: false, purchase: false, undoBuy: false } });
     }));
     const user = userEvent.setup();
     const region = await openYourContributions();
@@ -526,7 +526,7 @@ describe('YourContributions', () => {
 
   it('closes the purchase sheet when the refusal leaves nothing to buy, and shows why under the Your contributions heading', async () => {
     const expired: HoldView = { ...expiredBuyable, units: 3, purchasableUnits: 3 };
-    const lapsed: HoldView = { ...expired, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false } };
+    const lapsed: HoldView = { ...expired, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false, undoBuy: false } };
     // Another guest then releases a unit, so the hold can be bought again.
     listViews(list([expired]), list([lapsed]), list([{ ...expired, purchasableUnits: 1 }]));
     server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/purchase', 409, { message: 'Your hold expired and this gift has since been held or bought by someone else.', code: 'item_unavailable' }));
@@ -555,7 +555,7 @@ describe('YourContributions', () => {
     [2, 'they are'],
   ])('closes the purchase sheet and says to reload when a refetch takes away the purchase of a %i-unit hold', async (units, pronoun) => {
     const expired: HoldView = { ...expiredBuyable, units, purchasableUnits: units };
-    const lapsed: HoldView = { ...expired, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false } };
+    const lapsed: HoldView = { ...expired, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false, undoBuy: false } };
     // While the guest looks for their receipt, the last free unit goes to someone else.
     listViews(list([expired]), list([lapsed]));
     const user = userEvent.setup();
@@ -620,7 +620,7 @@ describe('YourContributions', () => {
     ['network failure', () => HttpResponse.error()],
     ['server error', () => HttpResponse.json({ message: 'Internal error' }, { status: 500 })],
   ])('says to reload, not repeat a %s, when a later refetch takes away the purchase', async (_, respond) => {
-    const lapsed: HoldView = { ...expiredBuyable, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false } };
+    const lapsed: HoldView = { ...expiredBuyable, purchasableUnits: 0, actions: { extend: false, release: false, purchase: false, undoBuy: false } };
     // 1: the page loads; 2: the failed request's own refetch still offers the purchase;
     // 3: a later background refetch doesn't.
     listViews(list([expiredBuyable]), list([expiredBuyable]), list([lapsed]));
@@ -687,7 +687,7 @@ describe('YourContributions', () => {
 
   it('when the last hold is released, closes the sheet, announces it and calls onEmptied', async () => {
     listViews(list([active]), list([]));
-    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false } }));
+    server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false, undoBuy: false } }));
     const onEmptied = vi.fn();
     const user = userEvent.setup();
     const region = await openYourContributions({ onEmptied });
@@ -747,7 +747,7 @@ describe('YourContributions', () => {
   });
 
   it.each([
-    ['release', 'Release hold', 'status', () => mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false } })],
+    ['release', 'Release hold', 'status', () => mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false, undoBuy: false } })],
     ['refusal', 'Extend hold', 'alert', () => mock('post', '/api/lists/{slug}/holds/{holdId}/extend', 409, { message: 'This hold is no longer active.', code: 'hold_not_active' })],
   ] as const)('holds back a %s until its refetch lands, so one that empties the sheet is announced once', async (_, press, role, answer) => {
     let landRefetch!: () => void;

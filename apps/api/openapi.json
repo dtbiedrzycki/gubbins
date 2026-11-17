@@ -480,7 +480,8 @@
                               "active",
                               "expired",
                               "released",
-                              "purchased"
+                              "purchased",
+                              "buyUndone"
                             ]
                           },
                           "expiresAt": {
@@ -517,12 +518,16 @@
                               },
                               "purchase": {
                                 "type": "boolean"
+                              },
+                              "undoBuy": {
+                                "type": "boolean"
                               }
                             },
                             "required": [
                               "extend",
                               "release",
-                              "purchase"
+                              "purchase",
+                              "undoBuy"
                             ],
                             "additionalProperties": false
                           }
@@ -1352,7 +1357,8 @@
                         "active",
                         "expired",
                         "released",
-                        "purchased"
+                        "purchased",
+                        "buyUndone"
                       ]
                     },
                     "expiresAt": {
@@ -1389,12 +1395,16 @@
                         },
                         "purchase": {
                           "type": "boolean"
+                        },
+                        "undoBuy": {
+                          "type": "boolean"
                         }
                       },
                       "required": [
                         "extend",
                         "release",
-                        "purchase"
+                        "purchase",
+                        "undoBuy"
                       ],
                       "additionalProperties": false
                     }
@@ -1522,7 +1532,8 @@
                         "active",
                         "expired",
                         "released",
-                        "purchased"
+                        "purchased",
+                        "buyUndone"
                       ]
                     },
                     "expiresAt": {
@@ -1559,12 +1570,16 @@
                         },
                         "purchase": {
                           "type": "boolean"
+                        },
+                        "undoBuy": {
+                          "type": "boolean"
                         }
                       },
                       "required": [
                         "extend",
                         "release",
-                        "purchase"
+                        "purchase",
+                        "undoBuy"
                       ],
                       "additionalProperties": false
                     }
@@ -1800,7 +1815,8 @@
                         "active",
                         "expired",
                         "released",
-                        "purchased"
+                        "purchased",
+                        "buyUndone"
                       ]
                     },
                     "expiresAt": {
@@ -1837,12 +1853,16 @@
                         },
                         "purchase": {
                           "type": "boolean"
+                        },
+                        "undoBuy": {
+                          "type": "boolean"
                         }
                       },
                       "required": [
                         "extend",
                         "release",
-                        "purchase"
+                        "purchase",
+                        "undoBuy"
                       ],
                       "additionalProperties": false
                     }
@@ -1937,7 +1957,8 @@
                         "active",
                         "expired",
                         "released",
-                        "purchased"
+                        "purchased",
+                        "buyUndone"
                       ]
                     },
                     "expiresAt": {
@@ -1974,12 +1995,16 @@
                         },
                         "purchase": {
                           "type": "boolean"
+                        },
+                        "undoBuy": {
+                          "type": "boolean"
                         }
                       },
                       "required": [
                         "extend",
                         "release",
-                        "purchase"
+                        "purchase",
+                        "undoBuy"
                       ],
                       "additionalProperties": false
                     }
@@ -2074,7 +2099,8 @@
                         "active",
                         "expired",
                         "released",
-                        "purchased"
+                        "purchased",
+                        "buyUndone"
                       ]
                     },
                     "expiresAt": {
@@ -2111,12 +2137,16 @@
                         },
                         "purchase": {
                           "type": "boolean"
+                        },
+                        "undoBuy": {
+                          "type": "boolean"
                         }
                       },
                       "required": [
                         "extend",
                         "release",
-                        "purchase"
+                        "purchase",
+                        "undoBuy"
                       ],
                       "additionalProperties": false
                     }

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const holdStatusSchema = z.enum(['active', 'expired', 'released', 'purchased']);
+export const holdStatusSchema = z.enum(['active', 'expired', 'released', 'purchased', 'buyUndone']);
 export type HoldStatus = z.infer<typeof holdStatusSchema>;
 
 /**
@@ -16,7 +16,7 @@ export const holdViewSchema = z.object({
   units: z.number().int().min(1),
   purchasedUnits: z.number().int().min(1).nullable(),
   purchasableUnits: z.number().int().min(0),
-  actions: z.object({ extend: z.boolean(), release: z.boolean(), purchase: z.boolean() }),
+  actions: z.object({ extend: z.boolean(), release: z.boolean(), purchase: z.boolean(), undoBuy: z.boolean() }),
 });
 export type HoldView = z.infer<typeof holdViewSchema>;
 
