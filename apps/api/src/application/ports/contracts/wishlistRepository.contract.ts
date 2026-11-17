@@ -118,6 +118,24 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       expect((await fx.wishlists.findById(LIST_A, NOW))?.items[0]?.seq).toBe(2);
     });
 
+    it('saves an undone buy through wishlists.save, and the hold reloads as undone', async () => {
+      const hold = holdFixture();
+      await fx.holds.insert(hold);
+      const bought = (await fx.wishlists.findById(LIST_A, NOW))!;
+      bought.purchaseHold(bought.findHold(hold.id.value)!, 1);
+      await fx.wishlists.save(bought);
+      const undoneAt = later(1_000);
+      const undoing = (await fx.wishlists.findById(LIST_A, undoneAt))!;
+      undoing.undoBuy(undoing.findHold(hold.id.value)!);
+
+      await fx.wishlists.save(undoing);
+
+      const reloaded = (await fx.wishlists.findById(LIST_A, undoneAt))!;
+      const stored = reloaded.findHold(hold.id.value)!;
+      expect(reloaded.holdStatus(stored)).toBe('buyUndone');
+      expect(stored.buyUndoneAt).toEqual(undoneAt);
+    });
+
     it('save persists a purchase, the hold and the item\'s seq together, so it counts on the next load', async () => {
       const hold = holdFixture();
       await fx.holds.insert(hold);

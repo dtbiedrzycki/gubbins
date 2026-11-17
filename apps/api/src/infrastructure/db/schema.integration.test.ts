@@ -40,7 +40,7 @@ describe('0003 items index', () => {
   });
 });
 
-describe('0001_init schema', () => {
+describe('the holds schema', () => {
   it("stores a hold's lifecycle timestamps, each null until set", async () => {
     await db.insertInto('holds').values(holdRow()).execute();
 
@@ -60,6 +60,7 @@ describe('0001_init schema', () => {
     ['a purchase of 0 units', { units: 2, purchased_at: NOW, purchased_units: 0 }],
     ['purchased units on a hold that is not purchased', { units: 2, purchased_units: 1 }],
     ['a purchase without purchased units', { purchased_at: NOW }],
+    ['a buy undone on a hold that was never bought', { buy_undone_at: NOW }],
   ])('rejects %s', async (_case, overrides) => {
     await expect(db.insertInto('holds').values(holdRow(overrides)).execute()).rejects.toThrow(/CHECK constraint failed/);
   });
@@ -130,7 +131,7 @@ describe('migrateToLatest on a database an older build created', () => {
 
     expect(await released.selectFrom('wishlists').select(['id', 'slug', 'theme']).execute()).toEqual([{ id: W1, slug: 's', theme: 'storybook' }]);
     expect((await sql`select name from kysely_migration`.execute(released)).rows).toEqual([
-      { name: '0001_init' }, { name: '0002_item_positions' }, { name: '0003_items_wishlist_index' }, { name: '0004_wishlist_theme' },
+      { name: '0001_init' }, { name: '0002_item_positions' }, { name: '0003_items_wishlist_index' }, { name: '0004_wishlist_theme' }, { name: '0005_hold_buy_undone' },
     ]);
     await released.destroy();
   });

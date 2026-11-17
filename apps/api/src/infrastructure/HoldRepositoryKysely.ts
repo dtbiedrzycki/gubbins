@@ -12,6 +12,7 @@ function toHold(row: Selectable<HoldsTable>): Hold {
     id: row.id, itemId: row.item_id, secret: row.secret, sessionHash: row.session_hash,
     idempotencyKey: row.idempotency_key, expiresAt: new Date(row.expires_at),
     extendedAt: toDate(row.extended_at), releasedAt: toDate(row.released_at), purchasedAt: toDate(row.purchased_at),
+    buyUndoneAt: toDate(row.buy_undone_at),
     piiRef: row.pii_ref, units: row.units, purchasedUnits: row.purchased_units,
   });
 }
@@ -28,6 +29,7 @@ export function lifecycleColumns(hold: Hold) {
     extended_at: hold.extendedAt?.toISOString() ?? null,
     released_at: hold.releasedAt?.toISOString() ?? null,
     purchased_at: hold.purchasedAt?.toISOString() ?? null,
+    buy_undone_at: hold.buyUndoneAt?.toISOString() ?? null,
     purchased_units: hold.purchasedUnits,
   };
 }
