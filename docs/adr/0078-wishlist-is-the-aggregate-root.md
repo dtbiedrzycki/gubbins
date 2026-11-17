@@ -40,8 +40,8 @@ We will treat `Wishlist` as the aggregate root.
   contributions (availability, purchased count, placing, extending,
   releasing and purchasing a hold, pledging); a hold or contribution
   records its own lifecycle. The wishlist's command for each resolves
-  the item and delegates to it. A purchase is a terminal state of a
-  `Hold`.
+  the item and delegates to it. A purchase ends a hold's own
+  lifecycle, except for its buyer's undo (`BuyUndone`, ADR-0088).
 - Repositories load and save the whole aggregate: the list, every item,
   and every hold and contribution on it. There are no use-case-facing
   item, hold or contribution repositories. A command's only other writes

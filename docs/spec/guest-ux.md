@@ -41,12 +41,14 @@
 - Tap "I'm buying this" → sheet titled `Buying "{title}"?` with: "How many?"
   stepper (only when more than one is wanted), a boxed note (tap "Yes,
   I'm buying it" before you buy it; other guests then see it's taken, so
-  no one else buys it while you're getting it; it can't be undone, so only
-  tap it if you're sure; with several, the note quotes the button's label
-  and says "they"), then name(s) and an optional message to the
-  owner (≤300 chars).
+  no one else buys it while you're getting it; if plans change, you can
+  undo it from Your contributions; with several, the note quotes the
+  button's label and says "they"), then name(s) and an optional message to
+  the owner (≤300 chars).
 - Buttons: "Yes, I'm buying it" (or "Yes, I'm buying N" for several) and
   Cancel. One step holds the gift and marks it purchased.
+- From Your contributions, a bought gift offers "I didn't buy it", which
+  asks "Undo buying {title}?" and puts its units back for other guests.
 - The "How claiming a gift works" card explains both routes, leading with
   "I'm buying this".
 
