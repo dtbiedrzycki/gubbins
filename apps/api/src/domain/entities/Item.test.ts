@@ -19,7 +19,7 @@ function holdOn(overrides: Partial<Parameters<typeof Hold.reconstitute>[0]> = {}
   holdCount += 1;
   return Hold.reconstitute({
     id: `00000000-0000-7000-8000-${String(holdCount).padStart(12, '0')}`, itemId: ITEM_ID, secret: 'hold-secret', sessionHash: 'a'.repeat(64),
-    idempotencyKey: `idem-${holdCount}`, expiresAt: new Date(T0.getTime() + 3 * DAY), extendedAt: null, releasedAt: null, purchasedAt: null, units: 1, purchasedUnits: null,
+    idempotencyKey: `idem-${holdCount}`, expiresAt: new Date(T0.getTime() + 3 * DAY), extendedAt: null, releasedAt: null, purchasedAt: null, buyUndoneAt: null, units: 1, purchasedUnits: null,
     ...overrides,
   });
 }
@@ -364,7 +364,7 @@ describe('Item.purchaseHold', () => {
     const item = holding([expired], { quantity: 2 });
     const copy = Hold.reconstitute({
       id: expired.id.value, itemId: ITEM_ID, secret: 'hold-secret', sessionHash: 'a'.repeat(64), idempotencyKey: expired.idempotencyKey.value,
-      expiresAt: expired.expiresAt, extendedAt: null, releasedAt: null, purchasedAt: null, units: 1, purchasedUnits: null,
+      expiresAt: expired.expiresAt, extendedAt: null, releasedAt: null, purchasedAt: null, buyUndoneAt: null, units: 1, purchasedUnits: null,
     });
 
     const { hold } = item.purchaseHold(copy, 1);
