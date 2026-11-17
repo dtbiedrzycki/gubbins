@@ -755,7 +755,7 @@ describe('YourContributions', () => {
     expect(screen.getByRole('button', { name: 'Your contributions · 1' })).toHaveFocus();
   });
 
-  it('when the last hold is released, closes the sheet, announces it and calls onEmptied', async () => {
+  it('when the last hold is released, closes the sheet, announces it and reports the released gift', async () => {
     listViews(list([active]), list([]));
     server.use(mock('post', '/api/lists/{slug}/holds/{holdId}/release', 200, { ...active, status: 'released', actions: { extend: false, release: false, purchase: false, undoBuy: false } }));
     const onEmptied = vi.fn();
@@ -769,6 +769,7 @@ describe('YourContributions', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Your hold on Stroller is released.');
     expect(screen.queryByRole('button', { name: /^Your contributions/ })).not.toBeInTheDocument();
     expect(onEmptied).toHaveBeenCalledTimes(1);
+    expect(onEmptied).toHaveBeenCalledWith('item-1');
   });
 
   it('does not stamp the button shown on load', async () => {

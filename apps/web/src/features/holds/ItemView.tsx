@@ -92,7 +92,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chi
   // the moment the guest releases or buys from "Your contributions".
   return (
     <div className="space-y-4">
-      <h2 ref={heading} tabIndex={-1} className="font-display text-[1.3rem] leading-tight text-balance break-words">{item.title}</h2>
+      <h2 ref={heading} id={`item-title-${item.id}`} tabIndex={-1} className="font-display text-[1.3rem] leading-tight text-balance break-words">{item.title}</h2>
       {item.priceMinor !== null && <p className="font-bold tabular-nums">{formatMoney(item.priceMinor)}</p>}
       {item.description && <ClampedText id={`item-description-${item.id}`}><Markdown text={item.description} /></ClampedText>}
       {item.url && <p><a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2.5 text-moss underline">View on {storeHost(item.url)} <span className="sr-only">for {item.title} (opens in a new tab)</span></a></p>}

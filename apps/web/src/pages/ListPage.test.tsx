@@ -330,7 +330,7 @@ describe('ListPage', () => {
     expect(screen.getByRole('main')).toHaveClass('pb-24');
   });
 
-  it('when the guest releases their last hold, moves focus to the list title', async () => {
+  it('when the guest releases their last hold, moves focus to that gift\'s heading', async () => {
     let held = true;
     server.use(
       http.get('/api/lists/abc123', () => HttpResponse.json(view(held))),
@@ -343,7 +343,7 @@ describe('ListPage', () => {
     await user.click(screen.getByRole('button', { name: 'Release hold' }));
     await user.click(screen.getByRole('button', { name: 'Yes, release it' }));
 
-    await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Baby Shower' })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Stroller' })).toHaveFocus());
   });
 
   it('keeps the list, with the new hold in Your contributions, when the refetch after a hold fails', async () => {

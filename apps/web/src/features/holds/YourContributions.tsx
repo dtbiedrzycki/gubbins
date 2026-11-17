@@ -14,8 +14,8 @@ export interface YourContributionsProps {
   holds: HoldView[];
   contributions: ListViewResponse['myContributions'];
   itemTitles: Record<string, string>;
-  /** An action removed the last entry, so the sheet and its button are gone. */
-  onEmptied: () => void;
+  /** An action removed the last entry, so the sheet and its button are gone; `itemId` is that action's gift, unless another tab emptied it. */
+  onEmptied: (itemId?: string) => void;
 }
 
 /** The actions whose card leaves the sheet once their refetch lands. */
@@ -56,7 +56,7 @@ function statusLine(hold: HoldView): string {
  */
 export function YourContributions({ slug, holds, contributions, itemTitles, onEmptied }: YourContributionsProps) {
   const [open, setOpen] = useState(false);
-  const [outcome, setOutcome] = useState<(HoldOutcome & { holdId: string }) | null>(null);
+  const [outcome, setOutcome] = useState<(HoldOutcome & { holdId: string; itemId: string }) | null>(null);
   const button = useRef<HTMLButtonElement>(null);
   const sheetHeading = useRef<HTMLHeadingElement>(null);
   const cardHeadings = useRef(new Map<string, HTMLHeadingElement>());
@@ -88,7 +88,7 @@ export function YourContributions({ slug, holds, contributions, itemTitles, onEm
     setEmptied(true);
   }
   // After the dialog has gone, so the page is no longer inert.
-  const reportEmptied = useEffectEvent(onEmptied);
+  const reportEmptied = useEffectEvent(() => onEmptied(outcome?.itemId));
   useEffect(() => {
     if (emptied) reportEmptied();
   }, [emptied]);
@@ -108,8 +108,8 @@ export function YourContributions({ slug, holds, contributions, itemTitles, onEm
   // The pressed button is disabled in flight and often gone after, so focus
   // moves to something that outlives the refetch: the hold's own heading if
   // its card stays, otherwise the sheet's heading beside the feedback.
-  function showOutcome(holdId: string, next: HoldOutcome) {
-    setOutcome({ ...next, holdId });
+  function showOutcome(holdId: string, itemId: string, next: HoldOutcome) {
+    setOutcome({ ...next, holdId, itemId });
     const card = next.ok && !cardLeaving.includes(next.action) ? cardHeadings.current.get(holdId) : undefined;
     (card ?? sheetHeading.current)?.focus();
   }
@@ -165,7 +165,7 @@ export function YourContributions({ slug, holds, contributions, itemTitles, onEm
                     {count !== null && count > 1 && <span className="shrink-0 font-bold text-moss">× {count}</span>}
                   </div>
                   <p>{statusLine(hold)}</p>
-                  <HoldActions slug={slug} hold={hold} itemTitle={itemTitle} onStart={() => setOutcome(null)} onOutcome={(next) => showOutcome(hold.holdId, next)} />
+                  <HoldActions slug={slug} hold={hold} itemTitle={itemTitle} onStart={() => setOutcome(null)} onOutcome={(next) => showOutcome(hold.holdId, hold.itemId, next)} />
                 </li>
               );
             })}
