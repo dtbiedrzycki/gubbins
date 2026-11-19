@@ -46,8 +46,8 @@ In this order. Sizes are rough counts of 10-file PRs.
    GitHub Actions minutes are free for public repos. The existing
    `ci.yml` (signatures, links, lint, tests, build, e2e, container smoke)
    is disabled in the repo's Actions settings, not in the file.
-   - Settings, not PRs: re-enable the workflow (`gh workflow enable ci`,
-     with a `gh` login that has the `workflow` scope); the owner makes the
+   - Settings, not PRs: re-enable the workflow (`gh workflow enable ci`;
+     pushing the workflow PR needs a token with the `workflow` scope); the owner makes the
      CI jobs required checks on `main` in the repo's ruleset; a clone that
      pointed `core.hooksPath` at a private gate points it back at
      `.githooks` (`scripts/setup-signing.sh` already sets that for new
@@ -56,8 +56,9 @@ In this order. Sizes are rough counts of 10-file PRs.
      which today only `verify.sh` runs, so ADR-0085 stays enforced. The
      step fails if no release tag is visible, because the script passes
      silently without one.
-   - Docs PR: `AGENTS.md`, `CONTRIBUTING.md` and ADR-0085 stop saying CI
-     is off.
+   - Docs PR: `AGENTS.md` and `CONTRIBUTING.md` stop saying CI is off,
+     and ADR-0085 says CI runs the migration check as well as
+     `verify.sh`.
    - *Builder's call, for the owner to check:* CI becomes the binding
      gate. The private pre-push gate that refuses unverified pushes is
      retired; the repo's `.githooks` keep checking signatures, and running
@@ -66,7 +67,7 @@ In this order. Sizes are rough counts of 10-file PRs.
    left-aligned `max-w-sm` column; centre it the way the guest list page
    is.
 3. **Manage page redesign: one design, one mockup** (design and docs
-   PRs, then ~6–8 PRs). Descriptions, gift details and fewer buttons all
+   PRs, then ~6–9 PRs). Descriptions, gift details and fewer buttons all
    change the same gift row, so they are designed together, with the
    drag handle from item 4, in one mockup under `docs/design/` that the
    owner picks from. Built in this order (fewer buttons is built with
@@ -130,7 +131,7 @@ In this order. Sizes are rough counts of 10-file PRs.
      Recording the snapshot lands before handle editing, so no pledge
      made after editing exists is ever missing it.
 4. **Drag-and-drop reordering, phones included, then fewer buttons**
-   (~5–7 PRs plus an ADR amendment). Amend ADR-0086, which left
+   (~6–9 PRs plus an ADR amendment). Amend ADR-0086, which left
    drag-and-drop out. Where the handle sits, and which buttons go, come
    from item 3's mockup.
    - Dragging works on phones and desktops through a drag handle on each
@@ -219,7 +220,8 @@ Things a stranger running their own instance would hit.
 7. **A prebuilt image** (~2 PRs). Build and push a multi-arch
    (arm64 for Raspberry Pis, plus amd64) image to GitHub's container
    registry on each release tag. `docker-compose.prod.yml` and
-   `docs/deploy.md` then use the image instead of building from source.
+   `docs/deploy.md` then use the image instead of building from source,
+   and the README's self-hosting steps switch to it.
    The `Dockerfile` already sets `NODE_ENV` only in its runtime stage and
    prunes dev dependencies before copying `node_modules`.
 8. **Backup and restore steps** (~1–2 PRs). `docs/deploy.md` has none.
@@ -236,7 +238,10 @@ Things a stranger running their own instance would hit.
 
 Not scheduled. Each item comes back through its own design.
 
-- One owner or guest cookie per list instead of per browser.
+- Sign-in cookies scoped to one list: today a browser holds one owner and
+  one guest cookie for every list, so signing in to a second list
+  replaces the first; the likely change is a cookie name that includes
+  the list's slug.
 - The purchase → buy rename, including "holding" → "claiming" in code
   names.
 - The owner releasing a guest's hold (accepted, unbuilt).
