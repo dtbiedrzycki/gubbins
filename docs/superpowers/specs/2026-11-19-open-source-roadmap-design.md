@@ -1,7 +1,7 @@
 # Open-source readiness roadmap
 
 - **Date:** 2026-11-19
-- **Status:** Draft for owner approval
+- **Status:** Approved by the owner
 
 ## Intent
 
@@ -33,27 +33,35 @@ starts.
 ## Constraints
 
 From `AGENTS.md`: at most 10 changed files per PR and 8 open stacked PRs;
-docs and ADRs in their own PRs; one route or API contract change per PR;
-`scripts/verify.sh --e2e` before anything targets `main`. ADRs are amended
-in place while on 0.x.
+docs and ADRs in their own PRs; one route or API contract change per PR.
+ADRs are amended in place while on 0.x. Until item 1 lands,
+`scripts/verify.sh --e2e` must pass before anything targets `main`; after
+it, CI is that gate.
 
 ## Gate 1: before the demo goes live
 
 In this order. Sizes are rough counts of 10-file PRs.
 
-1. **Turn CI back on** (~1 PR plus a docs PR). GitHub Actions minutes are
-   free for public repos, so the existing `ci.yml` (signatures, lint,
-   tests, build, e2e, container smoke) runs again on every PR and on
-   pushes to `main`. Set `core.hooksPath` back to `.githooks` and update
-   the "CI is turned off" text in `AGENTS.md` and `CONTRIBUTING.md`.
-   `scripts/verify.sh` stays as the local check. Needs `gh` logged in
-   again (it currently returns 401).
-   *Builder's call, for the owner to check:* CI becomes the binding gate.
-   The CI jobs become required checks on `main` (an owner step in the
-   repo's GitHub ruleset, named in the PR's heads-up). The private pre-push
-   gate that refuses unverified pushes is retired; the repo's `.githooks`
-   keep checking signatures, and running `verify.sh` before pushing stays
-   recommended, not enforced.
+1. **Turn CI back on** (1 workflow PR, 1 docs PR, and settings).
+   GitHub Actions minutes are free for public repos. The existing
+   `ci.yml` (signatures, links, lint, tests, build, e2e, container smoke)
+   is disabled in the repo's Actions settings, not in the file.
+   - Settings, not PRs: re-enable the workflow (`gh workflow enable ci`,
+     with a `gh` login that has the `workflow` scope); the owner makes the
+     CI jobs required checks on `main` in the repo's ruleset; a clone that
+     pointed `core.hooksPath` at a private gate points it back at
+     `.githooks` (`scripts/setup-signing.sh` already sets that for new
+     clones).
+   - Workflow PR: CI also runs `scripts/check-shipped-migrations.sh`,
+     which today only `verify.sh` runs, so ADR-0085 stays enforced. The
+     step fails if no release tag is visible, because the script passes
+     silently without one.
+   - Docs PR: `AGENTS.md`, `CONTRIBUTING.md` and ADR-0085 stop saying CI
+     is off.
+   - *Builder's call, for the owner to check:* CI becomes the binding
+     gate. The private pre-push gate that refuses unverified pushes is
+     retired; the repo's `.githooks` keep checking signatures, and running
+     `verify.sh` before pushing stays recommended, not enforced.
 2. **Centre the manage page** (~1 PR). `ManagePage.tsx` holds a
    left-aligned `max-w-sm` column; centre it the way the guest list page
    is.
@@ -61,7 +69,8 @@ In this order. Sizes are rough counts of 10-file PRs.
    PRs, then ~6–8 PRs). Descriptions, gift details and fewer buttons all
    change the same gift row, so they are designed together, with the
    drag handle from item 4, in one mockup under `docs/design/` that the
-   owner picks from. Built in this order:
+   owner picks from. Built in this order (fewer buttons is built with
+   item 4, below):
    - **Descriptions on each gift.** Today the owner sees a description
      only inside the edit form. Show it rendered the way guests see it.
      How long ones are shown (in full or clamped) is decided in the
@@ -71,30 +80,34 @@ In this order. Sizes are rough counts of 10-file PRs.
      pledges, and for the fun of watching when they don't mind spoilers.
      Under each gift: purchases (guest name, units, message, date) and
      pledges (guest name, amount, date, and the payment method once item
-     3a records it). Active holds (name, units, expiry)
-     can show too.
+     3a records it). Active holds (name, units, expiry) can show too.
      - A "Show who gave what" control with a short spoiler warning
        reveals them. **Hidden hides only who and what they said:** counts
        and progress ("1 of 2 bought", "$40 of $120 pledged") always
        show, so the owner sees what's still needed and the edit warnings
-       keep their numbers.
+       keep their numbers. The manage view has only `committedUnits`
+       (holds and purchases together), so a bought count is a contract
+       change.
      - *Builder's call:* the names and messages come from a separate
        owner-only request made on reveal, not in the manage view, so
        they never reach the browser (or the network tab) unrevealed.
        Whether the reveal is remembered in that browser is decided in the
        mockup.
      - ADR-0022 already says messages reach the owner straight away;
-       this is the first place they show. The spec's spoiler settings
-       (`ownerSeesClaimStatus`, `ownerSeesClaimerIdentity`, the reveal
-       date, ADR-0020/0070) stay unbuilt; record the simpler on-demand
-       reveal in a new or amended ADR.
+       this is the first place they show. The spoiler settings in
+       `docs/spec/owner-dashboard.md` (`ownerSeesClaimStatus`,
+       `ownerSeesClaimerIdentity`, the reveal date; ADR-0020/0070) stay
+       accepted but unbuilt, as a possible later addition. A new ADR
+       records the on-demand reveal as what is built now.
      - Not now: marking a gift "thanked" (ADR-0021), and a list-wide
        view of all pledges for payment matching. Either can follow if
        per-gift details prove clumsy.
    - **Fewer buttons per gift** (owner's request). Today each gift shows
      Up, Down, Top, Bottom, Edit and Delete. ADR-0086 kept all four move
      buttons visible because a menu made a jump take two taps; a drag
-     handle changes that trade-off. Candidates for the mockup: a handle
+     handle changes that trade-off, so this is built with item 4, once
+     the handle exists; until then the move buttons stay. Candidates for
+     the mockup: a handle
      plus one "⋯" menu (Move to top, Move to bottom, Edit, Delete); or an
      "Arrange" mode that shows the move controls only while reordering.
      Whatever is chosen keeps a non-drag way to move a gift for keyboard
@@ -102,8 +115,10 @@ In this order. Sizes are rough counts of 10-file PRs.
 3a. **Edit the Venmo and Zelle handles, and record each pledge's method**
    (owner's request; ~6–9 PRs plus ADR amendments). Handles are set at list creation and can't be
    changed (ADR-0082 deferred the settings UI). Add them to the list
-   details the owner already edits; amend ADR-0082. Clearing both stays
-   refused while the list has a group gift, as at creation.
+   details the owner already edits; amend ADR-0082. Today the only rule
+   is that a group gift can't be added to a list with no handles
+   (`Wishlist.addItem`); the item's design decides whether clearing both
+   handles is refused while the list has a group gift.
    - Today a pledge doesn't record which method the guest chose: the
      contribute dialog lets the guest pick Venmo or Zelle but doesn't send
      it. Once handles can change, an older pledge can't say where it was
@@ -114,22 +129,25 @@ In this order. Sizes are rough counts of 10-file PRs.
      @handle"). Pledges made before this show "method not recorded".
      Recording the snapshot lands before handle editing, so no pledge
      made after editing exists is ever missing it.
-4. **Drag-and-drop reordering, phones included** (~5–7 PRs plus an ADR
-   amendment). Amend ADR-0086, which left drag-and-drop out. Where the
-   handle sits comes from item 3's mockup.
+4. **Drag-and-drop reordering, phones included, then fewer buttons**
+   (~5–7 PRs plus an ADR amendment). Amend ADR-0086, which left
+   drag-and-drop out. Where the handle sits, and which buttons go, come
+   from item 3's mockup.
    - Dragging works on phones and desktops through a drag handle on each
      gift, so it doesn't fight page scrolling. This adds a library (such
      as dnd-kit) that also gives keyboard dragging. Touch is covered by an
      e2e journey.
    - A drop lands at any position, which the current up/down/top/bottom
-     move command can't express, so this probably adds a "move to
-     position N" move to the domain, route and contract, one PR each.
+     move command can't express, so this adds a "move to position N"
+     move: a domain PR, then a route PR that also regenerates the
+     contract (ADR-0077 derives the contract from the route), then web.
 5. **Static demo** (~6–8 PRs plus an ADR amendment). Details below.
 6. **README and CONTRIBUTING for newcomers** (2 docs PRs). The README
    leads with the demo link and the self-hosting steps; development notes
    move to CONTRIBUTING. CONTRIBUTING gets shorter and starts with what a
-   newcomer does first. Keep the README's "early development" note and
-   the wording the owner settled for it in the last README refresh.
+   newcomer does first. Keep the README's "Status: early development"
+   block as it stands. Until Gate 2's image lands, the README still tells
+   people to build from source.
 
 The demo goes live at the end of Gate 1, before Gate 2 is done, with the
 "early development" note kept.
@@ -149,7 +167,7 @@ The demo goes live at the end of Gate 1, before Gate 2 is done, with the
 - **C. A hosted real instance reset nightly.** Not static, and it
   reintroduces the hosting load ADR-0041 deferred over. Running the whole
   Node server in the browser (WebContainers) is also out: heavy on phones,
-  and under licence terms.
+  and its commercial use needs a licence from StackBlitz.
 
 **What the visitor gets:** one seeded sample list, viewable as the owner
 or as a guest through a visible switch. Changes persist in the visitor's
@@ -164,9 +182,13 @@ this device. It is not indexed (`noindex`). There is no list creation.
 
 - The domain and application layers have no Node-only imports (the one
   `node:crypto` use is in a test fake), so they bundle for the browser.
-  A demo `Hasher` and `TokenGenerator` need browser implementations; the
-  `Hasher` port is synchronous, so the demo can use a plain non-secret
-  hash (the demo holds no secrets).
+  The demo ships the in-memory repositories, which today live as test
+  fakes in `apps/api/src/application/test-fakes/`; making them demo
+  adapters is a deliberate choice, and they keep their copy-on-read and
+  copy-on-write behaviour. The demo's `Hasher` and `TokenGenerator` are
+  new browser implementations, not the `node:crypto` fake; the `Hasher`
+  port is synchronous, so the demo can use a plain non-secret hash (the
+  demo holds no secrets).
 - The in-browser router replaces what the Fastify routes in
   `apps/api/src/presentation/` do for each request the web app makes:
   request shaping, error mapping to the same status and code, and who is
@@ -179,8 +201,8 @@ this device. It is not indexed (`noindex`). There is no list creation.
 - Hosting: a GitHub Pages deploy from a workflow. *Builder's call:* it
   deploys on release tags (plus a manual trigger), not every push to
   `main`, so the demo matches what self-hosters install.
-- The web app's ESLint boundary rules may forbid importing the API's
-  application layer; the demo build needs an allowed path for it.
+- `apps/web` doesn't depend on the API workspace today. The demo build
+  needs that dependency, or its own workspace that depends on both.
 - **ADR-0041** is amended from "deferred" to "a static, client-only demo".
   The demo requirements in `docs/spec/governance-licensing-and-release.md`
   change with it: the nightly reset becomes a per-browser reset button,
@@ -198,15 +220,17 @@ Things a stranger running their own instance would hit.
    (arm64 for Raspberry Pis, plus amd64) image to GitHub's container
    registry on each release tag. `docker-compose.prod.yml` and
    `docs/deploy.md` then use the image instead of building from source.
-   Revisit `NODE_ENV` in the runtime image, which was deliberately left
-   for this moment.
+   The `Dockerfile` already sets `NODE_ENV` only in its runtime stage and
+   prunes dev dependencies before copying `node_modules`.
 8. **Backup and restore steps** (~1–2 PRs). `docs/deploy.md` has none.
    ADR-0031 already chose `VACUUM INTO`; document it, possibly with a
    script, and the restore path ADR-0032 relies on.
-9. **Abuse limits** (own design, ~5–8 PRs). Rate limiting on guest-key and
-   create-secret attempts (ADR-0040), which needs `TRUSTED_PROXY_HOPS` to
-   be read (nothing reads it yet), and the per-guest active hold cap
-   (ADR-0046). All three are accepted and unbuilt.
+9. **Abuse limits** (own design, ~5–8 PRs). Rate limiting on guest-key,
+   owner-token and create-secret attempts, at the thresholds in
+   `docs/spec/threat-model-summary.md` (ADR-0040). It needs client IPs
+   resolved by hop count (ADR-0066), so `TRUSTED_PROXY_HOPS` must be read
+   (nothing reads it yet). Plus the cap on active holds per guest session
+   (ADR-0046). All are accepted and unbuilt.
 
 ## After launch
 
@@ -218,7 +242,8 @@ Not scheduled. Each item comes back through its own design.
 - The owner releasing a guest's hold (accepted, unbuilt).
 - Deleting a whole list and the periodic purge (ADR-0033, ADR-0063); the
   privacy page says honestly that nothing is deleted automatically yet.
-- Owner-uploaded gift pictures (planned and parked).
+- Owner-uploaded gift pictures (planned earlier and parked; no repo
+  doc yet).
 - **Usage and error metrics** (tabled by the owner). Three layers were
   explored: free signals with no code (image pull counts, GitHub stars and
   traffic); the designed but unbuilt per-instance `/metrics` page for each
@@ -239,7 +264,7 @@ Not scheduled. Each item comes back through its own design.
 
 ## Decisions
 
-Made by the owner in this conversation:
+Made by the owner:
 
 - Self-hosting is the aim; the demo is how people try it first.
 - The demo shows both sides of one seeded list (approach A).
@@ -266,6 +291,7 @@ Calls made in this roadmap, for the owner to check:
   prebuilt image.
 - Drag-and-drop adds a "move to position" command rather than being built
   from repeated up/down moves.
+- Fewer buttons ships with drag-and-drop, not before it.
 - CI's checks become required on `main` and the private pre-push gate
   retires; `verify.sh` before pushing is recommended, not enforced.
 - The demo deploys on release tags, not every push to `main`.
