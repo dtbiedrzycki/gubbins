@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  # Only PR runs are cancelled: a run on main is the record for that merge.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   verify-signatures:
     runs-on: ubuntu-latest
@@ -49,6 +54,12 @@ jobs:
           # trust anchor against a real web-UI merge in this repo's history,
           # and skips itself at the default depth of 1.
           fetch-depth: 0
+          fetch-tags: true
+      - name: Shipped migrations are unchanged
+        # The script passes when it finds no release tag, so prove one is visible first.
+        run: |
+          git describe --tags --abbrev=0 --match 'v*'
+          bash scripts/check-shipped-migrations.sh
       - uses: actions/setup-node@v4
         with:
           node-version: "24.22.3"
