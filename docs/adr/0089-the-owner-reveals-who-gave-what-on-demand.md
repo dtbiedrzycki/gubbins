@@ -65,7 +65,7 @@ reveal.
 - A new owner-only route returns each gift's purchases, active holds and
   pledges with the guest's name and message, marked `no-store`. Its
   contract comes from the route, like every other
-  (ADR-[0077](./0077-openapi-contract-derived-from-routes.md)).
+  (ADR-[0077](./0077-openapi-document-generated-from-route-schemas-is-the-api-contract.md)).
 - Names and messages are read from the `guest_pii` side table
   (ADR-[0057](./0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md)).
   `GuestPiiRepository` gains a batch read, so the reveal costs one query for
