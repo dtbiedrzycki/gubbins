@@ -147,6 +147,8 @@ const gifts = [
     held: [{ who: 'Jo Lindqvist', units: 1, until: 'until Nov 27' }], deletable: false },
   { id: 'apron', title: 'Linen apron', meta: '$28.00 · quantity 1', count: '<b>0 of 1</b> bought', bought: [], held: [], deletable: true },
 ];
+// A closed menu sends focus back to its "⋯" button.
+let focusTo = null;
 const state = { style: 'a', revealed: false, menu: null, arranging: false, open: {} };
 const grip = '<svg viewBox="0 0 14 22" aria-hidden="true"><g fill="currentColor"><circle cx="4" cy="4" r="2"/><circle cx="10" cy="4" r="2"/><circle cx="4" cy="11" r="2"/><circle cx="10" cy="11" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="10" cy="18" r="2"/></g></svg>';
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -212,11 +214,14 @@ function render() {
   arrange.className = state.arranging ? 'small primary' : 'small';
   const gate = document.getElementById('gate');
   gate.classList.toggle('open', state.revealed);
-  document.getElementById('gate-text').innerHTML = state.revealed ? '<b>Showing who gave what.</b>' : '<b>Who gave what is hidden.</b>';
+  // Written only when it changes, so the live region doesn't repeat itself on unrelated clicks.
+  const gateText = document.getElementById('gate-text'), status = state.revealed ? 'Showing who gave what.' : 'Who gave what is hidden.';
+  if (gateText.textContent !== status) gateText.innerHTML = `<b>${status}</b>`;
   document.getElementById('gate-warn').hidden = state.revealed;
   const reveal = document.getElementById('reveal');
   reveal.textContent = state.revealed ? 'Hide' : 'Show who gave what';
-  if (focused) document.getElementById(focused)?.focus();
+  (document.getElementById(focusTo) || (focused && document.getElementById(focused)))?.focus();
+  focusTo = null;
 }
 document.addEventListener('click', (e) => {
   const t = e.target.closest('button');
@@ -226,11 +231,11 @@ document.addEventListener('click', (e) => {
   else if (t.id === 'arrange') state.arranging = !state.arranging;
   else if (t.dataset.menu) state.menu = state.menu === t.dataset.menu ? null : t.dataset.menu;
   else if (t.dataset.more) state.open[t.dataset.more] = !state.open[t.dataset.more];
-  else if (t.hasAttribute('data-close')) state.menu = null;
+  else if (t.hasAttribute('data-close')) { focusTo = `more-${state.menu}`; state.menu = null; }
   else return;
   render();
 });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && state.menu) { state.menu = null; render(); } });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && state.menu) { focusTo = `more-${state.menu}`; state.menu = null; render(); } });
 render();
 </script>
 </body>
