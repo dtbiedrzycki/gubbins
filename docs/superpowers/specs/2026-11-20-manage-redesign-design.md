@@ -90,12 +90,16 @@ Top to bottom, as in the mockup:
    - single gift: "**1 of 3** bought · 1 held". "· N held" appears only when
      N > 0. "held" is the word guests see (ruling from the guest feedback round).
    - group gift: "**$100.00 of $180.00** pledged · 55%", with the guests' coin
-     bar under it. Same wording and rounding (floor) as the guest card.
+     bar under it. Same wording and rounding (floor) as the guest card: the
+     progress line and bar move out of `ItemView.tsx` into a shared
+     component that both pages use.
 5. **Actions.** Until roadmap item 4 lands: today's Edit, Delete and move
    buttons, unchanged. With item 4: the handle on the left and the "⋯" menu
    on the right. A Delete that the list refuses is shown disabled in the menu,
-   with the reason under it, as the row shows today.
-6. **Details card**, only while revealed (below).
+   with today's reason under it ("Guests have already picked this one, so it
+   can't be deleted.").
+6. **Details card**, only while revealed (below). Until item 4 it sits
+   under the row's buttons; with item 4, under the gift text.
 
 ### The count needs a contract change
 
@@ -112,7 +116,8 @@ using `pledgedMinor`.
   guest's name and message, for all gifts."
 - Pressing it fetches the details and shows a card under every gift. The box
   then reads "**Showing who gave what.**" with a "Hide" button, and the
-  warning goes. The button carries `aria-expanded`; focus stays on it.
+  warning goes. The status line is a polite live region, so screen readers
+  hear the change; focus stays on the button.
 - **Not remembered** (*builder's call, for the owner to check*). A reload, or
   leaving the page, hides the details again, so a guest at the owner's
   shoulder doesn't see them by accident. The alternative remembers it in
@@ -143,40 +148,51 @@ by expiry (soonest first), pledges by when they were pledged:
   no method line.
 - Nothing yet: "No one has held, bought or pledged yet."
 
-Released, expired and undone holds don't show. Dates are the owner's local
-date, month and day ("Nov 12").
+Every row sorts oldest first. Released, expired and undone holds don't show.
+Dates are the owner's local date, month and day ("Nov 12"), with the year
+when it isn't the current one.
 
-Holds made before names were stored have no name (`piiRef` is null). They
-show as "**Name not recorded**". *Builder's call.*
+Every hold and pledge has a name: holds have stored one since before the
+first release, and pledges always have. The hold's `piiRef` type is still
+nullable, so the use case treats a missing one as an error rather than
+showing it.
 
 ### The details request
 
 - `GET /api/lists/:slug/gift-details`, owner only. Not the owner is the same
   as no list (404, ADR-0016), like the manage view.
+- `Item` gains two queries, its active holds and its purchased holds, as of
+  its load instant. `purchasedCount()` and `committedUnits()` are rewritten
+  on top of them, so the details card and the count line can't disagree
+  about what "held" and "bought" mean.
 - A new use case loads the wishlist as of the request instant (`at`), takes
   each item's purchased and active holds and its contributions, and reads
   their names and messages from `guest_pii` in **one batch query**: the
   `GuestPiiRepository` port gains a `findByIds`, with the contract suite,
   the SQLite adapter and the in-memory fake.
 - Response: per item id, three lists (`purchases`, `holds`, `pledges`) with
-  name (nullable), units or amount in minor units, message (nullable) and the
-  instant.
+  name, units or amount in minor units, message (nullable) and the instant.
 - The response is `Cache-Control: no-store`, as the guest-key suggestion
   already is, so no shared cache keeps a copy of guests' names.
 - A new ADR records the on-demand reveal as what is built now, beside the
-  unbuilt spoiler settings of ADR-0020/0070. ADR-0022 (messages reach the
-  owner straight away) is satisfied: this is the first place they show.
+  unbuilt spoiler settings of ADR-0020/0070. It amends ADR-0022, which says
+  messages reach the owner straight away: the owner can press "Show who
+  gave what" at any time, so it isn't a spoiler gate.
 
 ## Build order
 
-Docs first, then about seven 10-file PRs:
+Docs first, then about seven 10-file PRs. File counts are checked when the
+plan is written; a PR that would pass 10 files is split.
 
 1. **Docs:** this design and the mockup.
-2. **ADR:** the on-demand reveal.
-3. **Manage view `purchasedUnits`:** use case, shared types, route, contract.
-4. **Web, gift row text:** description and count line (no API change).
-5. **`GuestPiiRepository.findByIds`:** port, contract suite, SQLite, fake.
-6. **Gift-details use case.**
+2. **ADR:** the on-demand reveal, amending ADR-0022.
+3. **`Item` active and purchased holds:** the two domain queries, with the
+   counts rewritten on them.
+4. **Manage view `purchasedUnits`:** use case, shared types, route, contract.
+5. **Web, gift row text:** the shared progress component, then the
+   description and count line on the manage page.
+6. **Gift-details use case, with `GuestPiiRepository.findByIds`:** port,
+   contract suite, SQLite, fake, use case. Its caller is the next PR.
 7. **Gift-details route and contract.**
 8. **Web, reveal and details card:** API client, query key, the box, the
    card.
