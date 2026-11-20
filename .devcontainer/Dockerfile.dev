@@ -2,9 +2,9 @@
 # production image (see /Dockerfile). This one carries dev tooling and
 # matches the host UID/GID instead of a fixed one.
 #
-# Pinned to a specific Node LTS minor (not a floating "22" or "lts" tag)
+# Pinned to an exact Node LTS release (not a floating "22" or "lts" tag)
 # so `npm ci` resolves identically for every contributor.
-FROM node:24.17-bookworm-slim
+FROM node:24.22.3-bookworm-slim
 
 # git/ca-certificates/openssh-client cover npm installs from git refs and
 # committing from inside the container; sqlite3 gives a CLI for poking at
@@ -134,7 +134,7 @@ COPY --chown=node:node .devcontainer/.tmux.conf /home/node/.tmux.conf
 # download matching Node headers from nodejs.org — fine in a normal
 # session, but unreachable for an `auto`-mode session behind the
 # egress-proxy allowlist (ADR-068: npm registry, GitHub, Anthropic API
-# only). This image's `node:24.17-bookworm-slim` base already unpacks
+# only). This image's `node:24.22.3-bookworm-slim` base already unpacks
 # Node's own headers under /usr/local/include/node, matching the exact
 # running Node build byte-for-byte, so pointing node-gyp there directly
 # skips the network fetch entirely — for every session, sandboxed or
