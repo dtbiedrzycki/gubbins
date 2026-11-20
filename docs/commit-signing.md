@@ -53,7 +53,7 @@ at different points. None depends on a specific forge.
 | `.githooks/pre-commit` | Advisory (skipped by `--no-verify`) | Your clone, once `scripts/setup-signing.sh` has set `core.hooksPath` |
 | `.githooks/pre-push` | Advisory (skipped by `--no-verify`) | Your clone, on `git push` |
 | `.githooks/reference-transaction` | Advisory (`--no-verify` does **not** skip it; bypass with `git -c core.hooksPath= …`) | Your clone, whenever a local branch moves: merge, pull, fast-forward, `fetch src:dst`, `reset`, `branch -f`, commit. Checks the whole incoming range |
-| `verify-signatures` CI job | **Binding** for changes merged via CI, once it is a required status check on `main` | Any CI runner (`.github/workflows/ci.yml` here) |
+| `verify-signatures` CI job | **Binding** for PRs into `main`, where it is a required status check | Any CI runner (`.github/workflows/ci.yml` here) |
 | `.githooks/pre-receive` | **Binding** — the push is rejected | A self-hosted mirror's bare repo (see below) |
 
 The client hooks catch mistakes early but are bypassable by design; the

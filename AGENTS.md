@@ -17,12 +17,13 @@ point here. Read [`README.md`](README.md) for what the app is and
 
 ## Verify before you push
 
-GitHub CI runs these checks on every PR, and they must pass before it
-merges. This script runs the same checks locally; run it before you push:
+GitHub CI runs these checks on every PR, and a PR into `main` merges only
+once they pass. This script runs the same checks locally, except commit
+signatures, which the pre-push hook checks. Run it before you push:
 
 ```sh
-scripts/verify.sh          # link check, builds, lint, bats, every unit test
-scripts/verify.sh --e2e    # the same plus the Playwright suite: run it for PRs into main
+scripts/verify.sh          # link check, shipped-migration guard, builds, lint, bats, every unit test
+scripts/verify.sh --e2e    # the same plus the Playwright suite: run it for main and PRs into main
 scripts/verify.sh --quick apps/api src/domain/entities/Hold.test.ts   # one file, while iterating
 ```
 
