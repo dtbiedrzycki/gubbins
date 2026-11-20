@@ -33,7 +33,7 @@ We will track migrations with Kysely's `Migrator`, listing them in code
 migrations and their records in one transaction, so a failed release
 leaves the database as the previous release left it. `0001_init` is frozen as the released baseline. A schema
 change is a new migration file, and a migration that is in a release tag
-is never edited: `scripts/check-shipped-migrations.sh` fails
+is never edited: `scripts/check-shipped-migrations.sh` fails CI and
 `scripts/verify.sh` when one is changed or deleted.
 
 ## Alternatives considered

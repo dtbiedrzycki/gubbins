@@ -131,8 +131,8 @@ framework or library as an ADR rather than introducing it ad hoc.
 ## Tests
 
 Before pushing, run `scripts/verify.sh` on a clean tree (add `--e2e` for
-`main` or a PR into `main`). It runs CI's checks locally, since CI is
-turned off for now. The individual commands:
+`main` or a PR into `main`). It runs CI's checks locally; CI runs them again
+on your PR. The individual commands:
 
 ```sh
 npm test            # bats, then every workspace's unit tests
