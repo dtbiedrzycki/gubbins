@@ -17,19 +17,20 @@ point here. Read [`README.md`](README.md) for what the app is and
 
 ## Verify before you push
 
-GitHub CI is turned off for now, so this script is the check:
+GitHub CI runs these checks on every PR, and a PR into `main` merges only
+once they pass. This script runs the same checks locally, except commit
+signatures, which the pre-push hook checks. Run it before you push:
 
 ```sh
-scripts/verify.sh          # link check, builds, lint, bats, every unit test
-scripts/verify.sh --e2e    # the same plus the Playwright suite: required for main and PRs into main
+scripts/verify.sh          # link check, shipped-migration guard, builds, lint, bats, every unit test
+scripts/verify.sh --e2e    # the same plus the Playwright suite: run it for main and PRs into main
 scripts/verify.sh --quick apps/api src/domain/entities/Hold.test.ts   # one file, while iterating
 ```
 
-Run it on a clean tree. A branch is green only when it prints
-`verify: all ... checks passed for <sha>`; on a dirty tree it says nothing
-was recorded. It doesn't run CI's container smoke test, which needs
-Docker: run `scripts/container-smoke.sh` where you have Docker, or say it
-didn't run when a change touches the `Dockerfile` or that script.
+Run it on a clean tree: a pass prints `verify: all ... checks passed for
+<sha>`, and on a dirty tree it says nothing was recorded. It doesn't run
+the container smoke test, which needs Docker. CI runs it; locally, run
+`scripts/container-smoke.sh` where you have Docker.
 
 ## Keep PRs small
 
