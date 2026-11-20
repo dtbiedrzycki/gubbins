@@ -9,9 +9,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  # Only PR runs are cancelled: a run on main is the record for that merge.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # One group per PR, so a new push cancels its older run. Each run on main gets its own
+  # group, so none is cancelled or dropped from the queue: it is the record for that merge.
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   verify-signatures:
@@ -52,9 +53,9 @@ jobs:
         with:
           # Full history: scripts/test/verify-signatures.bats checks the PGP
           # trust anchor against a real web-UI merge in this repo's history,
-          # and skips itself at the default depth of 1.
+          # and skips itself at the default depth of 1. It also fetches the release
+          # tags the shipped-migration guard compares against.
           fetch-depth: 0
-          fetch-tags: true
       - name: Shipped migrations are unchanged
         # The script passes when it finds no release tag, so prove one is visible first.
         run: |

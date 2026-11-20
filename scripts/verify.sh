@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Runs CI's checks locally, tuned for the dev container. Run it on a clean tree before pushing.
 # Usage (from anywhere in the repo): scripts/verify.sh [--fast | --e2e | --quick <workspace> [vitest args]]
-#   (none)   CI's docs-links and build jobs (link check, builds, lint, bats, every unit test), plus the
-#            shipped-migration guard, which CI doesn't run ("tests" level)
+#   (none)   CI's docs-links and build jobs (link check, shipped-migration guard, builds, lint, bats,
+#            every unit test) ("tests" level)
 #   --e2e    the same plus the e2e suite ("e2e" level); run it before pushing to main or a PR into main
 #   --fast   builds and lint only; records nothing
 #   --quick <workspace> [vitest args]   rebuild shared-types, run only the given tests; records nothing
