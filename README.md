@@ -33,7 +33,7 @@ front-end styled with Tailwind, served by the API. Design decisions are
 recorded in [`docs/adr/`](docs/adr/README.md).
 
 The supported environment is the dev container in `.devcontainer/`
-(Node 24.17). Open the folder in an editor with dev-container support and
+(Node 24.22). Open the folder in an editor with dev-container support and
 "Reopen in Container", or run
 `docker compose up -d && docker compose exec app bash`. Dependencies install
 on start.

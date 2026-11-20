@@ -6,7 +6,7 @@ point here. Read [`README.md`](README.md) for what the app is and
 
 ## Setup
 
-- Work in the dev container (`.devcontainer/`, Node 24.17). It installs
+- Work in the dev container (`.devcontainer/`, Node 24.22). It installs
   dependencies on start.
 - Every commit must carry an SSH signature from a key in `.allowed_signers`.
   Set it up once per clone as CONTRIBUTING describes. Never bypass the
