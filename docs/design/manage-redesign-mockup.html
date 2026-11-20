@@ -110,8 +110,8 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 
       <div class="gate" id="gate">
         <div class="row">
-          <p id="gate-text"><b>Who gave what is hidden.</b></p>
-          <button type="button" class="small" id="reveal" aria-expanded="false">Show who gave what</button>
+          <p id="gate-text" aria-live="polite"><b>Who gave what is hidden.</b></p>
+          <button type="button" class="small" id="reveal">Show who gave what</button>
         </div>
         <p class="muted" id="gate-warn">Spoilers: this shows every guest's name and message, for all gifts.</p>
       </div>
@@ -126,7 +126,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
       <li>Descriptions show under the title, clamped to two lines with “Show more”, as guests see them.</li>
       <li>Counts always show: “1 of 3 bought · 1 held” and the pledge bar. Only names, messages and dates hide.</li>
       <li>The reveal isn’t remembered. Reloading the page hides the details again, so a guest at your shoulder never sees them by accident. The alternative remembers it in this browser.</li>
-      <li>Pledges made before payment methods are recorded show “method not recorded”.</li>
+      <li>Pledges show no payment method yet. It arrives when handles become editable.</li>
       <li>Active holds show with their expiry, under “Held”.</li>
     </ol>
   </div>
@@ -139,8 +139,8 @@ const gifts = [
     bought: [{ who: 'Maya Chen', units: 1, when: 'Nov 12', msg: 'Happy 30th! For the tomatoes.' }], held: [], deletable: false },
   { id: 'bench', title: 'Folding bench for the allotment', group: true, meta: '$180.00 target', pledged: 100, target: 180,
     desc: 'Something to sit on between rows. Teak or acacia, about 120 cm wide, folds flat so it fits in the shed over winter. The one at the garden centre on Elm Road is perfect, but any sturdy one will do.',
-    pledges: [{ who: 'Tom Rivera', amount: '$40.00', how: 'via Venmo to @ada-l', when: 'Nov 10' },
-              { who: 'Priya Nair', amount: '$60.00', how: 'method not recorded', when: 'Nov 3', msg: 'From all of us at the plot next door.' }], deletable: false },
+    pledges: [{ who: 'Priya Nair', amount: '$60.00', when: 'Nov 3', msg: 'From all of us at the plot next door.' },
+              { who: 'Tom Rivera', amount: '$40.00', when: 'Nov 10' }], deletable: false },
   { id: 'books', title: 'Any Ursula K. Le Guin paperback', meta: 'quantity 3', count: '<b>1 of 3</b> bought · 1 held',
     desc: 'I have *The Left Hand of Darkness* already.',
     bought: [{ who: 'Sam Okafor', units: 1, when: 'Nov 14', msg: 'The Dispossessed. My favourite.' }],
@@ -156,7 +156,7 @@ function ledger(g) {
   const parts = [];
   if (g.group) {
     if (g.pledges.length) parts.push('<p class="kind">Pledged</p><ul>' + g.pledges.map((p) =>
-      `<li><span class="who">${esc(p.who)} · ${p.amount}</span><span class="when">${p.when}</span><span class="how">${esc(p.how)}</span>${p.msg ? `<span class="msg">${esc(p.msg)}</span>` : ''}</li>`).join('') + '</ul>');
+      `<li><span class="who">${esc(p.who)} · ${p.amount}</span><span class="when">${p.when}</span>${p.msg ? `<span class="msg">${esc(p.msg)}</span>` : ''}</li>`).join('') + '</ul>');
   } else {
     if (g.bought.length) parts.push('<p class="kind">Bought</p><ul>' + g.bought.map((b) =>
       `<li><span class="who">${esc(b.who)}${b.units > 1 ? ` · ${b.units}` : ''}</span><span class="when">${b.when}</span>${b.msg ? `<span class="msg">${esc(b.msg)}</span>` : ''}</li>`).join('') + '</ul>');
@@ -171,18 +171,18 @@ function row(g, i) {
   const count = g.group
     ? `<p class="count"><b>$${g.pledged}.00 of $${g.target}.00</b> pledged · ${pct}%</p><div class="bar" aria-hidden="true"><div style="width:${Math.min(pct, 100)}%"></div></div>`
     : `<p class="count">${g.count}</p>`;
-  const desc = g.desc ? `<p class="desc ${state.open[g.id] ? '' : 'clamped'}">${md(g.desc)}</p>${g.desc.length > 90 ? `<button type="button" class="plain" data-more="${g.id}" aria-expanded="${!!state.open[g.id]}">${state.open[g.id] ? 'Show less' : 'Show more'}</button>` : ''}` : '';
+  const desc = g.desc ? `<p class="desc ${state.open[g.id] ? '' : 'clamped'}">${md(g.desc)}</p>${g.desc.length > 90 ? `<button type="button" class="plain" id="showmore-${g.id}" data-more="${g.id}" aria-expanded="${!!state.open[g.id]}">${state.open[g.id] ? 'Show less' : 'Show more'}</button>` : ''}` : '';
   const body = `<div class="body"><p class="title">${esc(g.title)}${g.group ? '<span class="tag">group gift</span>' : ''}</p><p class="meta">${g.meta}</p>${desc}${count}`;
   let side = '', lead = '<span></span>';
   if (state.style === 'a') {
-    lead = `<button type="button" class="grip" aria-label="Drag to move ${esc(g.title)}, or press Space and use the arrow keys">${grip}</button>`;
+    lead = `<button type="button" class="grip" aria-label="Drag to move ${esc(g.title)}">${grip}</button>`;
     const open = state.menu === g.id;
-    side = `<div class="menuwrap"><button type="button" class="more" data-menu="${g.id}" aria-expanded="${open}" aria-label="More for ${esc(g.title)}">⋯</button>${open ? `<div class="menu" role="menu">
-      <button type="button" role="menuitem" ${i === 0 ? 'disabled' : ''}>Move to top</button>
-      <button type="button" role="menuitem" ${i === gifts.length - 1 ? 'disabled' : ''}>Move to bottom</button><hr>
-      <button type="button" role="menuitem">Edit</button>
-      <button type="button" role="menuitem" class="danger" ${g.deletable ? '' : 'disabled'}>Delete</button>
-      ${g.deletable ? '' : `<p class="why">Guests have ${g.group ? 'pledged' : 'held or bought'}, so it can’t be deleted.</p>`}</div>` : ''}</div>`;
+    side = `<div class="menuwrap"><button type="button" class="more" id="more-${g.id}" data-menu="${g.id}" aria-expanded="${open}" aria-label="More for ${esc(g.title)}">⋯</button>${open ? `<div class="menu">
+      <button type="button" data-close ${i === 0 ? 'disabled' : ''}>Move to top</button>
+      <button type="button" data-close ${i === gifts.length - 1 ? 'disabled' : ''}>Move to bottom</button><hr>
+      <button type="button" data-close>Edit</button>
+      <button type="button" data-close class="danger" ${g.deletable ? '' : 'disabled'}>Delete</button>
+      ${g.deletable ? '' : `<p class="why">Guests have already picked this one, so it can’t be deleted.</p>`}</div>` : ''}</div>`;
   } else if (state.arranging) {
     lead = `<button type="button" class="grip" aria-label="Drag to move ${esc(g.title)}">${grip}</button>`;
     side = `<div class="moves" role="group" aria-label="Move ${esc(g.title)}">
@@ -200,6 +200,8 @@ const notes = {
   b: 'B: rows show only Edit and Delete. “Arrange” switches every row to a grip plus Up, Down, Top and Bottom, and hides the details while you reorder. One tap to jump, but a mode to enter first.',
 };
 function render() {
+  // The rows are redrawn, so focus goes back to the control that had it.
+  const focused = document.activeElement && document.activeElement.id;
   document.getElementById('items').innerHTML = gifts.map(row).join('');
   document.getElementById('style-note').textContent = notes[state.style];
   document.getElementById('pick-a').setAttribute('aria-pressed', state.style === 'a');
@@ -214,7 +216,7 @@ function render() {
   document.getElementById('gate-warn').hidden = state.revealed;
   const reveal = document.getElementById('reveal');
   reveal.textContent = state.revealed ? 'Hide' : 'Show who gave what';
-  reveal.setAttribute('aria-expanded', state.revealed);
+  if (focused) document.getElementById(focused)?.focus();
 }
 document.addEventListener('click', (e) => {
   const t = e.target.closest('button');
@@ -224,7 +226,7 @@ document.addEventListener('click', (e) => {
   else if (t.id === 'arrange') state.arranging = !state.arranging;
   else if (t.dataset.menu) state.menu = state.menu === t.dataset.menu ? null : t.dataset.menu;
   else if (t.dataset.more) state.open[t.dataset.more] = !state.open[t.dataset.more];
-  else if (t.getAttribute('role') === 'menuitem') state.menu = null;
+  else if (t.hasAttribute('data-close')) state.menu = null;
   else return;
   render();
 });
