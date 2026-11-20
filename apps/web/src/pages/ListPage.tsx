@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useIsMutating } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useListView } from '../features/holds/useListView';
 import { useListTheme } from '../lib/useListTheme';
@@ -50,12 +50,9 @@ export default function ListPage() {
   const title = useRef<HTMLHeadingElement>(null);
   // A done action that emptied Your contributions, told beside its gift until the next action starts.
   const [notice, setNotice] = useState<{ itemId: string; message: string } | null>(null);
-  const mutating = useIsMutating() > 0;
-  const [wasMutating, setWasMutating] = useState(mutating);
-  if (mutating !== wasMutating) {
-    setWasMutating(mutating);
-    if (mutating) setNotice(null);
-  }
+  const queryClient = useQueryClient();
+  // Cleared when an action is created, not when a render sees it running: a fast reply can finish before that render.
+  useEffect(() => queryClient.getMutationCache().subscribe((event) => { if (event.type === 'added') setNotice(null); }), [queryClient]);
   // A chip-in the guest left to pay, by this tab or another; read once, on arrival.
   const [draft, setDraft] = useState(() => (slug ? loadDraft(slug, Date.now()) : null));
   // Only a gift still on the list and taking pledges can be chipped in to.

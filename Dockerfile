@@ -1,5 +1,5 @@
 # Production image (the dev image is .devcontainer/Dockerfile.dev).
-FROM node:24.17-bookworm-slim AS build
+FROM node:24.22.3-bookworm-slim AS build
 WORKDIR /app
 # better-sqlite3 falls back to compiling when no prebuilt binary matches.
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
@@ -12,7 +12,7 @@ RUN npm ci
 COPY . .
 RUN npm run build && npm prune --omit=dev
 
-FROM node:24.17-bookworm-slim
+FROM node:24.22.3-bookworm-slim
 # NODE_ENV only here, in the runtime layer: the build needs dev dependencies.
 ENV NODE_ENV=production PORT=3000 DATABASE_PATH=/data/wishlist.db
 WORKDIR /app

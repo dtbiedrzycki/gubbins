@@ -5,7 +5,7 @@ The rules for PR size, tests, code review and PR descriptions are in
 
 ## Development environment
 
-Use the dev container in `.devcontainer/` — it pins Node 24.17 and the
+Use the dev container in `.devcontainer/` — it pins Node 24.22 and the
 toolchain (ESLint, Prettier, Vitest). Open the folder in an editor with
 dev-container support and reopen in the container, or:
 

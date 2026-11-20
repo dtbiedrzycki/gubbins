@@ -6,7 +6,7 @@
   "license": "AGPL-3.0-or-later",
   "author": "dtbiedrzycki",
   "engines": {
-    "node": ">=24.17"
+    "node": ">=24.22"
   },
   "packageManager": "npm@11.13.0",
   "workspaces": [
