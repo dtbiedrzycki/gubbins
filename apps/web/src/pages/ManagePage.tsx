@@ -34,7 +34,7 @@ export default function ManagePage() {
 
   return (
     <main className="flex-1 bg-paper p-6">
-      <div className="max-w-sm space-y-7">
+      <div className="mx-auto max-w-sm space-y-7">
         <h1 ref={heading} tabIndex={-1} className="font-display text-[2rem] leading-tight">Manage your list</h1>
         {entered && !gone ? (
           <>
