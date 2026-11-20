@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-09
+- **Amended:** 2026-11-20. The manage page shows messages under the owner's own "Show who gave what" control (ADR-[089](./0089-the-owner-reveals-who-gave-what-on-demand.md)). It isn't a spoiler gate: the owner can press it at any time.
 - **Deciders:** dtbiedrzycki
 
 ## Context

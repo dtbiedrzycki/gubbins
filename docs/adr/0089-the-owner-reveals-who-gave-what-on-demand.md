@@ -10,8 +10,8 @@ The owner wants to see who bought, held or pledged towards each gift: for
 thank-you notes, for matching Venmo and Zelle payments to pledges, and for
 the fun of watching when they don't mind spoilers. Until now the manage page
 showed none of it. ADR-[0022](./0022-giver-message-visible-to-owner-immediately-not-spoiler-gated.md)
-already lets messages reach the owner straight away, but nothing displayed
-them.
+says messages reach the owner straight away, not held back by the spoiler
+settings, but nothing displayed them.
 
 The spoiler settings in the [owner dashboard spec](../spec/owner-dashboard.md)
 (`ownerSeesClaimStatus`, `ownerSeesClaimerIdentity` and the reveal date of
@@ -34,11 +34,17 @@ always show.
 
 The names and messages come from their own owner-only request, made only on
 reveal. The manage view never carries them, so they don't reach the browser
-before the owner asks. Not the owner reads as no list, as elsewhere
+before the owner asks. A request from anyone but the owner gets the same
+not-found answer as a list that doesn't exist
 (ADR-[0016](./0016-no-public-list-directory-lookups-fail-generically.md)).
 
+This is the owner's own choice, not a spoiler gate: the owner can press the
+button at any time, so messages still reach them straight away as
+ADR-0022 says. That ADR is amended to say so.
+
 ADR-0020 and ADR-0070 stay accepted but unbuilt, as a possible later
-addition on top of this.
+addition. If they are built, their settings decide what this control may
+reveal.
 
 ## Alternatives considered
 
@@ -57,9 +63,13 @@ addition on top of this.
 ## Consequences
 
 - A new owner-only route returns each gift's purchases, active holds and
-  pledges with the guest's name and message, marked `no-store`.
-- `GuestPiiRepository` gains a batch read, so the reveal costs one query for
-  names however long the list is.
-- Holds made before names were stored show without a name.
+  pledges with the guest's name and message, marked `no-store`. Its
+  contract comes from the route, like every other
+  (ADR-[0077](./0077-openapi-contract-derived-from-routes.md)).
+- Names and messages are read from the `guest_pii` side table
+  (ADR-[0057](./0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md)).
+  `GuestPiiRepository` gains a batch read, so the reveal costs one query for
+  names however long the list is. Once erasure is built, an erased guest
+  shows as "[Redacted]", as the owner dashboard spec says.
 - The manage view gains a purchased count per gift, so "bought" and "held"
   can be told apart while the details stay hidden.
