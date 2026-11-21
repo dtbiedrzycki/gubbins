@@ -951,6 +951,11 @@
                             "minimum": 0,
                             "maximum": 9007199254740991
                           },
+                          "purchasedUnits": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
                           "pledgedMinor": {
                             "nullable": true,
                             "type": "integer",
@@ -968,6 +973,7 @@
                           "description",
                           "deletable",
                           "committedUnits",
+                          "purchasedUnits",
                           "pledgedMinor"
                         ],
                         "additionalProperties": false

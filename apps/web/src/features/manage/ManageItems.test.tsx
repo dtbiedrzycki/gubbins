@@ -11,7 +11,7 @@ import { manageViewKey } from './manageViewKey';
 
 const item = (over: Partial<ManageViewResponse['items'][number]>): ManageViewResponse['items'][number] => ({
   id: 'i1', type: 'single', title: 'Rings', quantity: 1, priceMinor: 2400, url: null, description: null,
-  deletable: true, committedUnits: 0, pledgedMinor: null, ...over,
+  deletable: true, committedUnits: 0, purchasedUnits: 0, pledgedMinor: null, ...over,
 });
 
 function renderItems(items: ManageViewResponse['items']) {
