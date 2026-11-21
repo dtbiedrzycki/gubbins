@@ -1015,6 +1015,165 @@
         }
       }
     },
+    "/api/lists/{slug}/gift-details": {
+      "get": {
+        "operationId": "getGiftDetails",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "slug",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Who bought, holds and pledged each gift, with their names and messages.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "itemId": {
+                            "type": "string"
+                          },
+                          "purchases": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "message": {
+                                  "nullable": true,
+                                  "type": "string"
+                                },
+                                "units": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "exclusiveMinimum": true,
+                                  "maximum": 9007199254740991
+                                },
+                                "purchasedAt": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "message",
+                                "units",
+                                "purchasedAt"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "holds": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "units": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "exclusiveMinimum": true,
+                                  "maximum": 9007199254740991
+                                },
+                                "expiresAt": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "units",
+                                "expiresAt"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "pledges": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "message": {
+                                  "nullable": true,
+                                  "type": "string"
+                                },
+                                "amountMinor": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "exclusiveMinimum": true,
+                                  "maximum": 9007199254740991
+                                },
+                                "pledgedAt": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "message",
+                                "amountMinor",
+                                "pledgedAt"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "itemId",
+                          "purchases",
+                          "holds",
+                          "pledges"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the schema, or a domain rule refused it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such list, or no owner cookie for it. Deliberately indistinguishable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/lists/{slug}/items/{itemId}": {
       "put": {
         "operationId": "editItem",

@@ -847,6 +847,39 @@ describe('GET /api/lists/:slug/manage', () => {
   });
 });
 
+describe('GET /api/lists/:slug/gift-details', () => {
+  const giftDetails = (slug: string, cookie?: string) => app.inject({ method: 'GET', url: `/api/lists/${slug}/gift-details`, headers: cookie ? { cookie } : {} });
+  async function bought() {
+    const list = await createList();
+    await app.inject({
+      method: 'POST', url: `/api/lists/${list.slug}/items/${list.itemId}/buy`,
+      headers: { cookie: await guestOn(list) }, payload: { idempotencyKey: 'idem-1', name: 'Ada', units: 1, message: 'Congratulations!' },
+    });
+    return list;
+  }
+
+  it("shows the owner a guest's purchase with their name, message and an ISO purchase time", async () => {
+    const list = await bought();
+    const response = await giftDetails(list.slug, await ownerOn(list));
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      items: [{ itemId: list.itemId, purchases: [{ name: 'Ada', message: 'Congratulations!', units: 1, purchasedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T.*Z$/) }] }],
+    });
+  });
+
+  it('tells caches not to keep the gift details', async () => {
+    const list = await bought();
+    expect((await giftDetails(list.slug, await ownerOn(list))).headers['cache-control']).toBe('no-store');
+  });
+
+  it('answers a guest session without the owner cookie with the generic 404', async () => {
+    const list = await bought();
+    const response = await giftDetails(list.slug, await guestOn(list));
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ message: 'Not found' });
+  });
+});
+
 describe('POST /api/lists/:slug/items/:itemId/contributions', () => {
   const pledge = (slug: string, itemId: string, cookie: string | undefined, payload: object = { idempotencyKey: 'idem-1', amountMinor: 2500, name: 'Ada' }) =>
     app.inject({ method: 'POST', url: `/api/lists/${slug}/items/${itemId}/contributions`, headers: cookie ? { cookie } : {}, payload });
