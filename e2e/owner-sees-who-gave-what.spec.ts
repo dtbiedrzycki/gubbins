@@ -35,6 +35,8 @@ test('the owner shows who bought a gift, reads their message, and hides it again
   await expect(manage.getByText('Maya')).toHaveCount(0);
 
   await manage.getByRole('button', { name: 'Show who gave what' }).click();
+  // The button the owner pressed keeps the keyboard focus while it turns into Hide.
+  await expect(manage.getByRole('button', { name: 'Hide' })).toBeFocused();
   const apron = manage.getByRole('region', { name: 'Who gave what for Linen apron' });
   await expect(apron.getByText('Maya')).toBeVisible();
   await expect(apron.getByText('Happy 30th!')).toBeVisible();
