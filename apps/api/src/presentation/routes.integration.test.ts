@@ -867,7 +867,7 @@ describe('GET /api/lists/:slug/gift-details', () => {
     });
   });
 
-  it('tells caches not to keep the gift details', async () => {
+  it('sends the gift details with Cache-Control: no-store', async () => {
     const list = await bought();
     expect((await giftDetails(list.slug, await ownerOn(list))).headers['cache-control']).toBe('no-store');
   });

@@ -78,7 +78,7 @@ describe('ManageItems', () => {
     expect(screen.getByText('$400.00 target')).toBeInTheDocument();
   });
 
-  it("shows a gift's description, clamped like the guest page", () => {
+  it("shows a gift's description as Markdown", () => {
     renderItems([item({ description: 'Stainless, *please*.' })]);
     expect(screen.getByText('please', { selector: 'em' })).toBeInTheDocument();
   });
