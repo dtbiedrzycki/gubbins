@@ -3,9 +3,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { OwnerTokenGate } from '../features/manage/OwnerTokenGate';
 import { AddItemForm } from '../features/manage/AddItemForm';
-import { manageViewKey } from '../features/manage/manageViewKey';
+import { giftDetailsKey, manageViewKey } from '../features/manage/manageViewKey';
 import { ListDetails } from '../features/manage/ListDetails';
 import { ManageItems } from '../features/manage/ManageItems';
+import { WhoGaveWhat } from '../features/manage/WhoGaveWhat';
 import { useListTheme } from '../lib/useListTheme';
 import { api, ApiError } from '../api/client';
 
@@ -25,7 +26,18 @@ export default function ManagePage() {
   });
   const queryClient = useQueryClient();
   // The owner cookie no longer works (404): back to the gate.
-  const gone = query.error instanceof ApiError && query.error.status === 404;
+  const viewGone = query.error instanceof ApiError && query.error.status === 404;
+  // Who gave what: fetched only once the owner asks, and never remembered across a reload (ADR-0089).
+  const [revealed, setRevealed] = useState(false);
+  const details = useQuery({
+    queryKey: giftDetailsKey(slug!),
+    queryFn: () => api.getGiftDetails(slug!),
+    enabled: entered && revealed && !viewGone && Boolean(slug),
+    retry: false,
+  });
+  const detailsGone = details.error instanceof ApiError && details.error.status === 404;
+  // Either 404 means the owner cookie no longer works: back to the gate.
+  const gone = viewGone || detailsGone;
   // The token screen keeps the default look, even with an earlier view still cached.
   useListTheme(entered && !gone ? query.data?.theme : undefined);
   const unauthorized = () => { setEntered(false); setExpired('session'); };
@@ -43,7 +55,14 @@ export default function ManagePage() {
             {query.data && <ListDetails slug={slug} onUnauthorized={unauthorized} view={query.data} />}
             {/* Above the items, so adding never means scrolling past a long list. */}
             <AddItemForm slug={slug} onUnauthorized={unauthorized} />
-            {query.data && <ManageItems slug={slug} items={query.data.items} onUnauthorized={giftUnauthorized} />}
+            {query.data && (
+              <WhoGaveWhat
+                revealed={revealed && details.isSuccess} loading={details.isLoading} error={detailsGone ? null : details.error}
+                onShow={() => { setRevealed(true); if (details.isError) void details.refetch(); }}
+                onHide={() => { setRevealed(false); queryClient.removeQueries({ queryKey: giftDetailsKey(slug) }); }}
+              />
+            )}
+            {query.data && <ManageItems slug={slug} items={query.data.items} onUnauthorized={giftUnauthorized} details={revealed ? details.data?.items : undefined} />}
           </>
         ) : (
           <OwnerTokenGate
@@ -51,7 +70,8 @@ export default function ManagePage() {
             onSuccess={() => {
               // Drop a failed view so the new session fetches afresh.
               queryClient.removeQueries({ queryKey: manageViewKey(slug) });
-              setEntered(true); setExpired(null);
+              // However the owner got back here, a new session starts with who gave what hidden.
+              setEntered(true); setExpired(null); setRevealed(false);
             }}
             notice={expired === 'gift'
               ? 'That gift may have been deleted on another device, or your owner session has ended. Enter your owner token to keep managing your list.'

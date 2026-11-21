@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -103,6 +103,93 @@ describe('ManagePage', () => {
 
     expect(await screen.findByText('Your owner session has ended. Enter your owner token to keep managing your list.')).toBeInTheDocument();
     expect(document.documentElement.dataset.listTheme).toBeUndefined();
+  });
+
+  /** Serves who gave what for the first gift, and counts the requests for it. */
+  function serveDetails(status = 200) {
+    let requests = 0;
+    server.use(http.get('/api/lists/:slug/gift-details', () => {
+      requests += 1;
+      return status === 200
+        ? HttpResponse.json({ items: [{ itemId: 'i0', purchases: [{ name: 'Maya', units: 1, message: null, purchasedAt: '2026-11-12T12:00:00.000Z' }], holds: [], pledges: [] }] })
+        : HttpResponse.json({ message: 'Not found' }, { status });
+    }));
+    return () => requests;
+  }
+
+  it('makes no gift-details request until the owner presses Show who gave what', async () => {
+    serveView(() => ['Rings']);
+    const requests = serveDetails();
+    const user = await enterToken();
+    await screen.findByText('Rings');
+    expect(requests()).toBe(0);
+
+    await user.click(screen.getByRole('button', { name: 'Show who gave what' }));
+    await screen.findByText('Maya');
+    expect(requests()).toBe(1);
+  });
+
+  it("shows each gift's card once the owner presses Show who gave what", async () => {
+    serveView(() => ['Rings']);
+    serveDetails();
+    const user = await enterToken();
+
+    await user.click(await screen.findByRole('button', { name: 'Show who gave what' }));
+
+    expect(await screen.findByRole('region', { name: 'Who gave what for Rings' })).toHaveTextContent('Maya');
+  });
+
+  it('removes the details when the owner presses Hide', async () => {
+    serveView(() => ['Rings']);
+    serveDetails();
+    const user = await enterToken();
+    await user.click(await screen.findByRole('button', { name: 'Show who gave what' }));
+    await screen.findByText('Maya');
+
+    await user.click(screen.getByRole('button', { name: 'Hide' }));
+
+    expect(screen.queryByText('Maya')).not.toBeInTheDocument();
+  });
+
+  it('fetches afresh when the owner shows the details again after hiding them', async () => {
+    serveView(() => ['Rings']);
+    const requests = serveDetails();
+    const user = await enterToken();
+    await user.click(await screen.findByRole('button', { name: 'Show who gave what' }));
+    await screen.findByText('Maya');
+    await user.click(screen.getByRole('button', { name: 'Hide' }));
+
+    await user.click(screen.getByRole('button', { name: 'Show who gave what' }));
+
+    await screen.findByText('Maya');
+    expect(requests()).toBe(2);
+  });
+
+  it('refetches the shown details after the owner moves a gift', async () => {
+    serveView(() => ['Rings', 'Cot']);
+    const requests = serveDetails();
+    server.use(http.post('/api/lists/:slug/items/:itemId/move', () => HttpResponse.json({ ok: true })));
+    const user = await enterToken();
+    await user.click(await screen.findByRole('button', { name: 'Show who gave what' }));
+    await screen.findByText('Maya');
+
+    await user.click(screen.getByRole('button', { name: 'Move Rings down' }));
+
+    await waitFor(() => expect(requests()).toBe(2));
+  });
+
+  it('sends the owner back to the token gate, hidden again, when the details answer 404', async () => {
+    serveView(() => ['Rings']);
+    const requests = serveDetails(404);
+    const user = await enterToken();
+    await user.click(await screen.findByRole('button', { name: 'Show who gave what' }));
+
+    expect(await screen.findByText('Your owner session has ended. Enter your owner token to keep managing your list.')).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Owner token'), 'the-token');
+    await user.click(screen.getByRole('button', { name: 'Manage list' }));
+    await screen.findByText('Rings');
+    expect(screen.getByRole('button', { name: 'Show who gave what' })).toBeInTheDocument();
+    expect(requests()).toBe(1);
   });
 
   it("says the gift may be gone when a gift's own action answers 404", async () => {
