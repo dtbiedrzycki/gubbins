@@ -23,6 +23,23 @@ export function describeGuestPiiRepositoryContract(adapter: string, factory: Gue
       expect(await fx.guestPii.findById('pii-2')).toEqual(without);
     });
 
+    it('reads the details of several ids in one call', async () => {
+      const ada = GuestDetails.from({ name: 'Ada', message: 'Hello' });
+      const grace = GuestDetails.from({ name: 'Grace' });
+      await fx.guestPii.insert('pii-1', ada);
+      await fx.guestPii.insert('pii-2', grace);
+      expect(await fx.guestPii.findByIds(['pii-1', 'pii-2'])).toEqual(new Map([['pii-1', ada], ['pii-2', grace]]));
+    });
+
+    it('leaves an unknown id out of what it reads', async () => {
+      expect(await fx.guestPii.findByIds(['missing'])).toEqual(new Map());
+    });
+
+    it('reads nothing for no ids', async () => {
+      await fx.guestPii.insert('pii-1', GuestDetails.from({ name: 'Ada' }));
+      expect(await fx.guestPii.findByIds([])).toEqual(new Map());
+    });
+
     it('returns null for an unknown id', async () => {
       expect(await fx.guestPii.findById('missing')).toBeNull();
     });
