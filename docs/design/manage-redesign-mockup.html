@@ -69,6 +69,11 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .menu button { box-shadow: none; border-radius: 10px; text-align: left; font-weight: 400; padding: 8px 12px; }
 .menu button:hover:not([disabled]) { background: var(--frame); }
 .menu .danger { color: var(--wax); }
+/* The four moves as one pill: to the top, up, down, to the bottom. */
+.pill { display: grid; grid-template-columns: repeat(4, 1fr); border: 1.5px solid var(--ink); border-radius: 22px; overflow: hidden; margin: 2px 2px 6px; }
+.menu .pill button { border-radius: 0; padding: 0; display: grid; place-items: center; min-width: 48px; }
+.menu .pill button + button { border-left: 1px solid var(--line); }
+.pill svg { width: 20px; height: 20px; }
 .menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 6px; }
 .menu .why { font-size: .85rem; color: var(--muted); padding: 0 12px 6px; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
@@ -117,6 +122,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
       </div>
 
       <ul class="items" role="list" id="items"></ul>
+      <p id="announce" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></p>
     </section>
   </main>
 
@@ -149,6 +155,12 @@ const gifts = [
 ];
 // A closed menu sends focus back to its "⋯" button.
 let focusTo = null;
+const moves = [
+  ['top', 'to the top', 'M5 4h14M12 20V9M6 14l6-6 6 6'],
+  ['up', 'up', 'M12 19V5M6 11l6-6 6 6'],
+  ['down', 'down', 'M12 5v14M6 13l6 6 6-6'],
+  ['bottom', 'to the bottom', 'M5 20h14M12 4v11M6 10l6 6 6-6'],
+];
 const state = { style: 'a', revealed: false, menu: null, arranging: false, open: {} };
 const grip = '<svg viewBox="0 0 14 22" aria-hidden="true"><g fill="currentColor"><circle cx="4" cy="4" r="2"/><circle cx="10" cy="4" r="2"/><circle cx="4" cy="11" r="2"/><circle cx="10" cy="11" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="10" cy="18" r="2"/></g></svg>';
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -180,8 +192,8 @@ function row(g, i) {
     lead = `<button type="button" class="grip" aria-label="Drag to move ${esc(g.title)}">${grip}</button>`;
     const open = state.menu === g.id;
     side = `<div class="menuwrap"><button type="button" class="more" id="more-${g.id}" data-menu="${g.id}" aria-expanded="${open}" aria-label="More for ${esc(g.title)}">⋯</button>${open ? `<div class="menu">
-      <button type="button" data-close ${i === 0 ? 'disabled' : ''}>Move to top</button>
-      <button type="button" data-close ${i === gifts.length - 1 ? 'disabled' : ''}>Move to bottom</button><hr>
+      <div class="pill" role="group" aria-label="Move ${esc(g.title)}">${moves.map(([to, name, path]) =>
+        `<button type="button" id="mv-${to}-${g.id}" data-move="${to}" aria-label="Move ${esc(g.title)} ${name}" ${(to === 'top' || to === 'up') ? (i === 0 ? 'disabled' : '') : (i === gifts.length - 1 ? 'disabled' : '')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg></button>`).join('')}</div><hr>
       <button type="button" data-close>Edit</button>
       <button type="button" data-close class="danger" ${g.deletable ? '' : 'disabled'}>Delete</button>
       ${g.deletable ? '' : `<p class="why">Guests have already picked this one, so it can’t be deleted.</p>`}</div>` : ''}</div>`;
@@ -198,7 +210,7 @@ function row(g, i) {
 }
 
 const notes = {
-  a: 'A: a grip to drag and one ⋯ menu per gift (Move to top, Move to bottom, Edit, Delete). Keyboard users press Space on the grip and use the arrow keys. Two controls per row, down from six.',
+  a: 'A: a grip to drag and one ⋯ menu per gift: a pill of four moves (to the top, up, down, to the bottom), then Edit and Delete. The menu stays open while you move, so try a few presses. Two controls per row, down from six.',
   b: 'B: rows show only Edit and Delete. “Arrange” switches every row to a grip plus Up, Down, Top and Bottom, and hides the details while you reorder. One tap to jump, but a mode to enter first.',
 };
 function render() {
@@ -231,6 +243,17 @@ document.addEventListener('click', (e) => {
   else if (t.id === 'arrange') state.arranging = !state.arranging;
   else if (t.dataset.menu) state.menu = state.menu === t.dataset.menu ? null : t.dataset.menu;
   else if (t.dataset.more) state.open[t.dataset.more] = !state.open[t.dataset.more];
+  else if (t.dataset.move) {
+    // The menu stays open, so a gift can go several places in a row; focus stays on the pressed arrow, or the next one left enabled.
+    const i = gifts.findIndex((g) => g.id === state.menu), [g] = gifts.splice(i, 1);
+    const to = { top: 0, up: i - 1, down: i + 1, bottom: gifts.length }[t.dataset.move];
+    gifts.splice(to, 0, g);
+    render();
+    const pressed = document.getElementById(t.id);
+    (pressed && !pressed.disabled ? pressed : document.querySelector('.pill button:enabled'))?.focus();
+    document.getElementById('announce').textContent = `${g.title} moved to position ${to + 1} of ${gifts.length}.`;
+    return;
+  }
   else if (t.hasAttribute('data-close')) { focusTo = `more-${state.menu}`; state.menu = null; }
   else return;
   render();

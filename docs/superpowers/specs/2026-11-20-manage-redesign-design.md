@@ -28,8 +28,11 @@ This is Gate 1 item 3 of the open-source roadmap
 
 - **One reveal for the whole list.** A single "Show who gave what" control
   reveals the details under every gift at once, not one gift at a time.
-- **Row style A**: a drag handle and one "⋯" menu per gift. The menu holds
-  Move to top, Move to bottom, Edit and Delete.
+- **Row style A**: a drag handle and one "⋯" menu per gift.
+- **The menu keeps all four moves** (to the top, up, down, to the bottom), as
+  one pill with four arrow segments, above Edit and Delete. Screen readers on
+  phones can't drag and have no arrow keys, so the menu is their way to move
+  a gift one place at a time.
 
 From the roadmap, already decided:
 
@@ -60,8 +63,9 @@ From the roadmap, already decided:
 **Row style** (owner picked A):
 
 - **A. Handle + "⋯" menu (chosen).** Two controls per row. Dragging handles
-  most moves. The menu keeps a non-drag way to jump to the top or bottom, and
-  the handle takes Space and the arrow keys for keyboard users. Edit and
+  most moves. The menu's four moves are the non-drag way, for every screen
+  reader including phones, and the handle also takes Space and the arrow keys
+  for keyboard users on a computer. Edit and
   Delete take two taps instead of one.
 - **B. "Arrange" mode.** Rows show Edit and Delete; an Arrange button swaps
   every row to a handle plus the four move buttons. Edit stays one tap, but
@@ -95,7 +99,13 @@ Top to bottom, as in the mockup:
      component that both pages use.
 5. **Actions.** Until roadmap item 4 lands: today's Edit, Delete and move
    buttons, unchanged. With item 4: the handle on the left and the "⋯" menu
-   on the right. A Delete that the list refuses is shown disabled in the menu,
+   on the right. The menu opens on the move pill: four segments, each a
+   button labelled for the gift ("Move Linen apron up"), disabled at the ends
+   of the list. The menu stays open after a move, so a gift can go several
+   places in a row; focus stays on the pressed segment (or the nearest one
+   still enabled), and today's announcement ("Linen apron moved to position 3
+   of 5.") follows each move. *Builder's call:* staying open. A Delete that
+   the list refuses is shown disabled in the menu,
    with today's reason under it ("Guests have already picked this one, so it
    can't be deleted.").
 6. **Details card**, only while revealed (below). Until item 4 it sits
