@@ -19,7 +19,7 @@
 - Names and messages never appear in the manage view, and the web app requests them only after "Show who gave what" (ADR-0089).
 - The gift-details response carries `Cache-Control: no-store`.
 - Copy, exactly: "Who gave what is hidden." / "Showing who gave what." / "Show who gave what" / "Hide" / "Showing…" / "Spoilers: this shows every guest's name and message, for all gifts." / "No one has held, bought or pledged yet." / kind labels "Bought", "Held", "Pledged" / count line "N of Q bought" plus " · M held" only when M > 0.
-- Rows within each kind sort oldest first: purchases by `purchasedAt`, holds by `expiresAt`, pledges by `pledgedAt`. Bought units are the hold's `purchasedUnits`, not `units`.
+- Rows within each kind sort oldest first: purchases by `purchasedAt`, holds by `expiresAt`, pledges by `pledgedAt` (the last two are the repositories' load order). Bought units are the hold's `purchasedUnits`, not `units`.
 - Dates are the owner's local month and day ("Nov 12"), with the year when it isn't the current year.
 - No test name, comment or commit mentions this plan, task numbers or branch names.
 - The drag handle, the "⋯" menu and its move pill are **not** in this plan; they ship with drag-and-drop (roadmap item 4). Rows keep today's buttons. The pledge method line is roadmap item 3a.
@@ -46,32 +46,28 @@
 - [ ] **Step 1: Write the failing tests**
 
 ```ts
-it('lists only its active holds, not released, expired, purchased or undone ones', () => {
+it('lists a hold still running as active, not as purchased', () => {
   const active = holdOn();
-  const item = Item.reconstitute({ ...base, quantity: 5, holds: [
-    active, holdOn({ releasedAt: T0 }), holdOn({ expiresAt: new Date(T0.getTime() - 1) }),
-    holdOn({ purchasedAt: T0, purchasedUnits: 1 }), holdOn({ purchasedAt: T0, purchasedUnits: 1, buyUndoneAt: T0 }),
-  ] });
+  const item = Item.reconstitute({ ...base, holds: [active] });
   expect(item.activeHolds().map((h) => h.id.value)).toEqual([active.id.value]);
+  expect(item.purchasedHolds()).toEqual([]);
 });
 
-it('lists only its purchased holds, not active, released or undone ones', () => {
-  const bought = holdOn({ purchasedAt: T0, purchasedUnits: 1 });
-  const item = Item.reconstitute({ ...base, quantity: 5, holds: [
-    holdOn(), holdOn({ releasedAt: T0 }), bought, holdOn({ purchasedAt: T0, purchasedUnits: 1, buyUndoneAt: T0 }),
-  ] });
-  expect(item.purchasedHolds().map((h) => h.id.value)).toEqual([bought.id.value]);
+it('lists an undone buy as neither active nor purchased', () => {
+  const item = Item.reconstitute({ ...base, holds: [holdOn({ purchasedAt: T0, purchasedUnits: 1, buyUndoneAt: T0 })] });
+  expect(item.activeHolds()).toEqual([]);
+  expect(item.purchasedHolds()).toEqual([]);
 });
 ```
 
-Protects: the status filter each query applies. The existing count tests ("counts its purchased holds…", "counts active and purchased holds as committed…") stay and now pin the rewrite.
+Protects what the count tests can't see: an active hold kept out of `purchasedHolds()` (its `purchasedUnits ?? 0` adds nothing to a count), and an undone buy kept out of both. The existing count tests ("counts neither a released nor an expired hold", "counts active and purchased holds as committed…") pin the released, expired and purchased filters through the rewritten counts.
 
 - [ ] **Step 2: Run them to see them fail**
 
 Run: `scripts/verify.sh --quick apps/api src/domain/entities/Item.test.ts`
 Expected: FAIL, `activeHolds is not a function`.
 
-- [ ] **Step 3: Implement the two queries** in `Item.ts`, filtering `_holds` by `hold.statusAt(this.asOf)`; rewrite `purchasedCount()` as the sum of `purchasedUnits ?? 0` over `purchasedHolds()` and `committedUnits()` as the sum of `units` over `activeHolds()` plus `purchasedCount()`; delete `unitsOfHoldsThatAre`. Doc comment on each query: what the count line and the owner's details both read, so they can't disagree.
+- [ ] **Step 3: Implement the two queries** in `Item.ts`, filtering `_holds` by `hold.statusAt(this.asOf)`; rewrite `purchasedCount()` as the sum of `purchasedUnits ?? 0` over `purchasedHolds()` and `committedUnits()` as the sum of `units` over `activeHolds()` plus `purchasedCount()`; delete `unitsOfHoldsThatAre`, moving its why-comment ("Re-checked at `asOf` rather than trusted from the load…") onto the queries. Doc comment on each query: what the count line and the owner's details both read, so they can't disagree.
 
 - [ ] **Step 4: Run the file again**
 
@@ -128,21 +124,23 @@ it("shows a gift's description, clamped like the guest page", () => {
   expect(screen.getByText('please', { selector: 'em' })).toBeInTheDocument();
 });
 
-it.each([
-  [{ quantity: 3, committedUnits: 2, purchasedUnits: 1 }, '1 of 3 bought · 1 held'],
-  [{ quantity: 1, committedUnits: 0, purchasedUnits: 0 }, '0 of 1 bought'],
-])('counts what guests have done to a single gift as %o', (over, text) => {
-  renderItems([item(over)]);
-  expect(screen.getByText(text)).toBeInTheDocument();
+it('shows 1 of 3 bought · 1 held when 1 unit is bought and 1 is held', () => {
+  renderItems([item({ quantity: 3, committedUnits: 2, purchasedUnits: 1 })]);
+  expect(screen.getByText('1 of 3 bought · 1 held')).toBeInTheDocument();
 });
 
-it("shows a group gift's pledges as progress toward its target", () => {
+it('shows no held count when no units are held', () => {
+  renderItems([item({ quantity: 1, committedUnits: 0, purchasedUnits: 0 })]);
+  expect(screen.getByText('0 of 1 bought')).toBeInTheDocument();
+});
+
+it("shows a group gift's pledged progress", () => {
   renderItems([item({ type: 'group', priceMinor: 18_000, pledgedMinor: 10_000, quantity: 1 })]);
-  expect(screen.getByText('$100.00 of $180.00 pledged · 55%')).toBeInTheDocument();
+  expect(screen.getByRole('progressbar')).toBeInTheDocument();
 });
 ```
 
-Protects: the description render, the held arithmetic and its "only when > 0" branch, and the group wiring. `renderItems` and `item` are the file's existing helpers.
+Protects: the description render, the held arithmetic, its "only when > 0" branch, and the group wiring (the arithmetic is `PledgeProgress`'s). `renderItems` and `item` are the file's existing helpers.
 
 - [ ] **Step 3: Run both files to see the new tests fail** — `scripts/verify.sh --quick apps/web src/lib/PledgeProgress.test.tsx src/features/manage/ManageItems.test.tsx`.
 - [ ] **Step 4: Implement.** Extract `PledgeProgress`; `ItemView` renders it. In `ManageItems` rows, under the price line: the description as `<ClampedText id={`manage-description-${item.id}`}><Markdown text={item.description} /></ClampedText>` (no `rememberAs`), then the count line — single: `<p><b>{purchasedUnits} of {quantity}</b> bought{held > 0 && ` · ${held} held`}</p>` with `held = committedUnits − purchasedUnits`; group: `<PledgeProgress>`.
@@ -183,12 +181,16 @@ Protects: the description render, the held arithmetic and its "only when > 0" br
 - [ ] **Step 1: Write the contract tests** in `describeGuestPiiRepositoryContract`:
 
 ```ts
-it('reads several rows by id in one call, leaving out unknown ids', async () => {
+it('reads the details of several ids in one call', async () => {
   const ada = GuestDetails.from({ name: 'Ada', message: 'Hello' });
   const grace = GuestDetails.from({ name: 'Grace' });
   await fx.guestPii.insert('pii-1', ada);
   await fx.guestPii.insert('pii-2', grace);
-  expect(await fx.guestPii.findByIds(['pii-1', 'pii-2', 'missing'])).toEqual(new Map([['pii-1', ada], ['pii-2', grace]]));
+  expect(await fx.guestPii.findByIds(['pii-1', 'pii-2'])).toEqual(new Map([['pii-1', ada], ['pii-2', grace]]));
+});
+
+it('leaves an unknown id out of what it reads', async () => {
+  expect(await fx.guestPii.findByIds(['missing'])).toEqual(new Map());
 });
 
 it('reads nothing for no ids', async () => {
@@ -196,16 +198,19 @@ it('reads nothing for no ids', async () => {
 });
 ```
 
-Protects: the adapter's `where id in` and its empty-list guard (Kysely refuses an empty `in`).
+Protects: the adapter's `where id in`, and that an empty list neither throws nor queries everything. Add an early return for `[]` only if the empty-list test fails without one.
 
 - [ ] **Step 2: Write the use case tests** in `GetGiftDetails.test.ts`, with the same in-memory setup style as `GetManageView.test.ts` (`FixedClock(T0)`, `HoldItem`, `BuyItem`, `MarkHoldPurchased`, `PledgeContribution`):
 
 ```ts
 it('shows the owner who bought, holds and pledged each gift, with their messages, oldest first', …)
-// A single gift (quantity 3): Ada buys 1 with message 'Happy 30th!'; Grace holds 1. A group gift: Sam pledges 2_500 with
-// message 'From all of us', then Jo pledges 4_000 a minute later. An untouched gift.
+// A single gift (quantity 3): Ada buys 1 with message 'Happy 30th!' at T0; Grace holds 1. A group gift: Sam pledges 2_500 with
+// message 'From all of us'. An untouched gift.
 // expect toEqual the whole GiftDetails: the single gift's purchases [{ name: 'Ada', message: 'Happy 30th!', units: 1, purchasedAt: T0 }],
-// holds [{ name: 'Grace', units: 1, expiresAt: T0 + 3 days }]; the group's pledges Sam then Jo; the untouched gift's three empty lists.
+// holds [{ name: 'Grace', units: 1, expiresAt: T0 + 3 days }]; the group's pledges [Sam]; the untouched gift's three empty lists.
+
+it('lists purchases in the order they were bought, not the order they were held', …)
+// Grace holds at T0, Ada holds at T0 + 1 min; Ada marks hers purchased at T0 + 2 min, Grace at T0 + 3 min: purchases Ada, then Grace.
 
 it('lists a part-bought hold with the units bought, not the units held', …)
 // Ada holds 2 of 3 and marks 1 purchased: purchases [{ …, units: 1 }], holds [].
@@ -216,10 +221,10 @@ it('refuses a hold whose guest details are missing', …)
 // Put a reconstituted hold with piiRef null into the in-memory store, then expect execute to reject with an Error naming the hold id.
 ```
 
-Protects, in order: the mapping and sort; `purchasedUnits` over `units`; the owner check; the missing-details guard. Released, expired and undone holds are not re-tested here: Task 1's queries own that.
+Protects, in order: the mapping; the purchase sort; `purchasedUnits` over `units`; the owner check; the missing-details guard. Holds and pledges need no sort of their own: the repositories already load them oldest expiry and oldest pledge first (their contracts say so). Released, expired and undone holds are not re-tested here: Task 1's queries own that.
 
 - [ ] **Step 3: Run both to see them fail** — `scripts/verify.sh --quick apps/api src/application/test-fakes/InMemoryRepositories.contract.test.ts src/application/use-cases/GetGiftDetails.test.ts`. (The Kysely adapter runs the same contract in `verify.sh`'s integration tests.)
-- [ ] **Step 4: Implement** `findByIds` in the port, the Kysely adapter (`selectFrom('guest_pii').select(['id','name','message']).where('id','in',ids)`, after an early return for `[]`) and the fake (copy on read, like `findById`). Then `GetGiftDetails`: owner check as in `GetManageView`; one `ctx.wishlists.findById(id, this.clock.now())`; collect every `piiRef` from `purchasedHolds()`, `activeHolds()` and `contributions`; one `ctx.guestPii.findByIds`; map, sorting each list by its instant. A null `piiRef` or an id missing from the map throws `new Error(\`guest details missing for hold ${hold.id.value}\`)` — why-comment: every hold has stored a name since before the first release, so this is corrupt data, not a case to show.
+- [ ] **Step 4: Implement** `findByIds` in the port, the Kysely adapter (`selectFrom('guest_pii').select(['id','name','message']).where('id','in',ids)`, after an early return for `[]`) and the fake (copy on read, like `findById`). Then `GetGiftDetails`: owner check as in `GetManageView`; one `ctx.wishlists.findById(id, this.clock.now())`; collect every `piiRef` from `purchasedHolds()`, `activeHolds()` and `contributions`; one `ctx.guestPii.findByIds`; map, sorting purchases by `purchasedAt` (holds and pledges keep load order). A null `piiRef` throws `new Error(\`guest details missing for hold ${hold.id.value}\`)`, and so does an id missing from the map, through the same check — why-comment: `Hold` still allows a null `piiRef` for rows from before names were stored, and none exist in a released database, so this is corrupt data, not a case to show.
 - [ ] **Step 5: Verify** — `scripts/verify.sh` passes.
 - [ ] **Step 6: Commit** — `feat(api): the owner's gift details, with names read in one batch`
 
@@ -242,10 +247,12 @@ Protects, in order: the mapping and sort; `purchasedUnits` over `units`; the own
 - [ ] **Step 1: Write the route tests** in a new `describe('GET /api/lists/:slug/gift-details')`, next to the manage view's:
 
 ```ts
-it("shows the owner a guest's purchase with their name and message, and isn't cached", …)
+it("shows the owner a guest's purchase with their name, message and an ISO purchase time", …)
 // createList, the guest buys the gift with name 'Ada' and message 'Congratulations!' through POST …/buy,
-// then GET as the owner: 200, header cache-control 'no-store',
-// json toMatchObject({ items: [{ itemId: list.itemId, purchases: [{ name: 'Ada', message: 'Congratulations!', units: 1 }] }] }).
+// then GET as the owner: 200, json toMatchObject({ items: [{ itemId: list.itemId,
+//   purchases: [{ name: 'Ada', message: 'Congratulations!', units: 1, purchasedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T.*Z$/) }] }] }).
+
+it('tells caches not to keep the gift details', …)   // header cache-control 'no-store'
 
 it('answers a guest session without the owner cookie with the generic 404', …)
 // same shape as the manage view's test.
@@ -273,7 +280,7 @@ Add `getGiftDetails: ['200', '400', '404']` to the status table in `openApiDocum
 - Consumes: `GiftDetailsResponse` (Task 5).
 - Produces:
   - `formatDay(iso: string, at: Date): string` — "Nov 12" when the year matches `at`'s, else "Nov 12, 2025" (`Intl.DateTimeFormat(undefined, …)`, owner's local time).
-  - `GiftDetailsCard({ details: GiftDetailsResponse['items'][number]; type: 'single' | 'group' })`.
+  - `GiftDetailsCard({ details: GiftDetailsResponse['items'][number] })`, dating rows with `formatDay(iso, new Date())`.
   - `ManageItemsProps.details?: GiftDetailsResponse['items']` — when given, each row renders its card (found by `itemId`) at the end of the row.
 
 - [ ] **Step 1: Write the tests.**
@@ -282,14 +289,16 @@ Add `getGiftDetails: ['200', '400', '404']` to the status table in `openApiDocum
 
 ```ts
 it('shows the month and day for a date this year', () => {
-  expect(formatDay('2026-11-12T15:00:00.000Z', new Date('2026-11-21T12:00:00.000Z'))).toBe('Nov 12');
+  expect(formatDay('2026-11-12T12:00:00.000Z', new Date('2026-11-21T12:00:00.000Z'))).toBe('Nov 12');
 });
 it('adds the year for a date in another year', () => {
-  expect(formatDay('2025-12-30T15:00:00.000Z', new Date('2026-01-02T12:00:00.000Z'))).toBe('Dec 30, 2025');
+  expect(formatDay('2025-12-30T12:00:00.000Z', new Date('2026-01-02T12:00:00.000Z'))).toBe('Dec 30, 2025');
 });
 ```
 
-`GiftDetailsCard.test.tsx`:
+Noon UTC is the same calendar day from UTC−11 to UTC+11, so the tests hold in any CI zone.
+
+`GiftDetailsCard.test.tsx`, with `vi.useFakeTimers({ toFake: ['Date'] })` and `vi.setSystemTime(new Date('2026-11-21T12:00:00.000Z'))`, so "this year" stays 2026:
 
 ```ts
 it('lists who bought a single gift with their message, and who holds it until when', …)
@@ -303,8 +312,10 @@ it('shows a message as plain text, not markup', …)             // message '<b>
 `ManageItems.test.tsx`:
 
 ```ts
-it("shows each gift's card when the details are given, and none without them", …)
+it("puts each gift's details under that gift", …)   // two gifts, two details entries in reverse order; each name sits inside its own gift's listitem
 ```
+
+The card's presence once revealed is `ManagePage`'s test (Task 7); this one owns the lookup by `itemId`.
 
 - [ ] **Step 2: Run them to see them fail** — `scripts/verify.sh --quick apps/web src/lib/formatDay.test.ts src/features/manage/GiftDetailsCard.test.tsx src/features/manage/ManageItems.test.tsx`.
 - [ ] **Step 3: Implement**, following the mockup's ledger card: a kind label per non-empty group, one row per guest (name, " · N" only when N > 1, the date right-aligned, the message on its own line in italics), in Tailwind classes from the existing theme tokens. Messages render as React text, never through `Markdown`.
@@ -328,8 +339,8 @@ it("shows each gift's card when the details are given, and none without them", �
 - Produces:
   - `api.getGiftDetails(slug: string): Promise<GiftDetailsResponse>`.
   - `giftDetailsKey = (slug: string) => [...manageViewKey(slug), 'gift-details'] as const` — nested so invalidating the manage view refetches shown details.
-  - `WhoGaveWhat({ revealed: boolean; pending: boolean; error: Error | null; onShow(): void; onHide(): void })`: the box. Status line `<p aria-live="polite">`, the warning only while hidden, the button "Show who gave what" / "Showing…" (disabled while pending) / "Hide".
-  - `ManagePage` owns `revealed` (plain `useState(false)`, never stored) and the `useQuery({ queryKey: giftDetailsKey(slug), queryFn, enabled: entered && revealed && !gone, retry: false })`; Hide sets `revealed` false and `removeQueries({ queryKey: giftDetailsKey(slug) })`. A 404 calls the page's existing `unauthorized()`.
+  - `WhoGaveWhat({ revealed: boolean; loading: boolean; error: Error | null; onShow(): void; onHide(): void })`; `ManagePage` passes `loading={query.isLoading}` (a disabled v5 query is `isPending`, so `isPending` would read "Showing…" before Show is pressed): the box. Status line `<p aria-live="polite">`, the warning only while hidden, the button "Show who gave what" / "Showing…" (disabled while pending) / "Hide".
+  - `ManagePage` owns `revealed` (plain `useState(false)`, never stored) and the `useQuery({ queryKey: giftDetailsKey(slug), queryFn, enabled: entered && revealed && !gone, retry: false })`; Hide sets `revealed` false and `removeQueries({ queryKey: giftDetailsKey(slug) })`. A 404 calls the page's existing `unauthorized()`. Both `unauthorized()` and `giftUnauthorized()` also set `revealed` false, so re-entering the token starts hidden.
 
 - [ ] **Step 1: Write the tests.**
 
@@ -341,7 +352,7 @@ it("shows each gift's card when the details are given, and none without them", �
 it('warns about spoilers and offers to show the details while hidden', …)
 it('says the details are showing and offers Hide once revealed, without the warning', …)
 it('disables the button and says Showing… while the details load', …)
-it("shows why the details didn't load", …)   // error message rendered with role alert
+it('shows the error in an alert when the details fail to load', …)
 ```
 
 `ManagePage.test.tsx` (MSW, counting gift-details requests):
@@ -349,13 +360,15 @@ it("shows why the details didn't load", …)   // error message rendered with ro
 ```ts
 it('makes no gift-details request until the owner presses Show who gave what', …)
 it("shows each gift's card once the owner presses Show who gave what", …)
+it('removes the details when the owner presses Hide', …)
 it('fetches afresh when the owner shows the details again after hiding them', …)   // two requests counted
-it('sends the owner back to the token gate when the details answer 404', …)
+it('refetches the shown details after the owner moves a gift', …)   // a second gift-details request follows the move's manage-view refetch
+it('sends the owner back to the token gate, hidden again, when the details answer 404', …)   // after re-entering the token, no gift-details request until Show
 ```
 
 - [ ] **Step 2: Run them to see them fail** — `scripts/verify.sh --quick apps/web src/api/client.test.ts src/features/manage/WhoGaveWhat.test.tsx src/pages/ManagePage.test.tsx`.
 - [ ] **Step 3: Implement.** `ManagePage` renders `<WhoGaveWhat>` between `AddItemForm` and `ManageItems`, so it sits above the gift list as in the mockup, and passes `details={revealed ? query.data?.items : undefined}` to `ManageItems`. Focus stays on the button throughout. Error copy through `actionErrorMessage(error, 'Couldn’t show who gave what.')`.
-- [ ] **Step 4: Verify** — `scripts/verify.sh` passes.
+- [ ] **Step 4: Verify** — `scripts/verify.sh --e2e` passes, since this changes the manage page the owner specs walk. Announce the e2e run to peer sessions first.
 - [ ] **Step 5: Commit** — `feat(web): the owner can show and hide who gave what`
 
 ---
@@ -382,24 +395,26 @@ test('the owner shows who bought a gift, reads their message, and hides it again
 
 | Task | Test | Production line it protects |
 |---|---|---|
-| 1 | lists only its active holds… | `activeHolds()`'s status filter |
-| 1 | lists only its purchased holds… | `purchasedHolds()`'s status filter |
+| 1 | lists a hold still running as active, not as purchased | `purchasedHolds()` leaving out active holds |
+| 1 | lists an undone buy as neither active nor purchased | both filters leaving out undone buys |
 | 2 | (updated) shows the owner the list… | `purchasedUnits` mapping in `GetManageView` |
 | 3 | PledgeProgress tests (moved) | `PledgeProgress` arithmetic and markup (unchanged) |
 | 3 | shows a gift's description… | `ManageItems` description render |
-| 3 | counts what guests have done… | the held subtraction and its `> 0` branch |
+| 3 | shows 1 of 3 bought · 1 held… / shows no held count… | the held subtraction and its `> 0` branch |
 | 3 | shows a group gift's pledges… | `ManageItems` → `PledgeProgress` wiring |
-| 4 | reads several rows by id… / reads nothing for no ids | adapter `in` query, empty guard |
-| 4 | shows the owner who bought, holds and pledged… | use case mapping and sort |
+| 4 | reads the details of several ids… / leaves an unknown id out… / reads nothing for no ids | adapter `in` query and its empty input |
+| 4 | shows the owner who bought, holds and pledged… | use case mapping |
+| 4 | lists purchases in the order they were bought… | the purchase sort |
 | 4 | lists a part-bought hold… | `purchasedUnits` over `units` |
 | 4 | treats a caller who is not the owner as no list | the owner check |
 | 4 | refuses a hold whose guest details are missing | the missing-details guard |
-| 5 | shows the owner a guest's purchase… | route wiring, ISO mapping, `no-store` |
+| 5 | shows the owner a guest's purchase… | route wiring, ISO mapping |
+| 5 | tells caches not to keep the gift details | the `no-store` header |
 | 5 | answers a guest session… with the generic 404 | the route's owner gate |
 | 6 | formatDay (2) | the year branch |
 | 6 | GiftDetailsCard (4) | rows, units-only-when-more-than-1, empty copy, plain-text message |
-| 6 | shows each gift's card when the details are given… | `ManageItems`' `details` prop |
+| 6 | puts each gift's details under that gift | `ManageItems`' lookup by `itemId` |
 | 7 | client URL test | `getGiftDetails`' path |
 | 7 | WhoGaveWhat (4) | the box's three states and its error |
-| 7 | ManagePage (4) | `enabled` gate, card wiring, `removeQueries` on Hide, 404 → gate |
+| 7 | ManagePage (6) | `enabled` gate, card wiring, Hide removing the cards, `removeQueries` on Hide, the nested key's refetch, 404 → gate and `revealed` reset |
 | 8 | the owner shows who bought a gift… | the whole journey, plus axe |
