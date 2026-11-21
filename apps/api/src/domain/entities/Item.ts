@@ -161,14 +161,27 @@ export class Item {
     return this._contributions.find((c) => c.idempotencyKey.value === key) ?? null;
   }
 
+  /**
+   * Holds still active at its load instant. The counts and the owner's details both read these, so they can't disagree.
+   * Re-checked at `asOf` rather than trusted from the load: only `statusAt` defines a hold's state.
+   */
+  activeHolds(): readonly Hold[] {
+    return this._holds.filter((hold) => hold.statusAt(this.asOf) === 'active');
+  }
+
+  /** Holds bought, and not undone, at its load instant; re-checked at `asOf` like `activeHolds`. */
+  purchasedHolds(): readonly Hold[] {
+    return this._holds.filter((hold) => hold.statusAt(this.asOf) === 'purchased');
+  }
+
   /** Units bought on its purchased holds. Derived, never stored. */
   purchasedCount(): number {
-    return this.unitsOfHoldsThatAre('purchased', (hold) => hold.purchasedUnits ?? 0);
+    return this.purchasedHolds().reduce((sum, hold) => sum + (hold.purchasedUnits ?? 0), 0);
   }
 
   /** Units someone holds or has bought: a purchased hold's unbought units are free again. */
   committedUnits(): number {
-    return this.unitsOfHoldsThatAre('active', (hold) => hold.units) + this.purchasedCount();
+    return this.activeHolds().reduce((sum, hold) => sum + hold.units, 0) + this.purchasedCount();
   }
 
   /** Units no one holds or has bought. Never negative: quantity may drop below what is already committed (ADR-0019). */
@@ -403,10 +416,5 @@ export class Item {
     const expectedSeq = this._seq;
     this._seq += 1;
     return expectedSeq;
-  }
-
-  /** Re-checked at `asOf` rather than trusted from the load: only `statusAt` defines a hold's state. */
-  private unitsOfHoldsThatAre(status: 'active' | 'purchased', unitsOf: (hold: Hold) => number): number {
-    return this._holds.filter((hold) => hold.statusAt(this.asOf) === status).reduce((sum, hold) => sum + unitsOf(hold), 0);
   }
 }
