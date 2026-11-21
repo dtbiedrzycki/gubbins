@@ -216,8 +216,9 @@ describe('ManagePage', () => {
     await screen.findByText('Maya');
 
     await user.click(screen.getByRole('button', { name: 'Move Rings down' }));
-    await waitFor(() => expect(requests()).toBe(2));
+    await screen.findByText(/^Couldn’t show who gave what\./);
 
+    expect(requests()).toBe(2);
     expect(screen.getByRole('button', { name: 'Hide' })).toBeInTheDocument();
   });
 
