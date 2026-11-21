@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ManageViewResponse } from '@gubbins/shared-types';
+import type { GiftDetailsResponse, ManageViewResponse } from '@gubbins/shared-types';
 import { api, ApiError, type MoveTarget } from '../../api/client';
 import { formatMoney } from '../../lib/formatMoney';
 import { actionErrorMessage } from '../../lib/actionErrorMessage';
 import { manageViewKey } from './manageViewKey';
 import { EditItemForm } from './EditItemForm';
 import { MoveItemButtons } from './MoveItemButtons';
+import { GiftDetailsCard } from './GiftDetailsCard';
 import { ClampedText } from '../../lib/ClampedText';
 import { Markdown } from '../../lib/Markdown';
 import { PledgeProgress } from '../../lib/PledgeProgress';
@@ -24,10 +25,13 @@ export interface ManageItemsProps {
   items: ManageViewResponse['items'];
   /** The server no longer accepts the owner cookie (404). */
   onUnauthorized: () => void;
+  /** Who gave what, once the owner reveals it; each gift shows its own entry under its row. */
+  details?: GiftDetailsResponse['items'];
 }
 
-export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
+export function ManageItems({ slug, items, onUnauthorized, details }: ManageItemsProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const gave = (itemId: string) => details?.find((d) => d.itemId === itemId);
   const restoreFocusTo = useRef<string | null>(null);
   // The Edit button is unmounted while its form shows, so focus returns to it once it is back.
   useEffect(() => {
@@ -131,6 +135,11 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
                 title={item.title} itemId={item.id} index={index} count={items.length} pending={move.isPending}
                 onMove={(to) => move.mutate({ itemId: item.id, to })}
               />
+              {gave(item.id) && (
+                <section aria-label={`Who gave what for ${item.title}`} className="col-span-2">
+                  <GiftDetailsCard details={gave(item.id)!} />
+                </section>
+              )}
             </li>
           );
         })}
