@@ -736,6 +736,7 @@ export interface operations {
                             description: string | null;
                             deletable: boolean;
                             committedUnits: number;
+                            purchasedUnits: number;
                             pledgedMinor: number | null;
                         }[];
                     };

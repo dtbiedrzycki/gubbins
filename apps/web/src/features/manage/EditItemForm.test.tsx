@@ -10,9 +10,9 @@ import { EditItemForm } from './EditItemForm';
 type Item = ManageViewResponse['items'][number];
 const single: Item = {
   id: 'i1', type: 'single', title: 'Muslin swaddles', quantity: 3, priceMinor: 3200, url: 'https://example.com/s',
-  description: 'Any neutral colour.', deletable: false, committedUnits: 2, pledgedMinor: null,
+  description: 'Any neutral colour.', deletable: false, committedUnits: 2, purchasedUnits: 0, pledgedMinor: null,
 };
-const group: Item = { ...single, id: 'g1', type: 'group', title: 'Stroller fund', quantity: 1, priceMinor: 40000, url: null, description: null, committedUnits: 0, pledgedMinor: 20000 };
+const group: Item = { ...single, id: 'g1', type: 'group', title: 'Stroller fund', quantity: 1, priceMinor: 40000, url: null, description: null, committedUnits: 0, purchasedUnits: 0, pledgedMinor: 20000 };
 
 function renderForm(item: Item, props: Partial<Parameters<typeof EditItemForm>[0]> = {}) {
   const bodies: unknown[] = [];
