@@ -18,6 +18,7 @@ import { DeleteItem } from '../application/use-cases/DeleteItem.js';
 import { MoveItem } from '../application/use-cases/MoveItem.js';
 import { EditListDetails } from '../application/use-cases/EditListDetails.js';
 import { AddItem } from '../application/use-cases/AddItem.js';
+import { GetGiftDetails } from '../application/use-cases/GetGiftDetails.js';
 import { GetManageView } from '../application/use-cases/GetManageView.js';
 import { BuyItem } from '../application/use-cases/BuyItem.js';
 import { HoldItem } from '../application/use-cases/HoldItem.js';
@@ -55,6 +56,7 @@ export interface AppDependencies {
   moveItem: MoveItem;
   editListDetails: EditListDetails;
   getManageView: GetManageView;
+  getGiftDetails: GetGiftDetails;
   holdItem: HoldItem;
   buyItem: BuyItem;
   pledgeContribution: PledgeContribution;
@@ -92,6 +94,7 @@ export function buildDependencies(db: Kysely<Database>, logger: Logger = new Con
     moveItem: new MoveItem(unitOfWork, clock),
     editListDetails: new EditListDetails(unitOfWork, clock),
     getManageView: new GetManageView(unitOfWork, clock),
+    getGiftDetails: new GetGiftDetails(unitOfWork, clock),
     holdItem: new HoldItem(unitOfWork, tokenGenerator, clock, hasher, holdPolicy),
     buyItem: new BuyItem(unitOfWork, tokenGenerator, clock, hasher, holdPolicy),
     pledgeContribution: new PledgeContribution(unitOfWork, tokenGenerator, clock),
