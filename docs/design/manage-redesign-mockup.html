@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manage Page Redesign</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Alegreya+Sans:wght@400;700&display=swap">
+<style>
+/* The manage page's gift rows in the Storybook look: one column, the two row styles side by side for the owner to pick. Single light theme, like the app. */
+:root {
+  --paper: #F6F3FB; --ink: #2E2447; --muted: #625A78; --line: #DCD3EA;
+  --moss: #34603F; --petal: #F2CBD6; --wax: #9E2A45; --gold: #D9A93A;
+  --card: #FFFFFF; --frame: #E9E3F3; --ledger: #FBF8F1;
+  --display: "IM Fell English", Georgia, serif;
+  --sans: "Alegreya Sans", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--frame); color: var(--ink); font: 17px/1.45 var(--sans);
+  padding-block: 24px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 420px; margin: 0 auto; display: grid; gap: 22px; }
+p { margin: 0; }
+h1 { font: 2rem/1.1 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 1.35rem/1.2 var(--display); margin: 0; }
+.muted { color: var(--muted); }
+.cap { font-size: .95rem; color: var(--muted); }
+.cap b { color: var(--ink); }
+.picker { display: grid; gap: 8px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1.5px solid var(--ink); border-radius: 16px; overflow: hidden; background: var(--card); }
+.seg button { border-radius: 0; box-shadow: none; font-size: .95rem; line-height: 1.2; padding: 8px 10px; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.screen { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 24px 18px 28px; display: grid; gap: 24px; }
+section { display: grid; gap: 12px; }
+.head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+
+button { font: 700 1rem/1 var(--sans); min-height: 44px; padding: 8px 18px; cursor: pointer;
+  border-radius: 22px 22px 22px 6px; border: 0; background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+button.primary { background: var(--moss); color: #fff; box-shadow: none; }
+button.small { padding: 6px 14px; font-size: .95rem; }
+button.plain { box-shadow: none; padding: 6px 4px; color: var(--moss); text-decoration: underline; text-underline-offset: 3px; min-height: 32px; }
+button[disabled] { opacity: .45; cursor: not-allowed; }
+button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+/* The spoiler gate: a folded note over the details until the owner opens it. */
+.gate { border: 1.5px dashed var(--muted); border-radius: 14px; padding: 14px; display: grid; gap: 10px; background: var(--card); }
+.gate.open { border-style: solid; border-color: var(--line); }
+.gate .row { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+
+.items { list-style: none; margin: 0; padding: 0; display: grid; }
+.items > li { padding: 14px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: start; }
+.items > li:first-child { border-top: 1px solid var(--line); }
+.body { display: grid; gap: 4px; min-width: 0; grid-column: 2; }
+.title { font-weight: 700; overflow-wrap: anywhere; }
+.tag { font-weight: 400; color: var(--muted); font-size: .9rem; margin-left: 6px; }
+.meta { font-size: .92rem; color: var(--muted); }
+.count { font-size: .95rem; }
+.count b { font-weight: 700; }
+.desc { font-size: .95rem; }
+.desc.clamped { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.bar { height: 12px; border-radius: 6px; background: var(--frame); overflow: hidden; }
+.bar > div { height: 100%; background: var(--gold) radial-gradient(circle at 30% 50%, #F3D27A 0 3px, transparent 3.5px); background-size: 10px 12px; }
+
+/* The grip: a 44px target with six dots, the only thing that starts a drag, so scrolling the list never moves a gift. */
+.grip { grid-column: 1; width: 32px; min-height: 44px; padding: 0; box-shadow: none; border-radius: 10px; cursor: grab; display: grid; place-items: center; color: var(--muted); touch-action: none; }
+.grip svg { width: 14px; height: 22px; }
+.menuwrap { grid-column: 3; position: relative; }
+.more { width: 44px; padding: 0; font-size: 1.3rem; letter-spacing: 1px; border-radius: 22px; }
+.menu { position: absolute; right: 0; top: 50px; z-index: 2; background: var(--card); border: 1.5px solid var(--ink); border-radius: 14px; padding: 6px; display: grid; min-width: 200px; box-shadow: 4px 5px 0 var(--petal); }
+.menu button { box-shadow: none; border-radius: 10px; text-align: left; font-weight: 400; padding: 8px 12px; }
+.menu button:hover:not([disabled]) { background: var(--frame); }
+.menu .danger { color: var(--wax); }
+/* The four moves as one pill: to the top, up, down, to the bottom. */
+.pill { display: grid; grid-template-columns: repeat(4, 1fr); border: 1.5px solid var(--ink); border-radius: 22px; overflow: hidden; margin: 2px 2px 6px; }
+.menu .pill button { border-radius: 0; padding: 0; display: grid; place-items: center; min-width: 48px; }
+.menu .pill button + button { border-left: 1px solid var(--line); }
+.pill svg { width: 20px; height: 20px; }
+.menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 6px; }
+.menu .why { font-size: .85rem; color: var(--muted); padding: 0 12px 6px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.moves { grid-column: 3; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.moves button { padding: 4px 8px; font-size: .85rem; min-width: 64px; }
+
+/* Who gave what: a little ledger card, one line per guest, dates in the margin. */
+.ledger { grid-column: 2 / 4; margin-top: 8px; background: var(--ledger); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 10px; }
+.ledger ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ledger li { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; font-size: .95rem; }
+.ledger .who { font-weight: 700; }
+.ledger .when { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; text-align: right; }
+.ledger .msg { grid-column: 1 / -1; font: italic 1rem/1.35 var(--display); color: var(--ink); padding-left: 10px; border-left: 2px solid var(--petal); }
+.ledger .how { grid-column: 1 / -1; font-size: .88rem; color: var(--muted); }
+.ledger .kind { font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.ledger.empty { font-size: .92rem; color: var(--muted); }
+.notes { display: grid; gap: 10px; }
+.notes ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: .95rem; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="picker">
+    <p class="cap"><b>Row style A was chosen.</b> B stays here for comparison. Both keep the same gift text, counts and details; they differ only in where Edit, Delete and the move controls live.</p>
+    <div class="seg" role="group" aria-label="Row style">
+      <button type="button" id="pick-a" aria-pressed="true">A · Handle + ⋯ menu</button>
+      <button type="button" id="pick-b" aria-pressed="false">B · Arrange mode</button>
+    </div>
+    <p class="cap" id="style-note"></p>
+  </div>
+
+  <main class="screen">
+    <section aria-labelledby="items-h">
+      <div class="head">
+        <h2 id="items-h">Items</h2>
+        <button type="button" class="small" id="arrange" hidden>Arrange</button>
+      </div>
+
+      <div class="gate" id="gate">
+        <div class="row">
+          <p id="gate-text" aria-live="polite"><b>Who gave what is hidden.</b></p>
+          <button type="button" class="small" id="reveal">Show who gave what</button>
+        </div>
+        <p class="muted" id="gate-warn">Spoilers: this shows every guest's name and message, for all gifts.</p>
+      </div>
+
+      <ul class="items" role="list" id="items"></ul>
+      <p id="announce" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></p>
+    </section>
+  </main>
+
+  <div class="notes">
+    <p class="cap"><b>Calls this mockup makes, for you to check:</b></p>
+    <ol class="cap">
+      <li>Descriptions show under the title, clamped to two lines with “Show more”, as guests see them.</li>
+      <li>Counts always show: “1 of 3 bought · 1 held” and the pledge bar. Only names, messages and dates hide.</li>
+      <li>The reveal isn’t remembered. Reloading the page hides the details again, so a guest at your shoulder never sees them by accident. The alternative remembers it in this browser.</li>
+      <li>Pledges show no payment method yet. It arrives when handles become editable.</li>
+      <li>Active holds show with their expiry, under “Held”.</li>
+    </ol>
+  </div>
+</div>
+
+<script>
+const gifts = [
+  { id: 'knife', title: 'Hori-hori garden knife', meta: '$34.00 · quantity 1', count: '<b>1 of 1</b> bought',
+    desc: 'The Japanese one with a serrated edge. Stainless, please, not carbon steel.',
+    bought: [{ who: 'Maya Chen', units: 1, when: 'Nov 12', msg: 'Happy 30th! For the tomatoes.' }], held: [], deletable: false },
+  { id: 'bench', title: 'Folding bench for the allotment', group: true, meta: '$180.00 target', pledged: 100, target: 180,
+    desc: 'Something to sit on between rows. Teak or acacia, about 120 cm wide, folds flat so it fits in the shed over winter. The one at the garden centre on Elm Road is perfect, but any sturdy one will do.',
+    pledges: [{ who: 'Priya Nair', amount: '$60.00', when: 'Nov 3', msg: 'From all of us at the plot next door.' },
+              { who: 'Tom Rivera', amount: '$40.00', when: 'Nov 10' }], deletable: false },
+  { id: 'books', title: 'Any Ursula K. Le Guin paperback', meta: 'quantity 3', count: '<b>1 of 3</b> bought · 1 held',
+    desc: 'I have *The Left Hand of Darkness* already.',
+    bought: [{ who: 'Sam Okafor', units: 1, when: 'Nov 14', msg: 'The Dispossessed. My favourite.' }],
+    held: [{ who: 'Jo Lindqvist', units: 1, until: 'until Nov 27' }], deletable: false },
+  { id: 'apron', title: 'Linen apron', meta: '$28.00 · quantity 1', count: '<b>0 of 1</b> bought', bought: [], held: [], deletable: true },
+];
+// A closed menu sends focus back to its "⋯" button.
+let focusTo = null;
+const moves = [
+  ['top', 'to the top', 'M5 4h14M12 20V9M6 14l6-6 6 6'],
+  ['up', 'up', 'M12 19V5M6 11l6-6 6 6'],
+  ['down', 'down', 'M12 5v14M6 13l6 6 6-6'],
+  ['bottom', 'to the bottom', 'M5 20h14M12 4v11M6 10l6 6 6-6'],
+];
+const state = { style: 'a', revealed: false, menu: null, arranging: false, open: {} };
+const grip = '<svg viewBox="0 0 14 22" aria-hidden="true"><g fill="currentColor"><circle cx="4" cy="4" r="2"/><circle cx="10" cy="4" r="2"/><circle cx="4" cy="11" r="2"/><circle cx="10" cy="11" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="10" cy="18" r="2"/></g></svg>';
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const md = (s) => esc(s).replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+function ledger(g) {
+  const parts = [];
+  if (g.group) {
+    if (g.pledges.length) parts.push('<p class="kind">Pledged</p><ul>' + g.pledges.map((p) =>
+      `<li><span class="who">${esc(p.who)} · ${p.amount}</span><span class="when">${p.when}</span>${p.msg ? `<span class="msg">${esc(p.msg)}</span>` : ''}</li>`).join('') + '</ul>');
+  } else {
+    if (g.bought.length) parts.push('<p class="kind">Bought</p><ul>' + g.bought.map((b) =>
+      `<li><span class="who">${esc(b.who)}${b.units > 1 ? ` · ${b.units}` : ''}</span><span class="when">${b.when}</span>${b.msg ? `<span class="msg">${esc(b.msg)}</span>` : ''}</li>`).join('') + '</ul>');
+    if (g.held.length) parts.push('<p class="kind">Held</p><ul>' + g.held.map((h) =>
+      `<li><span class="who">${esc(h.who)}${h.units > 1 ? ` · ${h.units}` : ''}</span><span class="when">${h.until}</span></li>`).join('') + '</ul>');
+  }
+  return parts.length ? `<div class="ledger">${parts.join('')}</div>` : '<div class="ledger empty">No one has held, bought or pledged yet.</div>';
+}
+
+function row(g, i) {
+  const pct = g.group ? Math.floor(g.pledged * 100 / g.target) : 0;
+  const count = g.group
+    ? `<p class="count"><b>$${g.pledged}.00 of $${g.target}.00</b> pledged · ${pct}%</p><div class="bar" aria-hidden="true"><div style="width:${Math.min(pct, 100)}%"></div></div>`
+    : `<p class="count">${g.count}</p>`;
+  const desc = g.desc ? `<p class="desc ${state.open[g.id] ? '' : 'clamped'}">${md(g.desc)}</p>${g.desc.length > 90 ? `<button type="button" class="plain" id="showmore-${g.id}" data-more="${g.id}" aria-expanded="${!!state.open[g.id]}">${state.open[g.id] ? 'Show less' : 'Show more'}</button>` : ''}` : '';
+  const body = `<div class="body"><p class="title">${esc(g.title)}${g.group ? '<span class="tag">group gift</span>' : ''}</p><p class="meta">${g.meta}</p>${desc}${count}`;
+  let side = '', lead = '<span></span>';
+  if (state.style === 'a') {
+    lead = `<button type="button" class="grip" aria-label="Drag to move ${esc(g.title)}">${grip}</button>`;
+    const open = state.menu === g.id;
+    side = `<div class="menuwrap"><button type="button" class="more" id="more-${g.id}" data-menu="${g.id}" aria-expanded="${open}" aria-label="More for ${esc(g.title)}">⋯</button>${open ? `<div class="menu">
+      <div class="pill" role="group" aria-label="Move ${esc(g.title)}">${moves.map(([to, name, path]) =>
+        `<button type="button" id="mv-${to}-${g.id}" data-move="${to}" aria-label="Move ${esc(g.title)} ${name}" ${(to === 'top' || to === 'up') ? (i === 0 ? 'disabled' : '') : (i === gifts.length - 1 ? 'disabled' : '')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg></button>`).join('')}</div><hr>
+      <button type="button" data-close>Edit</button>
+      <button type="button" data-close class="danger" ${g.deletable ? '' : 'disabled'}>Delete</button>
+      ${g.deletable ? '' : `<p class="why">Guests have already picked this one, so it can’t be deleted.</p>`}</div>` : ''}</div>`;
+  } else if (state.arranging) {
+    lead = `<button type="button" class="grip" aria-label="Drag to move ${esc(g.title)}">${grip}</button>`;
+    side = `<div class="moves" role="group" aria-label="Move ${esc(g.title)}">
+      <button type="button" ${i === 0 ? 'disabled' : ''}>Up</button><button type="button" ${i === 0 ? 'disabled' : ''}>Top</button>
+      <button type="button" ${i === gifts.length - 1 ? 'disabled' : ''}>Down</button><button type="button" ${i === gifts.length - 1 ? 'disabled' : ''}>Bottom</button></div>`;
+  }
+  const actions = state.style === 'b' && !state.arranging
+    ? `<div class="actions"><button type="button" class="small">Edit</button><button type="button" class="small" style="color:var(--wax);box-shadow:inset 0 0 0 1.5px var(--wax)" ${g.deletable ? '' : 'disabled'}>Delete</button></div>` : '';
+  const showLedger = state.revealed && !(state.style === 'b' && state.arranging);
+  return `<li>${lead}${body}${actions}</div>${side}${showLedger ? ledger(g) : ''}</li>`;
+}
+
+const notes = {
+  a: 'A: a grip to drag and one ⋯ menu per gift: a pill of four moves (to the top, up, down, to the bottom), then Edit and Delete. The menu stays open while you move, so try a few presses. Two controls per row, down from six.',
+  b: 'B: rows show only Edit and Delete. “Arrange” switches every row to a grip plus Up, Down, Top and Bottom, and hides the details while you reorder. One tap to jump, but a mode to enter first.',
+};
+function render() {
+  // The rows are redrawn, so focus goes back to the control that had it.
+  const focused = document.activeElement && document.activeElement.id;
+  document.getElementById('items').innerHTML = gifts.map(row).join('');
+  document.getElementById('style-note').textContent = notes[state.style];
+  document.getElementById('pick-a').setAttribute('aria-pressed', state.style === 'a');
+  document.getElementById('pick-b').setAttribute('aria-pressed', state.style === 'b');
+  const arrange = document.getElementById('arrange');
+  arrange.hidden = state.style !== 'b';
+  arrange.textContent = state.arranging ? 'Done' : 'Arrange';
+  arrange.className = state.arranging ? 'small primary' : 'small';
+  const gate = document.getElementById('gate');
+  gate.classList.toggle('open', state.revealed);
+  // Written only when it changes, so the live region doesn't repeat itself on unrelated clicks.
+  const gateText = document.getElementById('gate-text'), status = state.revealed ? 'Showing who gave what.' : 'Who gave what is hidden.';
+  if (gateText.textContent !== status) gateText.innerHTML = `<b>${status}</b>`;
+  document.getElementById('gate-warn').hidden = state.revealed;
+  const reveal = document.getElementById('reveal');
+  reveal.textContent = state.revealed ? 'Hide' : 'Show who gave what';
+  (document.getElementById(focusTo) || (focused && document.getElementById(focused)))?.focus();
+  focusTo = null;
+}
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('button');
+  if (!t) { if (state.menu) { state.menu = null; render(); } return; }
+  if (t.id === 'pick-a' || t.id === 'pick-b') { state.style = t.id.slice(-1); state.menu = null; state.arranging = false; }
+  else if (t.id === 'reveal') state.revealed = !state.revealed;
+  else if (t.id === 'arrange') state.arranging = !state.arranging;
+  else if (t.dataset.menu) state.menu = state.menu === t.dataset.menu ? null : t.dataset.menu;
+  else if (t.dataset.more) state.open[t.dataset.more] = !state.open[t.dataset.more];
+  else if (t.dataset.move) {
+    // The menu stays open, so a gift can go several places in a row; focus stays on the pressed arrow, or the next one left enabled.
+    const i = gifts.findIndex((g) => g.id === state.menu), [g] = gifts.splice(i, 1);
+    const to = { top: 0, up: i - 1, down: i + 1, bottom: gifts.length }[t.dataset.move];
+    gifts.splice(to, 0, g);
+    render();
+    const pressed = document.getElementById(t.id);
+    (pressed && !pressed.disabled ? pressed : document.querySelector('.pill button:enabled'))?.focus();
+    document.getElementById('announce').textContent = `${g.title} moved to position ${to + 1} of ${gifts.length}.`;
+    return;
+  }
+  else if (t.hasAttribute('data-close')) { focusTo = `more-${state.menu}`; state.menu = null; }
+  else return;
+  render();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && state.menu) { focusTo = `more-${state.menu}`; state.menu = null; render(); } });
+render();
+</script>
+</body>
+</html>
