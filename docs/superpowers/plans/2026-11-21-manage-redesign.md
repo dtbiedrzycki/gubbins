@@ -30,7 +30,8 @@
 2. **A part-bought hold.** A guest who held 2 and bought 1 is listed with 1 unit bought, and the unit they gave back is neither bought nor held. Pinned in Task 4 (`lists a part-bought hold with the units bought, not the units held`).
 3. **Hidden is not remembered.** Hide, then Show, must fetch again rather than show a cached copy, and a page reload starts hidden. Pinned in Task 7 (`fetches afresh when the owner shows the details again after hiding them`).
 4. **A guest's message is text.** A message like `<b>hi</b>` or `*hi*` must show literally, not as markup. Pinned in Task 6 (`shows a message as plain text, not markup`).
-5. **The session ends mid-reveal.** A 404 from gift-details sends the owner back to the token gate like every other owner request. Pinned in Task 7 (`sends the owner back to the token gate when the details answer 404`).
+5. **The session ends mid-reveal.** A 404 from gift-details sends the owner back to the token gate like every other owner request. Pinned in Task 7 (`sends the owner back to the token gate, hidden again, when the details answer 404`).
+6. **Shown details going stale.** After the owner moves, edits or deletes a gift, the shown details refetch with the manage view. Pinned in Task 7 (`refetches the shown details after the owner moves a gift`).
 
 ---
 
@@ -224,7 +225,7 @@ it('refuses a hold whose guest details are missing', …)
 Protects, in order: the mapping; the purchase sort; `purchasedUnits` over `units`; the owner check; the missing-details guard. Holds and pledges need no sort of their own: the repositories already load them oldest expiry and oldest pledge first (their contracts say so). Released, expired and undone holds are not re-tested here: Task 1's queries own that.
 
 - [ ] **Step 3: Run both to see them fail** — `scripts/verify.sh --quick apps/api src/application/test-fakes/InMemoryRepositories.contract.test.ts src/application/use-cases/GetGiftDetails.test.ts`. (The Kysely adapter runs the same contract in `verify.sh`'s integration tests.)
-- [ ] **Step 4: Implement** `findByIds` in the port, the Kysely adapter (`selectFrom('guest_pii').select(['id','name','message']).where('id','in',ids)`, after an early return for `[]`) and the fake (copy on read, like `findById`). Then `GetGiftDetails`: owner check as in `GetManageView`; one `ctx.wishlists.findById(id, this.clock.now())`; collect every `piiRef` from `purchasedHolds()`, `activeHolds()` and `contributions`; one `ctx.guestPii.findByIds`; map, sorting purchases by `purchasedAt` (holds and pledges keep load order). A null `piiRef` throws `new Error(\`guest details missing for hold ${hold.id.value}\`)`, and so does an id missing from the map, through the same check — why-comment: `Hold` still allows a null `piiRef` for rows from before names were stored, and none exist in a released database, so this is corrupt data, not a case to show.
+- [ ] **Step 4: Implement** `findByIds` in the port, the Kysely adapter (`selectFrom('guest_pii').select(['id','name','message']).where('id','in',ids)`; an early return for `[]` only if Step 1's empty-list test fails without it) and the fake (copy on read, like `findById`). Then `GetGiftDetails`: owner check as in `GetManageView`; one `ctx.wishlists.findById(id, this.clock.now())`; collect every `piiRef` from `purchasedHolds()`, `activeHolds()` and `contributions`; one `ctx.guestPii.findByIds`; map, sorting purchases by `purchasedAt` (holds and pledges keep load order). A null `piiRef` throws `new Error(\`guest details missing for hold ${hold.id.value}\`)`, and so does an id missing from the map, through the same check — why-comment: `Hold` still allows a null `piiRef` for rows from before names were stored, and none exist in a released database, so this is corrupt data, not a case to show.
 - [ ] **Step 5: Verify** — `scripts/verify.sh` passes.
 - [ ] **Step 6: Commit** — `feat(api): the owner's gift details, with names read in one batch`
 
@@ -340,7 +341,7 @@ The card's presence once revealed is `ManagePage`'s test (Task 7); this one owns
   - `api.getGiftDetails(slug: string): Promise<GiftDetailsResponse>`.
   - `giftDetailsKey = (slug: string) => [...manageViewKey(slug), 'gift-details'] as const` — nested so invalidating the manage view refetches shown details.
   - `WhoGaveWhat({ revealed: boolean; loading: boolean; error: Error | null; onShow(): void; onHide(): void })`; `ManagePage` passes `loading={query.isLoading}` (a disabled v5 query is `isPending`, so `isPending` would read "Showing…" before Show is pressed): the box. Status line `<p aria-live="polite">`, the warning only while hidden, the button "Show who gave what" / "Showing…" (disabled while pending) / "Hide".
-  - `ManagePage` owns `revealed` (plain `useState(false)`, never stored) and the `useQuery({ queryKey: giftDetailsKey(slug), queryFn, enabled: entered && revealed && !gone, retry: false })`; Hide sets `revealed` false and `removeQueries({ queryKey: giftDetailsKey(slug) })`. A 404 calls the page's existing `unauthorized()`. Both `unauthorized()` and `giftUnauthorized()` also set `revealed` false, so re-entering the token starts hidden.
+  - `ManagePage` owns `revealed` (plain `useState(false)`, never stored) and the `useQuery({ queryKey: giftDetailsKey(slug), queryFn, enabled: entered && revealed && !gone, retry: false })`; Hide sets `revealed` false and `removeQueries({ queryKey: giftDetailsKey(slug) })`. A details 404 is seen by a `useEffect` on the details query's error (v5 queries have no `onError`) and calls the page's existing `unauthorized()`. Whenever the owner goes back to the gate (`unauthorized()`, `giftUnauthorized()`, or the manage view's own 404, `gone`), `revealed` resets to false, so re-entering the token starts hidden.
 
 - [ ] **Step 1: Write the tests.**
 
@@ -362,7 +363,7 @@ it('makes no gift-details request until the owner presses Show who gave what', �
 it("shows each gift's card once the owner presses Show who gave what", …)
 it('removes the details when the owner presses Hide', …)
 it('fetches afresh when the owner shows the details again after hiding them', …)   // two requests counted
-it('refetches the shown details after the owner moves a gift', …)   // a second gift-details request follows the move's manage-view refetch
+it('refetches the shown details after the owner moves a gift', …)   // with today's Down button; a second gift-details request follows the move's manage-view refetch
 it('sends the owner back to the token gate, hidden again, when the details answer 404', …)   // after re-entering the token, no gift-details request until Show
 ```
 
@@ -401,7 +402,7 @@ test('the owner shows who bought a gift, reads their message, and hides it again
 | 3 | PledgeProgress tests (moved) | `PledgeProgress` arithmetic and markup (unchanged) |
 | 3 | shows a gift's description… | `ManageItems` description render |
 | 3 | shows 1 of 3 bought · 1 held… / shows no held count… | the held subtraction and its `> 0` branch |
-| 3 | shows a group gift's pledges… | `ManageItems` → `PledgeProgress` wiring |
+| 3 | shows a group gift's pledged progress | `ManageItems` → `PledgeProgress` wiring |
 | 4 | reads the details of several ids… / leaves an unknown id out… / reads nothing for no ids | adapter `in` query and its empty input |
 | 4 | shows the owner who bought, holds and pledged… | use case mapping |
 | 4 | lists purchases in the order they were bought… | the purchase sort |
