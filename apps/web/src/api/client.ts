@@ -1,7 +1,7 @@
 import createClient from 'openapi-fetch';
 import type {
   AddItemRequest, AddItemResponse, BuyItemRequest, CreateListRequest, CreateListResponse, EditedResponse, EditItemRequest, EditListDetailsRequest, EnterGuestKeyRequest, EnterGuestKeyResponse,
-  GuestKeySuggestionResponse, HoldItemRequest, HoldItemResponse, HoldView, ListViewResponse, ManageViewResponse, MoveItemRequest, OwnerSessionRequest, OwnerSessionResponse, PledgeRequest, PledgeResponse,
+  GiftDetailsResponse, GuestKeySuggestionResponse, HoldItemRequest, HoldItemResponse, HoldView, ListViewResponse, ManageViewResponse, MoveItemRequest, OwnerSessionRequest, OwnerSessionResponse, PledgeRequest, PledgeResponse,
 } from '@gubbins/shared-types';
 import type { paths } from './schema.gen';
 
@@ -110,6 +110,9 @@ export const api = {
 
   getManageView: (slug: string): Promise<ManageViewResponse> =>
     http.GET('/api/lists/{slug}/manage', { params: { path: { slug } } }).then(unwrap),
+
+  getGiftDetails: (slug: string): Promise<GiftDetailsResponse> =>
+    http.GET('/api/lists/{slug}/gift-details', { params: { path: { slug } } }).then(unwrap),
 
   holdItem: (slug: string, itemId: string, input: HoldItemRequest): Promise<HoldItemResponse> =>
     http.POST('/api/lists/{slug}/items/{itemId}/hold', { params: { path: { slug, itemId } }, body: input }).then(unwrap),
