@@ -31,7 +31,6 @@ export interface ManageItemsProps {
 
 export function ManageItems({ slug, items, onUnauthorized, details }: ManageItemsProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const gave = (itemId: string) => details?.find((d) => d.itemId === itemId);
   const restoreFocusTo = useRef<string | null>(null);
   // The Edit button is unmounted while its form shows, so focus returns to it once it is back.
   useEffect(() => {
@@ -92,6 +91,7 @@ export function ManageItems({ slug, items, onUnauthorized, details }: ManageItem
       <h2 id="manage-items-heading" tabIndex={-1} className="section-heading">Items</h2>
       <ul role="list">
         {items.map((item, index) => {
+          const gave = details?.find((d) => d.itemId === item.id);
           // A group gift always has a price; the type is nullable only because singles may lack one.
           const meta = item.type === 'group'
             ? `${formatMoney(item.priceMinor ?? 0)} target`
@@ -135,9 +135,9 @@ export function ManageItems({ slug, items, onUnauthorized, details }: ManageItem
                 title={item.title} itemId={item.id} index={index} count={items.length} pending={move.isPending}
                 onMove={(to) => move.mutate({ itemId: item.id, to })}
               />
-              {gave(item.id) && (
+              {gave && (
                 <section aria-label={`Who gave what for ${item.title}`} className="col-span-2">
-                  <GiftDetailsCard details={gave(item.id)!} />
+                  <GiftDetailsCard details={gave} />
                 </section>
               )}
             </li>

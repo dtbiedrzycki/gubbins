@@ -16,9 +16,9 @@ export function GiftDetailsCard({ details }: { details: GiftDetailsResponse['ite
     ['Pledged', details.pledges.map((p) => ({ who: `${p.name} · ${formatMoney(p.amountMinor)}`, when: formatDay(p.pledgedAt, at), message: p.message }))],
   ] as [string, Row[]][]).filter(([, rows]) => rows.length > 0);
 
-  if (kinds.length === 0) return <p className="text-[0.92rem] text-muted">No one has held, bought or pledged yet.</p>;
   return (
     <div className="grid gap-2.5 rounded-xl border border-line bg-white/60 px-3 py-2.5">
+      {kinds.length === 0 && <p className="text-[0.92rem] text-muted">No one has held, bought or pledged yet.</p>}
       {kinds.map(([kind, rows]) => (
         <div key={kind} className="grid gap-1.5">
           <p className="text-xs font-bold tracking-wider text-muted uppercase">{kind}</p>
