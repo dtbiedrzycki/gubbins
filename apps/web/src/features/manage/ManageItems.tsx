@@ -111,10 +111,10 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
                   {item.type === 'group' && <span className="ml-2 text-sm font-normal text-muted">group gift</span>}
                 </p>
                 <p className="text-[0.92rem] text-muted">{meta}</p>
-                {item.description && <ClampedText id={`manage-description-${item.id}`}><Markdown text={item.description} /></ClampedText>}
+                {item.description && <div className="text-[0.95rem]"><ClampedText id={`manage-description-${item.id}`}><Markdown text={item.description} /></ClampedText></div>}
                 {item.type === 'group'
                   ? <PledgeProgress pledgedMinor={item.pledgedMinor ?? 0} priceMinor={item.priceMinor ?? 0} />
-                  : <p>{countLine(item)}</p>}
+                  : <p className="text-[0.95rem]">{countLine(item)}</p>}
                 <ItemActions slug={slug} item={item} onUnauthorized={onUnauthorized}>
                   <button
                     id={`edit-item-${item.id}`} type="button" aria-label={`Edit ${item.title}`} onClick={() => setEditingId(item.id)}
