@@ -24,4 +24,9 @@ export class GuestPiiRepositoryKysely implements GuestPiiRepository {
     const row = await this.db.selectFrom('guest_pii').select(['name', 'message']).where('id', '=', id).executeTakeFirst();
     return row ? GuestDetails.from(row) : null;
   }
+
+  async findByIds(ids: readonly string[]): Promise<Map<string, GuestDetails>> {
+    const rows = await this.db.selectFrom('guest_pii').select(['id', 'name', 'message']).where('id', 'in', [...ids]).execute();
+    return new Map(rows.map((row) => [row.id, GuestDetails.from(row)]));
+  }
 }

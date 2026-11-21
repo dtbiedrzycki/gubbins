@@ -10,4 +10,6 @@ export interface GuestPiiRepository {
   /** Replaces name and message in place; throws when no row has the id. */
   update(id: string, details: GuestDetails): Promise<void>;
   findById(id: string): Promise<GuestDetails | null>;
+  /** Several rows in one read, keyed by id; unknown ids are left out. */
+  findByIds(ids: readonly string[]): Promise<Map<string, GuestDetails>>;
 }

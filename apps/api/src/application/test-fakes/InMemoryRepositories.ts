@@ -193,6 +193,15 @@ export class InMemoryGuestPiiRepository implements GuestPiiRepository {
     const row = this.store.guestPii.get(id);
     return row ? GuestDetails.from(row) : null;
   }
+
+  async findByIds(ids: readonly string[]): Promise<Map<string, GuestDetails>> {
+    const found = new Map<string, GuestDetails>();
+    for (const id of ids) {
+      const row = this.store.guestPii.get(id);
+      if (row) found.set(id, GuestDetails.from(row));
+    }
+    return found;
+  }
 }
 
 export class InMemoryContributionRepository implements ContributionRepository {
