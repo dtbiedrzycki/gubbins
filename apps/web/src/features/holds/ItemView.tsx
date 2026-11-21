@@ -8,6 +8,7 @@ import { ItemAnnouncement } from './ItemAnnouncement';
 import { Seal } from './Seal';
 import { formatMoney } from '../../lib/formatMoney';
 import { ClampedText } from '../../lib/ClampedText';
+import { PledgeProgress } from '../../lib/PledgeProgress';
 import { Markdown } from '../../lib/Markdown';
 import { ContributeDialog } from '../contribute/ContributeDialog';
 import type { ContributeDraft } from '../contribute/contributeDraft';
@@ -90,10 +91,6 @@ export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chi
   const group = item.type === 'group' && item.priceMinor !== null
     ? { price: item.priceMinor, pledged: item.pledgedMinor ?? 0 }
     : null;
-  // Integer minor units, multiplied before dividing so the floor is exact; rounding down
-  // keeps a gift short of its price from reading 100%.
-  const pledgedPercent = group ? (group.pledged * 100) / group.price : 0;
-  const progress = group && `${formatMoney(group.pledged)} of ${formatMoney(group.price)} pledged · ${Math.floor(pledgedPercent)}%`;
 
   // Status comes from the server alone. useHoldItem stays pending until the
   // refetched list view lands, and a remembered local success would go stale
@@ -115,14 +112,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chi
       {item.type === 'single' && <p aria-live="polite" className="empty:mb-0">{heldUnits > 0 ? `You're holding ${heldUnits}` : ''}</p>}
       {group && (
         <>
-          <progress max={group.price} value={Math.min(group.pledged, group.price)} aria-label={progress!} className="sr-only" />
-          <div className="space-y-1.5">
-            <p>{progress}</p>
-            {/* Gold coins laid along a bar, filled to the pledged share and never past full. */}
-            <div aria-hidden="true" className="h-4 overflow-hidden rounded-lg border-2 border-ink bg-white">
-              <div data-bar-fill className="h-full bg-gold bg-[radial-gradient(circle_at_30%_50%,#F3D27A_0_3px,transparent_3.5px)] bg-[length:10px_12px]" style={{ width: `${Math.min(pledgedPercent, 100)}%` }} />
-            </div>
-          </div>
+          <PledgeProgress pledgedMinor={group.pledged} priceMinor={group.price} />
           {chippedInMinor > 0 && <p>You chipped in {formatMoney(chippedInMinor)}</p>}
           <button ref={chipInButton} type="button" onClick={() => { setThanks(''); setChipInOpen(true); }} className="btn-primary">
             Chip in

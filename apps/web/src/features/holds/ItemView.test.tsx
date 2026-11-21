@@ -165,21 +165,6 @@ describe('ItemView', () => {
     expect(document.querySelector('[data-seal]')).toBeNull();
   });
 
-  it('fills the bar to 100%, not 150%, when $15.00 is pledged toward $10.00', () => {
-    renderItem({ type: 'group', priceMinor: 1000, pledgedMinor: 1500, availableUnits: 0 });
-    expect(document.querySelector<HTMLElement>('[data-bar-fill]')!.style.width).toBe('100%');
-  });
-
-  it('hides the coin bar from screen readers, since the pledged text says the same', () => {
-    renderItem({ type: 'group', priceMinor: 1000, pledgedMinor: 500, availableUnits: 0 });
-    expect(document.querySelector('[data-bar-fill]')!.parentElement).toHaveAttribute('aria-hidden', 'true');
-  });
-
-  it('hides the progress bar visually but keeps it for screen readers', () => {
-    renderItem({ type: 'group', priceMinor: 1000, pledgedMinor: 500, availableUnits: 0 });
-    expect(screen.getByRole('progressbar')).toHaveClass('sr-only');
-  });
-
   it('puts the button row last in its stack, so space-y adds no margin below it', () => {
     renderItem();
     const row = screen.getByRole('button', { name: /^Hold this item/ }).parentElement!;
@@ -312,20 +297,9 @@ describe('ItemView', () => {
     expect(screen.queryByText(/^Wanted:/)).not.toBeInTheDocument();
   });
 
-  it.each([
-    [16250, 16250, '$162.50 of $450.00 pledged · 36%'],
-    [13050, 13050, '$130.50 of $450.00 pledged · 29%'],
-    [52000, 45000, '$520.00 of $450.00 pledged · 115%'],
-  ])('shows a group gift pledged %i toward its price as progress', (pledgedMinor, value, label) => {
-    renderItem({ type: 'group', priceMinor: 45000, pledgedMinor, availableUnits: 0 });
-    const progress = screen.getByRole('progressbar', { name: label });
-    expect(progress).toHaveAttribute('max', '45000');
-    expect(progress).toHaveAttribute('value', String(value));
-  });
-
-  it('shows 99%, not 100%, for a group gift 99.5% pledged', () => {
-    renderItem({ type: 'group', priceMinor: 100000, pledgedMinor: 99500, availableUnits: 0 });
-    expect(screen.getByRole('progressbar', { name: '$995.00 of $1,000.00 pledged · 99%' })).toBeInTheDocument();
+  it("shows a group gift's pledged progress", () => {
+    renderItem({ type: 'group', priceMinor: 45000, pledgedMinor: 10000, availableUnits: 0 });
+    expect(screen.getByText('$100.00 of $450.00 pledged · 22%')).toBeInTheDocument();
   });
 
   it('lets a guest chip in toward a group gift, thanks them, and hands focus back', async () => {

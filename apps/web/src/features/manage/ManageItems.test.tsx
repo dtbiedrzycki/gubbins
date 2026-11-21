@@ -78,6 +78,26 @@ describe('ManageItems', () => {
     expect(screen.getByText('$400.00 target')).toBeInTheDocument();
   });
 
+  it("shows a gift's description as Markdown", () => {
+    renderItems([item({ description: 'Stainless, *please*.' })]);
+    expect(screen.getByText('please', { selector: 'em' })).toBeInTheDocument();
+  });
+
+  it('shows 1 of 3 bought · 1 held when 1 unit is bought and 1 is held', () => {
+    renderItems([item({ quantity: 3, committedUnits: 2, purchasedUnits: 1 })]);
+    expect(screen.getByText('1 of 3 bought · 1 held')).toBeInTheDocument();
+  });
+
+  it('shows no held count when no units are held', () => {
+    renderItems([item({ quantity: 1, committedUnits: 0, purchasedUnits: 0 })]);
+    expect(screen.getByText('0 of 1 bought')).toBeInTheDocument();
+  });
+
+  it("shows a group gift's pledged progress", () => {
+    renderItems([item({ type: 'group', priceMinor: 18_000, pledgedMinor: 10_000, quantity: 1 })]);
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
   it('leaves the price out for a single item without one', () => {
     renderItems([item({ quantity: 3, priceMinor: null })]);
 
