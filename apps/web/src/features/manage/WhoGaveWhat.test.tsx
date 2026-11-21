@@ -21,7 +21,7 @@ describe('WhoGaveWhat', () => {
     expect(screen.queryByText(/^Spoilers:/)).not.toBeInTheDocument();
   });
 
-  it('says Showing… and ignores presses while the details load, keeping the button focusable', async () => {
+  it('ignores presses on a focusable Showing… button while the details load', async () => {
     const onShow = vi.fn();
     renderBox({ loading: true, onShow });
     const button = screen.getByRole('button', { name: 'Showing…' });
