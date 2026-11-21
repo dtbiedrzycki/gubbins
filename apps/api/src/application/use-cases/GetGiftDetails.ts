@@ -29,8 +29,9 @@ export class GetGiftDetails {
       const wishlist = await ctx.wishlists.findById(input.wishlistId, this.clock.now());
       if (!wishlist) throw new WishlistNotFoundError(input.wishlistId);
 
-      const refs = wishlist.items.flatMap((item) => [
-        ...[...item.purchasedHolds(), ...item.activeHolds()].map((hold) => hold.piiRef?.value),
+      const items = wishlist.items.map((item) => ({ item, purchased: item.purchasedHolds(), active: item.activeHolds() }));
+      const refs = items.flatMap(({ item, purchased, active }) => [
+        ...[...purchased, ...active].map((hold) => hold.piiRef?.value),
         ...item.contributions.map((c) => c.piiRef.value),
       ]).filter((ref): ref is string => ref !== undefined);
       const guests = await ctx.guestPii.findByIds(refs);
@@ -42,17 +43,18 @@ export class GetGiftDetails {
       };
 
       return {
-        items: wishlist.items.map((item) => ({
+        items: items.map(({ item, purchased, active }) => ({
           itemId: item.id.value,
           // Holds load oldest expiry first, so purchases need their own order.
-          purchases: [...item.purchasedHolds()]
+          purchases: [...purchased]
             .sort((a, b) => a.purchasedAt!.getTime() - b.purchasedAt!.getTime())
             .map((hold) => {
               const guest = guestOf(hold);
               return { name: guest.name, message: guest.message, units: hold.purchasedUnits!, purchasedAt: hold.purchasedAt! };
             }),
-          holds: item.activeHolds().map((hold) => ({ name: guestOf(hold).name, units: hold.units, expiresAt: hold.expiresAt })),
+          holds: active.map((hold) => ({ name: guestOf(hold).name, units: hold.units, expiresAt: hold.expiresAt })),
           pledges: item.contributions.map((c) => {
+            // A contribution's pii_ref is NOT NULL with a foreign key, so its row is always there.
             const guest = guests.get(c.piiRef.value)!;
             return { name: guest.name, message: guest.message, amountMinor: c.amount.amountMinor, pledgedAt: c.pledgedAt };
           }),
