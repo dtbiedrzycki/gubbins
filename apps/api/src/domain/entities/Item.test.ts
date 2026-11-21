@@ -159,6 +159,19 @@ describe('Item availability and holds — from hold state, never a stored counte
     expect(item.committedUnits()).toBe(2);
   });
 
+  it('lists a hold still running as active, not as purchased', () => {
+    const active = holdOn();
+    const item = Item.reconstitute({ ...base, holds: [active] });
+    expect(item.activeHolds().map((h) => h.id.value)).toEqual([active.id.value]);
+    expect(item.purchasedHolds()).toEqual([]);
+  });
+
+  it('lists an undone buy as neither active nor purchased', () => {
+    const item = Item.reconstitute({ ...base, holds: [holdOn({ purchasedAt: T0, purchasedUnits: 1, buyUndoneAt: T0 })] });
+    expect(item.activeHolds()).toEqual([]);
+    expect(item.purchasedHolds()).toEqual([]);
+  });
+
   it('rejects a loaded hold or contribution that is on another item', () => {
     const other = '44444444-4444-7444-8444-444444444444';
     expect(() => Item.reconstitute({ ...base, holds: [holdOn({ itemId: other })] })).toThrow(DomainValidationError);
