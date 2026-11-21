@@ -32,7 +32,8 @@ export default function ManagePage() {
   const details = useQuery({
     queryKey: giftDetailsKey(slug!),
     queryFn: () => api.getGiftDetails(slug!),
-    enabled: entered && revealed && !viewGone && Boolean(slug),
+    // Off after a failure, so neither a window focus nor a refetch of the list asks again (or reveals names) until the owner does.
+    enabled: (q) => entered && revealed && !viewGone && Boolean(slug) && !q.state.error,
     retry: false,
   });
   const detailsGone = details.error instanceof ApiError && details.error.status === 404;
@@ -57,7 +58,7 @@ export default function ManagePage() {
             <AddItemForm slug={slug} onUnauthorized={unauthorized} />
             {query.data && (
               <WhoGaveWhat
-                revealed={revealed && details.isSuccess} loading={details.isLoading} error={detailsGone ? null : details.error}
+                revealed={revealed && details.data !== undefined} loading={details.isLoading} error={details.error}
                 onShow={() => { setRevealed(true); if (details.isError) void details.refetch(); }}
                 onHide={() => { setRevealed(false); queryClient.removeQueries({ queryKey: giftDetailsKey(slug) }); }}
               />

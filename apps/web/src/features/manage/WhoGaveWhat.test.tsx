@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { WhoGaveWhat, type WhoGaveWhatProps } from './WhoGaveWhat';
 
 const renderBox = (over: Partial<WhoGaveWhatProps>) =>
@@ -20,9 +21,14 @@ describe('WhoGaveWhat', () => {
     expect(screen.queryByText(/^Spoilers:/)).not.toBeInTheDocument();
   });
 
-  it('disables the button and says Showing… while the details load', () => {
-    renderBox({ revealed: true, loading: true });
-    expect(screen.getByRole('button', { name: 'Showing…' })).toBeDisabled();
+  it('says Showing… and ignores presses while the details load, keeping the button focusable', async () => {
+    const onShow = vi.fn();
+    renderBox({ loading: true, onShow });
+    const button = screen.getByRole('button', { name: 'Showing…' });
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    expect(button).toBeEnabled();
+    await userEvent.click(button);
+    expect(onShow).not.toHaveBeenCalled();
   });
 
   it('shows the error in an alert when the details fail to load', () => {

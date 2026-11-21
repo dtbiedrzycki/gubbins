@@ -106,13 +106,14 @@ describe('ManagePage', () => {
   });
 
   /** Serves who gave what for the first gift, and counts the requests for it. */
-  function serveDetails(status = 200) {
+  function serveDetails(status = 200, ...later: number[]) {
     let requests = 0;
     server.use(http.get('/api/lists/:slug/gift-details', () => {
       requests += 1;
-      return status === 200
+      const answer = requests === 1 ? status : later[requests - 2] ?? later.at(-1) ?? status;
+      return answer === 200
         ? HttpResponse.json({ items: [{ itemId: 'i0', purchases: [{ name: 'Maya', units: 1, message: null, purchasedAt: '2026-11-12T12:00:00.000Z' }], holds: [], pledges: [] }] })
-        : HttpResponse.json({ message: 'Not found' }, { status });
+        : HttpResponse.json({ message: answer === 404 ? 'Not found' : 'Internal server error' }, { status: answer });
     }));
     return () => requests;
   }
@@ -176,6 +177,48 @@ describe('ManagePage', () => {
     await user.click(screen.getByRole('button', { name: 'Move Rings down' }));
 
     await waitFor(() => expect(requests()).toBe(2));
+  });
+
+  it('shows the details when the owner tries again after a failed load', async () => {
+    serveView(() => ['Rings']);
+    const requests = serveDetails(500, 200);
+    const user = await enterToken();
+    await user.click(await screen.findByRole('button', { name: 'Show who gave what' }));
+    await screen.findByText(/^Couldn’t show who gave what./);
+
+    await user.click(screen.getByRole('button', { name: 'Show who gave what' }));
+
+    expect(await screen.findByText('Maya')).toBeInTheDocument();
+    expect(requests()).toBe(2);
+  });
+
+  it('makes no further request after a failed load until the owner tries again', async () => {
+    serveView(() => ['Rings', 'Cot']);
+    const requests = serveDetails(500, 200);
+    server.use(http.post('/api/lists/:slug/items/:itemId/move', () => HttpResponse.json({ ok: true })));
+    const user = await enterToken();
+    await user.click(await screen.findByRole('button', { name: 'Show who gave what' }));
+    await screen.findByText(/^Couldn’t show who gave what./);
+
+    await user.click(screen.getByRole('button', { name: 'Move Rings down' }));
+
+    expect(await screen.findByRole('button', { name: 'Move Rings up' })).toBeInTheDocument();
+    expect(screen.queryByText('Maya')).not.toBeInTheDocument();
+    expect(requests()).toBe(1);
+  });
+
+  it('keeps offering Hide while shown details fail to refresh', async () => {
+    serveView(() => ['Rings', 'Cot']);
+    const requests = serveDetails(200, 500);
+    server.use(http.post('/api/lists/:slug/items/:itemId/move', () => HttpResponse.json({ ok: true })));
+    const user = await enterToken();
+    await user.click(await screen.findByRole('button', { name: 'Show who gave what' }));
+    await screen.findByText('Maya');
+
+    await user.click(screen.getByRole('button', { name: 'Move Rings down' }));
+    await waitFor(() => expect(requests()).toBe(2));
+
+    expect(screen.getByRole('button', { name: 'Hide' })).toBeInTheDocument();
   });
 
   it('sends the owner back to the token gate, hidden again, when the details answer 404', async () => {
