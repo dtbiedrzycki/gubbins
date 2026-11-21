@@ -11,15 +11,18 @@ describe('GiftDetailsCard', () => {
   beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-21T12:00:00.000Z')); });
   afterEach(() => { vi.useRealTimers(); });
 
-  it('lists who bought a single gift with their message, and who holds it until when', () => {
+  it('lists who bought a gift, on what day, with their message', () => {
     render(<GiftDetailsCard details={details({
       purchases: [{ name: 'Maya Chen', units: 1, message: 'Happy 30th!', purchasedAt: '2026-11-12T12:00:00.000Z' }],
-      holds: [{ name: 'Jo', units: 2, expiresAt: '2026-11-27T12:00:00.000Z' }],
     })} />);
     expect(screen.getByText('Bought')).toBeInTheDocument();
     expect(screen.getByText('Maya Chen')).toBeInTheDocument();
     expect(screen.getByText('Nov 12')).toBeInTheDocument();
     expect(screen.getByText('Happy 30th!')).toBeInTheDocument();
+  });
+
+  it('lists who holds a gift and until when, with the units when there are 2', () => {
+    render(<GiftDetailsCard details={details({ holds: [{ name: 'Jo', units: 2, expiresAt: '2026-11-27T12:00:00.000Z' }] })} />);
     expect(screen.getByText('Held')).toBeInTheDocument();
     expect(screen.getByText('Jo · 2')).toBeInTheDocument();
     expect(screen.getByText('until Nov 27')).toBeInTheDocument();
