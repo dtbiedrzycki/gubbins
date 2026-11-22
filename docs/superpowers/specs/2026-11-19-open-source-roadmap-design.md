@@ -244,7 +244,9 @@ Things a stranger running their own instance would hit.
    guest can keep pledging to one gift, or hold and release it over and
    over, since released and expired holds are loaded too. So the list
    loads only live holds (active and bought), which quantity bounds;
-   the rest stay in the database and the ledger. That puts a full list at
+   the rest stay in the database and the ledger. Replays that look up an
+   old hold (a repeated hold submit, release or undo-buy) and a guest's
+   own-holds view must keep working without it. That puts a full list at
    about 2,000 holds and pledges, since a gift takes one or the other.
    A list near SQLite's 32,766-parameter ceiling is likely far past the
    Pi-class budget, and past it every save to the list fails outright.
@@ -266,8 +268,9 @@ Not scheduled. Each item comes back through its own design.
 - The owner releasing a guest's hold (accepted, unbuilt).
 - Deleting a whole list and the periodic purge (ADR-0033, ADR-0063); the
   privacy page says honestly that nothing is deleted automatically yet.
-- Configurable list-size limits, or reading guest names in batches, for an
-  operator who needs lists bigger than Gate 2's limits allow.
+- Configurable list-size limits, with list loads and saves split into
+  batches, for an operator who needs lists bigger than Gate 2's limits
+  allow.
 - Owner-uploaded gift pictures (planned earlier and parked; no repo
   doc yet).
 - **Usage and error metrics** (tabled by the owner). Three layers were
@@ -307,8 +310,8 @@ Made by the owner:
 - Lists get size limits in Gate 2, sized for Pi-class hardware rather
   than SQLite's limits: 100 gifts, a quantity of 20 and 20 pledges per
   group gift to start, and a list loads only its live holds. Making the
-  limits configurable, or batching reads, waits until someone needs
-  bigger lists.
+  limits configurable, with batched loads and saves, waits until someone
+  needs bigger lists.
 
 Calls made in this roadmap, for the owner to check:
 
@@ -323,9 +326,11 @@ Calls made in this roadmap, for the owner to check:
 - Drag-and-drop adds a "move to position" command rather than being built
   from repeated up/down moves.
 - Fewer buttons ships with drag-and-drop, not before it.
-- Among the list-size limits, the pledge limit ships first, as the one
-  count a guest can grow today that loading only live holds doesn't
-  bound.
+- Among the list-size limits, the pledge limit ships first: it is one
+  small domain refusal against the count a guest can grow fastest, while
+  loading only live holds needs its own design for the replays above.
+- The compose file sets the 256 MB container limit itself, rather than
+  leaving it to each operator to add.
 - CI's checks become required on `main` and the private pre-push gate
   retires; `verify.sh` before pushing is recommended, not enforced.
 - The demo deploys on release tags, not every push to `main`.
