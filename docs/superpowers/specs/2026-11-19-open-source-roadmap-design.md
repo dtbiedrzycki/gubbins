@@ -224,6 +224,9 @@ Things a stranger running their own instance would hit.
    and the README's self-hosting steps switch to it.
    The `Dockerfile` already sets `NODE_ENV` only in its runtime stage and
    prunes dev dependencies before copying `node_modules`.
+   The image also sets the 128 MB V8 heap that
+   `docs/spec/performance-and-resource-budget.md` budgets for; nothing
+   sets it today, so Node sizes its own heap inside the 256 MB container.
 8. **Backup and restore steps** (~1–2 PRs). `docs/deploy.md` has none.
    ADR-0031 already chose `VACUUM INTO`; document it, possibly with a
    script, and the restore path ADR-0032 relies on.
@@ -233,6 +236,18 @@ Things a stranger running their own instance would hit.
    resolved by hop count (ADR-0066), so `TRUSTED_PROXY_HOPS` must be read
    (nothing reads it yet). Plus the cap on active holds per guest session
    (ADR-0046). All are accepted and unbuilt.
+   Plus **list-size limits** (~6–8 more PRs, with a new ADR): at most 100
+   gifts per list, a quantity of at most 20, and at most 20 pledges per
+   group gift. Every guest and owner request loads the whole list, reads
+   and writes alike, and today nothing bounds how big it grows: a guest who clears cookies can
+   keep pledging to one gift. On the Pi-class budget, a list of about 4,000
+   holds and pledges fits; a list near SQLite's 32,766-parameter ceiling
+   would not fit the heap, and past that ceiling reading the gift details
+   fails outright. The design measures heap use and read latency at
+   these limits before the ADR fixes them, checks that no existing list is
+   already over one, and keeps a list that is over one readable: a limit
+   refuses new gifts, units or pledges, never loading. The pledge limit
+   comes first, as the only count a guest can grow.
 
 ## After launch
 
@@ -247,6 +262,8 @@ Not scheduled. Each item comes back through its own design.
 - The owner releasing a guest's hold (accepted, unbuilt).
 - Deleting a whole list and the periodic purge (ADR-0033, ADR-0063); the
   privacy page says honestly that nothing is deleted automatically yet.
+- Configurable list-size limits, or reading guest names in batches, for an
+  operator who needs lists bigger than Gate 2's limits allow.
 - Owner-uploaded gift pictures (planned earlier and parked; no repo
   doc yet).
 - **Usage and error metrics** (tabled by the owner). Three layers were
@@ -283,6 +300,10 @@ Made by the owner:
   messages) for thank-you notes, payment matching and curiosity. They're
   hidden until the owner reveals them, and hiding covers only who and
   what they said; counts always show.
+- Lists get size limits in Gate 2, sized for Pi-class hardware rather
+  than SQLite's limits: 100 gifts, a quantity of 20 and 20 pledges per
+  group gift to start. Making them configurable, or batching reads,
+  waits until someone needs bigger lists.
 
 Calls made in this roadmap, for the owner to check:
 
