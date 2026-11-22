@@ -224,9 +224,10 @@ Things a stranger running their own instance would hit.
    and the README's self-hosting steps switch to it.
    The `Dockerfile` already sets `NODE_ENV` only in its runtime stage and
    prunes dev dependencies before copying `node_modules`.
-   The image also sets the 128 MB V8 heap that
-   `docs/spec/performance-and-resource-budget.md` budgets for; nothing
-   sets it today, so Node sizes its own heap inside the 256 MB container.
+   The image also sets the 128 MB V8 heap and the compose file the 256 MB
+   container limit that `docs/spec/performance-and-resource-budget.md`
+   budgets for; nothing sets either today, so Node sizes its heap from
+   the host's memory.
 8. **Backup and restore steps** (~1–2 PRs). `docs/deploy.md` has none.
    ADR-0031 already chose `VACUUM INTO`; document it, possibly with a
    script, and the restore path ADR-0032 relies on.
@@ -236,18 +237,21 @@ Things a stranger running their own instance would hit.
    resolved by hop count (ADR-0066), so `TRUSTED_PROXY_HOPS` must be read
    (nothing reads it yet). Plus the cap on active holds per guest session
    (ADR-0046). All are accepted and unbuilt.
-   Plus **list-size limits** (~6–8 more PRs, with a new ADR): at most 100
-   gifts per list, a quantity of at most 20, and at most 20 pledges per
-   group gift. Every guest and owner request loads the whole list, reads
-   and writes alike, and today nothing bounds how big it grows: a guest who clears cookies can
-   keep pledging to one gift. On the Pi-class budget, a list of about 4,000
-   holds and pledges fits; a list near SQLite's 32,766-parameter ceiling
-   would not fit the heap, and past that ceiling reading the gift details
-   fails outright. The design measures heap use and read latency at
-   these limits before the ADR fixes them, checks that no existing list is
-   already over one, and keeps a list that is over one readable: a limit
-   refuses new gifts, units or pledges, never loading. The pledge limit
-   comes first, as the only count a guest can grow.
+   Plus **list-size limits** (~8–12 more PRs, with a new ADR): at most
+   100 gifts per list, a quantity of at most 20, and at most 20 pledges
+   per group gift. Every guest and owner request loads the whole list,
+   reads and writes alike, and today nothing bounds how big it grows: a
+   guest can keep pledging to one gift, or hold and release it over and
+   over, since released and expired holds are loaded too. So the list
+   loads only live holds (active and bought), which quantity bounds;
+   the rest stay in the database and the ledger. That puts a full list at
+   about 2,000 holds and pledges, since a gift takes one or the other.
+   A list near SQLite's 32,766-parameter ceiling is likely far past the
+   Pi-class budget, and past it every save to the list fails outright.
+   The design measures heap use and read latency at these limits before
+   the ADR fixes them, checks that no existing list is already over one,
+   and keeps a list that is over one readable: a limit refuses new gifts,
+   units or pledges, never loading.
 
 ## After launch
 
@@ -302,8 +306,9 @@ Made by the owner:
   what they said; counts always show.
 - Lists get size limits in Gate 2, sized for Pi-class hardware rather
   than SQLite's limits: 100 gifts, a quantity of 20 and 20 pledges per
-  group gift to start. Making them configurable, or batching reads,
-  waits until someone needs bigger lists.
+  group gift to start, and a list loads only its live holds. Making the
+  limits configurable, or batching reads, waits until someone needs
+  bigger lists.
 
 Calls made in this roadmap, for the owner to check:
 
@@ -318,6 +323,9 @@ Calls made in this roadmap, for the owner to check:
 - Drag-and-drop adds a "move to position" command rather than being built
   from repeated up/down moves.
 - Fewer buttons ships with drag-and-drop, not before it.
+- Among the list-size limits, the pledge limit ships first, as the one
+  count a guest can grow today that loading only live holds doesn't
+  bound.
 - CI's checks become required on `main` and the private pre-push gate
   retires; `verify.sh` before pushing is recommended, not enforced.
 - The demo deploys on release tags, not every push to `main`.
