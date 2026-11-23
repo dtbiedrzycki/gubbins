@@ -5,7 +5,7 @@ import type { AccessContext } from '../AccessContext.js';
 import type { Clock } from '../ports/Clock.js';
 import type { UnitOfWork } from '../ports/UnitOfWork.js';
 
-export interface GiftDetails {
+export interface Contributions {
   items: {
     itemId: string;
     purchases: { name: string; message: string | null; units: number; purchasedAt: Date }[];
@@ -15,13 +15,13 @@ export interface GiftDetails {
 }
 
 /** Who bought, holds and pledged each gift, with their names and messages: what the owner reveals on demand (ADR-0089). */
-export class GetGiftDetails {
+export class GetContributions {
   constructor(
     private unitOfWork: UnitOfWork,
     private clock: Clock,
   ) {}
 
-  async execute(input: { wishlistId: string }, access: AccessContext): Promise<GiftDetails> {
+  async execute(input: { wishlistId: string }, access: AccessContext): Promise<Contributions> {
     // Not the owner is the same as no list (ADR-0016).
     if (!access.owner) throw new WishlistNotFoundError(input.wishlistId);
 
