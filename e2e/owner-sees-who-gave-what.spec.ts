@@ -37,7 +37,7 @@ test('the owner shows who bought a gift, reads their message, and hides it again
   await manage.getByRole('button', { name: 'Show who gave what' }).click();
   // The button the owner pressed keeps the keyboard focus while it turns into Hide.
   await expect(manage.getByRole('button', { name: 'Hide' })).toBeFocused();
-  const apron = manage.getByRole('region', { name: 'Who gave what for Linen apron' });
+  const apron = manage.getByRole('region', { name: 'Contributions for Linen apron' });
   await expect(apron.getByText('Maya')).toBeVisible();
   await expect(apron.getByText('Happy 30th!')).toBeVisible();
   // ADR-0026: CI blocks on serious and critical axe violations only.
