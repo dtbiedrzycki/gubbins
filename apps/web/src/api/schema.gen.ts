@@ -129,14 +129,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/lists/{slug}/gift-details": {
+    "/api/lists/{slug}/contributions": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getGiftDetails"];
+        get: operations["getContributions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -778,7 +778,7 @@ export interface operations {
             };
         };
     };
-    getGiftDetails: {
+    getContributions: {
         parameters: {
             query?: never;
             header?: never;

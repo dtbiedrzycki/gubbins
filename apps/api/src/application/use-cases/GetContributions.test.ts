@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GetGiftDetails } from './GetGiftDetails.js';
+import { GetContributions } from './GetContributions.js';
 import { BuyItem } from './BuyItem.js';
 import { HoldItem } from './HoldItem.js';
 import { MarkHoldPurchased } from './MarkHoldPurchased.js';
@@ -37,21 +37,21 @@ async function setup() {
       .execute({ wishlistId: WISHLIST_ID, holdId, units }, GUEST),
     pledge: (name: string, amountMinor: number, message: string) => new PledgeContribution(persistence.unitOfWork, tokens, clock)
       .execute({ wishlistId: WISHLIST_ID, itemId: GROUP_ITEM_ID, idempotencyKey: `pledge-${name}`, amountMinor, name, message }, GUEST),
-    details: (access: { guestSession: null; owner: true } | typeof GUEST = OWNER) =>
-      new GetGiftDetails(persistence.unitOfWork, clock).execute({ wishlistId: WISHLIST_ID }, access),
+    contributions: (access: { guestSession: null; owner: true } | typeof GUEST = OWNER) =>
+      new GetContributions(persistence.unitOfWork, clock).execute({ wishlistId: WISHLIST_ID }, access),
   };
 }
 
-const forItem = (details: Awaited<ReturnType<GetGiftDetails['execute']>>, itemId: string) => details.items.find((i) => i.itemId === itemId);
+const forItem = (contributions: Awaited<ReturnType<GetContributions['execute']>>, itemId: string) => contributions.items.find((i) => i.itemId === itemId);
 
-describe('GetGiftDetails', () => {
+describe('GetContributions', () => {
   it('shows the owner who bought, holds and pledged each gift, with their messages', async () => {
     const s = await setup();
     await s.buy('Ada', 'Happy 30th!');
     await s.hold('Grace');
     await s.pledge('Sam', 2_500, 'From all of us');
 
-    expect(await s.details()).toEqual({
+    expect(await s.contributions()).toEqual({
       items: [
         { itemId: GROUP_ITEM_ID, purchases: [], holds: [], pledges: [{ name: 'Sam', message: 'From all of us', amountMinor: 2_500, pledgedAt: T0 }] },
         { itemId: ITEM_ID, purchases: [{ name: 'Ada', message: 'Happy 30th!', units: 1, purchasedAt: T0 }],
@@ -71,7 +71,7 @@ describe('GetGiftDetails', () => {
     s.clock.advance(MINUTE);
     await s.markPurchased(grace.holdId);
 
-    expect(forItem(await s.details(), ITEM_ID)!.purchases.map((p) => p.name)).toEqual(['Ada', 'Grace']);
+    expect(forItem(await s.contributions(), ITEM_ID)!.purchases.map((p) => p.name)).toEqual(['Ada', 'Grace']);
   });
 
   it('lists a part-bought hold with the units bought, not the units held', async () => {
@@ -79,13 +79,13 @@ describe('GetGiftDetails', () => {
     const ada = await s.hold('Ada', 2);
     await s.markPurchased(ada.holdId, 1);
 
-    const shown = forItem(await s.details(), ITEM_ID)!;
+    const shown = forItem(await s.contributions(), ITEM_ID)!;
     expect(shown.purchases.map((p) => p.units)).toEqual([1]);
     expect(shown.holds).toEqual([]);
   });
 
   it('treats a caller who is not the owner as no list', async () => {
-    await expect((await setup()).details(GUEST)).rejects.toThrow(WishlistNotFoundError);
+    await expect((await setup()).contributions(GUEST)).rejects.toThrow(WishlistNotFoundError);
   });
 
   it('refuses a hold whose guest details are missing', async () => {
@@ -96,6 +96,6 @@ describe('GetGiftDetails', () => {
       expiresAt: new Date(T0.getTime() + DAY), extendedAt: null, releasedAt: null, purchasedAt: null, buyUndoneAt: null, units: 1, purchasedUnits: null,
     }));
 
-    await expect(s.details()).rejects.toThrow(`guest details missing for hold ${holdId}`);
+    await expect(s.contributions()).rejects.toThrow(`guest details missing for hold ${holdId}`);
   });
 });

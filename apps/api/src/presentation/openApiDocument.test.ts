@@ -36,7 +36,7 @@ describe('the OpenAPI document (ADR-0077)', () => {
       moveItem: ['200', '400', '404'],
       addItem: ['201', '400', '404', '409'],
       getManageView: ['200', '400', '404'],
-      getGiftDetails: ['200', '400', '404'],
+      getContributions: ['200', '400', '404'],
       holdItem: ['201', '400', '404', '409'],
       buyItem: ['201', '400', '404', '409'],
       pledgeContribution: ['201', '400', '404', '409'],
