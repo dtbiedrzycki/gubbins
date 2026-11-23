@@ -98,11 +98,11 @@ describe('ManageItems', () => {
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
-  it("puts each gift's details under that gift", () => {
+  it("puts each gift's contributions under that gift", () => {
     const at = '2026-11-12T12:00:00.000Z';
     render(
       <QueryClientProvider client={new QueryClient()}>
-        <ManageItems slug="abc123" onUnauthorized={() => {}} items={[item({ id: 'a', title: 'A' }), item({ id: 'b', title: 'B' })]} details={[
+        <ManageItems slug="abc123" onUnauthorized={() => {}} items={[item({ id: 'a', title: 'A' }), item({ id: 'b', title: 'B' })]} contributions={[
           { itemId: 'b', purchases: [{ name: 'Bea', units: 1, message: null, purchasedAt: at }], holds: [], pledges: [] },
           { itemId: 'a', purchases: [{ name: 'Al', units: 1, message: null, purchasedAt: at }], holds: [], pledges: [] },
         ]} />

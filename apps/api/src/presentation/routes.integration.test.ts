@@ -847,8 +847,8 @@ describe('GET /api/lists/:slug/manage', () => {
   });
 });
 
-describe('GET /api/lists/:slug/gift-details', () => {
-  const giftDetails = (slug: string, cookie?: string) => app.inject({ method: 'GET', url: `/api/lists/${slug}/gift-details`, headers: cookie ? { cookie } : {} });
+describe('GET /api/lists/:slug/contributions', () => {
+  const contributions = (slug: string, cookie?: string) => app.inject({ method: 'GET', url: `/api/lists/${slug}/contributions`, headers: cookie ? { cookie } : {} });
   async function bought() {
     const list = await createList();
     await app.inject({
@@ -860,21 +860,21 @@ describe('GET /api/lists/:slug/gift-details', () => {
 
   it("shows the owner a guest's purchase with their name, message and an ISO purchase time", async () => {
     const list = await bought();
-    const response = await giftDetails(list.slug, await ownerOn(list));
+    const response = await contributions(list.slug, await ownerOn(list));
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       items: [{ itemId: list.itemId, purchases: [{ name: 'Ada', message: 'Congratulations!', units: 1, purchasedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T.*Z$/) }] }],
     });
   });
 
-  it('sends the gift details with Cache-Control: no-store', async () => {
+  it('sends the contributions with Cache-Control: no-store', async () => {
     const list = await bought();
-    expect((await giftDetails(list.slug, await ownerOn(list))).headers['cache-control']).toBe('no-store');
+    expect((await contributions(list.slug, await ownerOn(list))).headers['cache-control']).toBe('no-store');
   });
 
   it('answers a guest session without the owner cookie with the generic 404', async () => {
     const list = await bought();
-    const response = await giftDetails(list.slug, await guestOn(list));
+    const response = await contributions(list.slug, await guestOn(list));
     expect(response.statusCode).toBe(404);
     expect(response.json()).toEqual({ message: 'Not found' });
   });

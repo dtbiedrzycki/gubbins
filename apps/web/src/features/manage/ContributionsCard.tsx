@@ -1,4 +1,4 @@
-import type { GiftDetailsResponse } from '@gubbins/shared-types';
+import type { ContributionsResponse } from '@gubbins/shared-types';
 import { formatDay } from '../../lib/formatDay';
 import { formatMoney } from '../../lib/formatMoney';
 
@@ -8,12 +8,12 @@ interface Row { who: string; when: string; message: string | null }
 const withUnits = (name: string, units: number) => (units > 1 ? `${name} · ${units}` : name);
 
 /** Who bought, holds and pledged one gift, for thank-you notes and matching payments (ADR-0089). */
-export function GiftDetailsCard({ details }: { details: GiftDetailsResponse['items'][number] }) {
+export function ContributionsCard({ contributions }: { contributions: ContributionsResponse['items'][number] }) {
   const at = new Date();
   const kinds: [string, Row[]][] = ([
-    ['Bought', details.purchases.map((p) => ({ who: withUnits(p.name, p.units), when: formatDay(p.purchasedAt, at), message: p.message }))],
-    ['Held', details.holds.map((h) => ({ who: withUnits(h.name, h.units), when: `until ${formatDay(h.expiresAt, at)}`, message: null }))],
-    ['Pledged', details.pledges.map((p) => ({ who: `${p.name} · ${formatMoney(p.amountMinor)}`, when: formatDay(p.pledgedAt, at), message: p.message }))],
+    ['Bought', contributions.purchases.map((p) => ({ who: withUnits(p.name, p.units), when: formatDay(p.purchasedAt, at), message: p.message }))],
+    ['Held', contributions.holds.map((h) => ({ who: withUnits(h.name, h.units), when: `until ${formatDay(h.expiresAt, at)}`, message: null }))],
+    ['Pledged', contributions.pledges.map((p) => ({ who: `${p.name} · ${formatMoney(p.amountMinor)}`, when: formatDay(p.pledgedAt, at), message: p.message }))],
   ] as [string, Row[]][]).filter(([, rows]) => rows.length > 0);
 
   return (

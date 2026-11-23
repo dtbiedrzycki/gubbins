@@ -1015,9 +1015,9 @@
         }
       }
     },
-    "/api/lists/{slug}/gift-details": {
+    "/api/lists/{slug}/contributions": {
       "get": {
-        "operationId": "getGiftDetails",
+        "operationId": "getContributions",
         "parameters": [
           {
             "schema": {
