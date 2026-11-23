@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { OwnerTokenGate } from '../features/manage/OwnerTokenGate';
 import { AddItemForm } from '../features/manage/AddItemForm';
-import { giftDetailsKey, manageViewKey } from '../features/manage/manageViewKey';
+import { contributionsKey, manageViewKey } from '../features/manage/manageViewKey';
 import { ListDetails } from '../features/manage/ListDetails';
 import { ManageItems } from '../features/manage/ManageItems';
 import { WhoGaveWhat } from '../features/manage/WhoGaveWhat';
@@ -29,16 +29,16 @@ export default function ManagePage() {
   const viewGone = query.error instanceof ApiError && query.error.status === 404;
   // Who gave what: fetched only once the owner asks, and never remembered across a reload (ADR-0089).
   const [revealed, setRevealed] = useState(false);
-  const details = useQuery({
-    queryKey: giftDetailsKey(slug!),
-    queryFn: () => api.getGiftDetails(slug!),
+  const contributions = useQuery({
+    queryKey: contributionsKey(slug!),
+    queryFn: () => api.getContributions(slug!),
     // Off after a failure, so neither a window focus nor a refetch of the list asks again (or reveals names) until the owner does.
     enabled: (q) => entered && revealed && !viewGone && Boolean(slug) && !q.state.error,
     retry: false,
   });
-  const detailsGone = details.error instanceof ApiError && details.error.status === 404;
+  const contributionsGone = contributions.error instanceof ApiError && contributions.error.status === 404;
   // Either 404 means the owner cookie no longer works: back to the gate.
-  const gone = viewGone || detailsGone;
+  const gone = viewGone || contributionsGone;
   // The token screen keeps the default look, even with an earlier view still cached.
   useListTheme(entered && !gone ? query.data?.theme : undefined);
   const unauthorized = () => { setEntered(false); setExpired('session'); };
@@ -58,12 +58,12 @@ export default function ManagePage() {
             <AddItemForm slug={slug} onUnauthorized={unauthorized} />
             {query.data && (
               <WhoGaveWhat
-                revealed={revealed && details.data !== undefined} loading={details.isLoading} error={details.error}
-                onShow={() => { setRevealed(true); if (details.isError) void details.refetch(); }}
-                onHide={() => { setRevealed(false); queryClient.removeQueries({ queryKey: giftDetailsKey(slug) }); }}
+                revealed={revealed && contributions.data !== undefined} loading={contributions.isLoading} error={contributions.error}
+                onShow={() => { setRevealed(true); if (contributions.isError) void contributions.refetch(); }}
+                onHide={() => { setRevealed(false); queryClient.removeQueries({ queryKey: contributionsKey(slug) }); }}
               />
             )}
-            {query.data && <ManageItems slug={slug} items={query.data.items} onUnauthorized={giftUnauthorized} details={revealed ? details.data?.items : undefined} />}
+            {query.data && <ManageItems slug={slug} items={query.data.items} onUnauthorized={giftUnauthorized} contributions={revealed ? contributions.data?.items : undefined} />}
           </>
         ) : (
           <OwnerTokenGate

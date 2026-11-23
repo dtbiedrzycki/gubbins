@@ -108,7 +108,7 @@ describe('ManagePage', () => {
   /** Serves who gave what for the first gift, and counts the requests for it. */
   function serveDetails(status = 200, ...later: number[]) {
     let requests = 0;
-    server.use(http.get('/api/lists/:slug/gift-details', () => {
+    server.use(http.get('/api/lists/:slug/contributions', () => {
       requests += 1;
       const answer = requests === 1 ? status : later[requests - 2] ?? later.at(-1) ?? status;
       return answer === 200
@@ -118,7 +118,7 @@ describe('ManagePage', () => {
     return () => requests;
   }
 
-  it('makes no gift-details request until the owner presses Show who gave what', async () => {
+  it('makes no contributions request until the owner presses Show who gave what', async () => {
     serveView(() => ['Rings']);
     const requests = serveDetails();
     const user = await enterToken();
