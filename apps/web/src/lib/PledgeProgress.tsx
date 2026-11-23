@@ -12,15 +12,13 @@ export function PledgeProgress({ pledgedMinor, priceMinor }: PledgeProgressProps
   const percent = (pledgedMinor * 100) / priceMinor;
   const progress = `${formatMoney(pledgedMinor)} of ${formatMoney(priceMinor)} pledged · ${Math.floor(percent)}%`;
   return (
-    <>
-      <progress max={priceMinor} value={Math.min(pledgedMinor, priceMinor)} aria-label={progress} className="sr-only" />
-      <div className="space-y-1.5">
-        <p>{progress}</p>
-        {/* Gold coins laid along a bar, filled to the pledged share and never past full. */}
-        <div aria-hidden="true" className="h-4 overflow-hidden rounded-lg border-2 border-ink bg-white">
-          <div data-bar-fill className="h-full bg-gold bg-[radial-gradient(circle_at_30%_50%,#F3D27A_0_3px,transparent_3.5px)] bg-[length:10px_12px]" style={{ width: `${Math.min(percent, 100)}%` }} />
-        </div>
+    <div className="space-y-1.5">
+      {/* No progress-bar role: screen readers would hear this line's amount twice. */}
+      <p>{progress}</p>
+      {/* Gold coins laid along a bar, filled to the pledged share and never past full. */}
+      <div className="h-4 overflow-hidden rounded-lg border-2 border-ink bg-white">
+        <div data-bar-fill className="h-full bg-gold bg-[radial-gradient(circle_at_30%_50%,#F3D27A_0_3px,transparent_3.5px)] bg-[length:10px_12px]" style={{ width: `${Math.min(percent, 100)}%` }} />
       </div>
-    </>
+    </div>
   );
 }

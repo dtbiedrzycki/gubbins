@@ -95,7 +95,7 @@ describe('ManageItems', () => {
 
   it("shows a group gift's pledged progress", () => {
     renderItems([item({ type: 'group', priceMinor: 18_000, pledgedMinor: 10_000, quantity: 1 })]);
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(screen.getByText('$100.00 of $180.00 pledged · 55%')).toBeInTheDocument();
   });
 
   it('leaves the price out for a single item without one', () => {
