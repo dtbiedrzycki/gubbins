@@ -108,8 +108,8 @@ describe('ManageItems', () => {
         ]} />
       </QueryClientProvider>,
     );
-    expect(within(screen.getByRole('region', { name: 'Who gave what for A' })).getByText('Al')).toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: 'Who gave what for B' })).getByText('Bea')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Contributions for A' })).getByText('Al')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Contributions for B' })).getByText('Bea')).toBeInTheDocument();
   });
 
   it('leaves the price out for a single item without one', () => {
