@@ -53,9 +53,9 @@ describe('GetContributions', () => {
 
     expect(await s.contributions()).toEqual({
       items: [
-        { itemId: GROUP_ITEM_ID, purchases: [], holds: [], pledges: [{ name: 'Sam', message: 'From all of us', amountMinor: 2_500, pledgedAt: T0 }] },
-        { itemId: ITEM_ID, purchases: [{ name: 'Ada', message: 'Happy 30th!', units: 1, purchasedAt: T0 }],
-          holds: [{ name: 'Grace', units: 1, expiresAt: new Date(T0.getTime() + 3 * DAY) }], pledges: [] },
+        { itemId: GROUP_ITEM_ID, purchases: [], holds: [], pledges: [{ name: 'Sam', message: 'From all of us', amountMinor: 2_500, pledgedAt: T0.toISOString() }] },
+        { itemId: ITEM_ID, purchases: [{ name: 'Ada', message: 'Happy 30th!', units: 1, purchasedAt: T0.toISOString() }],
+          holds: [{ name: 'Grace', units: 1, expiresAt: new Date(T0.getTime() + 3 * DAY).toISOString() }], pledges: [] },
         { itemId: OTHER_ITEM_ID, purchases: [], holds: [], pledges: [] },
       ],
     });

@@ -8,9 +8,9 @@ import type { UnitOfWork } from '../ports/UnitOfWork.js';
 export interface Contributions {
   items: {
     itemId: string;
-    purchases: { name: string; message: string | null; units: number; purchasedAt: Date }[];
-    holds: { name: string; units: number; expiresAt: Date }[];
-    pledges: { name: string; message: string | null; amountMinor: number; pledgedAt: Date }[];
+    purchases: { name: string; message: string | null; units: number; purchasedAt: string }[];
+    holds: { name: string; units: number; expiresAt: string }[];
+    pledges: { name: string; message: string | null; amountMinor: number; pledgedAt: string }[];
   }[];
 }
 
@@ -50,13 +50,13 @@ export class GetContributions {
             .sort((a, b) => a.purchasedAt!.getTime() - b.purchasedAt!.getTime())
             .map((hold) => {
               const guest = guestOf(hold);
-              return { name: guest.name, message: guest.message, units: hold.purchasedUnits!, purchasedAt: hold.purchasedAt! };
+              return { name: guest.name, message: guest.message, units: hold.purchasedUnits!, purchasedAt: hold.purchasedAt!.toISOString() };
             }),
-          holds: active.map((hold) => ({ name: guestOf(hold).name, units: hold.units, expiresAt: hold.expiresAt })),
+          holds: active.map((hold) => ({ name: guestOf(hold).name, units: hold.units, expiresAt: hold.expiresAt.toISOString() })),
           pledges: item.contributions.map((c) => {
             // A contribution's pii_ref is NOT NULL with a foreign key, so its row is always there.
             const guest = guests.get(c.piiRef.value)!;
-            return { name: guest.name, message: guest.message, amountMinor: c.amount.amountMinor, pledgedAt: c.pledgedAt };
+            return { name: guest.name, message: guest.message, amountMinor: c.amount.amountMinor, pledgedAt: c.pledgedAt.toISOString() };
           }),
         })),
       };
