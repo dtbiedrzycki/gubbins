@@ -147,7 +147,7 @@ describe('ManagePage', () => {
     await user.click(await screen.findByRole('button', { name: 'Show who gave what' }));
     await screen.findByText('Maya');
 
-    await user.click(screen.getByRole('button', { name: 'Hide' }));
+    await user.click(screen.getByRole('button', { name: 'Hide who gave what' }));
 
     expect(screen.queryByText('Maya')).not.toBeInTheDocument();
   });
@@ -158,7 +158,7 @@ describe('ManagePage', () => {
     const user = await enterToken();
     await user.click(await screen.findByRole('button', { name: 'Show who gave what' }));
     await screen.findByText('Maya');
-    await user.click(screen.getByRole('button', { name: 'Hide' }));
+    await user.click(screen.getByRole('button', { name: 'Hide who gave what' }));
 
     await user.click(screen.getByRole('button', { name: 'Show who gave what' }));
 
@@ -219,7 +219,7 @@ describe('ManagePage', () => {
     await screen.findByText(/^Couldn’t show who gave what\./);
 
     expect(requests()).toBe(2);
-    expect(screen.getByRole('button', { name: 'Hide' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Hide who gave what' })).toBeInTheDocument();
   });
 
   it('sends the owner back to the token gate, hidden again, when the details answer 404', async () => {

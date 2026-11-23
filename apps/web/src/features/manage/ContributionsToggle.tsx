@@ -1,6 +1,6 @@
 import { actionErrorMessage } from '../../lib/actionErrorMessage';
 
-export interface WhoGaveWhatProps {
+export interface ContributionsToggleProps {
   /** The owner has asked to see the details and they loaded. */
   revealed: boolean;
   loading: boolean;
@@ -10,7 +10,7 @@ export interface WhoGaveWhatProps {
 }
 
 /** The control that reveals guests' names and messages for every gift at once (ADR-0089), with its spoiler warning. */
-export function WhoGaveWhat({ revealed, loading, error, onShow, onHide }: WhoGaveWhatProps) {
+export function ContributionsToggle({ revealed, loading, error, onShow, onHide }: ContributionsToggleProps) {
   return (
     <section aria-label="Who gave what" className={`grid gap-2.5 rounded-[14px] border-[1.5px] bg-white p-3.5 ${revealed ? 'border-line' : 'border-dashed border-muted'}`}>
       <div className="flex flex-wrap items-center justify-between gap-2.5">
@@ -18,7 +18,7 @@ export function WhoGaveWhat({ revealed, loading, error, onShow, onHide }: WhoGav
         <p aria-live="polite" className="font-bold">{revealed ? 'Showing who gave what.' : 'Who gave what is hidden.'}</p>
         {/* aria-disabled, not disabled: a disabled button drops the keyboard focus the owner just put on it. */}
         <button type="button" aria-disabled={loading} onClick={loading ? undefined : revealed ? onHide : onShow} className="btn-secondary btn-sm aria-disabled:opacity-50">
-          {loading ? 'Showing…' : revealed ? 'Hide' : 'Show who gave what'}
+          {loading ? 'Showing…' : revealed ? 'Hide who gave what' : 'Show who gave what'}
         </button>
       </div>
       {!revealed && <p className="text-muted">Spoilers: this shows every guest&apos;s name and message, for all gifts.</p>}

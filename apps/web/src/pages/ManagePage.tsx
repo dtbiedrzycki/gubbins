@@ -6,7 +6,7 @@ import { AddItemForm } from '../features/manage/AddItemForm';
 import { contributionsKey, manageViewKey } from '../features/manage/manageViewKey';
 import { ListDetails } from '../features/manage/ListDetails';
 import { ManageItems } from '../features/manage/ManageItems';
-import { WhoGaveWhat } from '../features/manage/WhoGaveWhat';
+import { ContributionsToggle } from '../features/manage/ContributionsToggle';
 import { useListTheme } from '../lib/useListTheme';
 import { api, ApiError } from '../api/client';
 
@@ -57,7 +57,7 @@ export default function ManagePage() {
             {/* Above the items, so adding never means scrolling past a long list. */}
             <AddItemForm slug={slug} onUnauthorized={unauthorized} />
             {query.data && (
-              <WhoGaveWhat
+              <ContributionsToggle
                 revealed={revealed && contributions.data !== undefined} loading={contributions.isLoading} error={contributions.error}
                 onShow={() => { setRevealed(true); if (contributions.isError) void contributions.refetch(); }}
                 onHide={() => { setRevealed(false); queryClient.removeQueries({ queryKey: contributionsKey(slug) }); }}

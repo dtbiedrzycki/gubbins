@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { WhoGaveWhat, type WhoGaveWhatProps } from './WhoGaveWhat';
+import { ContributionsToggle, type ContributionsToggleProps } from './ContributionsToggle';
 
-const renderBox = (over: Partial<WhoGaveWhatProps>) =>
-  render(<WhoGaveWhat revealed={false} loading={false} error={null} onShow={vi.fn()} onHide={vi.fn()} {...over} />);
+const renderBox = (over: Partial<ContributionsToggleProps>) =>
+  render(<ContributionsToggle revealed={false} loading={false} error={null} onShow={vi.fn()} onHide={vi.fn()} {...over} />);
 
-describe('WhoGaveWhat', () => {
+describe('ContributionsToggle', () => {
   it('warns about spoilers and offers to show the details while hidden', () => {
     renderBox({});
     expect(screen.getByText('Who gave what is hidden.')).toBeInTheDocument();
@@ -17,7 +17,7 @@ describe('WhoGaveWhat', () => {
   it('says the details are showing and offers Hide once revealed, without the warning', () => {
     renderBox({ revealed: true });
     expect(screen.getByText('Showing who gave what.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Hide' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Hide who gave what' })).toBeInTheDocument();
     expect(screen.queryByText(/^Spoilers:/)).not.toBeInTheDocument();
   });
 
