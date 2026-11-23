@@ -26,7 +26,7 @@ export class GuestPiiRepositoryKysely implements GuestPiiRepository {
   }
 
   async findByIds(ids: readonly string[]): Promise<Map<string, GuestDetails>> {
-    const rows = await this.db.selectFrom('guest_pii').select(['id', 'name', 'message']).where('id', 'in', [...ids]).execute();
+    const rows = await this.db.selectFrom('guest_pii').select(['id', 'name', 'message']).where('id', 'in', ids).execute();
     return new Map(rows.map((row) => [row.id, GuestDetails.from(row)]));
   }
 }
