@@ -18,7 +18,7 @@ export function ContributionsToggle({ revealed, loading, error, onShow, onHide }
         <p aria-live="polite" className="font-bold">{revealed ? 'Showing who gave what.' : 'Who gave what is hidden.'}</p>
         {/* aria-disabled, not disabled: a disabled button drops the keyboard focus the owner just put on it. */}
         <button type="button" aria-disabled={loading} onClick={loading ? undefined : revealed ? onHide : onShow} className="btn-secondary btn-sm aria-disabled:opacity-50">
-          {loading ? 'Showing…' : revealed ? 'Hide' : 'Show who gave what'}
+          {loading ? 'Showing…' : revealed ? 'Hide who gave what' : 'Show who gave what'}
         </button>
       </div>
       {!revealed && <p className="text-muted">Spoilers: this shows every guest&apos;s name and message, for all gifts.</p>}

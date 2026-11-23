@@ -17,7 +17,7 @@ describe('ContributionsToggle', () => {
   it('says the details are showing and offers Hide once revealed, without the warning', () => {
     renderBox({ revealed: true });
     expect(screen.getByText('Showing who gave what.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Hide' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Hide who gave what' })).toBeInTheDocument();
     expect(screen.queryByText(/^Spoilers:/)).not.toBeInTheDocument();
   });
 
