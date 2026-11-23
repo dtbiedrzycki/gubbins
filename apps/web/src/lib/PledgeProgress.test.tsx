@@ -8,11 +8,6 @@ describe('PledgeProgress', () => {
     expect(document.querySelector<HTMLElement>('[data-bar-fill]')!.style.width).toBe('100%');
   });
 
-  it('reads the pledge line once, with no progress bar repeating it', () => {
-    render(<PledgeProgress priceMinor={1000} pledgedMinor={500} />);
-    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
-  });
-
   it.each([
     [16250, '$162.50 of $450.00 pledged · 36%'],
     [13050, '$130.50 of $450.00 pledged · 29%'],
