@@ -137,7 +137,7 @@ describe('ManagePage', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Show who gave what' }));
 
-    expect(await screen.findByRole('region', { name: 'Who gave what for Rings' })).toHaveTextContent('Maya');
+    expect(await screen.findByRole('region', { name: 'Contributions for Rings' })).toHaveTextContent('Maya');
   });
 
   it('removes the details when the owner presses Hide', async () => {

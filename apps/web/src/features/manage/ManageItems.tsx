@@ -136,7 +136,7 @@ export function ManageItems({ slug, items, onUnauthorized, contributions }: Mana
                 onMove={(to) => move.mutate({ itemId: item.id, to })}
               />
               {gave && (
-                <section aria-label={`Who gave what for ${item.title}`} className="col-span-2">
+                <section aria-label={`Contributions for ${item.title}`} className="col-span-2">
                   <ContributionsCard contributions={gave} />
                 </section>
               )}
