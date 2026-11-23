@@ -265,16 +265,9 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     const owner = await ownerAccess(request, request.params.slug);
     if (!owner) return reply.code(404).send(NOT_FOUND);
     try {
-      const { items } = await deps.getContributions.execute({ wishlistId: owner.wishlistId }, owner.access);
+      const contributions = await deps.getContributions.execute({ wishlistId: owner.wishlistId }, owner.access);
       // Guests' names and messages: no shared cache may keep a copy.
-      return reply.code(200).header('Cache-Control', 'no-store').send({
-        items: items.map((item) => ({
-          itemId: item.itemId,
-          purchases: item.purchases.map((p) => ({ ...p, purchasedAt: p.purchasedAt.toISOString() })),
-          holds: item.holds.map((h) => ({ ...h, expiresAt: h.expiresAt.toISOString() })),
-          pledges: item.pledges.map((p) => ({ ...p, pledgedAt: p.pledgedAt.toISOString() })),
-        })),
-      });
+      return reply.code(200).header('Cache-Control', 'no-store').send(contributions);
     } catch (err) {
       return sendDomainError(reply, err);
     }
