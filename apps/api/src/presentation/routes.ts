@@ -8,7 +8,7 @@ import {
   editListDetailsRequestSchema, editedResponseSchema, moveItemRequestSchema,
   addItemRequestSchema, addItemResponseSchema, editItemRequestSchema,
   manageViewResponseSchema,
-  giftDetailsResponseSchema,
+  contributionsResponseSchema,
   buyItemRequestSchema, holdItemRequestSchema, holdItemResponseSchema, holdViewSchema, markHoldPurchasedRequestSchema, listViewResponseSchema,
   pledgeRequestSchema, pledgeResponseSchema,
   errorResponseSchema,
@@ -251,12 +251,12 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     }
   });
 
-  app.get('/api/lists/:slug/gift-details', {
+  app.get('/api/lists/:slug/contributions', {
     schema: {
-      operationId: 'getGiftDetails',
+      operationId: 'getContributions',
       params: slugParams,
       response: {
-        200: json('Who bought, holds and pledged each gift, with their names and messages.', giftDetailsResponseSchema),
+        200: json('Who bought, holds and pledged each gift, with their names and messages.', contributionsResponseSchema),
         400: json(INVALID_REQUEST, errorResponseSchema),
         404: json('No such list, or no owner cookie for it. Deliberately indistinguishable.', errorResponseSchema),
       },
@@ -265,7 +265,7 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     const owner = await ownerAccess(request, request.params.slug);
     if (!owner) return reply.code(404).send(NOT_FOUND);
     try {
-      const { items } = await deps.getGiftDetails.execute({ wishlistId: owner.wishlistId }, owner.access);
+      const { items } = await deps.getContributions.execute({ wishlistId: owner.wishlistId }, owner.access);
       // Guests' names and messages: no shared cache may keep a copy.
       return reply.code(200).header('Cache-Control', 'no-store').send({
         items: items.map((item) => ({
