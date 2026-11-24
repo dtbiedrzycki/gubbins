@@ -15,6 +15,8 @@ export interface ManageView {
     /** True while no guest has acted on it; only then may it be deleted. */
     deletable: boolean;
     committedUnits: number;
+    /** Units bought; committedUnits minus this is what active holds take. */
+    purchasedUnits: number;
     /** Sum of pledges for a group gift; null for a single. */
     pledgedMinor: number | null;
   }[];
@@ -42,7 +44,7 @@ export class GetManageView {
         key: wishlist.key.value,
         items: wishlist.items.map((i) => ({
           id: i.id.value, type: i.type, title: i.title, quantity: i.quantity, priceMinor: i.priceMinor, url: i.url, description: i.description,
-          deletable: i.canBeDeleted(), committedUnits: i.committedUnits(),
+          deletable: i.canBeDeleted(), committedUnits: i.committedUnits(), purchasedUnits: i.purchasedCount(),
           pledgedMinor: i.type === 'group' ? i.pledgedTotal().amountMinor : null,
         })),
       };

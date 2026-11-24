@@ -12,6 +12,8 @@ export const manageItemSchema = z.object({
   /** True while no guest has acted on it; only then may it be deleted. */
   deletable: z.boolean(),
   committedUnits: z.number().int().nonnegative(),
+  /** Units bought; committedUnits minus this is what active holds take. */
+  purchasedUnits: z.number().int().nonnegative(),
   /** Sum of pledges for a group gift; null for a single. */
   pledgedMinor: z.number().int().nonnegative().nullable(),
 });

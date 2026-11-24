@@ -13,7 +13,7 @@ const view = (titles: string[], theme: ManageViewResponse['theme'] = 'storybook'
   title: 'Baby Shower', description: null, theme, key: 'maple-lantern-otter',
   items: titles.map((title, n) => ({
     id: `i${n}`, type: 'single', title, quantity: 1, priceMinor: 2400, url: null, description: null,
-    deletable: true, committedUnits: 0, pledgedMinor: null,
+    deletable: true, committedUnits: 0, purchasedUnits: 0, pledgedMinor: null,
   })),
 });
 
