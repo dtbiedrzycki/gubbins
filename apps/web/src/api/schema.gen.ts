@@ -129,6 +129,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lists/{slug}/contributions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getContributions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lists/{slug}/items/{itemId}": {
         parameters: {
             query?: never;
@@ -738,6 +754,67 @@ export interface operations {
                             committedUnits: number;
                             purchasedUnits: number;
                             pledgedMinor: number | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description The request did not match the schema, or a domain rule refused it. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No such list, or no owner cookie for it. Deliberately indistinguishable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getContributions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Who bought, holds and pledged each gift, with their names and messages. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            itemId: string;
+                            purchases: {
+                                name: string;
+                                message: string | null;
+                                units: number;
+                                purchasedAt: string;
+                            }[];
+                            holds: {
+                                name: string;
+                                units: number;
+                                expiresAt: string;
+                            }[];
+                            pledges: {
+                                name: string;
+                                message: string | null;
+                                amountMinor: number;
+                                pledgedAt: string;
+                            }[];
                         }[];
                     };
                 };

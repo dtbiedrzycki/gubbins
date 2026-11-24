@@ -8,6 +8,7 @@ import {
   editListDetailsRequestSchema, editedResponseSchema, moveItemRequestSchema,
   addItemRequestSchema, addItemResponseSchema, editItemRequestSchema,
   manageViewResponseSchema,
+  contributionsResponseSchema,
   buyItemRequestSchema, holdItemRequestSchema, holdItemResponseSchema, holdViewSchema, markHoldPurchasedRequestSchema, listViewResponseSchema,
   pledgeRequestSchema, pledgeResponseSchema,
   errorResponseSchema,
@@ -245,6 +246,28 @@ export function registerRoutes(fastify: FastifyInstance, deps: AppDependencies):
     try {
       const view = await deps.getManageView.execute({ wishlistId: owner.wishlistId }, owner.access);
       return reply.code(200).send(view);
+    } catch (err) {
+      return sendDomainError(reply, err);
+    }
+  });
+
+  app.get('/api/lists/:slug/contributions', {
+    schema: {
+      operationId: 'getContributions',
+      params: slugParams,
+      response: {
+        200: json('Who bought, holds and pledged each gift, with their names and messages.', contributionsResponseSchema),
+        400: json(INVALID_REQUEST, errorResponseSchema),
+        404: json('No such list, or no owner cookie for it. Deliberately indistinguishable.', errorResponseSchema),
+      },
+    },
+  }, async (request, reply) => {
+    const owner = await ownerAccess(request, request.params.slug);
+    if (!owner) return reply.code(404).send(NOT_FOUND);
+    try {
+      const contributions = await deps.getContributions.execute({ wishlistId: owner.wishlistId }, owner.access);
+      // Guests' names and messages: no shared cache may keep a copy.
+      return reply.code(200).header('Cache-Control', 'no-store').send(contributions);
     } catch (err) {
       return sendDomainError(reply, err);
     }
