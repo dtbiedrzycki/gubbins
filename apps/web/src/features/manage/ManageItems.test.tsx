@@ -98,6 +98,20 @@ describe('ManageItems', () => {
     expect(screen.getByText('$100.00 of $180.00 pledged · 55%')).toBeInTheDocument();
   });
 
+  it("puts each gift's contributions under that gift", () => {
+    const at = '2026-11-12T12:00:00.000Z';
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ManageItems slug="abc123" onUnauthorized={() => {}} items={[item({ id: 'a', title: 'A' }), item({ id: 'b', title: 'B' })]} contributions={[
+          { itemId: 'b', purchases: [{ name: 'Bea', units: 1, message: null, purchasedAt: at }], holds: [], pledges: [] },
+          { itemId: 'a', purchases: [{ name: 'Al', units: 1, message: null, purchasedAt: at }], holds: [], pledges: [] },
+        ]} />
+      </QueryClientProvider>,
+    );
+    expect(within(screen.getByRole('region', { name: 'Contributions for A' })).getByText('Al')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Contributions for B' })).getByText('Bea')).toBeInTheDocument();
+  });
+
   it('leaves the price out for a single item without one', () => {
     renderItems([item({ quantity: 3, priceMinor: null })]);
 

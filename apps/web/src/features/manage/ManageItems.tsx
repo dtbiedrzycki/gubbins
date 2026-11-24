@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ManageViewResponse } from '@gubbins/shared-types';
+import type { ContributionsResponse, ManageViewResponse } from '@gubbins/shared-types';
 import { api, ApiError, type MoveTarget } from '../../api/client';
 import { formatMoney } from '../../lib/formatMoney';
 import { actionErrorMessage } from '../../lib/actionErrorMessage';
 import { manageViewKey } from './manageViewKey';
 import { EditItemForm } from './EditItemForm';
 import { MoveItemButtons } from './MoveItemButtons';
+import { ContributionsCard } from './ContributionsCard';
 import { ClampedText } from '../../lib/ClampedText';
 import { Markdown } from '../../lib/Markdown';
 import { PledgeProgress } from '../../lib/PledgeProgress';
@@ -24,9 +25,11 @@ export interface ManageItemsProps {
   items: ManageViewResponse['items'];
   /** The server no longer accepts the owner cookie (404). */
   onUnauthorized: () => void;
+  /** Who gave what, once the owner reveals it; each gift shows its own entry under its row. */
+  contributions?: ContributionsResponse['items'];
 }
 
-export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
+export function ManageItems({ slug, items, onUnauthorized, contributions }: ManageItemsProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const restoreFocusTo = useRef<string | null>(null);
   // The Edit button is unmounted while its form shows, so focus returns to it once it is back.
@@ -88,6 +91,7 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
       <h2 id="manage-items-heading" tabIndex={-1} className="section-heading">Items</h2>
       <ul role="list">
         {items.map((item, index) => {
+          const gave = contributions?.find((d) => d.itemId === item.id);
           // A group gift always has a price; the type is nullable only because singles may lack one.
           const meta = item.type === 'group'
             ? `${formatMoney(item.priceMinor ?? 0)} target`
@@ -131,6 +135,11 @@ export function ManageItems({ slug, items, onUnauthorized }: ManageItemsProps) {
                 title={item.title} itemId={item.id} index={index} count={items.length} pending={move.isPending}
                 onMove={(to) => move.mutate({ itemId: item.id, to })}
               />
+              {gave && (
+                <section aria-label={`Contributions for ${item.title}`} className="col-span-2">
+                  <ContributionsCard contributions={gave} />
+                </section>
+              )}
             </li>
           );
         })}
