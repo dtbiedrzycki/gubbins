@@ -310,7 +310,7 @@ export class Wishlist {
   }
 
   holdItem(
-    props: { itemId: string; sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string; units: number },
+    props: { itemId: string; sessionHash: string; idempotencyKey: string; durationMs: number; guestPiiRef: string; units: number },
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): HoldCommandResult<ItemHeldEvent> {
@@ -319,7 +319,7 @@ export class Wishlist {
   }
 
   buyItem(
-    props: { itemId: string; sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string; units: number },
+    props: { itemId: string; sessionHash: string; idempotencyKey: string; durationMs: number; guestPiiRef: string; units: number },
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): { item: Item; hold: Hold; events: [ItemHeldEvent, ItemPurchasedEvent]; expectedSeq: number } {
@@ -328,7 +328,7 @@ export class Wishlist {
   }
 
   pledge(
-    props: { itemId: string; amountMinor: number; sessionHash: string; idempotencyKey: string; piiRef: string },
+    props: { itemId: string; amountMinor: number; sessionHash: string; idempotencyKey: string; guestPiiRef: string },
     ids: { generateEntityId(): string },
   ): { contribution: Contribution; item: Item; event: ContributionPledgedEvent; expectedSeq: number } {
     const item = this.getItem(props.itemId);

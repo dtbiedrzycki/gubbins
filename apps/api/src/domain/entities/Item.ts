@@ -212,7 +212,7 @@ export class Item {
    * Hasher already satisfy these shapes.
    */
   placeHold(
-    props: { sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string; units: number },
+    props: { sessionHash: string; idempotencyKey: string; durationMs: number; guestPiiRef: string; units: number },
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): { hold: Hold; event: ItemHeldEvent; expectedSeq: number } {
@@ -226,7 +226,7 @@ export class Item {
       secret: tokens.generateHoldSecret(),
       sessionHash: props.sessionHash,
       idempotencyKey: props.idempotencyKey,
-      piiRef: props.piiRef,
+      guestPiiRef: props.guestPiiRef,
       units: props.units,
       expiresAt: new Date(this.asOf.getTime() + props.durationMs),
       at: this.asOf,
@@ -240,7 +240,7 @@ export class Item {
       secretHash: hasher.hash(hold.secret.value),
       sessionHash: hold.sessionHash.value,
       idempotencyKey: hold.idempotencyKey.value,
-      piiRef: hold.piiRef?.value ?? null,
+      piiRef: hold.guestPiiRef?.value ?? null, // events keep their original key
       units: hold.units,
       expiresAt: hold.expiresAt.toISOString(),
       occurredAt: this.asOf.toISOString(),
@@ -255,7 +255,7 @@ export class Item {
    * every unit held. Reach it through `Wishlist.buyItem`.
    */
   placePurchasedHold(
-    props: { sessionHash: string; idempotencyKey: string; durationMs: number; piiRef: string; units: number },
+    props: { sessionHash: string; idempotencyKey: string; durationMs: number; guestPiiRef: string; units: number },
     tokens: { generateEntityId(): string; generateHoldSecret(): string },
     hasher: { hash(value: string): string },
   ): { hold: Hold; events: [ItemHeldEvent, ItemPurchasedEvent]; expectedSeq: number } {
@@ -278,7 +278,7 @@ export class Item {
    * through `Wishlist.pledge`, which authorizes the item.
    */
   pledge(
-    props: { amountMinor: number; sessionHash: string; idempotencyKey: string; piiRef: string },
+    props: { amountMinor: number; sessionHash: string; idempotencyKey: string; guestPiiRef: string },
     ids: { generateEntityId(): string },
   ): { contribution: Contribution; event: ContributionPledgedEvent; expectedSeq: number } {
     if (this.type !== 'group') throw new ItemUnavailableError(this.id.value);
@@ -295,7 +295,7 @@ export class Item {
       amount: Money.usd(props.amountMinor),
       sessionHash: props.sessionHash,
       idempotencyKey: props.idempotencyKey,
-      piiRef: props.piiRef,
+      guestPiiRef: props.guestPiiRef,
       pledgedAt: this.asOf,
     });
     const event: ContributionPledgedEvent = {
@@ -306,7 +306,7 @@ export class Item {
       amountMinor: props.amountMinor,
       sessionHash: contribution.sessionHash.value,
       idempotencyKey: contribution.idempotencyKey.value,
-      piiRef: contribution.piiRef.value,
+      piiRef: contribution.guestPiiRef.value, // events keep their original key
       occurredAt: this.asOf.toISOString(),
     };
     this._contributions.push(contribution);

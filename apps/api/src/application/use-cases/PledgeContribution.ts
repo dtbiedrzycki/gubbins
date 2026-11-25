@@ -34,19 +34,19 @@ export class PledgeContribution {
       if (replay) return toResponse(replay);
 
       const details = GuestDetails.from({ name: input.name, message: input.message });
-      const piiRef = this.tokenGenerator.generateEntityId();
+      const guestPiiRef = this.tokenGenerator.generateEntityId();
 
       const { contribution, item, event, expectedSeq } = wishlist.pledge({
         itemId: input.itemId,
         amountMinor: input.amountMinor,
         sessionHash: guest.sessionHash,
         idempotencyKey: input.idempotencyKey,
-        piiRef,
+        guestPiiRef,
       }, this.tokenGenerator);
 
       await ctx.eventStore.append(item.id.value, expectedSeq, [event], 'guest');
-      // The contribution's pii_ref foreign key needs this row first.
-      await ctx.guestPii.insert(piiRef, details);
+      // The contribution's guest_pii_ref foreign key needs this row first.
+      await ctx.guestPii.insert(guestPiiRef, details);
       await ctx.wishlists.save(wishlist);
 
       return toResponse(contribution);

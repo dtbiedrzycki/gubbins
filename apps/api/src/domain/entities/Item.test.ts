@@ -177,7 +177,7 @@ describe('Item availability and holds — from hold state, never a stored counte
     expect(() => Item.reconstitute({ ...base, holds: [holdOn({ itemId: other })] })).toThrow(DomainValidationError);
     const pledge = Contribution.reconstitute({
       id: '66666666-6666-7666-8666-666666666666', itemId: other, amountMinor: 2_500, sessionHash: 'a'.repeat(64),
-      idempotencyKey: 'p-1', piiRef: '55555555-5555-7555-8555-555555555555', pledgedAt: T0,
+      idempotencyKey: 'p-1', guestPiiRef: '55555555-5555-7555-8555-555555555555', pledgedAt: T0,
     });
     expect(() => Item.reconstitute({ ...base, type: 'group', priceMinor: 10_000, contributions: [pledge] })).toThrow(DomainValidationError);
   });
@@ -201,7 +201,7 @@ describe('Item.placeHold', () => {
   const at = T0;
   const GENERATED_HOLD_ID = '55555555-5555-7555-8555-555555555555';
   const GENERATED_SECRET = 'hold-secret';
-  const holdProps = { sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', durationMs: 3 * DAY, piiRef: '66666666-6666-7666-8666-666666666666', units: 1 };
+  const holdProps = { sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', durationMs: 3 * DAY, guestPiiRef: '66666666-6666-7666-8666-666666666666', units: 1 };
   const available = () => Item.reconstitute({ ...base, seq: 4 });
   const fakeTokens = { generateEntityId: () => GENERATED_HOLD_ID, generateHoldSecret: () => GENERATED_SECRET };
   const fakeHasher = { hash: (value: string) => (value === GENERATED_SECRET ? 'f'.repeat(64) : 'e'.repeat(64)) };
@@ -212,7 +212,7 @@ describe('Item.placeHold', () => {
     expect(hold.secret.value).toBe(GENERATED_SECRET);
     expect(hold.itemId.value).toBe(ITEM_ID);
     expect(hold.expiresAt).toEqual(new Date(at.getTime() + 3 * DAY));
-    expect(hold.piiRef?.value).toBe(holdProps.piiRef);
+    expect(hold.guestPiiRef?.value).toBe(holdProps.guestPiiRef);
   });
 
   it('adds the hold to its own holds', () => {
@@ -231,7 +231,7 @@ describe('Item.placeHold', () => {
     const { event } = available().placeHold(holdProps, fakeTokens, fakeHasher);
     expect(event).toEqual({
       type: 'ItemHeld', v: 1, itemId: ITEM_ID, holdId: GENERATED_HOLD_ID, secretHash: 'f'.repeat(64),
-      sessionHash: holdProps.sessionHash, idempotencyKey: 'idem-1', piiRef: holdProps.piiRef, units: 1,
+      sessionHash: holdProps.sessionHash, idempotencyKey: 'idem-1', piiRef: holdProps.guestPiiRef, units: 1,
       expiresAt: new Date(at.getTime() + 3 * DAY).toISOString(), occurredAt: at.toISOString(),
     });
     expect(event).not.toHaveProperty('secret');
@@ -327,7 +327,7 @@ describe('Item hold commands', () => {
 });
 
 describe('Item.placePurchasedHold', () => {
-  const props = { sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', durationMs: 3 * DAY, piiRef: '66666666-6666-7666-8666-666666666666', units: 2 };
+  const props = { sessionHash: 'a'.repeat(64), idempotencyKey: 'idem-1', durationMs: 3 * DAY, guestPiiRef: '66666666-6666-7666-8666-666666666666', units: 2 };
   const tokens = { generateEntityId: () => '55555555-5555-7555-8555-555555555555', generateHoldSecret: () => 'hold-secret' };
   const hasher = { hash: () => 'f'.repeat(64) };
 
@@ -501,7 +501,7 @@ describe('Item.holdStatus, canExtendHold, canReleaseHold and canUndoBuy', () => 
 
 const pledged = (amountMinor: number, n = 1) => Contribution.reconstitute({
   id: `66666666-6666-7666-8666-${String(n).padStart(12, '0')}`, itemId: ITEM_ID, amountMinor,
-  sessionHash: 'a'.repeat(64), idempotencyKey: `stored-${n}`, piiRef: '55555555-5555-7555-8555-555555555555', pledgedAt: T0,
+  sessionHash: 'a'.repeat(64), idempotencyKey: `stored-${n}`, guestPiiRef: '55555555-5555-7555-8555-555555555555', pledgedAt: T0,
 });
 const fundedGroup = (...amounts: number[]) => Item.reconstitute({
   ...base, type: 'group', priceMinor: MAX_MONEY_MINOR, contributions: amounts.map((a, i) => pledged(a, i + 1)),
@@ -556,7 +556,7 @@ describe('Item.pledge', () => {
   const PII = '55555555-5555-7555-8555-555555555555';
   const ids = { generateEntityId: () => CONTRIBUTION_ID };
   const group = () => Item.createGroup({ asOf: T0, id: ITEM_ID, wishlistId: WISHLIST_ID, title: 'Mixer', priceMinor: 45000 });
-  const props = { sessionHash: 'a'.repeat(64), idempotencyKey: 'k1', piiRef: PII };
+  const props = { sessionHash: 'a'.repeat(64), idempotencyKey: 'k1', guestPiiRef: PII };
 
   it('records the pledge and advances the stream', () => {
     const item = group();
