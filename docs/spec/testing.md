@@ -7,7 +7,7 @@
   maintained state; verify all three non-derived tables survive a
   rebuild untouched — `thank_you_status`, `guest_pii`, and
   `manual_gift_entries` ([data & persistence](data-and-persistence.md)) — including that a redacted `GuestPii`
-  row remains redacted and every `piiRef` still resolves afterwards. The
+  row remains redacted and every `piiRef` and `guest_pii_ref` still resolves afterwards. The
   two added here are where a mistake costs most: a rebuild that clears
   `guest_pii` orphans every `piiRef` in the event log, and one that
   clears `manual_gift_entries` loses owner-authored records with no
@@ -107,7 +107,7 @@
   manual entry emits no event, is rejected against a `source = guest`
   entry, and is rejected once `redactedAt` is set.
 - **Redaction and erasure tests** (ADR-[057](../adr/0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md), ADR-[058](../adr/0058-guest-self-service-data-access-erasure-via-guestdataaccess.md)): after redacting a
-  `GuestPii` row, verify every `piiRef` referencing it still resolves to
+  `GuestPii` row, verify every `piiRef` and `guest_pii_ref` referencing it still resolves to
   a real row; `name`/`email`/`message` are null while the referencing
   hold or contribution's amount, item, status, and date are unchanged;
   `redactedAt` is set and no code path clears it; and the row renders as
