@@ -6,7 +6,7 @@ import { Contribution } from '../domain/entities/Contribution.js';
 function toContribution(row: Selectable<ContributionsTable>): Contribution {
   return Contribution.reconstitute({
     id: row.id, itemId: row.item_id, amountMinor: row.amount_minor, sessionHash: row.session_hash,
-    idempotencyKey: row.idempotency_key, piiRef: row.pii_ref, pledgedAt: new Date(row.pledged_at),
+    idempotencyKey: row.idempotency_key, piiRef: row.guest_pii_ref, pledgedAt: new Date(row.pledged_at),
   });
 }
 
@@ -16,7 +16,7 @@ export class ContributionRepositoryKysely implements ContributionRepository {
   async insert(c: Contribution): Promise<void> {
     await this.db.insertInto('contributions').values({
       id: c.id.value, item_id: c.itemId.value, amount_minor: c.amount.amountMinor, session_hash: c.sessionHash.value,
-      idempotency_key: c.idempotencyKey.value, pii_ref: c.piiRef.value, pledged_at: c.pledgedAt.toISOString(),
+      idempotency_key: c.idempotencyKey.value, guest_pii_ref: c.piiRef.value, pledged_at: c.pledgedAt.toISOString(),
       created_at: new Date().toISOString(),
     }).execute();
   }

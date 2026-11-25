@@ -43,6 +43,7 @@ export async function rebuildProjections(db: Kysely<Database>): Promise<{ events
     const rows = await trx.selectFrom('event_log').select(['id', 'item_id', 'event_type', 'payload']).orderBy('id').execute();
     for (const row of rows) {
       const event = parse(row);
+      // Events keep their original key, piiRef; the column is guest_pii_ref.
       switch (event.type) {
         case 'ItemHeld': {
           const secret = secrets.get(event.holdId);
@@ -52,7 +53,7 @@ export async function rebuildProjections(db: Kysely<Database>): Promise<{ events
           await trx.insertInto('holds').values({
             id: event.holdId, item_id: row.item_id, secret, session_hash: event.sessionHash,
             idempotency_key: event.idempotencyKey, units: event.units, expires_at: event.expiresAt,
-            extended_at: null, released_at: null, purchased_at: null, buy_undone_at: null, purchased_units: null, pii_ref: event.piiRef, created_at: event.occurredAt,
+            extended_at: null, released_at: null, purchased_at: null, buy_undone_at: null, purchased_units: null, guest_pii_ref: event.piiRef, created_at: event.occurredAt,
           }).execute();
           break;
         }
@@ -71,7 +72,7 @@ export async function rebuildProjections(db: Kysely<Database>): Promise<{ events
         case 'ContributionPledged':
           await trx.insertInto('contributions').values({
             id: event.contributionId, item_id: row.item_id, amount_minor: event.amountMinor, session_hash: event.sessionHash,
-            idempotency_key: event.idempotencyKey, pii_ref: event.piiRef, pledged_at: event.occurredAt, created_at: event.occurredAt,
+            idempotency_key: event.idempotencyKey, guest_pii_ref: event.piiRef, pledged_at: event.occurredAt, created_at: event.occurredAt,
           }).execute();
           break;
         default: {

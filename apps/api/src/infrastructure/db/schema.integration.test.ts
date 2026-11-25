@@ -3,6 +3,8 @@ import { sql, type Insertable, type Kysely } from 'kysely';
 import { createDb } from './createDb.js';
 import { StaleSchemaError } from './assertSchemaMatches.js';
 import { migrateToLatest } from './migrate.js';
+import { runMigrations } from './runMigrations.js';
+import { migrations } from './migrations/index.js';
 import { up } from './migrations/0001_init.js';
 import type { Database, HoldsTable } from './schema.js';
 
@@ -37,6 +39,28 @@ describe('0003 items index', () => {
 
     const columns = (await sql<{ name: string }>`select name from pragma_index_info('items_wishlist_position') order by seqno`.execute(db)).rows.map((r) => r.name);
     expect(columns).toEqual(['wishlist_id', 'position']);
+  });
+});
+
+describe('0006 guest_pii_ref', () => {
+  it("keeps each hold's and contribution's guest reference under guest_pii_ref", async () => {
+    const PII = '66666666-6666-7666-8666-666666666666';
+    const old = createDb(':memory:');
+    const upTo0005 = Object.fromEntries(Object.entries(migrations).filter(([name]) => name < '0006'));
+    await runMigrations(old as unknown as Kysely<unknown>, upTo0005);
+    await old.insertInto('wishlists').values({ id: W1, slug: 's', title: 't', owner_token: 'o', key: 'k', key_gen: 1, created_at: NOW }).execute();
+    await old.insertInto('items').values({ id: I1, wishlist_id: W1, type: 'group', title: 'Cot', price_minor: 45000, quantity: 1, position: 0, created_at: NOW }).execute();
+    await old.insertInto('guest_pii').values({ id: PII, name: 'Ada', created_at: NOW }).execute();
+    await sql`insert into holds (id, item_id, secret, session_hash, idempotency_key, units, expires_at, created_at, pii_ref)
+      values ('55555555-5555-7555-8555-555555555555', ${I1}, 's', ${'a'.repeat(64)}, 'idem-1', 1, ${NOW}, ${NOW}, ${PII})`.execute(old);
+    await sql`insert into contributions (id, item_id, amount_minor, session_hash, idempotency_key, pii_ref, pledged_at, created_at)
+      values ('77777777-7777-7777-8777-777777777777', ${I1}, 100, ${'a'.repeat(64)}, 'idem-2', ${PII}, ${NOW}, ${NOW})`.execute(old);
+
+    await migrateToLatest(old);
+
+    expect(await old.selectFrom('holds').select('guest_pii_ref').execute()).toEqual([{ guest_pii_ref: PII }]);
+    expect(await old.selectFrom('contributions').select('guest_pii_ref').execute()).toEqual([{ guest_pii_ref: PII }]);
+    await old.destroy();
   });
 });
 
@@ -132,6 +156,7 @@ describe('migrateToLatest on a database an older build created', () => {
     expect(await released.selectFrom('wishlists').select(['id', 'slug', 'theme']).execute()).toEqual([{ id: W1, slug: 's', theme: 'storybook' }]);
     expect((await sql`select name from kysely_migration`.execute(released)).rows).toEqual([
       { name: '0001_init' }, { name: '0002_item_positions' }, { name: '0003_items_wishlist_index' }, { name: '0004_wishlist_theme' }, { name: '0005_hold_buy_undone' },
+      { name: '0006_guest_pii_ref' },
     ]);
     await released.destroy();
   });
