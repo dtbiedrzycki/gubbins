@@ -92,7 +92,7 @@ describe('GetContributions', () => {
     const s = await setup();
     const holdId = '66666666-6666-7666-8666-666666666666';
     s.persistence.store.holds.set(holdId, Hold.reconstitute({
-      id: holdId, itemId: ITEM_ID, secret: 'hold-secret', sessionHash: 'a'.repeat(64), idempotencyKey: 'old-hold', piiRef: null,
+      id: holdId, itemId: ITEM_ID, secret: 'hold-secret', sessionHash: 'a'.repeat(64), idempotencyKey: 'old-hold', guestPiiRef: null,
       expiresAt: new Date(T0.getTime() + DAY), extendedAt: null, releasedAt: null, purchasedAt: null, buyUndoneAt: null, units: 1, purchasedUnits: null,
     }));
 

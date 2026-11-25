@@ -2,7 +2,7 @@ import { DomainValidationError } from '../errors.js';
 
 /**
  * Who is holding or buying: a required name and an optional message. This is
- * PII, so it is stored in `guest_pii` and referenced by `piiRef`; it never
+ * PII, so it is stored in `guest_pii` and referenced by `guestPiiRef`; it never
  * enters an event (ADR-0057).
  */
 export class GuestDetails {

@@ -36,7 +36,7 @@ const input = (overrides: { message?: string } = {}) => ({
 });
 
 describe('BuyItem', () => {
-  it('buys 2 units in one guest append, with the details row linked by piiRef', async () => {
+  it('buys 2 units in one guest append, with the details row linked by guestPiiRef', async () => {
     const { useCase, calls, store, wishlists } = await makeUseCase();
 
     const view = await useCase.execute(input(), GUEST);
@@ -44,7 +44,7 @@ describe('BuyItem', () => {
     expect(calls).toEqual([{ itemId: ITEM_ID, expectedSeq: 0, types: ['ItemHeld', 'ItemPurchased'], actor: 'guest' }]);
     const rows = [...store.guestPii.values()];
     expect(rows).toEqual([{ id: expect.any(String), name: 'Ada', message: 'See you Saturday' }]);
-    expect((await wishlists.findById(WISHLIST_ID, NOW))?.findHold(view.holdId)?.piiRef?.value).toBe(rows[0]!.id);
+    expect((await wishlists.findById(WISHLIST_ID, NOW))?.findHold(view.holdId)?.guestPiiRef?.value).toBe(rows[0]!.id);
     expect(view).toMatchObject({ status: 'purchased', purchasedUnits: 2 });
   });
 

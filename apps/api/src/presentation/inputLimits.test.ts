@@ -27,7 +27,7 @@ function accepts(build: () => unknown): boolean {
 const single = (props: { title?: string; quantity?: number; url?: string; priceMinor?: number }) => () =>
   Item.createSingle({ id: ID, wishlistId: ID, title: 'Cot', asOf: T0, ...props });
 const pledgeRow = {
-  id: ID, itemId: ID, sessionHash: 'a'.repeat(64), idempotencyKey: 'k', piiRef: ID, pledgedAt: T0,
+  id: ID, itemId: ID, sessionHash: 'a'.repeat(64), idempotencyKey: 'k', guestPiiRef: ID, pledgedAt: T0,
 };
 const holdRow = {
   id: ID, itemId: ID, secret: 's', sessionHash: 'a'.repeat(64), idempotencyKey: 'k',
