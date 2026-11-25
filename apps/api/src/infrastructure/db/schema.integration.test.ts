@@ -43,7 +43,7 @@ describe('0003 items index', () => {
 });
 
 describe('0006 guest_pii_ref', () => {
-  it("keeps each hold's and contribution's guest reference under guest_pii_ref", async () => {
+  it("moves each existing hold's and contribution's guest reference from pii_ref to guest_pii_ref", async () => {
     const PII = '66666666-6666-7666-8666-666666666666';
     const old = createDb(':memory:');
     const upTo0005 = Object.fromEntries(Object.entries(migrations).filter(([name]) => name < '0006'));
@@ -51,6 +51,7 @@ describe('0006 guest_pii_ref', () => {
     await old.insertInto('wishlists').values({ id: W1, slug: 's', title: 't', owner_token: 'o', key: 'k', key_gen: 1, created_at: NOW }).execute();
     await old.insertInto('items').values({ id: I1, wishlist_id: W1, type: 'group', title: 'Cot', price_minor: 45000, quantity: 1, position: 0, created_at: NOW }).execute();
     await old.insertInto('guest_pii').values({ id: PII, name: 'Ada', created_at: NOW }).execute();
+    // Raw SQL: the typed schema only knows guest_pii_ref, and these rows predate 0006.
     await sql`insert into holds (id, item_id, secret, session_hash, idempotency_key, units, expires_at, created_at, pii_ref)
       values ('55555555-5555-7555-8555-555555555555', ${I1}, 's', ${'a'.repeat(64)}, 'idem-1', 1, ${NOW}, ${NOW}, ${PII})`.execute(old);
     await sql`insert into contributions (id, item_id, amount_minor, session_hash, idempotency_key, pii_ref, pledged_at, created_at)
