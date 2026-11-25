@@ -89,15 +89,21 @@ correct even if the handle changed while the guest was paying.
   notices above are what prevent a payment to an old handle.
 - **A gift removed while the guest is paying gets its own message**, in
   the open dialog and on a resumed draft (see Web).
+- **A draft resumes for any group gift still on the list, funded or not.**
+  Overfunding is allowed (ADR-0047), so a guest whose gift others finished
+  funding while they paid can still record it. Today `ListPage` drops that
+  draft silently.
 - **Clearing both handles is refused while the list has a group gift.**
 - **Handles are edited with the list details**, in the form the owner
   already uses for title, description and theme.
-- **The pledge's method ships before handle editing**, so no pledge made
-  after an edit exists without one.
+- **The pledge's method ships before handle editing**, so every pledge the
+  dialog sends after an edit names its handle. (A tab loaded before the
+  deploy can still send none; see the pledge request.)
 - **`pii_ref` becomes `guest_pii_ref` first**, as its own short stack, so
   the new code reads `guest_pii_ref` beside `owner_pii_ref`. The event
-  payload key `piiRef` stays: the ledger can't be edited, so the repository
-  maps it, with a one-line comment. No new event version.
+  payload key `piiRef` stays: the ledger can't be edited, so `Item` (which
+  builds the events) and `rebuildProjections` (which reads them) map it,
+  each with a one-line comment. No new event version.
 
 ## Approaches considered
 
@@ -130,9 +136,13 @@ correct even if the handle changed while the guest was paying.
 
 A migration renames the column on `holds` and `contributions`. Code renames
 `piiRef` to `guestPiiRef` through domain, use cases, ports, fakes,
-repositories, contract suites and the rebuild, in batches within the
-10-file cap. Event types keep `piiRef`. ADRs and specs are updated in a docs
-PR; past plans stay as written.
+repositories, contract suites and the rebuild. `piiRef` is in about 33
+files and the `Contribution` field alone reaches about 16, so this follows
+AGENTS.md's steps for a breaking change: add `guestPiiRef` beside `piiRef`,
+move callers in batches within the 10-file cap, then remove `piiRef`.
+Event types keep `piiRef`. A docs PR updates ADRs and specs (ADR text about
+event payloads keeps `piiRef`), AGENTS.md and the review skill; past plans
+stay as written.
 
 ### Data
 
@@ -146,7 +156,9 @@ Migration `0007` (after the rename's `0006`):
   list's handles into `owner_pii` rows (minting UUIDv7 ids in JS), sets the
   refs and drops the old columns.
 - `contributions`: `owner_pii_ref`, nullable (null for pledges made before
-  this, or sent without a method).
+  this, or sent without a method), a foreign key to `owner_pii.id`. The
+  pledge use case inserts the `owner_pii` row before the contribution, as
+  it already does for `guest_pii`.
 - CHECKs stay structural (ADR-0083): `method` in (`venmo`, `zelle`); no
   length CHECKs.
 
@@ -157,15 +169,24 @@ for Venmo). The card then shows "via Venmo (handle removed)".
 ### Domain
 
 - A `PaymentHandle` value object (`method`, `handle`) whose `from()` runs
-  the per-method checks now inside `PaymentMethods`; `PaymentMethods`
-  shares them.
-- `PaymentMethods` answers whether a `PaymentHandle` is the list's current
-  handle for its method, ignoring case for Venmo (Venmo usernames are
+  the per-method checks now inside `PaymentMethods`. A pledge's reported
+  handle is one.
+- `PaymentMethods` becomes the list's pair of current handles, each a
+  `PaymentHandle` with the id of its `owner_pii` row, so there is one
+  handle shape, not two. It answers whether a reported `PaymentHandle` is
+  current for its method, ignoring case for Venmo (Venmo usernames are
   case-insensitive).
-- `Wishlist.changePaymentMethods(PaymentMethods)` replaces the handles and
-  refuses an empty pair while any item is a group gift. How the list's two
-  rows keep their ids across edits is the builder's, within "the aggregate
-  mints ids".
+- The aggregate mints the row ids: `Wishlist.create` for the handles a
+  list starts with, and `Wishlist.changePaymentMethods(venmo, zelle, ids)`
+  for a handle added where there was none. A changed handle keeps its id
+  (the repository updates the row); a cleared one drops it (the repository
+  deletes the row). So the repository tells update, insert and delete
+  apart by id.
+- One private rule in `Wishlist`, "a list with a group gift needs a
+  handle", serves both `addItem` and `changePaymentMethods`, and both throw
+  the existing `NoPaymentMethodError` (409 `no_payment_method`). Its
+  message changes to fit both: "Group gifts need a Venmo or Zelle handle
+  on this list."
 - `Contribution` gains `ownerPiiRef` (nullable). As with `guestPiiRef`,
   the pledge use case mints it beside the `owner_pii` insert (ADR-0057's
   exception), and `Wishlist.pledge` takes it.
@@ -196,21 +217,24 @@ for Venmo). The card then shows "via Venmo (handle removed)".
 - **Manage view:** gains `payment: { venmoHandle, zelleHandle }` so the
   edit form can show the current handles.
 - **Edit list details:** gains `venmoHandle` and `zelleHandle`, both
-  required and nullable, with `null` to clear, like `description`.
+  required and nullable, with `null` to clear, like `description`, and
+  capped at 254 like the create request. An owner's tab loaded before the
+  deploy sends neither and gets a 400 until it reloads; accepted, as with
+  earlier required fields.
 
 Each contract change is its own PR and regenerates the OpenAPI types
 (ADR-0077).
 
 ### Errors
 
-- Clearing both handles while the list has a group gift: a new domain
-  error answered with 409 and its own code, with a message such as
-  "Group gifts on this list need a Venmo or Zelle handle. Remove them
-  first, or keep a handle."
+- Clearing both handles while the list has a group gift: the existing
+  `NoPaymentMethodError`, 409 `no_payment_method`, with the message above.
 - A malformed handle in either request: `DomainValidationError` 400 with
   its message.
 - A pledge to a gift that no longer exists stays the generic 404; the
-  dialog gives it its own message (see Web).
+  dialog gives it its own message (see Web). An expired guest session is
+  also a 404 (ADR-0016), so the dialog tells them apart by refetching the
+  list, not by the status.
 
 ### Web
 
@@ -219,9 +243,12 @@ Each contract change is its own PR and regenerates the OpenAPI types
   Venmo app) doesn't swap them under the guest. "I've sent it" sends the
   frozen pair. If the guest switches method on the pay step, that method's
   current handle is frozen in its place. When a refetch shows a different
-  current handle for the frozen method, or none, the dialog shows the
-  change notice and its two choices; choosing the current handle freezes
-  it instead.
+  current handle for the frozen method, the dialog shows the change notice
+  and its two choices; choosing the current handle freezes it instead. If
+  the method was removed, the choices are "I already paid @old" or the
+  other method, if the list has one. The notice relies on the list query's
+  refetch (on focus, once it is 30 seconds stale), so a guest back within
+  30 seconds may not see a change made in that window; accepted.
 - **Draft (`contributeDraft.ts`):** stores the pair; on resume, a changed
   handle gets the same notice. A draft saved before this change has none
   and resumes with the current handles.
@@ -230,9 +257,13 @@ Each contract change is its own PR and regenerates the OpenAPI types
   can get a 404 after the guest has paid. Nothing can be recorded without
   the gift. On the pay step a 404 reads "This gift was removed while you
   were paying. If you already sent money, let the owner know." instead of
-  the generic reload message. `ListPage` today drops a draft whose gift is
-  gone without a word; it shows the same message instead. Both ship in the
-  dialog PR.
+  the generic reload message, once a refetch of the list confirms the gift
+  is gone (an expired session is a 404 too). `ListPage` today drops a
+  draft whose gift is gone without a word; it shows the same message
+  instead. It also resumes a draft whose gift others have fully funded
+  (it checks only that the gift is a group gift still on the list), with a
+  note: "Others finished funding this gift while you were paying. If you
+  already sent money, record it here." All of this ships in the dialog PR.
 - **Gift details card (`ContributionsCard`):** a pledge reads
   "Sam · $40 via Venmo to @handle". One that isn't current adds "(not your
   current handle)". An erased one reads "via Venmo (handle removed)". One
@@ -240,14 +271,13 @@ Each contract change is its own PR and regenerates the OpenAPI types
 - **Edit list details form:** Venmo and Zelle fields, prefilled from the
   manage view, trimmed like every other field, with the create form's
   hints.
-- **Privacy page:** its statements are true of the code, so several
-  change, not one line added:
-  - past payment handles are kept only as part of the pledges that named
-    them; changing a handle replaces it;
-  - "Nothing is deleted automatically yet" no longer holds once an edit
-    removes a handle;
-  - the cookie paragraph lists what a draft holds, now including the
-    method and handle;
+- **Privacy page:** its statements are true of the code, so it changes
+  with the code that changes them:
+  - with the pledge's method (step 3): "What guests enter" says a pledge
+    stores the method and handle the guest paid to, and the cookie
+    paragraph lists the method and handle among what a draft holds;
+  - with editing (step 4): past payment handles are kept only as part of
+    the pledges that named them, and changing a handle replaces it;
   - nothing may say handles "go with the list": no code deletes lists.
 
 ### ADRs
@@ -265,12 +295,14 @@ One docs PR before the code:
 
 ## Order of the work
 
-1. The `pii_ref` → `guest_pii_ref` rename stack, then its docs PR.
+1. The `pii_ref` → `guest_pii_ref` rename stack (about 6–8 PRs), then its
+   docs PR.
 2. The ADR PR.
 3. Owner PII and the pledge's method: migration and repositories (list
    handles move to `owner_pii`), domain, pledge request, dialog and draft
-   (with the notices and the removed-gift message), gift details, card.
-4. Editing: domain, manage view handles, edit request, form, privacy page.
+   (with the removed-gift message), gift details, card, privacy page.
+4. Editing: domain, manage view handles, edit request, form, the dialog's
+   change notices (nothing can change a handle before this), privacy page.
 5. One e2e journey: a guest pledges by Venmo, the owner changes the
    handle, the owner's gift details show the old handle flagged.
 

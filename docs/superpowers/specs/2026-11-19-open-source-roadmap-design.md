@@ -114,7 +114,7 @@ In this order. Sizes are rough counts of 10-file PRs.
      Whatever is chosen keeps a non-drag way to move a gift for keyboard
      and screen-reader users.
 3a. **Edit the Venmo and Zelle handles, and record each pledge's method**
-   (owner's request; ~6–9 PRs plus ADR amendments). Handles are set at list creation and can't be
+   (owner's request; ~11–13 PRs plus a rename stack and ADR PRs, per its design). Handles are set at list creation and can't be
    changed (ADR-0082 deferred the settings UI). Add them to the list
    details the owner already edits; amend ADR-0082. Today the only rule
    is that a group gift can't be added to a list with no handles
