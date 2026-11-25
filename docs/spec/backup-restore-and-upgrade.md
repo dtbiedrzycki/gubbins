@@ -3,7 +3,7 @@
 - **Logical backup**: existing JSON export/import ([ops](ops.md)) — portable,
   human-inspectable, engine-version-independent. The export includes
   `guest_pii` rows with their `redactedAt` values, since omitting them
-  would leave every `piiRef` dangling on restore. Import preserves
+  would leave every `piiRef` and `guest_pii_ref` dangling on restore. Import preserves
   `redactedAt`; where a row already exists in the target database with
   `redactedAt` set, redaction wins regardless of the incoming value, so
   a partial or repeated import can never un-redact. *(ADR-[065](../adr/0065-erasure-across-backups-and-the-subject-access-routing-fix.md))*

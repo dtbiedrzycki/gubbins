@@ -73,12 +73,12 @@ Item
                            ArchiveItem use case, not deletable once any event
                            exists on the item's stream.
 
-  Hold           single only — expiresAt, secret, piiRef → GuestPii.id,
+  Hold           single only — expiresAt, secret, guestPiiRef → GuestPii.id,
                  sessionHash, idempotencyKey
                  (holderName, email, message live in GuestPii, not here
                  — see [data & persistence](data-and-persistence.md), ADR-[057](../adr/0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md))
   Purchase       single only — the buying guest can undo it (`BuyUndone`)
-  Contribution   group | fund — amount, piiRef → GuestPii.id,
+  Contribution   group | fund — amount, guestPiiRef → GuestPii.id,
                  method: { kind, label, handle } | null  ← snapshotted
                    at pledge time; null permitted only when
                    source = manual
@@ -172,7 +172,7 @@ GuestDataAccess (plain table, not event-sourced — same category as
   list ([access & identity](access-identity.md), ADR-[058](../adr/0058-guest-self-service-data-access-erasure-via-guestdataaccess.md))
 - A `GuestPii` row is referenced by exactly one hold or contribution,
   with one exception: a manual contribution corrected via void-and-
-  re-record ([manual contributions](manual-contributions.md), ADR-[060](../adr/0060-manual-contributions-are-voidable-not-editable.md)) reuses its predecessor's `piiRef`, so a
+  re-record ([manual contributions](manual-contributions.md), ADR-[060](../adr/0060-manual-contributions-are-voidable-not-editable.md)) reuses its predecessor's `guestPiiRef`, so a
   supersession chain shares one row. Sharing is legal **only** along
   such a chain — `GuestPii` rows are never deduplicated by name,
   session, or any other value, since redaction is scoped to the row and

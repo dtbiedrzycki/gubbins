@@ -39,7 +39,8 @@
   `DATABASE_PATH`; it folds `holds` and `item_state` in one transaction
   and leaves every other table untouched.
 - **`ItemHeld`, `ContributionPledged`, and `ManualContributionRecorded`
-  payloads carry `piiRef` (a `GuestPii` row id) rather than embedding
+  payloads carry `piiRef` (a `GuestPii` row id, which holds and
+  contributions store as `guest_pii_ref`) rather than embedding
   `holderName`/`contributorName`/email/message directly.** This keeps
   personal data out of the append-only event log entirely, rather than
   relying on a compensating event to hide it later — a compensating event

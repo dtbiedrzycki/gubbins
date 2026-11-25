@@ -99,7 +99,7 @@
   second, and the constraint survives `rebuildProjections`
 - **Manual-contribution correction test** (ADR-[060](../adr/0060-manual-contributions-are-voidable-not-editable.md)): correcting a manual
   entry's amount voids the original and records a replacement carrying
-  the *original* `piiRef`; `item_state.confirmedMinor` reflects only the
+  the *original* `guestPiiRef`; `item_state.confirmedMinor` reflects only the
   replacement; an existing `thank_you_status` row follows to the new
   contribution id rather than orphaning; redacting the live entry leaves
   no un-redacted name on the voided one; the voided row survives
