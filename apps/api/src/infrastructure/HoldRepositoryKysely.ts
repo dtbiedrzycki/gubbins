@@ -13,7 +13,7 @@ function toHold(row: Selectable<HoldsTable>): Hold {
     idempotencyKey: row.idempotency_key, expiresAt: new Date(row.expires_at),
     extendedAt: toDate(row.extended_at), releasedAt: toDate(row.released_at), purchasedAt: toDate(row.purchased_at),
     buyUndoneAt: toDate(row.buy_undone_at),
-    piiRef: row.guest_pii_ref, units: row.units, purchasedUnits: row.purchased_units,
+    guestPiiRef: row.guest_pii_ref, units: row.units, purchasedUnits: row.purchased_units,
   });
 }
 
@@ -40,7 +40,7 @@ export class HoldRepositoryKysely implements HoldRepository {
   async insert(hold: Hold): Promise<void> {
     await this.db.insertInto('holds').values({
       id: hold.id.value, item_id: hold.itemId.value, secret: hold.secret.value, session_hash: hold.sessionHash.value,
-      idempotency_key: hold.idempotencyKey.value, guest_pii_ref: hold.piiRef?.value ?? null, units: hold.units, ...lifecycleColumns(hold), created_at: new Date().toISOString(),
+      idempotency_key: hold.idempotencyKey.value, guest_pii_ref: hold.guestPiiRef?.value ?? null, units: hold.units, ...lifecycleColumns(hold), created_at: new Date().toISOString(),
     }).execute();
   }
 

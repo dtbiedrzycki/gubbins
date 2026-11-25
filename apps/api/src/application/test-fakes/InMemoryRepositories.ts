@@ -45,7 +45,7 @@ function copyHold(hold: Hold): Hold {
     idempotencyKey: hold.idempotencyKey.value, expiresAt: hold.expiresAt,
     extendedAt: hold.extendedAt, releasedAt: hold.releasedAt, purchasedAt: hold.purchasedAt,
     buyUndoneAt: hold.buyUndoneAt,
-    piiRef: hold.piiRef?.value ?? null, units: hold.units, purchasedUnits: hold.purchasedUnits,
+    guestPiiRef: hold.guestPiiRef?.value ?? null, units: hold.units, purchasedUnits: hold.purchasedUnits,
   });
 }
 
@@ -145,7 +145,7 @@ export class InMemoryHoldRepository implements HoldRepository {
       (h) => h.itemId.value === hold.itemId.value && h.idempotencyKey.value === hold.idempotencyKey.value,
     );
     if (clash) throw new Error(`UNIQUE constraint failed: holds (${hold.id.value})`);
-    if (hold.piiRef && !this.store.guestPii.has(hold.piiRef.value)) throw new Error(`FOREIGN KEY constraint failed: holds.guest_pii_ref (${hold.piiRef.value})`);
+    if (hold.guestPiiRef && !this.store.guestPii.has(hold.guestPiiRef.value)) throw new Error(`FOREIGN KEY constraint failed: holds.guest_pii_ref (${hold.guestPiiRef.value})`);
     this.store.holds.set(hold.id.value, copyHold(hold));
   }
 

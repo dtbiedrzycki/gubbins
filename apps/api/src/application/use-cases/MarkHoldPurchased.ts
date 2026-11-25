@@ -19,10 +19,10 @@ export class MarkHoldPurchased implements HoldCommand {
       // Guest row only; the owner's direct purchase is sub-project 4.
       const view = await runHoldCommand(ctx, input, access, now, HoldPermissions.mayPurchase, async (wishlist, hold) => {
         // Built before anything is written, so an invalid message purchases nothing.
-        if (hold.piiRef) {
-          const existing = await ctx.guestPii.findById(hold.piiRef.value);
-          if (!existing) throw new Error(`guest_pii row ${hold.piiRef.value} is missing`);
-          guestUpdate = { id: hold.piiRef.value, details: GuestDetails.from({ name: existing.name, message: input.message }) };
+        if (hold.guestPiiRef) {
+          const existing = await ctx.guestPii.findById(hold.guestPiiRef.value);
+          if (!existing) throw new Error(`guest_pii row ${hold.guestPiiRef.value} is missing`);
+          guestUpdate = { id: hold.guestPiiRef.value, details: GuestDetails.from({ name: existing.name, message: input.message }) };
         }
         return wishlist.purchaseHold(hold, input.units);
       });
