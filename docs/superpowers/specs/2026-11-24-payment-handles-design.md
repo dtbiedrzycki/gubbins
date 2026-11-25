@@ -21,7 +21,7 @@ erase as a guest's name, and an owner who changes a handle doesn't expect
 the old one to be kept unless a pledge needs it.
 
 Success: the owner fixes a handle from the manage page, and every pledge
-made from then on shows "$40 via Venmo to @handle" in the gift details,
+the dialog sends from then on shows "$40 via Venmo to @handle" in the gift details,
 correct even if the handle changed while the guest was paying.
 
 ## Goals
@@ -184,9 +184,17 @@ for Venmo). The card then shows "via Venmo (handle removed)".
   apart by id.
 - One private rule in `Wishlist`, "a list with a group gift needs a
   handle", serves both `addItem` and `changePaymentMethods`, and both throw
-  the existing `NoPaymentMethodError` (409 `no_payment_method`). Its
-  message changes to fit both: "Group gifts need a Venmo or Zelle handle
-  on this list."
+  the existing `NoPaymentMethodError` (409 `no_payment_method`). The
+  message the owner reads lives in its mapping in `domainErrorResponse.ts`
+  (today "…before adding a group gift."); it changes to fit both: "Group
+  gifts need a Venmo or Zelle handle on this list." The edit-details route
+  gains that 409 in its OpenAPI responses.
+- Use cases that change: `CreateList` passes the raw handles and the id
+  generator to `Wishlist.create`; `EditListDetails` gains the id generator
+  (wired in the composition root) and the two handles;
+  `PledgeContribution` mints `ownerPiiRef` and inserts the row;
+  `GetContributions` reads the pledges' rows and asks `PaymentMethods`
+  whether each is current; `GetManageView` returns the current handles.
 - `Contribution` gains `ownerPiiRef` (nullable). As with `guestPiiRef`,
   the pledge use case mints it beside the `owner_pii` insert (ADR-0057's
   exception), and `Wishlist.pledge` takes it.
@@ -255,12 +263,16 @@ Each contract change is its own PR and regenerates the OpenAPI types
 - **A gift removed while paying:** the owner can delete a group gift no
   one has pledged to yet (and then clear both handles), so "I've sent it"
   can get a 404 after the guest has paid. Nothing can be recorded without
-  the gift. On the pay step a 404 reads "This gift was removed while you
-  were paying. If you already sent money, let the owner know." instead of
-  the generic reload message, once a refetch of the list confirms the gift
-  is gone (an expired session is a 404 too). `ListPage` today drops a
-  draft whose gift is gone without a word; it shows the same message
-  instead. It also resumes a draft whose gift others have fully funded
+  the gift. The dialog lives inside the gift's `ItemView`, so the list
+  refetch that drops the gift (on refocus, or after a 404 from "I've sent
+  it") unmounts the dialog with it. So `ListPage` owns the message: it
+  tracks the gift of the open chip-in or of a loaded draft, and when a
+  refetched list no longer has that gift it shows a page-level alert, "A
+  gift you were paying for was removed. If you already sent money, let
+  the owner know.", and clears the draft (today it drops the draft without
+  a word). Keying on the refetched list, not the 404, keeps an expired
+  session (also a 404) from being told the gift was removed. Tested at
+  `ListPage`. `ListPage` also resumes a draft whose gift others have fully funded
   (it checks only that the gift is a group gift still on the list), with a
   note: "Others finished funding this gift while you were paying. If you
   already sent money, record it here." All of this ships in the dialog PR.
@@ -286,7 +298,10 @@ One docs PR before the code:
 
 - **New ADR:** owner payment handles are owner PII in `owner_pii`, one row
   per record, per ADR-0057's side-table pattern; a pledge's handle is the
-  guest's report, recorded without proof.
+  guest's report, recorded without proof; the use case mints a pledge's
+  `ownerPiiRef` beside its insert, as it does `guestPiiRef`. The same PR
+  extends that exception in AGENTS.md and the review skill, which name
+  only `piiRef` today.
 - **ADR-0082**, amended: handles are editable with the list details;
   clearing both is refused while the list has a group gift.
 - **ADR-0045**, amended: the snapshot is `{ method, handle }` as the guest
@@ -312,8 +327,8 @@ at most 8.
 
 ## Left to the builder
 
-- The error's class name, code and exact copy, within the error-copy rule
-  in `actionErrorMessage.ts`.
+- The exact error copy, within the error-copy rule in
+  `actionErrorMessage.ts`.
 - The exact copy on the card, notices and privacy page, within the wording
   above.
 - The foreign keys between `wishlists` and `owner_pii`, which point both

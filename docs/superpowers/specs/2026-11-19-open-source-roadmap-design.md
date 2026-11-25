@@ -128,8 +128,8 @@ In this order. Sizes are rough counts of 10-file PRs.
      migration, the contribute request carrying the method, and the
      snapshot shown in item 3's pledge details ("$40 via Venmo to
      @handle"). Pledges made before this show "method not recorded".
-     Recording the snapshot lands before handle editing, so no pledge
-     made after editing exists is ever missing it.
+     Recording the snapshot lands before handle editing, so every pledge
+     the dialog sends after editing exists names its handle.
 4. **Drag-and-drop reordering, phones included, then fewer buttons**
    (~6–9 PRs plus an ADR amendment). Amend ADR-0086, which left
    drag-and-drop out. Where the handle sits, and which buttons go, come
