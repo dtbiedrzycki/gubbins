@@ -68,6 +68,10 @@ export default function ListPage() {
     setPaying(null);
     setPayingRemoved(true);
   }
+  // Nothing can be recorded without the gift, so its chip-in is not offered again.
+  useEffect(() => {
+    if (payingRemoved && slug) clearDraft(slug);
+  }, [payingRemoved, slug]);
   if (!slug) return null;
 
   if (query.status === 'pending') {
