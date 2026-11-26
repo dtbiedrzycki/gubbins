@@ -45,7 +45,7 @@ export class PaymentMethods {
 
   /** Whether `reported` is the list's handle for its method today; Venmo usernames ignore case, and Zelle handles are already normalized. */
   isCurrent(reported: PaymentHandle): boolean {
-    const current = this[reported.method]?.handle.handle;
+    const current = this[reported.method]?.payment.handle;
     if (current === undefined) return false;
     return reported.method === 'venmo' ? current.toLowerCase() === reported.handle.toLowerCase() : current === reported.handle;
   }
