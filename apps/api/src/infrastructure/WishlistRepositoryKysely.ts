@@ -1,5 +1,4 @@
 import type { Kysely, Selectable } from 'kysely';
-import { v7 as uuidv7 } from 'uuid';
 import type { Database, WishlistsTable } from './db/schema.js';
 import type { WishlistRepository } from '../application/ports/WishlistRepository.js';
 import { Item } from '../domain/entities/Item.js';
@@ -34,9 +33,10 @@ export class WishlistRepositoryKysely implements WishlistRepository {
       created_at: new Date().toISOString(),
     }).execute();
     // After the list row, which each owner_pii row references; the list then references them.
-    for (const [method, handle] of [['venmo', wishlist.paymentMethods.venmoHandle], ['zelle', wishlist.paymentMethods.zelleHandle]] as const) {
-      if (handle === null) continue;
-      const id = uuidv7();
+    for (const listHandle of [wishlist.paymentMethods.venmo, wishlist.paymentMethods.zelle]) {
+      if (listHandle === null) continue;
+      const id = listHandle.id.value;
+      const { method, handle } = listHandle.handle;
       await this.db.insertInto('owner_pii').values({ id, wishlist_id: wishlist.id.value, method, handle, redacted_at: null, created_at: new Date().toISOString() }).execute();
       await this.db.updateTable('wishlists').set(method === 'venmo' ? { venmo_owner_pii_ref: id } : { zelle_owner_pii_ref: id }).where('id', '=', wishlist.id.value).execute();
     }
@@ -118,12 +118,12 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     }));
     const refs = [row.venmo_owner_pii_ref, row.zelle_owner_pii_ref].filter((ref): ref is string => ref !== null);
     const handles = new Map(refs.length === 0 ? [] : (await this.db.selectFrom('owner_pii').select(['id', 'handle']).where('id', 'in', refs).execute())
-      .map((pii) => [pii.id, pii.handle]));
-    const handleOf = (ref: string | null) => (ref === null ? null : handles.get(ref) ?? null);
+      .map((pii) => [pii.id, pii]));
+    const rowOf = (ref: string | null) => (ref === null ? null : handles.get(ref) ?? null);
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
       ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now, description: row.description, theme: row.theme,
-      paymentMethods: PaymentMethods.from({ venmoHandle: handleOf(row.venmo_owner_pii_ref), zelleHandle: handleOf(row.zelle_owner_pii_ref) }),
+      paymentMethods: PaymentMethods.reconstitute({ venmo: rowOf(row.venmo_owner_pii_ref), zelle: rowOf(row.zelle_owner_pii_ref) }),
       items,
     });
   }

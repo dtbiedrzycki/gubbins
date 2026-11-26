@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Wishlist } from '../../../domain/entities/Wishlist.js';
-import { PaymentMethods } from '../../../domain/value-objects/PaymentMethods.js';
 import { Item } from '../../../domain/entities/Item.js';
 import { ItemHasGuestHistoryError, WishlistNotFoundError } from '../../../domain/errors.js';
 import {
@@ -13,6 +12,10 @@ const LIST_C = '55555555-5555-7555-8555-555555555500';
 const ITEM_C1 = '55555555-5555-7555-8555-555555555501';
 const ITEM_C2 = '55555555-5555-7555-8555-555555555502';
 const ITEM_A2 = '33333333-3333-7333-8333-333333333334';
+const VENMO_ROW = '55555555-5555-7555-8555-5555555555a1';
+const ZELLE_ROW = '55555555-5555-7555-8555-5555555555a2';
+// Mints the list's handle rows' ids in order: Venmo, then Zelle.
+const handleRowIds = () => { const ids = [VENMO_ROW, ZELLE_ROW]; return { generateEntityId: () => ids.shift()! }; };
 
 export function describeWishlistRepositoryContract(adapter: string, factory: PersistenceFactory): void {
   describe(`WishlistRepository contract (${adapter})`, () => {
@@ -219,15 +222,15 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
 
     it('round-trips payment methods and item fields', async () => {
       const wishlist = Wishlist.create({ id: LIST_C, slug: 'list-c', title: 'C', ownerToken: 'o', key: 'k', asOf: NOW,
-        paymentMethods: PaymentMethods.from({ venmoHandle: 'my-venmo', zelleHandle: 'me@example.com' }) });
+        venmoHandle: 'my-venmo', zelleHandle: 'me@example.com' }, handleRowIds());
       wishlist.addItem({ type: 'single', title: 'Crib', quantity: 2, url: 'https://shop.example/crib', priceMinor: 19999 }, { generateEntityId: () => ITEM_C1 });
       wishlist.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, { generateEntityId: () => ITEM_C2 });
       await fx.wishlists.insert(wishlist);
 
       const loaded = await fx.wishlists.findById(LIST_C, NOW);
 
-      expect(loaded?.paymentMethods.venmoHandle).toBe('my-venmo');
-      expect(loaded?.paymentMethods.zelleHandle).toBe('me@example.com');
+      expect([loaded?.paymentMethods.venmo?.id.value, loaded?.paymentMethods.venmoHandle]).toEqual([VENMO_ROW, 'my-venmo']);
+      expect([loaded?.paymentMethods.zelle?.id.value, loaded?.paymentMethods.zelleHandle]).toEqual([ZELLE_ROW, 'me@example.com']);
       expect(loaded?.getItem(ITEM_C1)).toMatchObject({ type: 'single', quantity: 2, url: 'https://shop.example/crib', priceMinor: 19999 });
       expect(loaded?.getItem(ITEM_C2)).toMatchObject({ type: 'group', quantity: 1, priceMinor: 45000 });
     });
@@ -321,7 +324,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
     it('save inserts a pledge the aggregate made, once: a second save inserts nothing', async () => {
       await fx.seedGuestPii(PII_REF);
       const list = Wishlist.create({ id: LIST_C, slug: 'list-c', title: 'C', ownerToken: 'o', key: 'k', asOf: NOW,
-        paymentMethods: PaymentMethods.from({ venmoHandle: 'my-venmo' }) });
+        venmoHandle: 'my-venmo' }, handleRowIds());
       list.addItem({ type: 'group', title: 'Mixer', priceMinor: 45_000 }, { generateEntityId: () => ITEM_C2 });
       await fx.wishlists.insert(list);
       const wishlist = (await fx.wishlists.findById(LIST_C, NOW))!;
@@ -337,7 +340,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
     it('gives each item only its own contributions', async () => {
       await fx.seedGuestPii(PII_REF);
       const list = Wishlist.create({ id: LIST_C, slug: 'list-c', title: 'C', ownerToken: 'o', key: 'k', asOf: NOW,
-        paymentMethods: PaymentMethods.from({ venmoHandle: 'my-venmo' }) });
+        venmoHandle: 'my-venmo' }, handleRowIds());
       list.addItem({ type: 'group', title: 'Mixer', priceMinor: 45_000 }, { generateEntityId: () => ITEM_C1 });
       list.addItem({ type: 'group', title: 'Pram', priceMinor: 60_000 }, { generateEntityId: () => ITEM_C2 });
       await fx.wishlists.insert(list);

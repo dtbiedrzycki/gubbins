@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Contribution } from '../../../domain/entities/Contribution.js';
 import { Wishlist } from '../../../domain/entities/Wishlist.js';
-import { PaymentMethods } from '../../../domain/value-objects/PaymentMethods.js';
 import type { ContributionRepository } from '../ContributionRepository.js';
 import type { WishlistRepository } from '../WishlistRepository.js';
 import { later, NOW, SESSION } from './fixture.js';
@@ -36,11 +35,12 @@ export function describeContributionRepositoryContract(adapter: string, factory:
     let fx: ContributionFixture;
     beforeEach(async () => {
       fx = await factory();
-      const paymentMethods = PaymentMethods.from({ venmoHandle: 'my-venmo' });
-      const x = Wishlist.create({ id: LIST_X, slug: 'list-x', title: 'X', ownerToken: 'o-x', key: 'k-x', asOf: NOW, paymentMethods });
+      const x = Wishlist.create({ id: LIST_X, slug: 'list-x', title: 'X', ownerToken: 'o-x', key: 'k-x', asOf: NOW, venmoHandle: 'my-venmo' },
+        { generateEntityId: () => '66666666-6666-7666-8666-6666666666a0' });
       x.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, { generateEntityId: () => MIXER });
       x.addItem({ type: 'group', title: 'Stroller', priceMinor: 60000 }, { generateEntityId: () => STROLLER });
-      const y = Wishlist.create({ id: LIST_Y, slug: 'list-y', title: 'Y', ownerToken: 'o-y', key: 'k-y', asOf: NOW, paymentMethods });
+      const y = Wishlist.create({ id: LIST_Y, slug: 'list-y', title: 'Y', ownerToken: 'o-y', key: 'k-y', asOf: NOW, venmoHandle: 'my-venmo' },
+        { generateEntityId: () => '66666666-6666-7666-8666-6666666667a0' });
       y.addItem({ type: 'group', title: 'Crib', priceMinor: 30000 }, { generateEntityId: () => OTHER_LIST_ITEM });
       await fx.wishlists.insert(x);
       await fx.wishlists.insert(y);

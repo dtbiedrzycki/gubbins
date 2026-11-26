@@ -16,6 +16,10 @@ import { cleanDescription, Item, type ItemEdit, type ItemStatus } from './Item.j
 
 const WISHLIST_DESCRIPTION_MAX = 2000; // room for an address and delivery notes; bounds stored input
 
+type NewListProps = { id: string; slug: string; title: string; ownerToken: string; key: string; asOf: Date; description?: string | null };
+/** A new list's handles as the owner typed them; blank means none. */
+type ListHandles = { venmoHandle?: string | null; zelleHandle?: string | null };
+
 /** The looks a list can have. */
 export const LIST_THEMES = ['storybook', 'groovy'] as const;
 export type ListTheme = (typeof LIST_THEMES)[number];
@@ -114,12 +118,18 @@ export class Wishlist {
     this._description = description;
   }
 
-  /** A new list, deciding as of `asOf`: the instant it is created at. */
-  static create(props: { id: string; slug: string; title: string; ownerToken: string; key: string; asOf: Date; paymentMethods?: PaymentMethods;
-    description?: string | null }): Wishlist {
+  /**
+   * A new list, deciding as of `asOf`: the instant it is created at. A list
+   * given payment handles mints their owner_pii row ids with `ids`, so a
+   * caller passing a handle must pass the generator.
+   */
+  static create(props: NewListProps): Wishlist;
+  static create(props: NewListProps & ListHandles, ids: { generateEntityId(): string }): Wishlist;
+  static create(props: NewListProps & ListHandles, ids?: { generateEntityId(): string }): Wishlist {
     return new Wishlist(
       UuidId.from(props.id), Slug.from(props.slug), props.title.trim(),
-      OwnerToken.from(props.ownerToken), GuestKey.from(props.key), 1, new Date(props.asOf.getTime()), props.paymentMethods,
+      OwnerToken.from(props.ownerToken), GuestKey.from(props.key), 1, new Date(props.asOf.getTime()),
+      ids ? PaymentMethods.mint(props, ids) : PaymentMethods.none,
       cleanDescription(props.description), 'storybook',
     );
   }

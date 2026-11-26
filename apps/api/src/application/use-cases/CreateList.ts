@@ -3,7 +3,6 @@ import type { UnitOfWork } from '../ports/UnitOfWork.js';
 import type { TokenGenerator } from '../ports/TokenGenerator.js';
 import type { Clock } from '../ports/Clock.js';
 import type { SecretComparer } from '../ports/SecretComparer.js';
-import { PaymentMethods } from '../../domain/value-objects/PaymentMethods.js';
 import { DomainValidationError, InvalidCreateSecretError } from '../../domain/errors.js';
 
 export interface CreateListInput {
@@ -48,8 +47,9 @@ export class CreateList {
         ownerToken: this.tokenGenerator.generateOwnerToken(),
         key: chosenKey,
         asOf: this.clock.now(),
-        paymentMethods: PaymentMethods.from({ venmoHandle: input.venmoHandle, zelleHandle: input.zelleHandle }),
-      });
+        venmoHandle: input.venmoHandle,
+        zelleHandle: input.zelleHandle,
+      }, this.tokenGenerator);
       await ctx.wishlists.insert(wishlist);
 
       return {
