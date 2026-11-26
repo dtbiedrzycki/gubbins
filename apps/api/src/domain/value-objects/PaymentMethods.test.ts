@@ -15,7 +15,7 @@ describe('PaymentMethods.isCurrent', () => {
   it('counts a Venmo handle as current whatever its capitals', () => {
     expect(list.isCurrent(PaymentHandle.from('venmo', 'My-Venmo'))).toBe(true);
   });
-  it('counts a Venmo handle other than the list's as not current', () => {
+  it("counts a Venmo handle other than the list's as not current", () => {
     expect(list.isCurrent(PaymentHandle.from('venmo', 'old-venmo'))).toBe(false);
   });
   it('counts a handle as not current when the list has none for its method', () => {
