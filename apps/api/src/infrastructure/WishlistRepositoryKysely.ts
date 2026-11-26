@@ -37,7 +37,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     for (const listHandle of [wishlist.paymentMethods.venmo, wishlist.paymentMethods.zelle]) {
       if (listHandle === null) continue;
       const id = listHandle.id.value;
-      const { method, handle } = listHandle.handle;
+      const { method, handle } = listHandle.payment;
       await this.db.insertInto('owner_pii').values({ id, wishlist_id: wishlist.id.value, method, handle, redacted_at: null, created_at: createdAt }).execute();
       await this.db.updateTable('wishlists').set(method === 'venmo' ? { venmo_owner_pii_ref: id } : { zelle_owner_pii_ref: id }).where('id', '=', wishlist.id.value).execute();
     }
