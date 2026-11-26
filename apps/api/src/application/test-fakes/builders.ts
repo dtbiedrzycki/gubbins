@@ -20,7 +20,7 @@ export class WishlistBuilder {
   withTitle(title: string): this { this.props.title = title; return this; }
   withOwnerToken(ownerToken: string): this { this.props.ownerToken = ownerToken; return this; }
   withKey(key: string): this { this.props.key = key; return this; }
-  withPaymentMethods(paymentMethods: PaymentMethods): this { this.paymentMethods = paymentMethods; return this; }
+  withPaymentHandles(handles: { venmoHandle?: string; zelleHandle?: string }): this { this.paymentMethods = PaymentMethods.from(handles); return this; }
   /** The instant the built aggregate decides at, as a load would set it. */
   asOf(at: Date): this { this.instant = at; return this; }
   /**

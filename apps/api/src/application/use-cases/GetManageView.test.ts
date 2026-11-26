@@ -3,7 +3,6 @@ import { GetManageView } from './GetManageView.js';
 import { BuyItem } from './BuyItem.js';
 import { HoldItem } from './HoldItem.js';
 import { PledgeContribution } from './PledgeContribution.js';
-import { PaymentMethods } from '../../domain/value-objects/PaymentMethods.js';
 import { aWishlist } from '../test-fakes/builders.js';
 import { inMemoryPersistence } from '../test-fakes/InMemoryRepositories.js';
 import { SequentialTokenGenerator } from '../test-fakes/SequentialTokenGenerator.js';
@@ -18,7 +17,7 @@ const OWNER = { guestSession: null, owner: true };
 async function setup() {
   const persistence = inMemoryPersistence();
   const clock = new FixedClock(T0);
-  const wishlist = aWishlist().withId(WISHLIST_ID).withKey('the-key').withPaymentMethods(PaymentMethods.from({ venmoHandle: 'my-venmo' }))
+  const wishlist = aWishlist().withId(WISHLIST_ID).withKey('the-key').withPaymentHandles({ venmoHandle: 'my-venmo' })
     .withItem({ id: ITEM_ID, title: 'Stroller' }).withItem({ id: OTHER_ITEM_ID, title: 'Toaster', quantity: 2 }).build();
   wishlist.addItem({ type: 'group', title: 'Pram', priceMinor: 50_000 }, { generateEntityId: () => GROUP_ITEM_ID });
   wishlist.changeTheme('groovy');

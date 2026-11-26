@@ -4,7 +4,6 @@ import { aWishlist } from '../test-fakes/builders.js';
 import { inMemoryPersistence } from '../test-fakes/InMemoryRepositories.js';
 import { SequentialTokenGenerator } from '../test-fakes/SequentialTokenGenerator.js';
 import { FixedClock } from '../test-fakes/FixedClock.js';
-import { PaymentMethods } from '../../domain/value-objects/PaymentMethods.js';
 import type { AccessContext } from '../AccessContext.js';
 import { ItemNotFoundError } from '../../domain/errors.js';
 
@@ -14,7 +13,7 @@ const GUEST: AccessContext = { guestSession: { sessionHash: 'a'.repeat(64) } };
 
 async function makeUseCase() {
   const persistence = inMemoryPersistence();
-  const wishlist = aWishlist().withId(WISHLIST_ID).withPaymentMethods(PaymentMethods.from({ venmoHandle: 'my-venmo' })).build();
+  const wishlist = aWishlist().withId(WISHLIST_ID).withPaymentHandles({ venmoHandle: 'my-venmo' }).build();
   wishlist.addItem({ type: 'group', title: 'Pram', priceMinor: 50_000 }, { generateEntityId: () => ITEM_ID });
   await persistence.wishlists.insert(wishlist);
   const useCase = new PledgeContribution(persistence.unitOfWork, new SequentialTokenGenerator(), new FixedClock(new Date('2026-01-01T00:00:00Z')));
