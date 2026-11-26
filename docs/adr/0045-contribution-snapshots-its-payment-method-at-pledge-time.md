@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-09-09
 - **Deciders:** dtbiedrzycki
+- **Amended:** 2026-11-26. The snapshot is `{ method, handle }` as the guest reports it, in the pledge's own `owner_pii` row (ADR-[090](./0090-owner-payment-handles-are-owner-pii-in-a-side-table.md)); a stale snapshot never refuses a pledge; `label` is dropped; earlier pledges have none.
 
 ## Context
 
@@ -21,9 +22,19 @@ it right.
 
 ## Decision
 
-We will have a Contribution snapshot its payment method at pledge time,
-limited to `{ kind, label, handle }`. `instructions` remain presentational
-and are read live.
+Each pledge snapshots its payment method at pledge time, limited to
+`{ method, handle }`: the method the guest picked and the handle they paid,
+as the guest reports it. The Contribution holds only a reference to the
+pledge's own `owner_pii` row
+(ADR-[090](./0090-owner-payment-handles-are-owner-pii-in-a-side-table.md));
+the handle is not on the Contribution or in the event.
+
+A pledge is never refused because its snapshot is stale: a guest who has
+already paid an old handle must still be able to record it. The gift
+details flag a snapshot that is no longer the list's current handle.
+
+There is no `label` or `instructions` to snapshot: lists have only Venmo
+and Zelle (ADR-[082](./0082-payment-handles-set-at-list-creation.md)).
 
 ## Alternatives considered
 
@@ -43,6 +54,5 @@ and are read live.
   policy input, not a historical record). That decision is not reopened
   here: `targetMinor` stays live-read, only the payment method is
   snapshotted.
-- `instructions` text is intentionally excluded from the snapshot since it
-  is presentational rather than part of the reconciliation record, and
-  continues to read live.
+- Pledges made before the snapshot existed, or sent without a method, have
+  none; the gift details say the method wasn't recorded.
