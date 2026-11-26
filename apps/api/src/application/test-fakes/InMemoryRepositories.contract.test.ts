@@ -28,7 +28,7 @@ describeContributionRepositoryContract('in-memory', async () => {
   const store = new InMemoryStore();
   return {
     contributions: new InMemoryContributionRepository(store), wishlists: new InMemoryWishlistRepository(store),
-    seedGuestPii: async () => {}, dispose: async () => {},
+    seedGuestPii: async () => {}, seedOwnerPii: async () => {}, dispose: async () => {},
   };
 });
 describeOwnerPiiRepositoryContract('in-memory', async () => ({

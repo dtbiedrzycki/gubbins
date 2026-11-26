@@ -278,7 +278,7 @@ export class Item {
    * through `Wishlist.pledge`, which authorizes the item.
    */
   pledge(
-    props: { amountMinor: number; sessionHash: string; idempotencyKey: string; guestPiiRef: string },
+    props: { amountMinor: number; sessionHash: string; idempotencyKey: string; guestPiiRef: string; ownerPiiRef?: string },
     ids: { generateEntityId(): string },
   ): { contribution: Contribution; event: ContributionPledgedEvent; expectedSeq: number } {
     if (this.type !== 'group') throw new ItemUnavailableError(this.id.value);
@@ -296,6 +296,7 @@ export class Item {
       sessionHash: props.sessionHash,
       idempotencyKey: props.idempotencyKey,
       guestPiiRef: props.guestPiiRef,
+      ownerPiiRef: props.ownerPiiRef,
       pledgedAt: this.asOf,
     });
     const event: ContributionPledgedEvent = {
@@ -307,6 +308,7 @@ export class Item {
       sessionHash: contribution.sessionHash.value,
       idempotencyKey: contribution.idempotencyKey.value,
       piiRef: contribution.guestPiiRef.value, // events keep their original key
+      ownerPiiRef: contribution.ownerPiiRef?.value,
       occurredAt: this.asOf.toISOString(),
     };
     this._contributions.push(contribution);

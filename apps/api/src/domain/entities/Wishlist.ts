@@ -336,7 +336,7 @@ export class Wishlist {
   }
 
   pledge(
-    props: { itemId: string; amountMinor: number; sessionHash: string; idempotencyKey: string; guestPiiRef: string },
+    props: { itemId: string; amountMinor: number; sessionHash: string; idempotencyKey: string; guestPiiRef: string; ownerPiiRef?: string },
     ids: { generateEntityId(): string },
   ): { contribution: Contribution; item: Item; event: ContributionPledgedEvent; expectedSeq: number } {
     const item = this.getItem(props.itemId);

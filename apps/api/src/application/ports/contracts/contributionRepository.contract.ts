@@ -10,6 +10,8 @@ export interface ContributionFixture {
   wishlists: WishlistRepository;
   /** Makes a guest_pii row a contribution can reference; the real table enforces the foreign key. */
   seedGuestPii(id: string): Promise<void>;
+  /** A pledge's owner_pii row, on the given list: the SQLite adapter's owner_pii_ref foreign key needs one. */
+  seedOwnerPii(id: string, wishlistId: string): Promise<void>;
   dispose(): Promise<void>;
 }
 export type ContributionFactory = () => Promise<ContributionFixture>;
@@ -62,6 +64,19 @@ export function describeContributionRepositoryContract(adapter: string, factory:
         idempotencyKey: inserted.idempotencyKey, guestPiiRef: inserted.guestPiiRef,
       });
       expect(found?.pledgedAt).toEqual(NOW);
+    });
+
+    it("round-trips a contribution's ownerPiiRef", async () => {
+      const OWNER_PII = '77777777-7777-7777-8777-7777777777b0';
+      await fx.seedOwnerPii(OWNER_PII, LIST_X);
+      await fx.contributions.insert(Contribution.reconstitute({
+        id: '00000000-0000-7000-8000-0000000000b0', itemId: MIXER, amountMinor: 2500, sessionHash: SESSION,
+        idempotencyKey: 'key-owner', guestPiiRef: PII, ownerPiiRef: OWNER_PII, pledgedAt: NOW,
+      }));
+
+      const [found] = await fx.contributions.findForWishlist(LIST_X);
+
+      expect(found?.ownerPiiRef?.value).toBe(OWNER_PII);
     });
 
     it('refuses a second contribution with the same item and key', async () => {

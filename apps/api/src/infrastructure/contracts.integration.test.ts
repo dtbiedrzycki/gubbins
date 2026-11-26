@@ -12,6 +12,7 @@ import { ContributionRepositoryKysely } from './ContributionRepositoryKysely.js'
 import { EventStoreKysely } from './EventStoreKysely.js';
 import { GuestPiiRepositoryKysely } from './GuestPiiRepositoryKysely.js';
 import { GuestDetails } from '../domain/value-objects/GuestDetails.js';
+import { PaymentHandle } from '../domain/value-objects/PaymentHandle.js';
 import { HoldRepositoryKysely } from './HoldRepositoryKysely.js';
 import { OwnerPiiRepositoryKysely } from './OwnerPiiRepositoryKysely.js';
 import { WishlistRepositoryKysely } from './WishlistRepositoryKysely.js';
@@ -46,6 +47,7 @@ describeContributionRepositoryContract('Kysely/SQLite', async () => {
   return {
     contributions: new ContributionRepositoryKysely(db), wishlists: new WishlistRepositoryKysely(db),
     seedGuestPii: (id) => new GuestPiiRepositoryKysely(db).insert(id, GuestDetails.from({ name: 'Guest' })),
+    seedOwnerPii: (id, wishlistId) => new OwnerPiiRepositoryKysely(db).insert(id, wishlistId, PaymentHandle.from('venmo', 'my-venmo')),
     dispose: () => db.destroy(),
   };
 });

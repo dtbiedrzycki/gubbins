@@ -14,6 +14,8 @@ export class Contribution {
     readonly idempotencyKey: IdempotencyKey,
     readonly guestPiiRef: UuidId,
     readonly pledgedAt: Date,
+    /** The owner_pii row of the handle the guest paid (ADR-0090); null for a pledge recorded without a method, as every earlier pledge was. */
+    readonly ownerPiiRef: UuidId | null,
   ) {
     // Money allows zero, for totals; a pledge of nothing is not a pledge.
     if (amount.amountMinor === 0) throw new DomainValidationError('A pledge must be more than zero');
@@ -21,15 +23,18 @@ export class Contribution {
 
   static create(props: {
     id: string; itemId: string; amount: Money; sessionHash: string; idempotencyKey: string; guestPiiRef: string; pledgedAt: Date;
+    ownerPiiRef?: string | null;
   }): Contribution {
     return new Contribution(
       UuidId.from(props.id), UuidId.from(props.itemId), props.amount, SessionHash.from(props.sessionHash),
       IdempotencyKey.from(props.idempotencyKey), UuidId.from(props.guestPiiRef), props.pledgedAt,
+      props.ownerPiiRef == null ? null : UuidId.from(props.ownerPiiRef),
     );
   }
 
   static reconstitute(props: {
     id: string; itemId: string; amountMinor: number; sessionHash: string; idempotencyKey: string; guestPiiRef: string; pledgedAt: Date;
+    ownerPiiRef?: string | null;
   }): Contribution {
     return Contribution.create({ ...props, amount: Money.usd(props.amountMinor) });
   }
