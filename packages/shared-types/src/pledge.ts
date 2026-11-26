@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import { paymentHandleTextSchema } from './createList.js';
+
+/** The ways a guest can pay for a group gift. */
+export const paymentMethodSchema = z.enum(['venmo', 'zelle']);
 
 export const pledgeRequestSchema = z.object({
   idempotencyKey: z.string().min(1),
@@ -6,6 +10,8 @@ export const pledgeRequestSchema = z.object({
   amountMinor: z.number().int().positive(),
   name: z.string().min(1),
   message: z.string().optional(),
+  // The method and handle the guest says they paid. Optional: a pledge can be recorded without one, and older pages send none.
+  payment: z.object({ method: paymentMethodSchema, handle: paymentHandleTextSchema }).optional(),
 });
 export type PledgeRequest = z.infer<typeof pledgeRequestSchema>;
 

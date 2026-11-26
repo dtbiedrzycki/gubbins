@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Kysely } from 'kysely';
+import type { PledgeRequest } from '@gubbins/shared-types';
 import { createDb } from '../db/createDb.js';
 import { migrateToLatest } from '../db/migrate.js';
 import type { Database } from '../db/schema.js';
@@ -43,7 +44,7 @@ async function projections() {
       .select(['id', 'item_id', 'secret', 'session_hash', 'idempotency_key', 'expires_at', 'extended_at', 'released_at', 'purchased_at', 'buy_undone_at', 'units', 'purchased_units'])
       .orderBy('id').execute(),
     contributions: await db.selectFrom('contributions')
-      .select(['id', 'item_id', 'amount_minor', 'session_hash', 'idempotency_key', 'guest_pii_ref', 'pledged_at'])
+      .select(['id', 'item_id', 'amount_minor', 'session_hash', 'idempotency_key', 'guest_pii_ref', 'owner_pii_ref', 'pledged_at'])
       .orderBy('id').execute(),
     itemState: await db.selectFrom('item_state').select(['item_id', 'seq']).orderBy('item_id').execute(),
     purchasedCounts: await Promise.all(
@@ -69,8 +70,8 @@ async function aGroupGift() {
   const { slug } = await deps.createList.execute({ listTitle: 'G', createSecret: 'test-create-secret', venmoHandle: 'my-venmo', key: guestKey });
   const wishlistId = (await deps.wishlists.findBySlug(slug, clock.now()))!.id.value;
   const { itemId } = await deps.addItem.execute({ wishlistId, type: 'group', title: 'Pram', priceMinor: 50_000 }, { guestSession: null, owner: true });
-  const pledge = (access: AccessContext, idempotencyKey: string) =>
-    deps.pledgeContribution.execute({ wishlistId, itemId, idempotencyKey, amountMinor: 2_500, name: 'Ada' }, access);
+  const pledge = (access: AccessContext, idempotencyKey: string, payment?: PledgeRequest['payment']) =>
+    deps.pledgeContribution.execute({ wishlistId, itemId, idempotencyKey, amountMinor: 2_500, name: 'Ada', payment }, access);
   return { pledge };
 }
 
@@ -90,7 +91,7 @@ async function aBusyLedger(): Promise<void> {
   await stillActive.hold(GUEST, 'd');
   const e = await boughtThenUndone.hold(GUEST, 'e');
   await groupGift.pledge(GUEST, 'p');
-  await groupGift.pledge(OTHER_GUEST, 'p2');
+  await groupGift.pledge(OTHER_GUEST, 'p2', { method: 'venmo', handle: 'my-venmo' }); // one pledge with a handle row, one without
 
   clock.advance(DAY);
   await deps.extendHold.execute({ ...extendedThenBought.command, holdId: a.holdId }, GUEST);
