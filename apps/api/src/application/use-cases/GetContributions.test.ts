@@ -5,7 +5,6 @@ import { HoldItem } from './HoldItem.js';
 import { MarkHoldPurchased } from './MarkHoldPurchased.js';
 import { PledgeContribution } from './PledgeContribution.js';
 import { Hold } from '../../domain/entities/Hold.js';
-import { PaymentMethods } from '../../domain/value-objects/PaymentMethods.js';
 import { aWishlist } from '../test-fakes/builders.js';
 import { inMemoryPersistence } from '../test-fakes/InMemoryRepositories.js';
 import { SequentialTokenGenerator } from '../test-fakes/SequentialTokenGenerator.js';
@@ -21,7 +20,7 @@ const MINUTE = 60 * 1000;
 async function setup() {
   const persistence = inMemoryPersistence();
   const clock = new FixedClock(T0);
-  const wishlist = aWishlist().withId(WISHLIST_ID).withPaymentMethods(PaymentMethods.from({ venmoHandle: 'my-venmo' }))
+  const wishlist = aWishlist().withId(WISHLIST_ID).withPaymentHandles({ venmoHandle: 'my-venmo' })
     .withItem({ id: ITEM_ID, title: 'Paperbacks', quantity: 3 }).withItem({ id: OTHER_ITEM_ID, title: 'Apron' }).build();
   wishlist.addItem({ type: 'group', title: 'Bench', priceMinor: 18_000 }, { generateEntityId: () => GROUP_ITEM_ID });
   await persistence.wishlists.insert(wishlist);
