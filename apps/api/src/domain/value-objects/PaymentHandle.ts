@@ -1,7 +1,6 @@
 import { DomainValidationError } from '../errors.js';
 
-export const PAYMENT_METHODS = ['venmo', 'zelle'] as const;
-export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+export type PaymentMethod = 'venmo' | 'zelle';
 
 const VENMO_MESSAGE = 'Venmo handle must be 5 to 30 letters, digits, "_" or "-"';
 const ZELLE_MESSAGE = 'Zelle handle must be an email or a US phone number';
