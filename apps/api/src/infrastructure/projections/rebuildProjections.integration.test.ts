@@ -44,7 +44,7 @@ async function projections() {
       .select(['id', 'item_id', 'secret', 'session_hash', 'idempotency_key', 'expires_at', 'extended_at', 'released_at', 'purchased_at', 'buy_undone_at', 'units', 'purchased_units'])
       .orderBy('id').execute(),
     contributions: await db.selectFrom('contributions')
-      .select(['id', 'item_id', 'amount_minor', 'session_hash', 'idempotency_key', 'guest_pii_ref', 'pledged_at'])
+      .select(['id', 'item_id', 'amount_minor', 'session_hash', 'idempotency_key', 'guest_pii_ref', 'owner_pii_ref', 'pledged_at'])
       .orderBy('id').execute(),
     itemState: await db.selectFrom('item_state').select(['item_id', 'seq']).orderBy('item_id').execute(),
     purchasedCounts: await Promise.all(
@@ -91,7 +91,7 @@ async function aBusyLedger(): Promise<void> {
   await stillActive.hold(GUEST, 'd');
   const e = await boughtThenUndone.hold(GUEST, 'e');
   await groupGift.pledge(GUEST, 'p');
-  await groupGift.pledge(OTHER_GUEST, 'p2');
+  await groupGift.pledge(OTHER_GUEST, 'p2', { method: 'venmo', handle: 'my-venmo' }); // one pledge with a handle row, one without
 
   clock.advance(DAY);
   await deps.extendHold.execute({ ...extendedThenBought.command, holdId: a.holdId }, GUEST);
@@ -140,17 +140,6 @@ describe('rebuildProjections', () => {
 
     await expect(rebuildProjections(db)).rejects.toThrow(RebuildError);
     expect(await projections()).toEqual(before);
-  });
-
-  it('re-folds ownerPiiRef from ContributionPledged', async () => {
-    const { pledge } = await aGroupGift();
-    const { contributionId } = await pledge(GUEST, 'p', { method: 'venmo', handle: 'my-venmo' });
-    const { owner_pii_ref: before } = await db.selectFrom('contributions').select('owner_pii_ref').where('id', '=', contributionId).executeTakeFirstOrThrow();
-
-    await rebuildProjections(db);
-
-    expect(before).not.toBeNull();
-    expect(await db.selectFrom('contributions').select('owner_pii_ref').where('id', '=', contributionId).executeTakeFirstOrThrow()).toEqual({ owner_pii_ref: before });
   });
 
   it('re-folds piiRef from ItemHeld and leaves guest_pii untouched', async () => {
