@@ -65,6 +65,33 @@ describe('0006 guest_pii_ref', () => {
   });
 });
 
+describe('0007 owner_pii', () => {
+  it("moves each list's Venmo and Zelle handles into owner_pii rows the list references, and gives a list with neither no rows", async () => {
+    const W2 = '22222222-2222-7222-8222-222222222222';
+    const old = createDb(':memory:');
+    const upTo0006 = Object.fromEntries(Object.entries(migrations).filter(([name]) => name < '0007'));
+    await runMigrations(old as unknown as Kysely<unknown>, upTo0006);
+    // Raw SQL: the typed schema no longer has these columns.
+    await sql`insert into wishlists (id, slug, title, owner_token, key, key_gen, created_at, venmo_handle, zelle_handle)
+      values (${W1}, 's1', 't', 'o', 'k', 1, ${NOW}, 'my-venmo', 'me@example.com'), (${W2}, 's2', 't', 'o', 'k', 1, ${NOW}, null, null)`.execute(old);
+
+    await migrateToLatest(old);
+
+    const handlesOf = async (id: string) => {
+      const list = await old.selectFrom('wishlists')
+        .leftJoin('owner_pii as venmo', 'venmo.id', 'wishlists.venmo_owner_pii_ref')
+        .leftJoin('owner_pii as zelle', 'zelle.id', 'wishlists.zelle_owner_pii_ref')
+        .select(['venmo.handle as venmo', 'venmo.method as venmoMethod', 'zelle.handle as zelle', 'zelle.method as zelleMethod'])
+        .where('wishlists.id', '=', id).executeTakeFirstOrThrow();
+      return list;
+    };
+    expect(await handlesOf(W1)).toEqual({ venmo: 'my-venmo', venmoMethod: 'venmo', zelle: 'me@example.com', zelleMethod: 'zelle' });
+    expect(await handlesOf(W2)).toEqual({ venmo: null, venmoMethod: null, zelle: null, zelleMethod: null });
+    expect(await old.selectFrom('owner_pii').select('wishlist_id').execute()).toEqual([{ wishlist_id: W1 }, { wishlist_id: W1 }]);
+    await old.destroy();
+  });
+});
+
 describe('the holds schema', () => {
   it("stores a hold's lifecycle timestamps, each null until set", async () => {
     await db.insertInto('holds').values(holdRow()).execute();
@@ -157,7 +184,7 @@ describe('migrateToLatest on a database an older build created', () => {
     expect(await released.selectFrom('wishlists').select(['id', 'slug', 'theme']).execute()).toEqual([{ id: W1, slug: 's', theme: 'storybook' }]);
     expect((await sql`select name from kysely_migration`.execute(released)).rows).toEqual([
       { name: '0001_init' }, { name: '0002_item_positions' }, { name: '0003_items_wishlist_index' }, { name: '0004_wishlist_theme' }, { name: '0005_hold_buy_undone' },
-      { name: '0006_guest_pii_ref' },
+      { name: '0006_guest_pii_ref' }, { name: '0007_owner_pii' },
     ]);
     await released.destroy();
   });
