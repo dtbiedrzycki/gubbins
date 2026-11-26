@@ -45,7 +45,7 @@
 - Modify: `apps/api/src/application/test-fakes/builders.ts` (`withPaymentMethods(PaymentMethods)` becomes `withPaymentHandles(raw: { venmoHandle?: string; zelleHandle?: string })`), and its callers `apps/api/src/application/use-cases/GetContributions.test.ts`, `GetManageView.test.ts`, `PledgeContribution.test.ts`
 
 **Interfaces:**
-- Produces: `export const PAYMENT_METHODS = ['venmo', 'zelle'] as const; export type PaymentMethod`. `class PaymentHandle { readonly method: PaymentMethod; readonly handle: string; static from(method: PaymentMethod, raw: string): PaymentHandle }`. `from` trims and normalizes (strips Venmo's `@`, lower-cases a Zelle email, turns a Zelle phone into `+1` and 10 digits); the private constructor checks the normalized form and throws `DomainValidationError`, so a blank handle is refused. `PaymentMethods.venmoHandle`/`zelleHandle` stay `string | null`.
+- Produces: `export type PaymentMethod = 'venmo' | 'zelle'`. `class PaymentHandle { readonly method: PaymentMethod; readonly handle: string; static from(method: PaymentMethod, raw: string): PaymentHandle }`. `from` trims and normalizes (strips Venmo's `@`, lower-cases a Zelle email, turns a Zelle phone into `+1` and 10 digits); the private constructor checks the normalized form and throws `DomainValidationError`, so a blank handle is refused. `PaymentMethods.venmoHandle`/`zelleHandle` stay `string | null`.
 
 - [ ] **Step 1: Move the four format `it.each` blocks** from `PaymentMethods.test.ts` to `PaymentHandle.test.ts`, calling `PaymentHandle.from('venmo' | 'zelle', raw).handle`. Add `'  '` as a row in both refusal tables. Move "is idempotent on its own output" too, as `it.each` per method: "accepts its own output again" (`PaymentHandle.from(m, PaymentHandle.from(m, raw).handle)` equals it; protects the constructor accepting normalized form). `PaymentMethods.test.ts` keeps only "treats blank handles as absent".
 - [ ] **Step 2: Run** `scripts/verify.sh --quick apps/api src/domain/value-objects` — FAIL (no `PaymentHandle`).
@@ -98,7 +98,7 @@
 **Interfaces:**
 - Produces: `interface OwnerPiiRepository { insert(id: string, wishlistId: string, payment: PaymentHandle): Promise<void>; findByIds(ids: readonly string[]): Promise<Map<string, PaymentHandle>> }`. The Kysely adapter rebuilds with `PaymentHandle.from`. Its first caller is Task 6; the PR body names that PR.
 
-- [ ] **Step 1: Contract suite** `describeOwnerPiiRepositoryContract(adapter, factory)`, run for both adapters:
+- [ ] **Step 1: Contract suite** `describeOwnerPiiRepositoryContract(adapter, factory)`, run for both adapters. Its fixture is `{ ownerPii, wishlistId, dispose }`; the Kysely factory inserts that list first (the row's foreign key).
   - "round-trips a pledge's method and handle by id" (protects insert + read mapping)
   - "leaves an unknown id out of what it reads"
   - "reads nothing for no ids" (protects the early return: SQLite refuses `in ()`)
@@ -126,20 +126,20 @@
 ### Task 6: The pledge request records the method and handle (PR 6)
 
 **Files:**
-- Modify: `packages/shared-types/src/pledge.ts`; Create: `packages/shared-types/src/pledge.test.ts`
+- Modify: `packages/shared-types/src/createList.ts` (names its `z.string().max(254)` once as `paymentHandleTextSchema`, with its why-comment, and uses it for both handles), `packages/shared-types/src/pledge.ts`; Create: `packages/shared-types/src/pledge.test.ts`
 - Modify: `apps/api/src/application/use-cases/PledgeContribution.ts`, `PledgeContribution.test.ts`
 - Modify: `apps/api/src/infrastructure/projections/rebuildProjections.ts`, `rebuildProjections.integration.test.ts` (the first PR whose events carry `ownerPiiRef`)
 - Regenerate: `apps/api/openapi.json`, `apps/web/src/api/schema.gen.ts`
 
 **Interfaces:**
-- Produces: `paymentMethodSchema = z.enum(['venmo', 'zelle'])` in `pledge.ts`, the shared types' one list of methods (Task 7 reuses it; the domain keeps its own `PAYMENT_METHODS`). Rebuild writes `owner_pii_ref: event.ownerPiiRef`.
-- Produces: `pledgeRequestSchema.payment: z.object({ method: paymentMethodSchema, handle: z.string().max(254) }).optional()` (comment: optional because a tab loaded before this deploy sends none; capped like the create request's handles). The use case, after the replay check, parses `PaymentHandle.from(method, handle)` before anything is written, mints `ownerPiiRef`, passes it to `wishlist.pledge`, and inserts the `owner_pii` row (with `wishlistId`) before saving the aggregate.
+- Produces: `paymentMethodSchema = z.enum(['venmo', 'zelle'])` in `pledge.ts`, the shared types' one list of methods (Task 7 reuses it; the domain keeps its own `PaymentMethod` type). Rebuild writes `owner_pii_ref: event.ownerPiiRef`.
+- Produces: `pledgeRequestSchema.payment: z.object({ method: paymentMethodSchema, handle: paymentHandleTextSchema }).optional()` (comment: optional because a tab loaded before this deploy sends none). The one 254/255 test pins the cap for both requests. The use case, after the replay check, parses `PaymentHandle.from(method, handle)` before anything is written, mints `ownerPiiRef`, passes it to `wishlist.pledge`, and inserts the `owner_pii` row (with `wishlistId`) before saving the aggregate.
 
 - [ ] **Step 1: Failing tests.**
   - `pledge.test.ts`: "accepts a payment handle of 254 characters and refuses 255"; "refuses a payment method other than venmo or zelle".
   - `PledgeContribution.test.ts`: "stores the reported handle in its own owner_pii row, referenced by the contribution and its event" (protects mint + insert + pass-through); "records no payment for a pledge sent without one" (protects the `if (input.payment)` branch); "refuses a malformed handle before recording anything" (no contribution, event or row; protects parse-before-write). The existing "replays the original … writing nothing more" sends a payment and also asserts one `owner_pii` row.
   - Rebuild: "re-folds ownerPiiRef from ContributionPledged" (protects the fold).
-- [ ] **Step 2: Run** the two files with `--quick` — FAIL.
+- [ ] **Step 2: Run** `scripts/verify.sh --quick packages/shared-types src/pledge.test.ts`, then `--quick apps/api` on `PledgeContribution.test.ts` and `rebuildProjections.integration.test.ts` — FAIL.
 - [ ] **Step 3: Implement; regenerate the OpenAPI document and client types.**
 - [ ] **Step 4: Verify** `scripts/verify.sh`; **commit** `feat: a pledge records the method and handle the guest paid`
 
