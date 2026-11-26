@@ -8,5 +8,7 @@ export interface ContributionPledgedEvent {
   sessionHash: string;
   idempotencyKey: string;
   piiRef: string;
+  /** The owner_pii row of the handle the guest paid (ADR-0090). Optional: older events and pledges sent without a method lack it. */
+  ownerPiiRef?: string;
   occurredAt: string; // ISO 8601
 }

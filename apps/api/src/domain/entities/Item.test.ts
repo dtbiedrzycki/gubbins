@@ -564,6 +564,11 @@ describe('Item.pledge', () => {
     expect([contribution.amount.amountMinor, event.type, event.amountMinor, expectedSeq, item.seq]).toEqual([11250, 'ContributionPledged', 11250, 0, 1]);
     expect(event.piiRef).toBe(PII);
   });
+  it("puts the pledge's ownerPiiRef on its contribution and its event", () => {
+    const OWNER_PII = '66666666-6666-7666-8666-666666666666';
+    const { contribution, event } = group().pledge({ ...props, amountMinor: 2_500, ownerPiiRef: OWNER_PII }, ids);
+    expect([contribution.ownerPiiRef?.value, event.ownerPiiRef]).toEqual([OWNER_PII, OWNER_PII]);
+  });
   it('adds the pledge to its own contributions, pledged at the instant the item was loaded at', () => {
     const item = group();
     const { contribution } = item.pledge({ ...props, amountMinor: 2_500 }, ids);
