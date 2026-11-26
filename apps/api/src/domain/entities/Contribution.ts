@@ -28,7 +28,7 @@ export class Contribution {
     return new Contribution(
       UuidId.from(props.id), UuidId.from(props.itemId), props.amount, SessionHash.from(props.sessionHash),
       IdempotencyKey.from(props.idempotencyKey), UuidId.from(props.guestPiiRef), props.pledgedAt,
-      props.ownerPiiRef ? UuidId.from(props.ownerPiiRef) : null,
+      props.ownerPiiRef == null ? null : UuidId.from(props.ownerPiiRef),
     );
   }
 
