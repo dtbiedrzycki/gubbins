@@ -56,5 +56,3 @@ and Zelle (ADR-[082](./0082-payment-handles-set-at-list-creation.md)).
   snapshotted.
 - Pledges made before the snapshot existed, or sent without a method, have
   none; the gift details say the method wasn't recorded.
-- If ADR-044's `instructions` return, they stay presentational and read
-  live, outside the snapshot.
