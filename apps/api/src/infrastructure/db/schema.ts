@@ -8,8 +8,9 @@ export interface WishlistsTable {
   owner_token: string;
   key: string;
   key_gen: number;
-  venmo_handle: string | null;
-  zelle_handle: string | null;
+  /** The list's Venmo and Zelle handles live in owner_pii (ADR-0090). */
+  venmo_owner_pii_ref: string | null;
+  zelle_owner_pii_ref: string | null;
   description: string | null;
   created_at: string;
   /** The list's style; defaulted by the database, so typed inserts may leave it out. */
@@ -70,6 +71,15 @@ export interface GuestPiiTable {
   created_at: string;
 }
 
+export interface OwnerPiiTable {
+  id: string;
+  wishlist_id: string;
+  method: 'venmo' | 'zelle';
+  handle: string;
+  redacted_at: string | null;
+  created_at: string;
+}
+
 export interface ContributionsTable {
   id: string;
   item_id: string;
@@ -77,6 +87,7 @@ export interface ContributionsTable {
   session_hash: string;
   idempotency_key: string;
   guest_pii_ref: string;
+  owner_pii_ref: string | null;
   pledged_at: string;
   created_at: string;
 }
@@ -88,5 +99,6 @@ export interface Database {
   holds: HoldsTable;
   event_log: EventLogTable;
   guest_pii: GuestPiiTable;
+  owner_pii: OwnerPiiTable;
   contributions: ContributionsTable;
 }
