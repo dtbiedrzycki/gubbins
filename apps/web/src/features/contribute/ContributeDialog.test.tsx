@@ -229,7 +229,35 @@ describe('ContributeDialog', () => {
     await user.click(screen.getByRole('button', { name: "I've sent it" }));
 
     await vi.waitFor(() => expect(props.onPledged).toHaveBeenCalledWith(28750));
-    expect(bodies).toEqual([{ idempotencyKey: expect.any(String), amountMinor: 28750, name: 'Amara', message: 'Enjoy!' }]);
+    expect(bodies).toEqual([{ idempotencyKey: expect.any(String), amountMinor: 28750, name: 'Amara', message: 'Enjoy!', payment: { method: 'venmo', handle: 'my-venmo' } }]);
+  });
+
+  it('sends the Zelle handle once the guest switches to Zelle', async () => {
+    const bodies = pledgeEndpoint();
+    const user = userEvent.setup();
+    const { props } = renderDialog();
+    await continueWithTheRest(user);
+    await chooseZelle(user);
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: "I've sent it" }));
+
+    await vi.waitFor(() => expect(props.onPledged).toHaveBeenCalled());
+    expect(bodies[0]).toMatchObject({ payment: { method: 'zelle', handle: 'me@example.com' } });
+  });
+
+  it('shows and sends the handle frozen when the pay step opened, not the one the list changed to', async () => {
+    const bodies = pledgeEndpoint();
+    const user = userEvent.setup();
+    const { props, rerender } = renderDialog();
+    await continueWithTheRest(user);
+    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    rerender(<QueryClientProvider client={client}><ContributeDialog {...props} payment={{ venmoHandle: 'new-venmo', zelleHandle: 'me@example.com' }} /></QueryClientProvider>);
+    expect(screen.getByRole('link', { name: /with Venmo/ }).getAttribute('href')).toContain('my-venmo');
+    await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+    await user.click(screen.getByRole('button', { name: "I've sent it" }));
+
+    await vi.waitFor(() => expect(props.onPledged).toHaveBeenCalled());
+    expect(bodies[0]).toMatchObject({ payment: { method: 'venmo', handle: 'my-venmo' } });
   });
 
   it('remembers the names once the name field loses focus', async () => {
@@ -306,7 +334,7 @@ describe('ContributeDialog', () => {
 
   describe('a chip-in left to pay', () => {
     const DRAFT_KEY = 'gubbins:contribute-draft:abc123';
-    const draft = { itemId: 'item-1', amountText: '25.00', message: 'Enjoy!', idempotencyKey: 'saved-key', savedAt: Date.now() };
+    const draft = { itemId: 'item-1', amountText: '25.00', message: 'Enjoy!', idempotencyKey: 'saved-key', savedAt: Date.now(), payment: { method: 'venmo' as const, handle: 'my-venmo' } };
     const stored = () => JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null') as typeof draft | null;
 
     it('saves the amount, message and pledge key while on the pay step', async () => {
@@ -315,7 +343,7 @@ describe('ContributeDialog', () => {
       await continueWithTheRest(user);
       await user.type(screen.getByLabelText('Message to the owner (optional)'), 'Enjoy!');
 
-      expect(stored()).toEqual({ itemId: 'item-1', amountText: '287.50', message: 'Enjoy!', idempotencyKey: expect.any(String), savedAt: expect.any(Number) });
+      expect(stored()).toEqual({ itemId: 'item-1', amountText: '287.50', message: 'Enjoy!', idempotencyKey: expect.any(String), savedAt: expect.any(Number), payment: { method: 'venmo', handle: 'my-venmo' } });
     });
 
     it('sends the saved pledge key so a pledge already made is not doubled', async () => {
@@ -328,7 +356,23 @@ describe('ContributeDialog', () => {
       await user.click(screen.getByRole('button', { name: "I've sent it" }));
 
       await vi.waitFor(() => expect(props.onPledged).toHaveBeenCalledWith(2500));
-      expect(bodies).toEqual([{ idempotencyKey: 'saved-key', amountMinor: 2500, name: 'Amara', message: 'Enjoy!' }]);
+      expect(bodies).toEqual([{ idempotencyKey: 'saved-key', amountMinor: 2500, name: 'Amara', message: 'Enjoy!', payment: { method: 'venmo', handle: 'my-venmo' } }]);
+    });
+
+    it("sends the handle a resumed draft saved, not the list's different one", async () => {
+      const bodies = pledgeEndpoint();
+      const user = userEvent.setup();
+      const { props } = renderDialog({ draft, payment: { venmoHandle: 'new-venmo', zelleHandle: null } });
+      await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
+      await user.click(screen.getByRole('button', { name: "I've sent it" }));
+
+      await vi.waitFor(() => expect(props.onPledged).toHaveBeenCalled());
+      expect(bodies[0]).toMatchObject({ payment: { method: 'venmo', handle: 'my-venmo' } });
+    });
+
+    it("notes that others finished funding the gift when a resumed draft's gift is fully funded", () => {
+      renderDialog({ draft, remainingMinor: 0 });
+      expect(screen.getByText('Others finished funding this gift while you were paying. If you already sent money, record it here.')).toBeInTheDocument();
     });
 
     it('clears the draft on cancel', async () => {

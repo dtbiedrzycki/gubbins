@@ -1,3 +1,5 @@
+import type { PayMethod } from './preferredPayMethod';
+
 /** A chip-in the guest left on the pay step, to pick up when they come back from paying. */
 export interface ContributeDraft {
   itemId: string;
@@ -5,6 +7,8 @@ export interface ContributeDraft {
   message: string;
   idempotencyKey: string;
   savedAt: number;
+  /** The method and handle the guest was shown; absent in a draft saved before handles were recorded. */
+  payment?: { method: PayMethod; handle: string };
 }
 
 // Long enough to pay and come back; short enough that a later visit doesn't reopen a chip-in the guest has forgotten.
