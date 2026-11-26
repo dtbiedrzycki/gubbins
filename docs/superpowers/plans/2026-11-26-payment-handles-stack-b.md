@@ -19,6 +19,7 @@
 - Clearing both handles while the list has a group gift is `NoPaymentMethodError` (409 `no_payment_method`); its message becomes "Group gifts need a Venmo or Zelle handle on this list."
 - A changed handle replaces the old text in place, a capitalisation-only change included; a cleared handle deletes the list's row; only pledges keep old handles.
 - Copy: change notice "The owner's Venmo changed from @old to @new since you started." (Zelle without `@`); removed method "The owner no longer takes Venmo on this list."; choices "I already paid @old" and "Pay @new instead" (or "Pay with Zelle instead" when the method went).
+- A change only in a Venmo handle's capitals never notifies a guest (owner ruling, 2026-11-26): Venmo usernames ignore case, as `isCurrent` does.
 - No plan IDs in commits, test names or comments.
 
 ## Review Focus
@@ -28,6 +29,7 @@
 - **An edit that leaves the handles as they were** keeps both row ids: the contract test in Task 1 reloads after a title-only save.
 - **A pledge's own `owner_pii` row survives** the list's handle for that method being cleared: Task 1's Kysely test.
 - **A guest whose method was removed** while paying can still record the old handle or switch method: Task 6.
+- **An owner who only fixes a Venmo handle's capitals** doesn't alarm a paying guest: Task 6.
 
 ---
 
@@ -120,9 +122,9 @@
 
 **Interfaces:**
 - Consumes: the frozen `paidTo` and `current(method)`.
-- Produces: on the pay step, when `current(paidTo.method).handle` differs from `paidTo.handle` (a refetch, or a resumed draft), a notice with two choices. "I already paid @old" hides the notice and keeps `paidTo`; "Pay @new instead" sets `paidTo` to the current pair. When the list no longer offers `paidTo.method`, the second choice switches to the other offered method, or is absent if none.
+- Produces: on the pay step, when `current(paidTo.method).handle` differs from `paidTo.handle` (a refetch, or a resumed draft), ignoring capitals for Venmo, a notice with two choices. "I already paid @old" hides the notice and keeps `paidTo`; "Pay @new instead" sets `paidTo` to the current pair. When the list no longer offers `paidTo.method`, the second choice switches to the other offered method, or is absent if none.
 
-- [ ] **Step 1: Failing tests.** "says the owner's Venmo changed since the pay step opened"; "keeps sending the old handle once the guest says they already paid it"; "sends the new handle once the guest chooses to pay it"; "offers Zelle when the owner removed Venmo while the guest was paying". The notice region is mounted empty and filled, as ListPage's alert is.
+- [ ] **Step 1: Failing tests.** "says the owner's Venmo changed since the pay step opened"; "says nothing when only the Venmo handle's capitals changed" (protects the case-insensitive comparison); "keeps sending the old handle once the guest says they already paid it"; "sends the new handle once the guest chooses to pay it"; "offers Zelle when the owner removed Venmo while the guest was paying". The notice region is mounted empty and filled, as ListPage's alert is.
 - [ ] **Step 2: Implement.**
 - [ ] **Step 3: Verify** `scripts/verify.sh`; **commit** `feat: the chip-in dialog says when the owner's handle changed`
 
