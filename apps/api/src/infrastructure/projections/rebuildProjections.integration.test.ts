@@ -43,7 +43,7 @@ async function projections() {
       .select(['id', 'item_id', 'secret', 'session_hash', 'idempotency_key', 'expires_at', 'extended_at', 'released_at', 'purchased_at', 'buy_undone_at', 'units', 'purchased_units'])
       .orderBy('id').execute(),
     contributions: await db.selectFrom('contributions')
-      .select(['id', 'item_id', 'amount_minor', 'session_hash', 'idempotency_key', 'pii_ref', 'pledged_at'])
+      .select(['id', 'item_id', 'amount_minor', 'session_hash', 'idempotency_key', 'guest_pii_ref', 'pledged_at'])
       .orderBy('id').execute(),
     itemState: await db.selectFrom('item_state').select(['item_id', 'seq']).orderBy('item_id').execute(),
     purchasedCounts: await Promise.all(
@@ -154,7 +154,7 @@ describe('rebuildProjections', () => {
 
     await rebuildProjections(db);
 
-    expect(await db.selectFrom('holds').select('pii_ref').where('id', '=', placed.holdId).executeTakeFirstOrThrow()).toEqual({ pii_ref: piiRef });
+    expect(await db.selectFrom('holds').select('guest_pii_ref').where('id', '=', placed.holdId).executeTakeFirstOrThrow()).toEqual({ guest_pii_ref: piiRef });
     expect(await db.selectFrom('guest_pii').selectAll().execute()).toEqual(piiBefore);
   });
 

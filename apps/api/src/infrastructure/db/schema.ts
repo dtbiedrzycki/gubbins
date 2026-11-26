@@ -48,7 +48,7 @@ export interface HoldsTable {
   released_at: string | null;
   purchased_at: string | null;
   buy_undone_at: string | null;
-  pii_ref: string | null;
+  guest_pii_ref: string | null;
   created_at: string;
 }
 
@@ -76,7 +76,7 @@ export interface ContributionsTable {
   amount_minor: number;
   session_hash: string;
   idempotency_key: string;
-  pii_ref: string;
+  guest_pii_ref: string;
   pledged_at: string;
   created_at: string;
 }
