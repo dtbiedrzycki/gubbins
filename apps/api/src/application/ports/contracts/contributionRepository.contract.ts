@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Contribution } from '../../../domain/entities/Contribution.js';
 import { Wishlist } from '../../../domain/entities/Wishlist.js';
-import { PaymentMethods } from '../../../domain/value-objects/PaymentMethods.js';
 import type { ContributionRepository } from '../ContributionRepository.js';
 import type { WishlistRepository } from '../WishlistRepository.js';
 import { later, NOW, SESSION } from './fixture.js';
@@ -21,6 +20,9 @@ const MIXER = '66666666-6666-7666-8666-666666666601';
 const STROLLER = '66666666-6666-7666-8666-666666666602';
 const OTHER_LIST_ITEM = '66666666-6666-7666-8666-666666666701';
 const PII = '77777777-7777-7777-8777-777777777700';
+// Each list's Venmo handle is its own owner_pii row, so the two ids differ.
+const LIST_X_VENMO_ROW = '66666666-6666-7666-8666-6666666666a0';
+const LIST_Y_VENMO_ROW = '66666666-6666-7666-8666-6666666667a0';
 
 let ids = 0;
 let keys = 0;
@@ -36,11 +38,12 @@ export function describeContributionRepositoryContract(adapter: string, factory:
     let fx: ContributionFixture;
     beforeEach(async () => {
       fx = await factory();
-      const paymentMethods = PaymentMethods.from({ venmoHandle: 'my-venmo' });
-      const x = Wishlist.create({ id: LIST_X, slug: 'list-x', title: 'X', ownerToken: 'o-x', key: 'k-x', asOf: NOW, paymentMethods });
+      const x = Wishlist.create({ id: LIST_X, slug: 'list-x', title: 'X', ownerToken: 'o-x', key: 'k-x', asOf: NOW, venmoHandle: 'my-venmo' },
+        { generateEntityId: () => LIST_X_VENMO_ROW });
       x.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, { generateEntityId: () => MIXER });
       x.addItem({ type: 'group', title: 'Stroller', priceMinor: 60000 }, { generateEntityId: () => STROLLER });
-      const y = Wishlist.create({ id: LIST_Y, slug: 'list-y', title: 'Y', ownerToken: 'o-y', key: 'k-y', asOf: NOW, paymentMethods });
+      const y = Wishlist.create({ id: LIST_Y, slug: 'list-y', title: 'Y', ownerToken: 'o-y', key: 'k-y', asOf: NOW, venmoHandle: 'my-venmo' },
+        { generateEntityId: () => LIST_Y_VENMO_ROW });
       y.addItem({ type: 'group', title: 'Crib', priceMinor: 30000 }, { generateEntityId: () => OTHER_LIST_ITEM });
       await fx.wishlists.insert(x);
       await fx.wishlists.insert(y);

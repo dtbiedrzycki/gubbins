@@ -1,7 +1,8 @@
 import { Wishlist } from '../../domain/entities/Wishlist.js';
 import { Hold } from '../../domain/entities/Hold.js';
 import { Item } from '../../domain/entities/Item.js';
-import { PaymentMethods } from '../../domain/value-objects/PaymentMethods.js';
+import { SequentialTokenGenerator } from './SequentialTokenGenerator.js';
+import type { ListHandles } from '../../domain/value-objects/PaymentMethods.js';
 import type { ItemHeldEvent } from '../../domain/events/ItemHeldEvent.js';
 
 const DEFAULT_WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
@@ -11,7 +12,7 @@ const DEFAULT_AS_OF = new Date('2026-01-01T00:00:00.000Z');
 export class WishlistBuilder {
   private props = { id: DEFAULT_WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' };
   private itemProps: { id: string; title: string; quantity?: number }[] = [];
-  private paymentMethods = PaymentMethods.none;
+  private handles: ListHandles = {};
   private purchased = 0;
   private instant = DEFAULT_AS_OF;
 
@@ -20,7 +21,7 @@ export class WishlistBuilder {
   withTitle(title: string): this { this.props.title = title; return this; }
   withOwnerToken(ownerToken: string): this { this.props.ownerToken = ownerToken; return this; }
   withKey(key: string): this { this.props.key = key; return this; }
-  withPaymentHandles(handles: { venmoHandle?: string; zelleHandle?: string }): this { this.paymentMethods = PaymentMethods.from(handles); return this; }
+  withPaymentHandles(handles: ListHandles): this { this.handles = handles; return this; }
   /** The instant the built aggregate decides at, as a load would set it. */
   asOf(at: Date): this { this.instant = at; return this; }
   /**
@@ -35,7 +36,7 @@ export class WishlistBuilder {
 
   build(): Wishlist {
     if (this.itemProps.length === 0 && this.purchased !== 0) throw new Error('withPurchasedCount needs withItem');
-    const wishlist = Wishlist.create({ ...this.props, asOf: this.instant, paymentMethods: this.paymentMethods });
+    const wishlist = Wishlist.create({ ...this.props, asOf: this.instant, ...this.handles }, new SequentialTokenGenerator());
     // New gifts go first, so add in reverse to leave the items in the order they were declared.
     for (const { id, title, quantity } of [...this.itemProps].reverse()) wishlist.addItem({ type: 'single', title, quantity }, { generateEntityId: () => id });
     const items = wishlist.items;
@@ -50,7 +51,7 @@ export class WishlistBuilder {
       id, wishlistId: this.props.id, type: 'single', title: this.itemProps[0].title, quantity: 1, seq: 0, asOf: this.instant, holds,
     });
     return Wishlist.reconstitute({
-      ...this.props, keyGen: wishlist.keyGen, theme: wishlist.theme, asOf: this.instant, paymentMethods: this.paymentMethods, items: [rebuilt, ...items.slice(1)],
+      ...this.props, keyGen: wishlist.keyGen, theme: wishlist.theme, asOf: this.instant, paymentMethods: wishlist.paymentMethods, items: [rebuilt, ...items.slice(1)],
     });
   }
 }

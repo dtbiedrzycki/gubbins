@@ -6,12 +6,12 @@ import { Contribution } from './Contribution.js';
 import {
   DomainValidationError, HoldNotFoundError, ItemHasGuestHistoryError, ItemNotFoundError, ItemUnavailableError, NoPaymentMethodError,
 } from '../errors.js';
-import { PaymentMethods } from '../value-objects/PaymentMethods.js';
 
 const WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
 const OTHER_WISHLIST_ID = '99999999-9999-7999-8999-999999999999';
 const ITEM_ID = '33333333-3333-7333-8333-333333333333';
 const OTHER_ITEM_ID = '44444444-4444-7444-8444-444444444444';
+const VENMO_ROW = '66666666-6666-7666-8666-666666666666';
 const SESSION = 'a'.repeat(64);
 const OTHER_SESSION = 'b'.repeat(64);
 const DAY = 86_400_000;
@@ -77,7 +77,7 @@ describe('Wishlist.create', () => {
 
   it('trims a description\'s ends but keeps the line breaks inside it', () => {
     expect(Wishlist.create({ ...validProps, description: '\n 1 Main St\nApt 2 \n' }).description).toBe('1 Main St\nApt 2');
-    const wishlist = Wishlist.create({ ...validProps, paymentMethods: PaymentMethods.none });
+    const wishlist = Wishlist.create(validProps);
     const item = wishlist.addItem({ type: 'single', title: 'Cot', description: ' a\nb ' }, { generateEntityId: () => ITEM_ID });
     expect(item.description).toBe('a\nb');
   });
@@ -321,8 +321,15 @@ describe('Wishlist group gifts', () => {
     expect(() => wishlist.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, ids)).toThrow(NoPaymentMethodError);
   });
   it('accepts a group gift once the list has a payment method', () => {
-    const wishlist = Wishlist.create({ ...validProps, paymentMethods: PaymentMethods.from({ venmoHandle: 'my-venmo' }) });
+    const wishlist = Wishlist.create({ ...validProps, venmoHandle: 'my-venmo' }, { generateEntityId: () => VENMO_ROW });
     expect(wishlist.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, ids).type).toBe('group');
+  });
+});
+
+describe('Wishlist.create with payment handles', () => {
+  it('mints a row id for the Venmo handle a new list starts with', () => {
+    const wishlist = Wishlist.create({ ...validProps, venmoHandle: 'my-venmo' }, { generateEntityId: () => VENMO_ROW });
+    expect(wishlist.paymentMethods.venmo?.id.value).toBe(VENMO_ROW);
   });
 });
 

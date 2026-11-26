@@ -10,7 +10,6 @@ import type { AccessContext } from '../AccessContext.js';
 import { DAY, GUEST, ITEM_ID, NO_SESSION, OTHER_GUEST, T0, WISHLIST_ID, twoListsWithOneItemEach } from '../test-fakes/scenarios.js';
 import { WishlistNotFoundError } from '../../domain/errors.js';
 import { Wishlist } from '../../domain/entities/Wishlist.js';
-import { PaymentMethods } from '../../domain/value-objects/PaymentMethods.js';
 import { FixedClock } from '../test-fakes/FixedClock.js';
 import { inMemoryPersistence } from '../test-fakes/InMemoryRepositories.js';
 
@@ -26,12 +25,13 @@ async function setup(policy?: HoldPolicy) {
 
 type World = Awaited<ReturnType<typeof setup>>;
 
+const VENMO_ROW_IDS = { generateEntityId: () => '66666666-6666-7666-8666-6666666666b0' };
 const GROUP_ITEM_ID = '44444444-4444-7444-8444-444444444444';
 
 async function groupSetup() {
   const persistence = inMemoryPersistence();
   const clock = new FixedClock(T0);
-  const wishlist = Wishlist.create({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0, paymentMethods: PaymentMethods.from({ venmoHandle: 'sam-w' }) });
+  const wishlist = Wishlist.create({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0, venmoHandle: 'sam-w' }, VENMO_ROW_IDS);
   wishlist.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, { generateEntityId: () => GROUP_ITEM_ID });
   await persistence.wishlists.insert(wishlist);
   const pledgeUseCase = new PledgeContribution(persistence.unitOfWork, new SequentialTokenGenerator(), clock);
@@ -47,8 +47,8 @@ describe('GetListView items and payment', () => {
     const persistence = inMemoryPersistence();
     const wishlist = Wishlist.create({
       id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0,
-      paymentMethods: PaymentMethods.from({ venmoHandle: 'sam-w' }),
-    });
+      venmoHandle: 'sam-w',
+    }, VENMO_ROW_IDS);
     const ids = ['33333333-3333-7333-8333-333333333333', '44444444-4444-7444-8444-444444444444'];
     wishlist.addItem({ type: 'single', title: 'Crib', quantity: 2, url: 'https://shop.example/crib', priceMinor: 19999, description: 'White, no drawers' }, { generateEntityId: () => ids[0] });
     wishlist.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, { generateEntityId: () => ids[1] });
@@ -66,7 +66,7 @@ describe('GetListView items and payment', () => {
 
   it("shows a group gift's pledged total", async () => {
     const persistence = inMemoryPersistence();
-    const wishlist = Wishlist.create({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0, paymentMethods: PaymentMethods.from({ venmoHandle: 'sam-w' }) });
+    const wishlist = Wishlist.create({ id: WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key', asOf: T0, venmoHandle: 'sam-w' }, VENMO_ROW_IDS);
     const mixer = '44444444-4444-7444-8444-444444444444';
     wishlist.addItem({ type: 'group', title: 'Mixer', priceMinor: 45000 }, { generateEntityId: () => mixer });
     await persistence.wishlists.insert(wishlist);
