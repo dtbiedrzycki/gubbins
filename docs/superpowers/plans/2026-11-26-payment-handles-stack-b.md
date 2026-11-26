@@ -56,7 +56,7 @@ Decided in review, for the owner to veto: while the change notice is unanswered 
   - `Wishlist.test.ts`: "refuses to clear both handles while the list has a group gift, and the old handles stay" (protects the shared rule in `changePaymentMethods`); "lets an owner clear both handles on a list without a group gift". The existing addItem refusal stays as is.
   - `domainErrorResponse.test.ts`: the `NoPaymentMethodError` row's message.
   - Wishlist contract: "saves a handle changed only in capitals in place, under the same row id" (`my-venmo` → `My-Venmo`; protects the save's text comparison, the one line that could drop a capitals-only change); "saves an added handle under its new row id"; "saves a cleared handle as none".
-  - `persistence.integration.test.ts`: "deletes a cleared handle's owner_pii row and keeps a pledge's" (SQLite only: the contract can't see the table).
+  - `persistence.integration.test.ts`: "deletes a cleared handle's owner_pii row, and a pledge's row for that method survives" (SQLite only: the contract can't see the table).
 - [ ] **Step 2: Run** `scripts/verify.sh --quick apps/api src/domain` and the two infrastructure files — FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Verify** `scripts/verify.sh --e2e`; **commit** `feat: an owner's payment handles change on the list`. The PR body names PR 4 as `changePaymentMethods`' first caller.
