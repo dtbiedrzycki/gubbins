@@ -96,7 +96,7 @@ The rules below are the full design. What the manage page does today:
   amount, method, state (pledged/confirmed), source (guest/manual), date.
   Guest rows: confirm or void. Manual rows: void, or **correct** — a
   single action that voids the existing entry, records a replacement
-  reusing the same `piiRef`, and re-points any `thank_you_status` row at
+  reusing the same `guestPiiRef`, and re-points any `thank_you_status` row at
   the new contribution id, so a correction never silently drops a
   thanked flag. Reusing the row is not a shortcut: the two entries are
   the same gift from the same person recorded twice, so a later

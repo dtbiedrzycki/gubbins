@@ -7,7 +7,7 @@
   maintained state; verify all three non-derived tables survive a
   rebuild untouched — `thank_you_status`, `guest_pii`, and
   `manual_gift_entries` ([data & persistence](data-and-persistence.md)) — including that a redacted `GuestPii`
-  row remains redacted and every `piiRef` still resolves afterwards. The
+  row remains redacted and every `piiRef` and `guest_pii_ref` still resolves afterwards. The
   two added here are where a mistake costs most: a rebuild that clears
   `guest_pii` orphans every `piiRef` in the event log, and one that
   clears `manual_gift_entries` loses owner-authored records with no
@@ -99,7 +99,7 @@
   second, and the constraint survives `rebuildProjections`
 - **Manual-contribution correction test** (ADR-[060](../adr/0060-manual-contributions-are-voidable-not-editable.md)): correcting a manual
   entry's amount voids the original and records a replacement carrying
-  the *original* `piiRef`; `item_state.confirmedMinor` reflects only the
+  the *original* `guestPiiRef`; `item_state.confirmedMinor` reflects only the
   replacement; an existing `thank_you_status` row follows to the new
   contribution id rather than orphaning; redacting the live entry leaves
   no un-redacted name on the voided one; the voided row survives
@@ -107,7 +107,7 @@
   manual entry emits no event, is rejected against a `source = guest`
   entry, and is rejected once `redactedAt` is set.
 - **Redaction and erasure tests** (ADR-[057](../adr/0057-gdpr-erasure-via-a-redactable-side-table-guestpii-not-events.md), ADR-[058](../adr/0058-guest-self-service-data-access-erasure-via-guestdataaccess.md)): after redacting a
-  `GuestPii` row, verify every `piiRef` referencing it still resolves to
+  `GuestPii` row, verify every `piiRef` and `guest_pii_ref` referencing it still resolves to
   a real row; `name`/`email`/`message` are null while the referencing
   hold or contribution's amount, item, status, and date are unchanged;
   `redactedAt` is set and no code path clears it; and the row renders as

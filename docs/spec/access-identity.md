@@ -144,7 +144,7 @@ issued for contributions (see [guest UX](guest-ux.md), ADR-[050](../adr/0050-con
 
 **Guest self-service data access (ADR-[058](../adr/0058-guest-self-service-data-access-erasure-via-guestdataaccess.md)).** A guest can view and erase
 everything they've personally shared on a list — all holds and
-contributions tied to their session, joined through `piiRef` to
+contributions tied to their session, joined through `guest_pii_ref` to
 `GuestPii` — without going through the owner. Two entry points:
 
 - **Live session**: `/wishlists/{slug}/my-data`, using the existing session cookie,
