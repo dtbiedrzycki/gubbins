@@ -245,7 +245,7 @@ describe('ContributeDialog', () => {
     expect(bodies[0]).toMatchObject({ payment: { method: 'zelle', handle: 'me@example.com' } });
   });
 
-  it('sends the handle shown when the pay step opened, not the one the list changed to', async () => {
+  it('shows and sends the handle frozen when the pay step opened, not the one the list changed to', async () => {
     const bodies = pledgeEndpoint();
     const user = userEvent.setup();
     const { props, rerender } = renderDialog();
