@@ -8,7 +8,7 @@ describe('PaymentHandle.from', () => {
   it.each(['a'.repeat(5), 'a'.repeat(30)])('accepts a Venmo handle of 5 to 30 characters: %j', (raw) => {
     expect(PaymentHandle.from('venmo', raw).handle).toBe(raw);
   });
-  it.each(['  ', 'a'.repeat(4), 'has space', 'a'.repeat(31), 'bad!chars'])('refuses Venmo handle %j', (raw) => {
+  it.each(['  ', 'a'.repeat(4), 'has space', 'a'.repeat(31), 'bad!chars'])('refuses a Venmo handle that is not 5 to 30 letters, digits, "_" or "-": %j', (raw) => {
     expect(() => PaymentHandle.from('venmo', raw)).toThrow(/Venmo/);
   });
   it.each([['Me@Example.com', 'me@example.com'], ['(555) 123-4567', '+15551234567'], ['+1 555 123 4567', '+15551234567']])('normalizes the Zelle handle %j', (raw, expected) => {
