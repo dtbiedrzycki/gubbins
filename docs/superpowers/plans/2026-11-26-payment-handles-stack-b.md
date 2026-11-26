@@ -26,7 +26,7 @@
 
 Approved by the owner (2026-11-26): PR 3 carries the handles while the use case ignores them until PR 4; one 409 message for adding a group gift and clearing both handles; the notice copy above; no length test in the edit form; a capitals-only Venmo change notifies no guest.
 
-Decided in review, for the owner to veto: while the change notice is unanswered the pay link and Zelle handle are hidden; step 1 names the frozen method; "I already paid" holds until the handle changes again.
+Decided in review, for the owner to veto: while the change notice is unanswered the pay link, the Zelle handle and "I've sent it" are held back; step 1 adds the frozen method only when the list no longer offers it; "I already paid" holds until the handle changes again, and a resumed draft whose handle still differs asks again.
 
 ## Review Focus
 
@@ -108,7 +108,7 @@ Decided in review, for the owner to veto: while the change notice is unanswered 
 ### Task 5: The form edits the handles (PR 5)
 
 **Files:**
-- Create: `apps/web/src/lib/paymentHandleLimits.ts` (`VENMO_MAX = 31`, `ZELLE_MAX = 254` and their why-comment, moved from `CreateListForm.tsx`, and `HANDLES_HINT = 'Group gifts need at least one handle.'`)
+- Create: `apps/web/src/lib/paymentHandleFields.ts` (`VENMO_MAX = 31`, `ZELLE_MAX = 254` and their why-comment, moved from `CreateListForm.tsx`, and `HANDLES_HINT = 'Group gifts need at least one handle.'`)
 - Modify: `apps/web/src/features/manage/EditListDetailsForm.tsx`, `EditListDetailsForm.test.tsx`
 - Modify: `apps/web/src/features/create-list/CreateListForm.tsx`, `CreateListForm.test.tsx` (the hint loses "Handles can't be changed later.")
 - Modify: `apps/web/src/pages/PrivacyPage.tsx`
@@ -127,9 +127,9 @@ Decided in review, for the owner to veto: while the change notice is unanswered 
 
 **Interfaces:**
 - Consumes: the frozen `paidTo` and `current(method)`.
-- Produces: on the pay step, when `current(paidTo.method).handle` differs from `paidTo.handle` (a refetch, or a resumed draft), ignoring capitals for Venmo, a notice with two choices. "I already paid @old" hides the notice and keeps `paidTo`; "Pay @new instead" sets `paidTo` to the current pair. When the list no longer offers `paidTo.method`, the second choice switches to the other offered method (a list with a group gift always has one). While the notice is unanswered, the pay link and the Zelle handle are hidden, so the guest can't pay the old handle twice. Step 1 of "How to chip in" names `paidTo`'s method, not the list's. "I already paid" records the current handle it was answered for: a later, different change shows the notice again, and a resumed draft shows it again if the handle still differs.
+- Produces: on the pay step, when `current(paidTo.method).handle` differs from `paidTo.handle` (a refetch, or a resumed draft), ignoring capitals for Venmo, a notice with two choices. "I already paid @old" hides the notice and keeps `paidTo`; "Pay @new instead" sets `paidTo` to the current pair. When the list no longer offers `paidTo.method`, the second choice switches to the other offered method (a list with a group gift always has one). While the notice is unanswered, the pay link and the Zelle handle are hidden, so the guest can't pay the old handle twice. "I've sent it" is disabled until the notice is answered, so the pledge records the handle the guest says they paid. Step 1 of "How to chip in" still names the list's methods, adding `paidTo`'s method only when the list no longer offers it. "I already paid" records the current handle it was answered for: a later, different change shows the notice again, and a resumed draft shows it again if the handle still differs.
 
-- [ ] **Step 1: Failing tests.** "says the owner's Venmo changed since the pay step opened"; "says nothing when only the Venmo handle's capitals changed" (protects the case-insensitive comparison); "sends the old handle once the guest says they already paid it"; "sends the new handle once the guest chooses to pay it"; "offers Zelle when the owner removed Venmo while the guest was paying"; "hides the pay link until the guest answers the notice". The notice region is mounted empty and filled, as ListPage's alert is.
+- [ ] **Step 1: Failing tests.** "says the owner's Venmo changed since the pay step opened"; "says nothing when only the Venmo handle's capitals changed" (protects the case-insensitive comparison); "sends the old handle once the guest says they already paid it"; "sends the new handle once the guest chooses to pay it"; "offers Zelle when the owner removed Venmo while the guest was paying"; "hides the pay link, and holds back \"I've sent it\", until the guest answers the notice"; "says so again when the handle changes a second time after \"I already paid\"" (protects recording the answered handle, not a flag). The notice region is mounted empty and filled, as ListPage's alert is.
 - [ ] **Step 2: Implement.**
 - [ ] **Step 3: Verify** `scripts/verify.sh --e2e`; **commit** `feat: the chip-in dialog says when the owner's handle changed`
 
