@@ -7,7 +7,7 @@ import type { ItemHeldEvent } from '../events/ItemHeldEvent.js';
 import type { ItemPurchasedEvent } from '../events/ItemPurchasedEvent.js';
 import { GuestKey } from '../value-objects/GuestKey.js';
 import { OwnerToken } from '../value-objects/OwnerToken.js';
-import { PaymentMethods } from '../value-objects/PaymentMethods.js';
+import { PaymentMethods, type ListHandles } from '../value-objects/PaymentMethods.js';
 import { Slug } from '../value-objects/Slug.js';
 import { UuidId } from '../value-objects/UuidId.js';
 import type { Contribution } from './Contribution.js';
@@ -17,8 +17,6 @@ import { cleanDescription, Item, type ItemEdit, type ItemStatus } from './Item.j
 const WISHLIST_DESCRIPTION_MAX = 2000; // room for an address and delivery notes; bounds stored input
 
 type NewListProps = { id: string; slug: string; title: string; ownerToken: string; key: string; asOf: Date; description?: string | null };
-/** A new list's handles as the owner typed them; blank means none. */
-type ListHandles = { venmoHandle?: string | null; zelleHandle?: string | null };
 
 /** The looks a list can have. */
 export const LIST_THEMES = ['storybook', 'groovy'] as const;
