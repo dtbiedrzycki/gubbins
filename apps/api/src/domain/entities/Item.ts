@@ -308,7 +308,7 @@ export class Item {
       sessionHash: contribution.sessionHash.value,
       idempotencyKey: contribution.idempotencyKey.value,
       piiRef: contribution.guestPiiRef.value, // events keep their original key
-      ownerPiiRef: props.ownerPiiRef,
+      ownerPiiRef: contribution.ownerPiiRef?.value,
       occurredAt: this.asOf.toISOString(),
     };
     this._contributions.push(contribution);

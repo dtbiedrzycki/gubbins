@@ -10,7 +10,7 @@ export const pledgeRequestSchema = z.object({
   amountMinor: z.number().int().positive(),
   name: z.string().min(1),
   message: z.string().optional(),
-  // The method and handle the guest paid. Optional: a tab loaded before this was deployed sends none.
+  // The method and handle the guest says they paid. Optional: a pledge can be recorded without one, and older pages send none.
   payment: z.object({ method: paymentMethodSchema, handle: paymentHandleTextSchema }).optional(),
 });
 export type PledgeRequest = z.infer<typeof pledgeRequestSchema>;
