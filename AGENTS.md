@@ -109,8 +109,9 @@ A layer above tests only what it adds.
   objects with `from()`. Invariants live in the private constructor so
   every path enforces them. The aggregate (Wishlist → Item → Hold /
   Contribution, ADR-0078) mints ids and decides; use cases only
-  orchestrate. The exception is `guestPiiRef`, which the use case mints beside
-  the `guest_pii` insert (ADR-0057). Domain commands and queries take no
+  orchestrate. The exceptions are `guestPiiRef` and a pledge's `ownerPiiRef`,
+  which the use case mints beside the `guest_pii` and `owner_pii` inserts
+  (ADR-0057, ADR-0090). Domain commands and queries take no
   date: load the aggregate as of an instant (`asOf`). An instant parameter
   is `at`, not `now`. Derive counters and statuses; adapters write what the
   domain decided. Domain commands return their ledger events.

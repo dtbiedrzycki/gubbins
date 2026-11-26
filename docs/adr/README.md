@@ -119,7 +119,7 @@ one-time renumbering documented in the restructuring history.
 | [079](0079-domain-methods-are-named-by-what-they-do-to-state.md) | Domain methods are named by what they do to state | Accepted |
 | [080](0080-list-creation-always-requires-createsecret.md) | List creation always requires a CREATE_SECRET | Accepted |
 | [081](0081-owner-session-keyed-by-slug-and-owner-token.md) | Owner session is keyed by slug and owner token | Accepted |
-| [082](0082-payment-handles-set-at-list-creation.md) | Payment handles are set at list creation | Accepted |
+| [082](0082-payment-handles-set-at-list-creation.md) | Payment handles are set at list creation and edited with the list details | Accepted |
 | [083](0083-database-checks-back-up-structural-invariants-only.md) | Database CHECKs back up structural invariants only | Accepted |
 | [084](0084-a-hold-covers-one-or-more-units.md) | A hold covers one or more units; buying fewer releases the rest | Accepted |
 | [085](0085-releases-are-tagged-0x-versions-and-shipped-migrations-are-never-edited.md) | Releases are tagged 0.x versions, and shipped migrations are never edited | Accepted |
@@ -127,6 +127,7 @@ one-time renumbering documented in the restructuring history.
 | [087](0087-the-owner-picks-the-list-style-from-a-fixed-set.md) | The owner picks the list's style from a fixed set | Accepted |
 | [088](0088-guests-lead-with-im-buying-this-and-can-undo-a-purchase.md) | Guests lead with "I'm buying this", and can undo a purchase | Accepted |
 | [089](0089-the-owner-reveals-who-gave-what-on-demand.md) | The owner reveals who gave what on demand | Accepted |
+| [090](0090-owner-payment-handles-are-owner-pii-in-a-side-table.md) | Owner payment handles are owner PII in a side table | Accepted |
 
 ## Imported ADRs (0001–0070)
 
