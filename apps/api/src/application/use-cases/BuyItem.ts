@@ -46,21 +46,21 @@ export class BuyItem {
       // Built before anything is written, so an invalid message buys nothing.
       const details = GuestDetails.from({ name: input.name, message: input.message });
       // The ref keys a guest_pii row outside the aggregate that the domain never sees (ADR-0057), so the use case mints it beside the insert.
-      const piiRef = this.tokenGenerator.generateEntityId();
+      const guestPiiRef = this.tokenGenerator.generateEntityId();
 
       const { hold, item, events, expectedSeq } = wishlist.buyItem({
         itemId: input.itemId,
         sessionHash: guest.sessionHash,
         idempotencyKey: input.idempotencyKey,
         durationMs: holdDurationMs(this.policy),
-        piiRef,
+        guestPiiRef,
         units: input.units,
       }, this.tokenGenerator, this.hasher);
 
       // Buying is guest-only (ADR-0075), so the actor is fixed.
       await ctx.eventStore.append(item.id.value, expectedSeq, events, 'guest');
-      // The hold's pii_ref foreign key needs this row to exist first.
-      await ctx.guestPii.insert(piiRef, details);
+      // The hold's guest_pii_ref foreign key needs this row to exist first.
+      await ctx.guestPii.insert(guestPiiRef, details);
       // Persist exactly what the domain decided.
       await ctx.wishlists.save(wishlist);
 

@@ -188,11 +188,11 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
     });
 
     it('save inserts a hold the aggregate placed', async () => {
-      const piiRef = '00000000-0000-7000-8000-888888888888';
-      await fx.seedGuestPii(piiRef);
+      const guestPiiRef = '00000000-0000-7000-8000-888888888888';
+      await fx.seedGuestPii(guestPiiRef);
       const wishlist = (await fx.wishlists.findById(LIST_A, NOW))!;
       const { hold } = wishlist.holdItem(
-        { itemId: ITEM_A, sessionHash: SESSION, idempotencyKey: 'idem-placed', durationMs: 60_000, piiRef, units: 1 },
+        { itemId: ITEM_A, sessionHash: SESSION, idempotencyKey: 'idem-placed', durationMs: 60_000, guestPiiRef, units: 1 },
         { generateEntityId: () => '00000000-0000-7000-8000-777777777777', generateHoldSecret: () => 'secret-placed' },
         { hash: (value) => `hashed-${value}` },
       );
@@ -325,7 +325,7 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       list.addItem({ type: 'group', title: 'Mixer', priceMinor: 45_000 }, { generateEntityId: () => ITEM_C2 });
       await fx.wishlists.insert(list);
       const wishlist = (await fx.wishlists.findById(LIST_C, NOW))!;
-      wishlist.pledge({ itemId: ITEM_C2, amountMinor: 2_500, sessionHash: SESSION, idempotencyKey: 'p-1', piiRef: PII_REF },
+      wishlist.pledge({ itemId: ITEM_C2, amountMinor: 2_500, sessionHash: SESSION, idempotencyKey: 'p-1', guestPiiRef: PII_REF },
         { generateEntityId: () => '00000000-0000-7000-8000-888888888888' });
 
       await fx.wishlists.save(wishlist);
@@ -342,9 +342,9 @@ export function describeWishlistRepositoryContract(adapter: string, factory: Per
       list.addItem({ type: 'group', title: 'Pram', priceMinor: 60_000 }, { generateEntityId: () => ITEM_C2 });
       await fx.wishlists.insert(list);
       const wishlist = (await fx.wishlists.findById(LIST_C, NOW))!;
-      const { contribution: onC1 } = wishlist.pledge({ itemId: ITEM_C1, amountMinor: 2_500, sessionHash: SESSION, idempotencyKey: 'p-1', piiRef: PII_REF },
+      const { contribution: onC1 } = wishlist.pledge({ itemId: ITEM_C1, amountMinor: 2_500, sessionHash: SESSION, idempotencyKey: 'p-1', guestPiiRef: PII_REF },
         { generateEntityId: () => '00000000-0000-7000-8000-888888888881' });
-      const { contribution: onC2 } = wishlist.pledge({ itemId: ITEM_C2, amountMinor: 1_000, sessionHash: SESSION, idempotencyKey: 'p-2', piiRef: PII_REF },
+      const { contribution: onC2 } = wishlist.pledge({ itemId: ITEM_C2, amountMinor: 1_000, sessionHash: SESSION, idempotencyKey: 'p-2', guestPiiRef: PII_REF },
         { generateEntityId: () => '00000000-0000-7000-8000-888888888882' });
       await fx.wishlists.save(wishlist);
 

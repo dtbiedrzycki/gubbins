@@ -48,21 +48,21 @@ export class HoldItem {
 
       const details = GuestDetails.from({ name: input.name });
       // The ref keys a guest_pii row outside the aggregate that the domain never sees (ADR-0057), so the use case mints it beside the insert.
-      const piiRef = this.tokenGenerator.generateEntityId();
+      const guestPiiRef = this.tokenGenerator.generateEntityId();
 
       const { hold, item, event, expectedSeq } = wishlist.holdItem({
         itemId: input.itemId,
         sessionHash: guest.sessionHash,
         idempotencyKey: input.idempotencyKey,
         durationMs: holdDurationMs(this.policy),
-        piiRef,
+        guestPiiRef,
         units: input.units,
       }, this.tokenGenerator, this.hasher);
 
       // Placing a hold is guest-only (ADR-0075), so the actor is fixed.
       await ctx.eventStore.append(item.id.value, expectedSeq, [event], 'guest');
-      // The hold's pii_ref foreign key needs this row to exist first.
-      await ctx.guestPii.insert(piiRef, details);
+      // The hold's guest_pii_ref foreign key needs this row to exist first.
+      await ctx.guestPii.insert(guestPiiRef, details);
       // Persist exactly what the domain decided — the write path never
       // decides availability itself.
       await ctx.wishlists.save(wishlist);

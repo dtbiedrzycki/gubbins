@@ -345,7 +345,7 @@ describe('Wishlist.availableUnitsOf', () => {
 });
 
 describe('Wishlist.holdItem', () => {
-  const props = { itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', durationMs: 3 * DAY, piiRef: '66666666-6666-7666-8666-666666666666', units: 1 };
+  const props = { itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', durationMs: 3 * DAY, guestPiiRef: '66666666-6666-7666-8666-666666666666', units: 1 };
 
   it('has the item place the hold on a free item, and returns that item with what it decided', () => {
     const wishlist = loaded({ seq: 4 });
@@ -413,7 +413,7 @@ describe('Wishlist hold commands', () => {
 
   it('passes the units of a hold through to the item', () => {
     const wishlist = loaded({ quantity: 5 });
-    const { hold } = wishlist.holdItem({ itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', durationMs: 3 * DAY, piiRef: '66666666-6666-7666-8666-666666666666', units: 3 }, tokens(), hasher);
+    const { hold } = wishlist.holdItem({ itemId: ITEM_ID, sessionHash: SESSION, idempotencyKey: 'idem-new', durationMs: 3 * DAY, guestPiiRef: '66666666-6666-7666-8666-666666666666', units: 3 }, tokens(), hasher);
     expect(hold.units).toBe(3);
     expect(wishlist.purchasableUnits(hold)).toBe(3);
     expect(wishlist.purchaseHold(hold, 2).event.units).toBe(2);
@@ -486,7 +486,7 @@ describe('Wishlist.findHoldForReplay', () => {
 describe('Wishlist.findContributionForReplay', () => {
   const pledged = Contribution.reconstitute({
     id: '77777777-7777-7777-8777-777777777777', itemId: ITEM_ID, amountMinor: 2_500, sessionHash: SESSION,
-    idempotencyKey: 'p-1', piiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
+    idempotencyKey: 'p-1', guestPiiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
   });
   const withPledge = () => Wishlist.reconstitute({
     theme: 'storybook', ...validProps, keyGen: 1,
@@ -504,11 +504,11 @@ describe('Wishlist.findContributionForReplay', () => {
   it('returns null for a key not used on that item', () => {
     const here = Contribution.reconstitute({
       id: '99999999-9999-7999-8999-999999999999', itemId: ITEM_ID, amountMinor: 2_500, sessionHash: SESSION,
-      idempotencyKey: 'p-2', piiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
+      idempotencyKey: 'p-2', guestPiiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
     });
     const elsewhere = Contribution.reconstitute({
       id: '88888888-8888-7888-8888-888888888888', itemId: OTHER_ITEM_ID, amountMinor: 2_500, sessionHash: SESSION,
-      idempotencyKey: 'p-1', piiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
+      idempotencyKey: 'p-1', guestPiiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
     });
     const wishlist = Wishlist.reconstitute({
       theme: 'storybook', ...validProps, keyGen: 1,
@@ -533,7 +533,7 @@ describe('Wishlist.holdsForSession', () => {
 describe('Wishlist.contributionsForSession', () => {
   it("returns only that session's pledges, across items", () => {
     const pledge = (id: string, itemId: string, sessionHash: string) => Contribution.reconstitute({
-      id, itemId, amountMinor: 2_500, sessionHash, idempotencyKey: `k-${id}`, piiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
+      id, itemId, amountMinor: 2_500, sessionHash, idempotencyKey: `k-${id}`, guestPiiRef: '66666666-6666-7666-8666-666666666666', pledgedAt: T0,
     });
     const onMixer = pledge('77777777-7777-7777-8777-777777777771', ITEM_ID, SESSION);
     const onPram = pledge('77777777-7777-7777-8777-777777777772', OTHER_ITEM_ID, SESSION);
