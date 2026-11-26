@@ -117,7 +117,7 @@ export class WishlistRepositoryKysely implements WishlistRepository {
       contributions: contributions.filter((contribution) => contribution.itemId.value === item.id),
     }));
     const refs = [row.venmo_owner_pii_ref, row.zelle_owner_pii_ref].filter((ref): ref is string => ref !== null);
-    const handles = new Map(refs.length === 0 ? [] : (await this.db.selectFrom('owner_pii').select(['id', 'handle']).where('id', 'in', refs).execute())
+    const handles = new Map((await this.db.selectFrom('owner_pii').select(['id', 'handle']).where('id', 'in', refs).execute())
       .map((pii) => [pii.id, pii.handle]));
     const handleOf = (ref: string | null) => (ref === null ? null : handles.get(ref) ?? null);
     return Wishlist.reconstitute({
