@@ -7,7 +7,7 @@ describe('Hold.create', () => {
   const validProps = {
     id: '55555555-5555-7555-8555-555555555555', itemId: '33333333-3333-7333-8333-333333333333',
     secret: 'hold-secret', sessionHash: 'a'.repeat(64),
-    idempotencyKey: 'idem-1', expiresAt: new Date('2026-01-04T00:00:00Z'), at, piiRef: '66666666-6666-7666-8666-666666666666', units: 1,
+    idempotencyKey: 'idem-1', expiresAt: new Date('2026-01-04T00:00:00Z'), at, guestPiiRef: '66666666-6666-7666-8666-666666666666', units: 1,
   };
 
   it('creates a hold', () => {
@@ -46,7 +46,7 @@ describe('Hold.create', () => {
 
   it('refuses a new hold without a reference to the holder\'s details', () => {
     // @ts-expect-error a new hold always references the holder's details
-    expect(() => Hold.create({ ...validProps, piiRef: undefined })).toThrow(DomainValidationError);
+    expect(() => Hold.create({ ...validProps, guestPiiRef: undefined })).toThrow(DomainValidationError);
   });
 
   it('rejects an id that is not a valid UUID', () => {
@@ -131,7 +131,7 @@ describe('Hold.statusAt — the one definition of hold state', () => {
     const at = new Date('2026-01-01T00:00:00.000Z');
     const hold = Hold.create({
       id: HOLD_ID, itemId: ITEM_ID, secret: 'hold-secret', sessionHash: 'a'.repeat(64),
-      idempotencyKey: 'idem-1', expiresAt: EXPIRES_AT, at, piiRef: '66666666-6666-7666-8666-666666666666', units: 1,
+      idempotencyKey: 'idem-1', expiresAt: EXPIRES_AT, at, guestPiiRef: '66666666-6666-7666-8666-666666666666', units: 1,
     });
     expect(hold.statusAt(at)).toBe('active');
     expect([hold.extendedAt, hold.releasedAt, hold.purchasedAt]).toEqual([null, null, null]);

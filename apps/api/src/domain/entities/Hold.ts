@@ -15,6 +15,9 @@ import { UuidId } from '../value-objects/UuidId.js';
  */
 export type HoldStatus = 'active' | 'expired' | 'released' | 'purchased' | 'buyUndone';
 
+/** Either name for the holder's details reference, until every caller says guestPiiRef. */
+type GuestPiiRefProp = { guestPiiRef: string; piiRef?: never } | { /** @deprecated use guestPiiRef */ piiRef: string; guestPiiRef?: never };
+
 /**
  * A hold's own lifecycle rules. The methods that take an instant (`statusAt`,
  * `canExtendAt`, `canReleaseAt`, `canUndoBuyAt`, `extend`, `release`,
@@ -39,7 +42,7 @@ export class Hold {
     readonly secret: HoldSecret,
     readonly sessionHash: SessionHash,
     readonly idempotencyKey: IdempotencyKey,
-    readonly piiRef: UuidId | null,
+    readonly guestPiiRef: UuidId | null,
     readonly units: number,
     private _expiresAt: Date,
     private _extendedAt: Date | null,
@@ -63,8 +66,8 @@ export class Hold {
 
   static create(props: {
     id: string; itemId: string; secret: string; sessionHash: string;
-    idempotencyKey: string; expiresAt: Date; at: Date; piiRef: string; units: number;
-  }): Hold {
+    idempotencyKey: string; expiresAt: Date; at: Date; units: number;
+  } & GuestPiiRefProp): Hold {
     const secret = HoldSecret.from(props.secret);
     const sessionHash = SessionHash.from(props.sessionHash);
     const idempotencyKey = IdempotencyKey.from(props.idempotencyKey);
@@ -73,7 +76,7 @@ export class Hold {
     }
     return new Hold(
       UuidId.from(props.id), UuidId.from(props.itemId), secret, sessionHash, idempotencyKey,
-      UuidId.from(props.piiRef), props.units,
+      UuidId.from(props.guestPiiRef ?? props.piiRef), props.units,
       props.expiresAt, null, null, null, null, null,
     );
   }
@@ -86,16 +89,20 @@ export class Hold {
   static reconstitute(props: {
     id: string; itemId: string; secret: string; sessionHash: string; idempotencyKey: string;
     expiresAt: Date; extendedAt: Date | null; releasedAt: Date | null; purchasedAt: Date | null;
-    piiRef?: string | null; units: number; purchasedUnits: number | null; buyUndoneAt: Date | null;
+    guestPiiRef?: string | null; /** @deprecated use guestPiiRef */ piiRef?: string | null; units: number; purchasedUnits: number | null; buyUndoneAt: Date | null;
   }): Hold {
+    const guestPiiRef = props.guestPiiRef ?? props.piiRef;
     return new Hold(
       UuidId.from(props.id), UuidId.from(props.itemId), HoldSecret.from(props.secret),
       SessionHash.from(props.sessionHash), IdempotencyKey.from(props.idempotencyKey),
-      props.piiRef == null ? null : UuidId.from(props.piiRef), props.units,
+      guestPiiRef == null ? null : UuidId.from(guestPiiRef), props.units,
       props.expiresAt, props.extendedAt, props.releasedAt, props.purchasedAt, props.purchasedUnits,
       props.buyUndoneAt,
     );
   }
+
+  /** @deprecated use guestPiiRef */
+  get piiRef(): UuidId | null { return this.guestPiiRef; }
 
   get expiresAt(): Date { return this._expiresAt; }
   get extendedAt(): Date | null { return this._extendedAt; }
