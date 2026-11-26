@@ -27,17 +27,18 @@ export class WishlistRepositoryKysely implements WishlistRepository {
   }
 
   async insert(wishlist: Wishlist): Promise<void> {
+    const createdAt = new Date().toISOString();
     await this.db.insertInto('wishlists').values({
       id: wishlist.id.value, slug: wishlist.slug.value, title: wishlist.title,
       owner_token: wishlist.ownerToken.value, key: wishlist.key.value, key_gen: wishlist.keyGen,
       description: wishlist.description, theme: wishlist.theme,
-      created_at: new Date().toISOString(),
+      created_at: createdAt,
     }).execute();
     // After the list row, which each owner_pii row references; the list then references them.
     for (const [method, handle] of [['venmo', wishlist.paymentMethods.venmoHandle], ['zelle', wishlist.paymentMethods.zelleHandle]] as const) {
       if (handle === null) continue;
       const id = uuidv7();
-      await this.db.insertInto('owner_pii').values({ id, wishlist_id: wishlist.id.value, method, handle, redacted_at: null, created_at: new Date().toISOString() }).execute();
+      await this.db.insertInto('owner_pii').values({ id, wishlist_id: wishlist.id.value, method, handle, redacted_at: null, created_at: createdAt }).execute();
       await this.db.updateTable('wishlists').set(method === 'venmo' ? { venmo_owner_pii_ref: id } : { zelle_owner_pii_ref: id }).where('id', '=', wishlist.id.value).execute();
     }
     for (const [index, item] of wishlist.items.entries()) await this.items.insert(item, index);
@@ -119,7 +120,13 @@ export class WishlistRepositoryKysely implements WishlistRepository {
     const refs = [row.venmo_owner_pii_ref, row.zelle_owner_pii_ref].filter((ref): ref is string => ref !== null);
     const handles = new Map((await this.db.selectFrom('owner_pii').select(['id', 'handle']).where('id', 'in', refs).execute())
       .map((pii) => [pii.id, pii.handle]));
-    const handleOf = (ref: string | null) => (ref === null ? null : handles.get(ref) ?? null);
+    const handleOf = (ref: string | null) => {
+      if (ref === null) return null;
+      const handle = handles.get(ref);
+      // The reference has a foreign key, so a missing row is corrupt data, not "no handle".
+      if (handle === undefined) throw new Error(`owner_pii row missing for list ${row.id}`);
+      return handle;
+    };
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
       ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now, description: row.description, theme: row.theme,
