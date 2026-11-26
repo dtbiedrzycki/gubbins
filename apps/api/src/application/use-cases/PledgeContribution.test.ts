@@ -21,7 +21,7 @@ async function makeUseCase() {
 }
 
 const input = { wishlistId: WISHLIST_ID, itemId: ITEM_ID, idempotencyKey: 'idem-1', amountMinor: 2_500, name: 'Ada', message: 'Congrats' };
-const paidByVenmo = { ...input, payment: { method: 'venmo' as const, handle: '@My-Venmo' } };
+const paidByVenmo = { ...input, payment: { method: 'venmo' as const, handle: 'my-venmo' } };
 
 describe('PledgeContribution', () => {
   it('stores the contribution, the guest\'s details and a guest-actor event, both referencing the details', async () => {
@@ -43,7 +43,7 @@ describe('PledgeContribution', () => {
     await useCase.execute(paidByVenmo, GUEST);
 
     const rows = [...store.ownerPii.values()];
-    expect(rows).toEqual([{ id: expect.any(String), wishlistId: WISHLIST_ID, method: 'venmo', handle: 'My-Venmo' }]);
+    expect(rows).toEqual([{ id: expect.any(String), wishlistId: WISHLIST_ID, method: 'venmo', handle: 'my-venmo' }]);
     expect([...store.contributions.values()].map((c) => c.ownerPiiRef?.value)).toEqual([rows[0]!.id]);
     expect(eventStore.recorded(ITEM_ID)[0]!.event).toMatchObject({ ownerPiiRef: rows[0]!.id });
   });
