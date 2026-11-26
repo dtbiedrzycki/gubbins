@@ -4,6 +4,15 @@ import { formatMoney } from '../../lib/formatMoney';
 
 interface Row { who: string; when: string; message: string | null }
 
+type Pledge = ContributionsResponse['items'][number]['pledges'][number];
+
+/** Where a guest says they paid, so the owner knows which account to check. */
+function paidTo(payment: Pledge['payment']): string {
+  if (payment === null) return ' · method not recorded';
+  const to = payment.method === 'venmo' ? `Venmo to @${payment.handle}` : `Zelle to ${payment.handle}`;
+  return ` via ${to}${payment.current ? '' : ' (not your current handle)'}`;
+}
+
 /** A name, with the units only when there's more than one. */
 const withUnits = (name: string, units: number) => (units > 1 ? `${name} · ${units}` : name);
 
@@ -13,7 +22,7 @@ export function ContributionsCard({ contributions }: { contributions: Contributi
   const kinds: [string, Row[]][] = ([
     ['Bought', contributions.purchases.map((p) => ({ who: withUnits(p.name, p.units), when: formatDay(p.purchasedAt, at), message: p.message }))],
     ['Held', contributions.holds.map((h) => ({ who: withUnits(h.name, h.units), when: `until ${formatDay(h.expiresAt, at)}`, message: null }))],
-    ['Pledged', contributions.pledges.map((p) => ({ who: `${p.name} · ${formatMoney(p.amountMinor)}`, when: formatDay(p.pledgedAt, at), message: p.message }))],
+    ['Pledged', contributions.pledges.map((p) => ({ who: `${p.name} · ${formatMoney(p.amountMinor)}${paidTo(p.payment)}`, when: formatDay(p.pledgedAt, at), message: p.message }))],
   ] as [string, Row[]][]).filter(([, rows]) => rows.length > 0);
 
   return (

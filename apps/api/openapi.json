@@ -1121,13 +1121,39 @@
                                 },
                                 "pledgedAt": {
                                   "type": "string"
+                                },
+                                "payment": {
+                                  "nullable": true,
+                                  "type": "object",
+                                  "properties": {
+                                    "method": {
+                                      "type": "string",
+                                      "enum": [
+                                        "venmo",
+                                        "zelle"
+                                      ]
+                                    },
+                                    "handle": {
+                                      "type": "string"
+                                    },
+                                    "current": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "method",
+                                    "handle",
+                                    "current"
+                                  ],
+                                  "additionalProperties": false
                                 }
                               },
                               "required": [
                                 "name",
                                 "message",
                                 "amountMinor",
-                                "pledgedAt"
+                                "pledgedAt",
+                                "payment"
                               ],
                               "additionalProperties": false
                             }

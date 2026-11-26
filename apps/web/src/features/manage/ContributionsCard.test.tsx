@@ -28,10 +28,26 @@ describe('ContributionsCard', () => {
     expect(screen.getByText('until Nov 27')).toBeInTheDocument();
   });
 
-  it('lists who pledged to a group gift, with the amount', () => {
-    render(<ContributionsCard contributions={contributions({ pledges: [{ name: 'Priya Nair', amountMinor: 6000, message: null, pledgedAt: '2026-11-03T12:00:00.000Z' }] })} />);
+  const pledge = (payment: ContributionsResponse['items'][number]['pledges'][number]['payment']) =>
+    contributions({ pledges: [{ name: 'Priya Nair', amountMinor: 6000, message: null, pledgedAt: '2026-11-03T12:00:00.000Z', payment }] });
+
+  it.each([
+    ['venmo', 'priya-n', 'Priya Nair · $60.00 via Venmo to @priya-n'],
+    ['zelle', 'priya@example.com', 'Priya Nair · $60.00 via Zelle to priya@example.com'],
+  ] as const)('lists who pledged to a group gift, with the amount and where they paid by %s', (method, handle, line) => {
+    render(<ContributionsCard contributions={pledge({ method, handle, current: true })} />);
     expect(screen.getByText('Pledged')).toBeInTheDocument();
-    expect(screen.getByText('Priya Nair · $60.00')).toBeInTheDocument();
+    expect(screen.getByText(line)).toBeInTheDocument();
+  });
+
+  it("adds '(not your current handle)' to a pledge whose handle isn't the list's", () => {
+    render(<ContributionsCard contributions={pledge({ method: 'venmo', handle: 'old-venmo', current: false })} />);
+    expect(screen.getByText('Priya Nair · $60.00 via Venmo to @old-venmo (not your current handle)')).toBeInTheDocument();
+  });
+
+  it("adds 'method not recorded' to a pledge without one", () => {
+    render(<ContributionsCard contributions={pledge(null)} />);
+    expect(screen.getByText('Priya Nair · $60.00 · method not recorded')).toBeInTheDocument();
   });
 
   it('says no one has acted yet when every list is empty', () => {

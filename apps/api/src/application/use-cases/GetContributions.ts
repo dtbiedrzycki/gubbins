@@ -1,6 +1,7 @@
 import type { Hold } from '../../domain/entities/Hold.js';
 import { WishlistNotFoundError } from '../../domain/errors.js';
 import type { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
+import type { PaymentMethod } from '../../domain/value-objects/PaymentHandle.js';
 import type { AccessContext } from '../AccessContext.js';
 import type { Clock } from '../ports/Clock.js';
 import type { UnitOfWork } from '../ports/UnitOfWork.js';
@@ -10,7 +11,7 @@ export interface Contributions {
     itemId: string;
     purchases: { name: string; message: string | null; units: number; purchasedAt: string }[];
     holds: { name: string; units: number; expiresAt: string }[];
-    pledges: { name: string; message: string | null; amountMinor: number; pledgedAt: string }[];
+    pledges: { name: string; message: string | null; amountMinor: number; pledgedAt: string; payment: { method: PaymentMethod; handle: string; current: boolean } | null }[];
   }[];
 }
 
@@ -35,6 +36,7 @@ export class GetContributions {
         ...item.contributions.map((c) => c.guestPiiRef.value),
       ]).filter((ref): ref is string => ref !== undefined);
       const guests = await ctx.guestPii.findByIds(refs);
+      const payments = await ctx.ownerPii.findByIds(items.flatMap(({ item }) => item.contributions.flatMap((c) => (c.ownerPiiRef ? [c.ownerPiiRef.value] : []))));
       // Hold still allows a null guestPiiRef for rows from before names were stored; a released database has none, so this is corrupt data.
       const guestOf = (hold: Hold): GuestDetails => {
         const guest = hold.guestPiiRef && guests.get(hold.guestPiiRef.value);
@@ -56,7 +58,12 @@ export class GetContributions {
           pledges: item.contributions.map((c) => {
             // A contribution's guest_pii_ref is NOT NULL with a foreign key, so its row is always there.
             const guest = guests.get(c.guestPiiRef.value)!;
-            return { name: guest.name, message: guest.message, amountMinor: c.amount.amountMinor, pledgedAt: c.pledgedAt.toISOString() };
+            // owner_pii_ref has a foreign key, so a pledge's row is there whenever it has a ref.
+            const paid = c.ownerPiiRef && payments.get(c.ownerPiiRef.value)!;
+            return {
+              name: guest.name, message: guest.message, amountMinor: c.amount.amountMinor, pledgedAt: c.pledgedAt.toISOString(),
+              payment: paid ? { method: paid.method, handle: paid.handle, current: wishlist.paymentMethods.isCurrent(paid) } : null,
+            };
           }),
         })),
       };

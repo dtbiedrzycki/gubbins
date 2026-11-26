@@ -814,6 +814,12 @@ export interface operations {
                                 message: string | null;
                                 amountMinor: number;
                                 pledgedAt: string;
+                                payment: {
+                                    /** @enum {string} */
+                                    method: "venmo" | "zelle";
+                                    handle: string;
+                                    current: boolean;
+                                } | null;
                             }[];
                         }[];
                     };

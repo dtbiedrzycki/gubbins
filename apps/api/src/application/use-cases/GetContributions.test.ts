@@ -34,8 +34,8 @@ async function setup() {
       .execute({ wishlistId: WISHLIST_ID, itemId: ITEM_ID, idempotencyKey: `buy-${name}`, name, units: 1, message }, GUEST),
     markPurchased: (holdId: string, units = 1) => new MarkHoldPurchased(persistence.unitOfWork, clock)
       .execute({ wishlistId: WISHLIST_ID, holdId, units }, GUEST),
-    pledge: (name: string, amountMinor: number, message: string) => new PledgeContribution(persistence.unitOfWork, tokens, clock)
-      .execute({ wishlistId: WISHLIST_ID, itemId: GROUP_ITEM_ID, idempotencyKey: `pledge-${name}`, amountMinor, name, message }, GUEST),
+    pledge: (name: string, amountMinor: number, message: string, payment?: { method: 'venmo' | 'zelle'; handle: string }) => new PledgeContribution(persistence.unitOfWork, tokens, clock)
+      .execute({ wishlistId: WISHLIST_ID, itemId: GROUP_ITEM_ID, idempotencyKey: `pledge-${name}`, amountMinor, name, message, payment }, GUEST),
     contributions: (access: { guestSession: null; owner: true } | typeof GUEST = OWNER) =>
       new GetContributions(persistence.unitOfWork, clock).execute({ wishlistId: WISHLIST_ID }, access),
   };
@@ -52,12 +52,23 @@ describe('GetContributions', () => {
 
     expect(await s.contributions()).toEqual({
       items: [
-        { itemId: GROUP_ITEM_ID, purchases: [], holds: [], pledges: [{ name: 'Sam', message: 'From all of us', amountMinor: 2_500, pledgedAt: T0.toISOString() }] },
+        { itemId: GROUP_ITEM_ID, purchases: [], holds: [], pledges: [{ name: 'Sam', message: 'From all of us', amountMinor: 2_500, pledgedAt: T0.toISOString(), payment: null }] },
         { itemId: ITEM_ID, purchases: [{ name: 'Ada', message: 'Happy 30th!', units: 1, purchasedAt: T0.toISOString() }],
           holds: [{ name: 'Grace', units: 1, expiresAt: new Date(T0.getTime() + 3 * DAY).toISOString() }], pledges: [] },
         { itemId: OTHER_ITEM_ID, purchases: [], holds: [], pledges: [] },
       ],
     });
+  });
+
+  it("shows each pledge's method and handle, and whether it is the list's current one", async () => {
+    const s = await setup();
+    await s.pledge('Sam', 2_500, '', { method: 'venmo', handle: 'my-venmo' });
+    await s.pledge('Ana', 1_000, '', { method: 'venmo', handle: 'old-venmo' });
+
+    expect(forItem(await s.contributions(), GROUP_ITEM_ID)?.pledges.map((p) => p.payment)).toEqual([
+      { method: 'venmo', handle: 'my-venmo', current: true },
+      { method: 'venmo', handle: 'old-venmo', current: false },
+    ]);
   });
 
   it('lists purchases in the order they were bought, not the order they were held', async () => {
