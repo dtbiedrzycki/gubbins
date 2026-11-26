@@ -4,6 +4,7 @@ import type { UnitOfWork, TransactionContext } from '../application/ports/UnitOf
 import type { EventStore } from '../application/ports/EventStore.js';
 import { WishlistRepositoryKysely } from './WishlistRepositoryKysely.js';
 import { GuestPiiRepositoryKysely } from './GuestPiiRepositoryKysely.js';
+import { OwnerPiiRepositoryKysely } from './OwnerPiiRepositoryKysely.js';
 import { EventStoreKysely } from './EventStoreKysely.js';
 import { inImmediateTransaction } from './db/immediateTransaction.js';
 
@@ -27,6 +28,7 @@ export class UnitOfWorkKysely implements UnitOfWork {
     return inImmediateTransaction(this.db, (trx) => fn({
       wishlists: new WishlistRepositoryKysely(trx),
       guestPii: new GuestPiiRepositoryKysely(trx),
+      ownerPii: new OwnerPiiRepositoryKysely(trx),
       eventStore: this.wrapEventStore(new EventStoreKysely(trx)),
     }));
   }

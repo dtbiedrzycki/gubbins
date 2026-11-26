@@ -1,5 +1,6 @@
 import type { WishlistRepository } from './WishlistRepository.js';
 import type { GuestPiiRepository } from './GuestPiiRepository.js';
+import type { OwnerPiiRepository } from './OwnerPiiRepository.js';
 import type { EventStore } from './EventStore.js';
 
 /**
@@ -14,6 +15,7 @@ export interface TransactionContext {
   wishlists: WishlistRepository;
   eventStore: EventStore;
   guestPii: GuestPiiRepository;
+  ownerPii: OwnerPiiRepository;
 }
 
 export interface UnitOfWork {

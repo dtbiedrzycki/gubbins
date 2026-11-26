@@ -9,6 +9,8 @@ import type { ContributionRepository } from '../ports/ContributionRepository.js'
 import type { EventStore } from '../ports/EventStore.js';
 import type { HoldRepository } from '../ports/HoldRepository.js';
 import type { GuestPiiRepository } from '../ports/GuestPiiRepository.js';
+import type { OwnerPiiRepository } from '../ports/OwnerPiiRepository.js';
+import { PaymentHandle } from '../../domain/value-objects/PaymentHandle.js';
 import type { ItemRow } from '../ports/ItemRepository.js';
 import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
 import type { TransactionContext, UnitOfWork } from '../ports/UnitOfWork.js';
@@ -60,6 +62,7 @@ export class InMemoryStore {
   readonly holds = new Map<string, Hold>();
   readonly contributions = new Map<string, Contribution>();
   readonly guestPii = new Map<string, { id: string; name: string; message: string | null }>();
+  readonly ownerPii = new Map<string, { id: string; wishlistId: string; method: PaymentHandle['method']; handle: string }>();
   readonly streams = new Map<string, { event: LedgerEvent; actor: Actor }[]>();
 
   /** Oldest expiry first, then id, the order the SQL adapter's queries return. */
@@ -204,6 +207,24 @@ export class InMemoryGuestPiiRepository implements GuestPiiRepository {
   }
 }
 
+export class InMemoryOwnerPiiRepository implements OwnerPiiRepository {
+  constructor(private store: InMemoryStore) {}
+
+  async insert(id: string, wishlistId: string, payment: PaymentHandle): Promise<void> {
+    if (this.store.ownerPii.has(id)) throw new Error(`UNIQUE constraint failed: owner_pii (${id})`);
+    this.store.ownerPii.set(id, { id, wishlistId, method: payment.method, handle: payment.handle });
+  }
+
+  async findByIds(ids: readonly string[]): Promise<Map<string, PaymentHandle>> {
+    const found = new Map<string, PaymentHandle>();
+    for (const id of ids) {
+      const row = this.store.ownerPii.get(id);
+      if (row) found.set(id, PaymentHandle.from(row.method, row.handle));
+    }
+    return found;
+  }
+}
+
 export class InMemoryContributionRepository implements ContributionRepository {
   constructor(private store: InMemoryStore) {}
 
@@ -236,6 +257,7 @@ export function inMemoryPersistence() {
   const wishlists = new InMemoryWishlistRepository(store);
   const eventStore = new InMemoryEventStore(store);
   const guestPii = new InMemoryGuestPiiRepository(store);
-  const unitOfWork = new InMemoryUnitOfWork({ wishlists, eventStore, guestPii });
-  return { store, wishlists, eventStore, guestPii, unitOfWork };
+  const ownerPii = new InMemoryOwnerPiiRepository(store);
+  const unitOfWork = new InMemoryUnitOfWork({ wishlists, eventStore, guestPii, ownerPii });
+  return { store, wishlists, eventStore, guestPii, ownerPii, unitOfWork };
 }

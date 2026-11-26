@@ -1,6 +1,7 @@
 import { describeContributionRepositoryContract } from '../application/ports/contracts/contributionRepository.contract.js';
 import { describeEventStoreContract } from '../application/ports/contracts/eventStore.contract.js';
 import { describeGuestPiiRepositoryContract } from '../application/ports/contracts/guestPiiRepository.contract.js';
+import { describeOwnerPiiRepositoryContract } from '../application/ports/contracts/ownerPiiRepository.contract.js';
 import { describeHoldRepositoryContract } from '../application/ports/contracts/holdRepository.contract.js';
 import { describeWishlistRepositoryContract } from '../application/ports/contracts/wishlistRepository.contract.js';
 import type { PersistenceFactory } from '../application/ports/contracts/fixture.js';
@@ -12,6 +13,7 @@ import { EventStoreKysely } from './EventStoreKysely.js';
 import { GuestPiiRepositoryKysely } from './GuestPiiRepositoryKysely.js';
 import { GuestDetails } from '../domain/value-objects/GuestDetails.js';
 import { HoldRepositoryKysely } from './HoldRepositoryKysely.js';
+import { OwnerPiiRepositoryKysely } from './OwnerPiiRepositoryKysely.js';
 import { WishlistRepositoryKysely } from './WishlistRepositoryKysely.js';
 
 const kysely: PersistenceFactory = async () => {
@@ -46,4 +48,12 @@ describeContributionRepositoryContract('Kysely/SQLite', async () => {
     seedGuestPii: (id) => new GuestPiiRepositoryKysely(db).insert(id, GuestDetails.from({ name: 'Guest' })),
     dispose: () => db.destroy(),
   };
+});
+describeOwnerPiiRepositoryContract('Kysely/SQLite', async () => {
+  const db = createDb(':memory:');
+  await migrateToLatest(db);
+  const wishlistId = '11111111-1111-7111-8111-111111111111';
+  // Each row belongs to a list (a foreign key).
+  await db.insertInto('wishlists').values({ id: wishlistId, slug: 's', title: 't', owner_token: 'o', key: 'k', key_gen: 1, created_at: new Date().toISOString() }).execute();
+  return { ownerPii: new OwnerPiiRepositoryKysely(db), wishlistId, dispose: () => db.destroy() };
 });

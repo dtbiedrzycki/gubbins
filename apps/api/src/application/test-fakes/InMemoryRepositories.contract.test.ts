@@ -1,11 +1,12 @@
 import { describeContributionRepositoryContract } from '../ports/contracts/contributionRepository.contract.js';
 import { describeEventStoreContract } from '../ports/contracts/eventStore.contract.js';
 import { describeGuestPiiRepositoryContract } from '../ports/contracts/guestPiiRepository.contract.js';
+import { describeOwnerPiiRepositoryContract } from '../ports/contracts/ownerPiiRepository.contract.js';
 import { describeHoldRepositoryContract } from '../ports/contracts/holdRepository.contract.js';
 import { describeWishlistRepositoryContract } from '../ports/contracts/wishlistRepository.contract.js';
 import type { PersistenceFactory } from '../ports/contracts/fixture.js';
 import {
-  InMemoryContributionRepository, InMemoryGuestPiiRepository, InMemoryHoldRepository, InMemoryWishlistRepository, InMemoryStore, inMemoryPersistence,
+  InMemoryContributionRepository, InMemoryGuestPiiRepository, InMemoryHoldRepository, InMemoryOwnerPiiRepository, InMemoryWishlistRepository, InMemoryStore, inMemoryPersistence,
 } from './InMemoryRepositories.js';
 import { GuestDetails } from '../../domain/value-objects/GuestDetails.js';
 
@@ -30,3 +31,6 @@ describeContributionRepositoryContract('in-memory', async () => {
     seedGuestPii: async () => {}, dispose: async () => {},
   };
 });
+describeOwnerPiiRepositoryContract('in-memory', async () => ({
+  ownerPii: new InMemoryOwnerPiiRepository(new InMemoryStore()), wishlistId: '11111111-1111-7111-8111-111111111111', dispose: async () => {},
+}));
