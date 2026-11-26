@@ -6,8 +6,9 @@
 
 ## Context
 
-A list's Venmo and Zelle handles sit on `wishlists` and can't be changed
-(ADR-[082](./0082-payment-handles-set-at-list-creation.md)). The owner
+Until now, a list's Venmo and Zelle handles sat on `wishlists` and couldn't
+be changed (ADR-[082](./0082-payment-handles-set-at-list-creation.md) as
+first written). The owner
 wants to edit them, and once they can change, each pledge must record where
 the guest was told to pay
 (ADR-[045](./0045-contribution-snapshots-its-payment-method-at-pledge-time.md)),
@@ -60,7 +61,7 @@ place on erasure so every reference still resolves.
 
 ## Consequences
 
-- Erasing an owner's handle is one update on `owner_pii`; the gift details
+- Erasure, when it is built, is one update on `owner_pii`; the gift details
   then show the method without the handle.
 - A hand-built request can record a handle that isn't the owner's. The
   owner sees a handle they don't recognise, as with any false pledge.
