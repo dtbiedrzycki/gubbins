@@ -24,9 +24,7 @@
 
 ## Decisions
 
-Approved by the owner (2026-11-26): PR 3 carries the handles while the use case ignores them until PR 4; one 409 message for adding a group gift and clearing both handles; the notice copy above; no length test in the edit form; a capitals-only Venmo change notifies no guest.
-
-Decided in review, for the owner to veto: while the change notice is unanswered the pay link, the Zelle handle and "I've sent it" are held back; step 1 adds the frozen method only when the list no longer offers it; "I already paid" holds until the handle changes again, and a resumed draft whose handle still differs asks again.
+Approved by the owner (2026-11-26): PR 3 carries the handles while the use case ignores them until PR 4; one 409 message for adding a group gift and clearing both handles; the notice copy above; no length test in the edit form; a capitals-only Venmo change notifies no guest; while the change notice is unanswered the pay link, the Zelle handle and "I've sent it" are held back; step 1 adds the frozen method only when the list no longer offers it; "I already paid" holds until the handle changes again, and a resumed draft whose handle still differs asks again.
 
 ## Review Focus
 
