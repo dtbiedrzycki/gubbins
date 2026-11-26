@@ -34,18 +34,11 @@ export class WishlistRepositoryKysely implements WishlistRepository {
       created_at: createdAt,
     }).execute();
     // After the list row, which each owner_pii row references; the list then references them.
-<<<<<<< HEAD
     for (const listHandle of [wishlist.paymentMethods.venmo, wishlist.paymentMethods.zelle]) {
       if (listHandle === null) continue;
       const id = listHandle.id.value;
       const { method, handle } = listHandle.handle;
-      await this.db.insertInto('owner_pii').values({ id, wishlist_id: wishlist.id.value, method, handle, redacted_at: null, created_at: new Date().toISOString() }).execute();
-=======
-    for (const [method, handle] of [['venmo', wishlist.paymentMethods.venmoHandle], ['zelle', wishlist.paymentMethods.zelleHandle]] as const) {
-      if (handle === null) continue;
-      const id = uuidv7();
       await this.db.insertInto('owner_pii').values({ id, wishlist_id: wishlist.id.value, method, handle, redacted_at: null, created_at: createdAt }).execute();
->>>>>>> feat/owner-pii-list-handles
       await this.db.updateTable('wishlists').set(method === 'venmo' ? { venmo_owner_pii_ref: id } : { zelle_owner_pii_ref: id }).where('id', '=', wishlist.id.value).execute();
     }
     for (const [index, item] of wishlist.items.entries()) await this.items.insert(item, index);
@@ -134,99 +127,6 @@ export class WishlistRepositoryKysely implements WishlistRepository {
       if (pii === undefined) throw new Error(`owner_pii row missing for list ${row.id}`);
       return pii;
     };
-      await this.db.updateTable('wishlists').set(method === 'venmo' ? { venmo_owner_pii_ref: id } : { zelle_owner_pii_ref: id }).where('id', '=', wishlist.id.value).execute();
-    }
-    for (const [index, item] of wishlist.items.entries()) await this.items.insert(item, index);
-  }
-
-  async findBySlug(slug: string, now: Date): Promise<Wishlist | null> {
-    const row = await this.db.selectFrom('wishlists').selectAll().where('slug', '=', slug).executeTakeFirst();
-    return row ? this.hydrate(row, now) : null;
-  }
-
-  async findAccessBySlug(slug: string): Promise<{ id: string; keyGen: number } | null> {
-    const row = await this.db.selectFrom('wishlists').select(['id', 'key_gen']).where('slug', '=', slug).executeTakeFirst();
-    return row ? { id: row.id, keyGen: row.key_gen } : null;
-  }
-
-  async findById(id: string, now: Date): Promise<Wishlist | null> {
-    const row = await this.db.selectFrom('wishlists').selectAll().where('id', '=', id).executeTakeFirst();
-    return row ? this.hydrate(row, now) : null;
-  }
-
-  async save(wishlist: Wishlist): Promise<void> {
-    const list = await this.db.selectFrom('wishlists').select(['id', 'title', 'description', 'theme']).where('id', '=', wishlist.id.value).executeTakeFirst();
-    if (list === undefined) throw new WishlistNotFoundError(wishlist.id.value);
-    const stored = new Map((await this.items.findAllByWishlistId(wishlist.id.value)).map((row) => [row.id, row]));
-    // Assumes the aggregate holds the list's full set of items, as findById/findBySlug always load.
-    // Refused before anything is written.
-    const kept = new Set(wishlist.items.map((item) => item.id.value));
-    const removed = [...stored.values()].filter((row) => !kept.has(row.id));
-    // The stored seq is the guard: event_log has no foreign key to items; only holds and contributions do.
-    if (removed.some((row) => row.seq !== 0)) throw new ItemHasGuestHistoryError(removed.find((row) => row.seq !== 0)!.id);
-    if (list.title !== wishlist.title || list.description !== wishlist.description || list.theme !== wishlist.theme) {
-      await this.db.updateTable('wishlists').set({ title: wishlist.title, description: wishlist.description, theme: wishlist.theme }).where('id', '=', wishlist.id.value).execute();
-    }
-    // Writes only items the domain added, edited, reordered or whose stream advanced, so an untouched row keeps its updated_at.
-    for (const [index, item] of wishlist.items.entries()) {
-      const row = stored.get(item.id.value);
-      if (row === undefined) { await this.items.insert(item, index); continue; }
-      if (row.title !== item.title || row.quantity !== item.quantity || row.url !== item.url
-        || row.priceMinor !== item.priceMinor || row.description !== item.description) await this.items.update(item);
-      if (row.position !== index) await this.items.savePosition(item.id.value, index);
-      if (row.seq !== item.seq) await this.items.saveState(item);
-    }
-    // Before holds are written.
-    for (const row of removed) await this.items.delete(row.id);
-    // After the items, so a new hold's item row already exists.
-    const holdIds = wishlist.holds.map((hold) => hold.id.value);
-    const storedRows = holdIds.length === 0 ? [] : await this.db.selectFrom('holds')
-      .select(['id', 'expires_at', 'extended_at', 'released_at', 'purchased_at', 'buy_undone_at', 'purchased_units']).where('id', 'in', holdIds).execute();
-    const storedHolds = new Map(storedRows.map(({ id, ...lifecycle }) => [id, lifecycle]));
-    // Likewise only holds the domain placed or changed; every column save writes is compared.
-    for (const hold of wishlist.holds) {
-      const stored = storedHolds.get(hold.id.value);
-      const columns = lifecycleColumns(hold);
-      if (stored === undefined) await this.holds.insert(hold);
-      else if ((Object.keys(columns) as (keyof typeof columns)[]).some((column) => stored[column] !== columns[column])) await this.holds.save(hold);
-    }
-    // After the items, so a new contribution's item row already exists. Pledges are never updated, only added.
-    const contributionIds = wishlist.contributions.map((c) => c.id.value);
-    const storedContributions = contributionIds.length === 0 ? new Set<string>()
-      : new Set((await this.db.selectFrom('contributions').select('id').where('id', 'in', contributionIds).execute()).map((row) => row.id));
-    for (const contribution of wishlist.contributions) {
-      if (!storedContributions.has(contribution.id.value)) await this.contributions.insert(contribution);
-    }
-  }
-
-  /**
-   * Every item on the list, each with all its holds and contributions
-   * (ADR-0078). `now` is the aggregate's `asOf`, the one instant it decides at.
-   */
-  private async hydrate(row: Selectable<WishlistsTable>, now: Date): Promise<Wishlist> {
-    const holds = await this.holds.findForWishlist(row.id);
-    const contributions = await this.contributions.findForWishlist(row.id);
-    const items = (await this.items.findAllByWishlistId(row.id)).map((item) => Item.reconstitute({
-      ...item, asOf: now,
-      // The members arrive for the whole list; each item takes only its own.
-      holds: holds.filter((hold) => hold.itemId.value === item.id),
-      contributions: contributions.filter((contribution) => contribution.itemId.value === item.id),
-    }));
-    const refs = [row.venmo_owner_pii_ref, row.zelle_owner_pii_ref].filter((ref): ref is string => ref !== null);
-    const handles = new Map((await this.db.selectFrom('owner_pii').select(['id', 'handle']).where('id', 'in', refs).execute())
-<<<<<<< HEAD
-      .map((pii) => [pii.id, pii]));
-    const rowOf = (ref: string | null) => (ref === null ? null : handles.get(ref) ?? null);
-=======
-      .map((pii) => [pii.id, pii.handle]));
-    const handleOf = (ref: string | null) => {
-      if (ref === null) return null;
-      const handle = handles.get(ref);
-      // The reference has a foreign key, so a missing row is corrupt data, not "no handle".
-      if (handle === undefined) throw new Error(`owner_pii row missing for list ${row.id}`);
-      return handle;
-    };
->>>>>>> feat/owner-pii-list-handles
     return Wishlist.reconstitute({
       id: row.id, slug: row.slug, title: row.title,
       ownerToken: row.owner_token, key: row.key, keyGen: row.key_gen, asOf: now, description: row.description, theme: row.theme,
