@@ -27,7 +27,7 @@ let keys = 0;
 function pledge(itemId: string, amountMinor: number, idempotencyKey = `idem-${++keys}`, pledgedAt = NOW): Contribution {
   return Contribution.reconstitute({
     id: `00000000-0000-7000-8000-${String(++ids).padStart(12, '0')}`, itemId, amountMinor, sessionHash: SESSION,
-    idempotencyKey, piiRef: PII, pledgedAt,
+    idempotencyKey, guestPiiRef: PII, pledgedAt,
   });
 }
 
@@ -56,7 +56,7 @@ export function describeContributionRepositoryContract(adapter: string, factory:
 
       expect(found).toMatchObject({
         id: inserted.id, itemId: inserted.itemId, amount: inserted.amount, sessionHash: inserted.sessionHash,
-        idempotencyKey: inserted.idempotencyKey, piiRef: inserted.piiRef,
+        idempotencyKey: inserted.idempotencyKey, guestPiiRef: inserted.guestPiiRef,
       });
       expect(found?.pledgedAt).toEqual(NOW);
     });

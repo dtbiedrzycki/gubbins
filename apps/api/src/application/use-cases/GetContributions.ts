@@ -31,13 +31,13 @@ export class GetContributions {
 
       const items = wishlist.items.map((item) => ({ item, purchased: item.purchasedHolds(), active: item.activeHolds() }));
       const refs = items.flatMap(({ item, purchased, active }) => [
-        ...[...purchased, ...active].map((hold) => hold.piiRef?.value),
-        ...item.contributions.map((c) => c.piiRef.value),
+        ...[...purchased, ...active].map((hold) => hold.guestPiiRef?.value),
+        ...item.contributions.map((c) => c.guestPiiRef.value),
       ]).filter((ref): ref is string => ref !== undefined);
       const guests = await ctx.guestPii.findByIds(refs);
-      // Hold still allows a null piiRef for rows from before names were stored; a released database has none, so this is corrupt data.
+      // Hold still allows a null guestPiiRef for rows from before names were stored; a released database has none, so this is corrupt data.
       const guestOf = (hold: Hold): GuestDetails => {
-        const guest = hold.piiRef && guests.get(hold.piiRef.value);
+        const guest = hold.guestPiiRef && guests.get(hold.guestPiiRef.value);
         if (!guest) throw new Error(`guest details missing for hold ${hold.id.value}`);
         return guest;
       };
@@ -54,8 +54,8 @@ export class GetContributions {
             }),
           holds: active.map((hold) => ({ name: guestOf(hold).name, units: hold.units, expiresAt: hold.expiresAt.toISOString() })),
           pledges: item.contributions.map((c) => {
-            // A contribution's pii_ref is NOT NULL with a foreign key, so its row is always there.
-            const guest = guests.get(c.piiRef.value)!;
+            // A contribution's guest_pii_ref is NOT NULL with a foreign key, so its row is always there.
+            const guest = guests.get(c.guestPiiRef.value)!;
             return { name: guest.name, message: guest.message, amountMinor: c.amount.amountMinor, pledgedAt: c.pledgedAt.toISOString() };
           }),
         })),

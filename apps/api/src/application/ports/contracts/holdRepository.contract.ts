@@ -30,15 +30,15 @@ export function describeHoldRepositoryContract(adapter: string, factory: Persist
       expect(reloaded).toEqual(hold);
     });
 
-    it("round-trips a hold's piiRef", async () => {
-      const piiRef = '00000000-0000-7000-8000-00000000aaaa';
-      await fx.seedGuestPii(piiRef);
-      await fx.holds.insert(holdFixture({ piiRef }));
-      expect((await fx.holds.findForWishlist(LIST_A))[0]?.piiRef?.value).toBe(piiRef);
+    it("round-trips a hold's guestPiiRef", async () => {
+      const guestPiiRef = '00000000-0000-7000-8000-00000000aaaa';
+      await fx.seedGuestPii(guestPiiRef);
+      await fx.holds.insert(holdFixture({ guestPiiRef }));
+      expect((await fx.holds.findForWishlist(LIST_A))[0]?.guestPiiRef?.value).toBe(guestPiiRef);
     });
 
-    it('refuses a hold whose piiRef has no guest_pii row', async () => {
-      await expect(fx.holds.insert(holdFixture({ piiRef: '00000000-0000-7000-8000-00000000bbbb' }))).rejects.toThrow();
+    it('refuses a hold whose guestPiiRef has no guest_pii row', async () => {
+      await expect(fx.holds.insert(holdFixture({ guestPiiRef: '00000000-0000-7000-8000-00000000bbbb' }))).rejects.toThrow();
     });
 
     it('refuses a second hold with the same item and idempotency key (ADR-0048)', async () => {
