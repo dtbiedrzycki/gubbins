@@ -64,9 +64,17 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
     },
   });
 
+  const offered: PayMethod[] = [payment.venmoHandle && 'venmo', payment.zelleHandle && 'zelle'].filter((m): m is PayMethod => Boolean(m));
+  const preferred = chosenMethod && offered.includes(chosenMethod) ? chosenMethod : offered.includes('venmo') ? 'venmo' : 'zelle';
+  const currentHandle = (m: PayMethod) => (m === 'venmo' ? payment.venmoHandle : payment.zelleHandle) ?? '';
+  // Fixed when the pay step opens, so a list refetch (on coming back from the Venmo app) can't swap the handle the guest paid.
+  const [paidTo, setPaidTo] = useState(() => draft && (draft.payment ?? { method: preferred, handle: currentHandle(preferred) }));
+  const shown = paidTo ?? { method: preferred, handle: currentHandle(preferred) };
+  const method = shown.method;
+
   useEffect(() => {
-    if (step === 'pay') saveDraft(slug, { itemId, amountText, message, idempotencyKey, savedAt: Date.now() });
-  }, [step, slug, itemId, amountText, message, idempotencyKey]);
+    if (step === 'pay' && paidTo) saveDraft(slug, { itemId, amountText, message, idempotencyKey, savedAt: Date.now(), payment: paidTo });
+  }, [step, slug, itemId, amountText, message, idempotencyKey, paidTo]);
 
   function cancel() {
     clearDraft(slug);
@@ -79,15 +87,13 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
   const lockedHint = sent && 'contribute-locked';
   const chosen = coverRest ? remainingMinor : parseUsd(other);
   const amount = parseUsd(amountText);
-  const offered: PayMethod[] = [payment.venmoHandle && 'venmo', payment.zelleHandle && 'zelle'].filter((m): m is PayMethod => Boolean(m));
-  const method = chosenMethod && offered.includes(chosenMethod) ? chosenMethod : offered.includes('venmo') ? 'venmo' : 'zelle';
   const waysToPay = offered.map((m) => PAY_METHOD_LABEL[m]).join(' or ');
 
   function send() {
     if (amount === null || isPending) return;
     const trimmedMessage = message.trim();
     mutate(
-      { idempotencyKey, amountMinor: amount, name: name.trim(), ...(trimmedMessage && { message: trimmedMessage }) },
+      { idempotencyKey, amountMinor: amount, name: name.trim(), ...(trimmedMessage && { message: trimmedMessage }), payment: shown },
       { onSuccess: (pledge) => { clearDraft(slug); onPledged(pledge.amountMinor); } },
     );
   }
@@ -113,12 +119,15 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
             aria-invalid={Boolean(other.trim()) && chosen === null} aria-describedby="contribute-other-error" className={field} />
           <p id="contribute-other-error" className="mb-4 text-sm text-error">{other.trim() && chosen === null ? invalidAmount : ''}</p>
           <div className="flex gap-2">
-            <button type="button" disabled={chosen === null} onClick={() => { setAmountText((chosen! / 100).toFixed(2)); setStep('pay'); }} className="btn-primary">Continue</button>
+            <button type="button" disabled={chosen === null} onClick={() => { setAmountText((chosen! / 100).toFixed(2)); setPaidTo({ method: preferred, handle: currentHandle(preferred) }); setStep('pay'); }} className="btn-primary">Continue</button>
             <button type="button" onClick={cancel} className="btn-secondary">Cancel</button>
           </div>
         </>
       ) : (
         <>
+          {draft && remainingMinor <= 0 && (
+            <p className="mb-4">Others finished funding this gift while you were paying. If you already sent money, record it here.</p>
+          )}
           <ol aria-label="How to chip in" className="mb-4 list-decimal pl-5 text-sm">
             <li>Check the amount, then send it with {waysToPay}.</li>
             <li>Once it has gone through, come back to this page.</li>
@@ -134,7 +143,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
               {offered.map((option) => (
                 <label key={option} className="relative grid min-h-11 cursor-pointer place-items-center rounded-[18px] has-checked:bg-ink has-checked:text-white has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-blue-500">
                   <input type="radio" name="pay-method" value={option} checked={method === option} className="absolute opacity-0"
-                    onChange={() => { setChosenMethod(option); writePreferredPayMethod(option); setCopied(''); }} />
+                    onChange={() => { setChosenMethod(option); writePreferredPayMethod(option); setPaidTo({ method: option, handle: currentHandle(option) }); setCopied(''); }} />
                   {PAY_METHOD_LABEL[option]}
                 </label>
               ))}
@@ -142,7 +151,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
           )}
           {method === 'venmo' && amount !== null && (
             <div className="mb-4">
-              <p className="mb-2"><a href={venmoPayLink(payment.venmoHandle!, amount, itemTitle)} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center">Pay {formatMoney(amount)} with Venmo</a></p>
+              <p className="mb-2"><a href={venmoPayLink(shown.handle, amount, itemTitle)} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center">Pay {formatMoney(amount)} with Venmo</a></p>
               <p className="text-sm text-muted">Opens Venmo with the payment information pre-filled.</p>
             </div>
           )}
@@ -154,8 +163,8 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
                 <li>Add &ldquo;{itemTitle}&rdquo; as the memo.</li>
               </ol>
               <p className="flex flex-wrap items-center gap-2">
-                <strong>{payment.zelleHandle}</strong>
-                <button type="button" onClick={() => navigator.clipboard.writeText(payment.zelleHandle!).then(() => setCopied('Copied.'), () => setCopied("Couldn't copy. Select the handle instead."))} className="btn-secondary">Copy</button>
+                <strong>{shown.handle}</strong>
+                <button type="button" onClick={() => navigator.clipboard.writeText(shown.handle).then(() => setCopied('Copied.'), () => setCopied("Couldn't copy. Select the handle instead."))} className="btn-secondary">Copy</button>
               </p>
             </div>
           )}

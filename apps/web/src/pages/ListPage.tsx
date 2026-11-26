@@ -55,11 +55,19 @@ export default function ListPage() {
   useEffect(() => queryClient.getMutationCache().subscribe((event) => { if (event.type === 'added') setNotice(null); }), [queryClient]);
   // A chip-in the guest left to pay, by this tab or another; read once, on arrival.
   const [draft, setDraft] = useState(() => (slug ? loadDraft(slug, Date.now()) : null));
-  // Only a gift still on the list and taking pledges can be chipped in to.
-  const resumeDraft = query.isSuccess && draft && query.data.items.some((i) => i.id === draft.itemId && i.type === 'group' && filterKey(i) === 'available') ? draft : null;
+  // Any group gift still on the list, funded or not: overfunding is allowed, so a guest who already paid can still record it.
+  const resumeDraft = query.isSuccess && draft && query.data.items.some((i) => i.id === draft.itemId && i.type === 'group') ? draft : null;
   useEffect(() => {
     if (query.isSuccess && draft && !resumeDraft && slug) clearDraft(slug);
   }, [query.isSuccess, draft, resumeDraft, slug]);
+  // The gift of the open chip-in or of a loaded draft. Its dialog unmounts with the gift, so this page says when the gift goes;
+  // keyed on the refetched list, not a 404, which an expired session gets too.
+  const [paying, setPaying] = useState(() => draft?.itemId ?? null);
+  const [payingRemoved, setPayingRemoved] = useState(false);
+  if (query.isSuccess && paying !== null && !query.data.items.some((i) => i.id === paying)) {
+    setPaying(null);
+    setPayingRemoved(true);
+  }
   if (!slug) return null;
 
   if (query.status === 'pending') {
@@ -141,6 +149,7 @@ export default function ListPage() {
           />
         )}
         {canChipIn && <HowGroupGiftsWork onDismiss={focusFilter} />}
+        {payingRemoved && <p role="alert" className="text-error">A gift you were paying for was removed. If you already sent money, let the owner know.</p>}
         <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn’t refresh the list, so it may be out of date." : ''}</p>
         <ItemFilter items={items} value={filter.value} onChange={chooseFilter} />
         {/* explicit role: Safari/VoiceOver drops list semantics under list-style none */}
@@ -160,7 +169,8 @@ export default function ListPage() {
                 draft={resumeDraft?.itemId === item.id ? resumeDraft : undefined}
                 notice={notice?.itemId === item.id ? notice.message : undefined}
                 // Done with once its chip-in closes: the next one, or the gift shown again, starts afresh.
-                onChipInClosed={() => setDraft(null)}
+                onChipInOpened={() => { setPaying(item.id); setPayingRemoved(false); }}
+                onChipInClosed={() => { setDraft(null); setPaying(null); }}
               />
             </li>
           ))}

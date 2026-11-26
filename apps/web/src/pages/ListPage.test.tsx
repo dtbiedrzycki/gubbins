@@ -272,17 +272,34 @@ describe('ListPage', () => {
       expect(screen.getByLabelText('Another amount')).toHaveValue('');
     });
 
-    it.each([
-      ['deleted', []],
-      ['fully funded', [{ ...groupGift, pledgedMinor: 50000 }]],
-    ] satisfies [string, ListViewResponse['items']][])('drops a draft for a gift that is %s', async (_, items) => {
+    const removed = 'A gift you were paying for was removed. If you already sent money, let the owner know.';
+
+    it('tells the guest a gift they were paying for was removed, and drops its draft', async () => {
       saveDraft();
-      server.use(http.get('/api/lists/abc123', () => HttpResponse.json(withGift(items))));
+      server.use(http.get('/api/lists/abc123', () => HttpResponse.json(withGift([]))));
       renderListPage();
 
-      await screen.findByRole('heading', { level: 1, name: 'Baby Shower' });
-      await waitFor(() => expect(localStorage.getItem(DRAFT_KEY)).toBeNull());
-      expect(screen.queryByLabelText('Amount (USD)')).not.toBeInTheDocument();
+      expect(await screen.findByText(removed)).toHaveAttribute('role', 'alert');
+      expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    });
+
+    it('resumes a draft for a gift others fully funded, on the pay step', async () => {
+      saveDraft();
+      server.use(http.get('/api/lists/abc123', () => HttpResponse.json(withGift([{ ...groupGift, pledgedMinor: 50000 }]))));
+      renderListPage();
+
+      expect(await screen.findByLabelText('Amount (USD)')).toHaveValue('25.00');
+    });
+
+    it('tells the guest when the gift of an open chip-in is removed', async () => {
+      server.use(http.get('/api/lists/abc123', () => HttpResponse.json(withGift([groupGift]))));
+      const user = userEvent.setup();
+      const { client } = renderListPage();
+      await user.click(await screen.findByRole('button', { name: 'Chip in' }));
+      server.use(http.get('/api/lists/abc123', () => HttpResponse.json(withGift([]))));
+      await client.refetchQueries();
+
+      expect(await screen.findByText(removed)).toHaveAttribute('role', 'alert');
     });
   });
 

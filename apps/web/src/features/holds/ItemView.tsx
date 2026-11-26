@@ -24,13 +24,15 @@ export interface ItemViewProps {
   chippedInMinor: number;
   /** A chip-in to this gift the guest left to pay: it opens again on arrival. */
   draft?: ContributeDraft;
+  /** The guest opened a chip-in to this gift. */
+  onChipInOpened?: () => void;
   /** The chip-in closed, so a draft it opened from is done with. */
   onChipInClosed?: () => void;
   /** What a done action in Your contributions did to this gift, told in its announcement row. */
   notice?: string;
 }
 
-export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chippedInMinor, draft, onChipInClosed, notice }: ItemViewProps) {
+export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chippedInMinor, draft, onChipInOpened, onChipInClosed, notice }: ItemViewProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'hold' | 'buy'>('hold');
   const [chipInOpen, setChipInOpen] = useState(Boolean(draft));
@@ -114,7 +116,7 @@ export function ItemView({ slug, item, holdDurationDays, payment, heldUnits, chi
         <>
           <PledgeProgress pledgedMinor={group.pledged} priceMinor={group.price} />
           {chippedInMinor > 0 && <p>You chipped in {formatMoney(chippedInMinor)}</p>}
-          <button ref={chipInButton} type="button" onClick={() => { setThanks(''); setChipInOpen(true); }} className="btn-primary">
+          <button ref={chipInButton} type="button" onClick={() => { setThanks(''); setChipInOpen(true); onChipInOpened?.(); }} className="btn-primary">
             Chip in
           </button>
         </>

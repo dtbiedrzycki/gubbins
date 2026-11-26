@@ -12,7 +12,8 @@ export default function PrivacyPage() {
         <h2 className="text-2xl font-semibold">What guests enter</h2>
         <p>
           When you hold a gift or chip in, you enter the gifter names (everyone the gift is from) and, if you
-          like, a message. The amounts you pledge are kept too. Gubbins does not ask for your email address.
+          like, a message. The amounts you pledge are kept too, with the method (Venmo or Zelle) and the owner’s
+          handle you say you paid to. Gubbins does not ask for your email address.
         </p>
         <p>Other guests never see these names or your message. These details are stored on this site’s server.</p>
       </section>
@@ -24,7 +25,7 @@ export default function PrivacyPage() {
           and it lasts 30 days from your last visit, or twice as long as a hold if this site’s holds last longer than 15 days. List owners get a separate cookie that keeps them signed in until the browser
           closes. Your browser also remembers, on this device only, the gifter names you last gave, whether you
           last chose Venmo or Zelle, whether you dismissed “How claiming a gift works”, whether you
-          last chose to show list descriptions in full, and, for up to 24 hours, the amount and message of a
+          last chose to show list descriptions in full, and, for up to 24 hours, the amount, message, method and handle of a
           chip-in you haven’t yet finished or cancelled. None of this leaves your device except the cookies, which
           go only to this site.
         </p>
