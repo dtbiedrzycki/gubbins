@@ -4,9 +4,6 @@ import { Money } from '../value-objects/Money.js';
 import { SessionHash } from '../value-objects/SessionHash.js';
 import { UuidId } from '../value-objects/UuidId.js';
 
-/** Either name for the guest's details reference, until every caller says guestPiiRef. */
-type GuestPiiRefProp = { guestPiiRef: string; piiRef?: never } | { /** @deprecated use guestPiiRef */ piiRef: string; guestPiiRef?: never };
-
 /** A guest's pledge toward a group gift: an entity inside the Wishlist aggregate, under its Item (ADR-0078). */
 export class Contribution {
   private constructor(
@@ -23,22 +20,19 @@ export class Contribution {
   }
 
   static create(props: {
-    id: string; itemId: string; amount: Money; sessionHash: string; idempotencyKey: string; pledgedAt: Date;
-  } & GuestPiiRefProp): Contribution {
+    id: string; itemId: string; amount: Money; sessionHash: string; idempotencyKey: string; guestPiiRef: string; pledgedAt: Date;
+  }): Contribution {
     return new Contribution(
       UuidId.from(props.id), UuidId.from(props.itemId), props.amount, SessionHash.from(props.sessionHash),
-      IdempotencyKey.from(props.idempotencyKey), UuidId.from(props.guestPiiRef ?? props.piiRef), props.pledgedAt,
+      IdempotencyKey.from(props.idempotencyKey), UuidId.from(props.guestPiiRef), props.pledgedAt,
     );
   }
 
   static reconstitute(props: {
-    id: string; itemId: string; amountMinor: number; sessionHash: string; idempotencyKey: string; pledgedAt: Date;
-  } & GuestPiiRefProp): Contribution {
+    id: string; itemId: string; amountMinor: number; sessionHash: string; idempotencyKey: string; guestPiiRef: string; pledgedAt: Date;
+  }): Contribution {
     return Contribution.create({ ...props, amount: Money.usd(props.amountMinor) });
   }
-
-  /** @deprecated use guestPiiRef */
-  get piiRef(): UuidId { return this.guestPiiRef; }
 
   belongsToSession(sessionHash: string): boolean {
     return this.sessionHash.value === sessionHash;

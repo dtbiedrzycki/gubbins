@@ -32,7 +32,7 @@ describe('PledgeContribution', () => {
     expect(result).toEqual({ contributionId: expect.any(String), itemId: ITEM_ID, amountMinor: 2_500 });
     const rows = [...store.guestPii.values()];
     expect(rows).toEqual([{ id: expect.any(String), name: 'Ada', message: 'Congrats' }]);
-    expect([...store.contributions.values()].map((c) => [c.id.value, c.amount.amountMinor, c.piiRef.value])).toEqual([[result.contributionId, 2_500, rows[0]!.id]]);
+    expect([...store.contributions.values()].map((c) => [c.id.value, c.amount.amountMinor, c.guestPiiRef.value])).toEqual([[result.contributionId, 2_500, rows[0]!.id]]);
     expect(eventStore.recorded(ITEM_ID).map(({ event, actor }) => [event.type, actor])).toEqual([['ContributionPledged', 'guest']]);
     expect(eventStore.recorded(ITEM_ID)[0]!.event).toMatchObject({ piiRef: rows[0]!.id });
   });

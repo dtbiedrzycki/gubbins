@@ -42,7 +42,7 @@ describe('HoldItem', () => {
 
     const rows = [...store.guestPii.values()];
     expect(rows).toEqual([{ id: expect.any(String), name: 'Ada', message: null }]);
-    expect((await wishlists.findById(WISHLIST_ID, NOW))?.findHold(holdId)?.piiRef?.value).toBe(rows[0]!.id);
+    expect((await wishlists.findById(WISHLIST_ID, NOW))?.findHold(holdId)?.guestPiiRef?.value).toBe(rows[0]!.id);
     expect(eventStore.recorded(ITEM_ID)[0]!.event).toMatchObject({ piiRef: rows[0]!.id });
   });
 
