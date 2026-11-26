@@ -10,7 +10,7 @@ export interface ContributionFixture {
   wishlists: WishlistRepository;
   /** Makes a guest_pii row a contribution can reference; the real table enforces the foreign key. */
   seedGuestPii(id: string): Promise<void>;
-  /** A pledge's owner_pii row, on the given list. */
+  /** A pledge's owner_pii row, on the given list: the SQLite adapter's owner_pii_ref foreign key needs one. */
   seedOwnerPii(id: string, wishlistId: string): Promise<void>;
   dispose(): Promise<void>;
 }
