@@ -252,6 +252,7 @@ describe('ContributeDialog', () => {
     await continueWithTheRest(user);
     const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     rerender(<QueryClientProvider client={client}><ContributeDialog {...props} payment={{ venmoHandle: 'new-venmo', zelleHandle: 'me@example.com' }} /></QueryClientProvider>);
+    expect(screen.getByRole('link', { name: /with Venmo/ }).getAttribute('href')).toContain('my-venmo');
     await user.type(screen.getByLabelText('Gifter name(s)'), 'Amara');
     await user.click(screen.getByRole('button', { name: "I've sent it" }));
 

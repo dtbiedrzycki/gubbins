@@ -64,13 +64,17 @@ export default function ListPage() {
   // keyed on the refetched list, not a 404, which an expired session gets too.
   const [paying, setPaying] = useState(() => draft?.itemId ?? null);
   const [payingRemoved, setPayingRemoved] = useState(false);
+  const removedAlert = useRef<HTMLParagraphElement>(null);
   if (query.isSuccess && paying !== null && !query.data.items.some((i) => i.id === paying)) {
     setPaying(null);
     setPayingRemoved(true);
   }
   // Nothing can be recorded without the gift, so its chip-in is not offered again.
   useEffect(() => {
-    if (payingRemoved && slug) clearDraft(slug);
+    if (!payingRemoved || !slug) return;
+    clearDraft(slug);
+    // An open dialog went with its gift, so focus would fall to the page: it goes to the alert instead.
+    removedAlert.current?.focus();
   }, [payingRemoved, slug]);
   if (!slug) return null;
 
@@ -153,7 +157,10 @@ export default function ListPage() {
           />
         )}
         {canChipIn && <HowGroupGiftsWork onDismiss={focusFilter} />}
-        {payingRemoved && <p role="alert" className="text-error">A gift you were paying for was removed. If you already sent money, let the owner know.</p>}
+        {/* Mounted empty, so screen readers announce the text when it arrives. */}
+        <p ref={removedAlert} tabIndex={-1} role="alert" className="text-error empty:hidden">
+          {payingRemoved ? 'A gift you were paying for was removed. If you already sent money, let the owner know.' : ''}
+        </p>
         <p role="status" aria-live="polite" className="text-amber-800 empty:mb-0">{query.isRefetchError ? "Couldn’t refresh the list, so it may be out of date." : ''}</p>
         <ItemFilter items={items} value={filter.value} onChange={chooseFilter} />
         {/* explicit role: Safari/VoiceOver drops list semantics under list-style none */}

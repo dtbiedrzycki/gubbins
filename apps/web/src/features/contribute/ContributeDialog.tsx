@@ -66,10 +66,11 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
 
   const offered: PayMethod[] = [payment.venmoHandle && 'venmo', payment.zelleHandle && 'zelle'].filter((m): m is PayMethod => Boolean(m));
   const preferred = chosenMethod && offered.includes(chosenMethod) ? chosenMethod : offered.includes('venmo') ? 'venmo' : 'zelle';
-  const currentHandle = (m: PayMethod) => (m === 'venmo' ? payment.venmoHandle : payment.zelleHandle) ?? '';
-  // Fixed when the pay step opens, so a list refetch (on coming back from the Venmo app) can't swap the handle the guest paid.
-  const [paidTo, setPaidTo] = useState(() => draft && (draft.payment ?? { method: preferred, handle: currentHandle(preferred) }));
-  const shown = paidTo ?? { method: preferred, handle: currentHandle(preferred) };
+  /** The list's handle for a method today, as the pair the dialog shows and sends. */
+  const current = (m: PayMethod) => ({ method: m, handle: (m === 'venmo' ? payment.venmoHandle : payment.zelleHandle) ?? '' });
+  // Frozen when the pay step opens, so a list refetch (on coming back from the Venmo app) can't swap the handle the guest paid.
+  const [paidTo, setPaidTo] = useState(() => draft && (draft.payment ?? current(preferred)));
+  const shown = paidTo ?? current(preferred);
   const method = shown.method;
 
   useEffect(() => {
@@ -119,7 +120,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
             aria-invalid={Boolean(other.trim()) && chosen === null} aria-describedby="contribute-other-error" className={field} />
           <p id="contribute-other-error" className="mb-4 text-sm text-error">{other.trim() && chosen === null ? invalidAmount : ''}</p>
           <div className="flex gap-2">
-            <button type="button" disabled={chosen === null} onClick={() => { setAmountText((chosen! / 100).toFixed(2)); setPaidTo({ method: preferred, handle: currentHandle(preferred) }); setStep('pay'); }} className="btn-primary">Continue</button>
+            <button type="button" disabled={chosen === null} onClick={() => { setAmountText((chosen! / 100).toFixed(2)); setPaidTo(current(preferred)); setStep('pay'); }} className="btn-primary">Continue</button>
             <button type="button" onClick={cancel} className="btn-secondary">Cancel</button>
           </div>
         </>
@@ -143,7 +144,7 @@ export function ContributeDialog({ slug, itemId, itemTitle, remainingMinor, paym
               {offered.map((option) => (
                 <label key={option} className="relative grid min-h-11 cursor-pointer place-items-center rounded-[18px] has-checked:bg-ink has-checked:text-white has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-blue-500">
                   <input type="radio" name="pay-method" value={option} checked={method === option} className="absolute opacity-0"
-                    onChange={() => { setChosenMethod(option); writePreferredPayMethod(option); setPaidTo({ method: option, handle: currentHandle(option) }); setCopied(''); }} />
+                    onChange={() => { setChosenMethod(option); writePreferredPayMethod(option); setPaidTo(current(option)); setCopied(''); }} />
                   {PAY_METHOD_LABEL[option]}
                 </label>
               ))}

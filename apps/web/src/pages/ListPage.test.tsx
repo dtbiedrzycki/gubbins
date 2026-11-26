@@ -274,7 +274,7 @@ describe('ListPage', () => {
 
     const removed = 'A gift you were paying for was removed. If you already sent money, let the owner know.';
 
-    it('tells the guest a gift their saved chip-in was for was removed', async () => {
+    it('tells the guest when the gift of a saved chip-in is gone on arrival', async () => {
       saveDraft();
       server.use(http.get('/api/lists/abc123', () => HttpResponse.json(withGift([]))));
       renderListPage();
@@ -298,7 +298,9 @@ describe('ListPage', () => {
       server.use(http.get('/api/lists/abc123', () => HttpResponse.json(withGift([]))));
       await client.refetchQueries();
 
-      expect(await screen.findByText(removed)).toHaveAttribute('role', 'alert');
+      const alert = await screen.findByText(removed);
+      expect(alert).toHaveAttribute('role', 'alert');
+      expect(alert).toHaveFocus();
     });
 
     it('drops the draft of an open chip-in whose gift is removed', async () => {
