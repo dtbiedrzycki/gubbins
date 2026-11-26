@@ -14,7 +14,7 @@ export class Contribution {
     readonly idempotencyKey: IdempotencyKey,
     readonly guestPiiRef: UuidId,
     readonly pledgedAt: Date,
-    /** The owner_pii row of the handle the guest paid (ADR-0090); null for a pledge made before this, or sent without a method. */
+    /** The owner_pii row of the handle the guest paid (ADR-0090); null for a pledge recorded without a method, as every earlier pledge was. */
     readonly ownerPiiRef: UuidId | null,
   ) {
     // Money allows zero, for totals; a pledge of nothing is not a pledge.
