@@ -114,7 +114,7 @@ In this order. Sizes are rough counts of 10-file PRs.
      Whatever is chosen keeps a non-drag way to move a gift for keyboard
      and screen-reader users.
 3a. **Edit the Venmo and Zelle handles, and record each pledge's method**
-   (owner's request; ~6–9 PRs plus ADR amendments). Handles are set at list creation and can't be
+   (owner's request; ~11–13 PRs plus a rename stack and ADR PRs, per its design). Handles are set at list creation and can't be
    changed (ADR-0082 deferred the settings UI). Add them to the list
    details the owner already edits; amend ADR-0082. Today the only rule
    is that a group gift can't be added to a list with no handles
@@ -128,8 +128,8 @@ In this order. Sizes are rough counts of 10-file PRs.
      migration, the contribute request carrying the method, and the
      snapshot shown in item 3's pledge details ("$40 via Venmo to
      @handle"). Pledges made before this show "method not recorded".
-     Recording the snapshot lands before handle editing, so no pledge
-     made after editing exists is ever missing it.
+     Recording the snapshot lands before handle editing, so every pledge
+     the dialog sends after editing exists names its handle.
 4. **Drag-and-drop reordering, phones included, then fewer buttons**
    (~6–9 PRs plus an ADR amendment). Amend ADR-0086, which left
    drag-and-drop out. Where the handle sits, and which buttons go, come
