@@ -2,6 +2,7 @@ import { Wishlist } from '../../domain/entities/Wishlist.js';
 import { Hold } from '../../domain/entities/Hold.js';
 import { Item } from '../../domain/entities/Item.js';
 import { SequentialTokenGenerator } from './SequentialTokenGenerator.js';
+import type { ListHandles } from '../../domain/value-objects/PaymentMethods.js';
 import type { ItemHeldEvent } from '../../domain/events/ItemHeldEvent.js';
 
 const DEFAULT_WISHLIST_ID = '11111111-1111-7111-8111-111111111111';
@@ -11,7 +12,7 @@ const DEFAULT_AS_OF = new Date('2026-01-01T00:00:00.000Z');
 export class WishlistBuilder {
   private props = { id: DEFAULT_WISHLIST_ID, slug: 'abc123', title: 'Baby Shower', ownerToken: 'owner-tok', key: 'guest-key' };
   private itemProps: { id: string; title: string; quantity?: number }[] = [];
-  private handles: { venmoHandle?: string; zelleHandle?: string } = {};
+  private handles: ListHandles = {};
   private purchased = 0;
   private instant = DEFAULT_AS_OF;
 
@@ -20,7 +21,7 @@ export class WishlistBuilder {
   withTitle(title: string): this { this.props.title = title; return this; }
   withOwnerToken(ownerToken: string): this { this.props.ownerToken = ownerToken; return this; }
   withKey(key: string): this { this.props.key = key; return this; }
-  withPaymentHandles(handles: { venmoHandle?: string; zelleHandle?: string }): this { this.handles = handles; return this; }
+  withPaymentHandles(handles: ListHandles): this { this.handles = handles; return this; }
   /** The instant the built aggregate decides at, as a load would set it. */
   asOf(at: Date): this { this.instant = at; return this; }
   /**
