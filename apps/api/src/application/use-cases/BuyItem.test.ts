@@ -26,7 +26,7 @@ async function makeUseCase() {
       return persistence.eventStore.append(itemId, expectedSeq, events, actor);
     },
   };
-  const unitOfWork = new InMemoryUnitOfWork({ wishlists: persistence.wishlists, eventStore: recording, guestPii: persistence.guestPii });
+  const unitOfWork = new InMemoryUnitOfWork({ wishlists: persistence.wishlists, eventStore: recording, guestPii: persistence.guestPii, ownerPii: persistence.ownerPii });
   const useCase = new BuyItem(unitOfWork, new SequentialTokenGenerator(), new FixedClock(NOW), new FakeHasher(), DEFAULT_HOLD_POLICY);
   return { useCase, calls, ...persistence };
 }
