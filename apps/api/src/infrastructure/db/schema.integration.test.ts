@@ -66,28 +66,41 @@ describe('0006 guest_pii_ref', () => {
 });
 
 describe('0007 owner_pii', () => {
-  it("moves each list's Venmo and Zelle handles into owner_pii rows the list references, and gives a list with neither no rows", async () => {
-    const W2 = '22222222-2222-7222-8222-222222222222';
+  const W2 = '22222222-2222-7222-8222-222222222222';
+  /** A database at 0006 holding list W1 with both handles and W2 with neither, migrated to the latest. */
+  async function migratedFrom0006() {
     const old = createDb(':memory:');
     const upTo0006 = Object.fromEntries(Object.entries(migrations).filter(([name]) => name < '0007'));
     await runMigrations(old as unknown as Kysely<unknown>, upTo0006);
     // Raw SQL: the typed schema no longer has these columns.
     await sql`insert into wishlists (id, slug, title, owner_token, key, key_gen, created_at, venmo_handle, zelle_handle)
       values (${W1}, 's1', 't', 'o', 'k', 1, ${NOW}, 'my-venmo', 'me@example.com'), (${W2}, 's2', 't', 'o', 'k', 1, ${NOW}, null, null)`.execute(old);
-
     await migrateToLatest(old);
+    return old;
+  }
+  const handlesOf = (old: Kysely<Database>, id: string) => old.selectFrom('wishlists')
+    .leftJoin('owner_pii as venmo', 'venmo.id', 'wishlists.venmo_owner_pii_ref')
+    .leftJoin('owner_pii as zelle', 'zelle.id', 'wishlists.zelle_owner_pii_ref')
+    .select(['venmo.handle as venmo', 'venmo.method as venmoMethod', 'zelle.handle as zelle', 'zelle.method as zelleMethod'])
+    .where('wishlists.id', '=', id).executeTakeFirstOrThrow();
 
-    const handlesOf = async (id: string) => {
-      const list = await old.selectFrom('wishlists')
-        .leftJoin('owner_pii as venmo', 'venmo.id', 'wishlists.venmo_owner_pii_ref')
-        .leftJoin('owner_pii as zelle', 'zelle.id', 'wishlists.zelle_owner_pii_ref')
-        .select(['venmo.handle as venmo', 'venmo.method as venmoMethod', 'zelle.handle as zelle', 'zelle.method as zelleMethod'])
-        .where('wishlists.id', '=', id).executeTakeFirstOrThrow();
-      return list;
-    };
-    expect(await handlesOf(W1)).toEqual({ venmo: 'my-venmo', venmoMethod: 'venmo', zelle: 'me@example.com', zelleMethod: 'zelle' });
-    expect(await handlesOf(W2)).toEqual({ venmo: null, venmoMethod: null, zelle: null, zelleMethod: null });
+  it("moves each list's Venmo and Zelle handles into owner_pii rows the list references", async () => {
+    const old = await migratedFrom0006();
+    expect(await handlesOf(old, W1)).toEqual({ venmo: 'my-venmo', venmoMethod: 'venmo', zelle: 'me@example.com', zelleMethod: 'zelle' });
+    await old.destroy();
+  });
+
+  it('gives a list with no handles no owner_pii rows', async () => {
+    const old = await migratedFrom0006();
+    expect(await handlesOf(old, W2)).toEqual({ venmo: null, venmoMethod: null, zelle: null, zelleMethod: null });
     expect(await old.selectFrom('owner_pii').select('wishlist_id').execute()).toEqual([{ wishlist_id: W1 }, { wishlist_id: W1 }]);
+    await old.destroy();
+  });
+
+  it("keeps no copy of a list's handles on wishlists", async () => {
+    const old = await migratedFrom0006();
+    const columns = (await sql<{ name: string }>`select name from pragma_table_info('wishlists')`.execute(old)).rows.map((r) => r.name);
+    expect(columns.filter((name) => name.endsWith('_handle'))).toEqual([]);
     await old.destroy();
   });
 });
