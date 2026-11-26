@@ -1,13 +1,15 @@
 import { z } from 'zod';
 
+// Capped tightly here: the domain checks only a handle's format, and its email pattern is slow on long input.
+export const paymentHandleTextSchema = z.string().max(254);
+
 export const createListRequestSchema = z.object({
   listTitle: z.string().min(1),
   listDescription: z.string().optional(),
   createSecret: z.string().optional(),
   key: z.string(),
-  // Capped tightly here: the domain checks only a handle's format, and its email pattern is slow on long input.
-  venmoHandle: z.string().max(254).optional(),
-  zelleHandle: z.string().max(254).optional(),
+  venmoHandle: paymentHandleTextSchema.optional(),
+  zelleHandle: paymentHandleTextSchema.optional(),
 });
 export type CreateListRequest = z.infer<typeof createListRequestSchema>;
 

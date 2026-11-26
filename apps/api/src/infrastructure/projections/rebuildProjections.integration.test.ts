@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Kysely } from 'kysely';
+import type { PledgeRequest } from '@gubbins/shared-types';
 import { createDb } from '../db/createDb.js';
 import { migrateToLatest } from '../db/migrate.js';
 import type { Database } from '../db/schema.js';
@@ -69,8 +70,8 @@ async function aGroupGift() {
   const { slug } = await deps.createList.execute({ listTitle: 'G', createSecret: 'test-create-secret', venmoHandle: 'my-venmo', key: guestKey });
   const wishlistId = (await deps.wishlists.findBySlug(slug, clock.now()))!.id.value;
   const { itemId } = await deps.addItem.execute({ wishlistId, type: 'group', title: 'Pram', priceMinor: 50_000 }, { guestSession: null, owner: true });
-  const pledge = (access: AccessContext, idempotencyKey: string) =>
-    deps.pledgeContribution.execute({ wishlistId, itemId, idempotencyKey, amountMinor: 2_500, name: 'Ada' }, access);
+  const pledge = (access: AccessContext, idempotencyKey: string, payment?: PledgeRequest['payment']) =>
+    deps.pledgeContribution.execute({ wishlistId, itemId, idempotencyKey, amountMinor: 2_500, name: 'Ada', payment }, access);
   return { pledge };
 }
 
@@ -139,6 +140,17 @@ describe('rebuildProjections', () => {
 
     await expect(rebuildProjections(db)).rejects.toThrow(RebuildError);
     expect(await projections()).toEqual(before);
+  });
+
+  it('re-folds ownerPiiRef from ContributionPledged', async () => {
+    const { pledge } = await aGroupGift();
+    const { contributionId } = await pledge(GUEST, 'p', { method: 'venmo', handle: 'my-venmo' });
+    const { owner_pii_ref: before } = await db.selectFrom('contributions').select('owner_pii_ref').where('id', '=', contributionId).executeTakeFirstOrThrow();
+
+    await rebuildProjections(db);
+
+    expect(before).not.toBeNull();
+    expect(await db.selectFrom('contributions').select('owner_pii_ref').where('id', '=', contributionId).executeTakeFirstOrThrow()).toEqual({ owner_pii_ref: before });
   });
 
   it('re-folds piiRef from ItemHeld and leaves guest_pii untouched', async () => {

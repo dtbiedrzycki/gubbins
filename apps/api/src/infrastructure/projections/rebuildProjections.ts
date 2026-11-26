@@ -72,7 +72,7 @@ export async function rebuildProjections(db: Kysely<Database>): Promise<{ events
         case 'ContributionPledged':
           await trx.insertInto('contributions').values({
             id: event.contributionId, item_id: row.item_id, amount_minor: event.amountMinor, session_hash: event.sessionHash,
-            idempotency_key: event.idempotencyKey, guest_pii_ref: event.piiRef, pledged_at: event.occurredAt, created_at: event.occurredAt,
+            idempotency_key: event.idempotencyKey, guest_pii_ref: event.piiRef, owner_pii_ref: event.ownerPiiRef, pledged_at: event.occurredAt, created_at: event.occurredAt,
           }).execute();
           break;
         default: {

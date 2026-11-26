@@ -1164,6 +1164,11 @@ export interface operations {
                     amountMinor: number;
                     name: string;
                     message?: string;
+                    payment?: {
+                        /** @enum {string} */
+                        method: "venmo" | "zelle";
+                        handle: string;
+                    };
                 };
             };
         };

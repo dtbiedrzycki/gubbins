@@ -1824,6 +1824,26 @@
                   },
                   "message": {
                     "type": "string"
+                  },
+                  "payment": {
+                    "type": "object",
+                    "properties": {
+                      "method": {
+                        "type": "string",
+                        "enum": [
+                          "venmo",
+                          "zelle"
+                        ]
+                      },
+                      "handle": {
+                        "type": "string",
+                        "maxLength": 254
+                      }
+                    },
+                    "required": [
+                      "method",
+                      "handle"
+                    ]
                   }
                 },
                 "required": [
